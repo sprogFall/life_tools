@@ -8,8 +8,9 @@ import '../../services/work_log_service.dart';
 
 class WorkTimeEntryEditPage extends StatefulWidget {
   final int taskId;
+  final WorkTimeEntry? entry;
 
-  const WorkTimeEntryEditPage({super.key, required this.taskId});
+  const WorkTimeEntryEditPage({super.key, required this.taskId, this.entry});
 
   @override
   State<WorkTimeEntryEditPage> createState() => _WorkTimeEntryEditPageState();
@@ -19,6 +20,18 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
   final _minutesController = TextEditingController();
   final _contentController = TextEditingController();
   DateTime _workDate = DateTime.now();
+
+  bool get _isEditMode => widget.entry != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.entry != null) {
+      _minutesController.text = widget.entry!.minutes.toString();
+      _contentController.text = widget.entry!.content;
+      _workDate = widget.entry!.workDate;
+    }
+  }
 
   @override
   void dispose() {
@@ -80,10 +93,10 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
                   size: 20,
                 ),
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '记录工时',
-                  style: TextStyle(
+                  _isEditMode ? '编辑工时' : '记录工时',
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.41,
@@ -265,14 +278,26 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
 
     final service = context.read<WorkLogService>();
     final navigator = Navigator.of(context);
-    await service.createTimeEntry(
-      WorkTimeEntry.create(
-        taskId: widget.taskId,
-        workDate: _workDate,
-        minutes: minutes,
-        content: _contentController.text.trim(),
-      ),
-    );
+
+    if (_isEditMode) {
+      await service.updateTimeEntry(
+        widget.entry!.copyWith(
+          workDate: _workDate,
+          minutes: minutes,
+          content: _contentController.text.trim(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    } else {
+      await service.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: widget.taskId,
+          workDate: _workDate,
+          minutes: minutes,
+          content: _contentController.text.trim(),
+        ),
+      );
+    }
 
     if (!mounted) return;
     navigator.pop(true);

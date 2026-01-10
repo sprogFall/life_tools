@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/tools/work_log/models/operation_log.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
 import 'package:life_tools/tools/work_log/repository/work_log_repository.dart';
@@ -155,6 +156,142 @@ void main() {
       expect(entries.length, 2);
       expect(entries.map((e) => e.workDate), contains(DateTime(2026, 1, 2)));
       expect(entries.map((e) => e.workDate), contains(DateTime(2026, 1, 3)));
+    });
+
+    test('应该可以更新工时记录', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final entryId = await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 30,
+          content: '初始内容',
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+
+      final entry = await repository.getTimeEntry(entryId);
+      expect(entry, isNotNull);
+
+      final updated = entry!.copyWith(
+        minutes: 60,
+        content: '更新后的内容',
+        updatedAt: DateTime(2026, 1, 2, 10),
+      );
+      await repository.updateTimeEntry(updated);
+
+      final again = await repository.getTimeEntry(entryId);
+      expect(again!.minutes, 60);
+      expect(again.content, '更新后的内容');
+    });
+
+    test('应该可以删除工时记录', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final entryId = await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 30,
+          content: '待删除',
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+
+      await repository.deleteTimeEntry(entryId);
+
+      final entry = await repository.getTimeEntry(entryId);
+      expect(entry, isNull);
+    });
+
+    test('应该可以创建和查询操作日志', () async {
+      await repository.createOperationLog(
+        OperationLog.create(
+          operationType: OperationType.createTask,
+          targetType: TargetType.task,
+          targetId: 1,
+          targetTitle: '任务A',
+          summary: '创建任务「任务A」',
+          now: DateTime(2026, 1, 1, 10),
+        ),
+      );
+
+      await repository.createOperationLog(
+        OperationLog.create(
+          operationType: OperationType.updateTask,
+          targetType: TargetType.task,
+          targetId: 1,
+          targetTitle: '任务A',
+          summary: '状态: 待办 -> 进行中',
+          now: DateTime(2026, 1, 1, 11),
+        ),
+      );
+
+      final logs = await repository.listOperationLogs(limit: 10);
+      expect(logs.length, 2);
+      // 按时间倒序
+      expect(logs.first.operationType, OperationType.updateTask);
+      expect(logs.last.operationType, OperationType.createTask);
+
+      final count = await repository.getOperationLogCount();
+      expect(count, 2);
+    });
+
+    test('应该可以按目标类型过滤操作日志', () async {
+      await repository.createOperationLog(
+        OperationLog.create(
+          operationType: OperationType.createTask,
+          targetType: TargetType.task,
+          targetId: 1,
+          targetTitle: '任务A',
+          summary: '创建任务',
+          now: DateTime(2026, 1, 1, 10),
+        ),
+      );
+
+      await repository.createOperationLog(
+        OperationLog.create(
+          operationType: OperationType.createTimeEntry,
+          targetType: TargetType.timeEntry,
+          targetId: 1,
+          targetTitle: '工时记录',
+          summary: '创建工时',
+          now: DateTime(2026, 1, 1, 11),
+        ),
+      );
+
+      final taskLogs = await repository.listOperationLogs(
+        targetType: TargetType.task,
+      );
+      expect(taskLogs.length, 1);
+      expect(taskLogs.first.operationType, OperationType.createTask);
+
+      final entryLogs = await repository.listOperationLogs(
+        targetType: TargetType.timeEntry,
+      );
+      expect(entryLogs.length, 1);
+      expect(entryLogs.first.operationType, OperationType.createTimeEntry);
     });
   });
 }

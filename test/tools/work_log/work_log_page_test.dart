@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/tools/work_log/models/operation_log.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
 import 'package:life_tools/tools/work_log/pages/work_log_tool_page.dart';
@@ -98,7 +99,13 @@ void main() {
 
       expect(find.text('任务A'), findsWidgets);
 
-      await tester.tap(find.byIcon(CupertinoIcons.clock));
+      // 点击更多按钮打开操作菜单
+      await tester.tap(find.byIcon(CupertinoIcons.ellipsis));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // 点击添加工时选项
+      await tester.tap(find.text('添加工时'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 800));
 
@@ -208,8 +215,10 @@ void main() {
 class _FakeWorkLogRepository implements WorkLogRepositoryBase {
   int _taskId = 0;
   int _entryId = 0;
+  int _logId = 0;
   final List<WorkTask> _tasks = [];
   final List<WorkTimeEntry> _entries = [];
+  final List<OperationLog> _logs = [];
 
   @override
   Future<int> createTask(WorkTask task) async {
@@ -267,6 +276,27 @@ class _FakeWorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
+  Future<WorkTimeEntry?> getTimeEntry(int id) async {
+    for (final e in _entries) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
+  @override
+  Future<void> updateTimeEntry(WorkTimeEntry entry) async {
+    final id = entry.id;
+    if (id == null) return;
+    final index = _entries.indexWhere((e) => e.id == id);
+    if (index >= 0) _entries[index] = entry;
+  }
+
+  @override
+  Future<void> deleteTimeEntry(int id) async {
+    _entries.removeWhere((e) => e.id == id);
+  }
+
+  @override
   Future<int> getTotalMinutesForDate(DateTime date) async {
     final day = DateTime(date.year, date.month, date.day);
     return _entries
@@ -289,5 +319,51 @@ class _FakeWorkLogRepository implements WorkLogRepositoryBase {
     return _entries
         .where((e) => !e.workDate.isBefore(start) && e.workDate.isBefore(end))
         .toList();
+  }
+
+  @override
+  Future<int> createOperationLog(OperationLog log) async {
+    final id = ++_logId;
+    _logs.add(OperationLog(
+      id: id,
+      operationType: log.operationType,
+      targetType: log.targetType,
+      targetId: log.targetId,
+      targetTitle: log.targetTitle,
+      beforeSnapshot: log.beforeSnapshot,
+      afterSnapshot: log.afterSnapshot,
+      summary: log.summary,
+      createdAt: log.createdAt,
+    ));
+    return id;
+  }
+
+  @override
+  Future<List<OperationLog>> listOperationLogs({
+    int? limit,
+    int? offset,
+    TargetType? targetType,
+    int? targetId,
+  }) async {
+    Iterable<OperationLog> result = _logs;
+    if (targetType != null) {
+      result = result.where((l) => l.targetType == targetType);
+    }
+    if (targetId != null) {
+      result = result.where((l) => l.targetId == targetId);
+    }
+    var list = result.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (offset != null && offset > 0) {
+      list = list.skip(offset).toList();
+    }
+    if (limit != null && limit > 0) {
+      list = list.take(limit).toList();
+    }
+    return list;
+  }
+
+  @override
+  Future<int> getOperationLogCount() async {
+    return _logs.length;
   }
 }

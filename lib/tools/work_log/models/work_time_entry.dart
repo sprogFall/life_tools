@@ -5,6 +5,7 @@ class WorkTimeEntry {
   final int minutes;
   final String content;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   const WorkTimeEntry({
     required this.id,
@@ -13,6 +14,7 @@ class WorkTimeEntry {
     required this.minutes,
     required this.content,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   factory WorkTimeEntry.create({
@@ -22,13 +24,15 @@ class WorkTimeEntry {
     required String content,
     DateTime? now,
   }) {
+    final time = now ?? DateTime.now();
     return WorkTimeEntry(
       id: null,
       taskId: taskId,
       workDate: _startOfDay(workDate),
       minutes: minutes,
       content: content,
-      createdAt: now ?? DateTime.now(),
+      createdAt: time,
+      updatedAt: time,
     );
   }
 
@@ -39,6 +43,7 @@ class WorkTimeEntry {
     int? minutes,
     String? content,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return WorkTimeEntry(
       id: id ?? this.id,
@@ -47,6 +52,7 @@ class WorkTimeEntry {
       minutes: minutes ?? this.minutes,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -58,17 +64,23 @@ class WorkTimeEntry {
       'minutes': minutes,
       'content': content,
       'created_at': createdAt.millisecondsSinceEpoch,
+      'updated_at': updatedAt.millisecondsSinceEpoch,
     };
   }
 
   factory WorkTimeEntry.fromMap(Map<String, Object?> map) {
+    final createdAt = DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int);
+    final updatedAtValue = map['updated_at'] as int?;
     return WorkTimeEntry(
       id: map['id'] as int?,
       taskId: map['task_id'] as int,
       workDate: DateTime.fromMillisecondsSinceEpoch(map['work_date'] as int),
       minutes: map['minutes'] as int,
       content: (map['content'] as String?) ?? '',
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
+      createdAt: createdAt,
+      updatedAt: updatedAtValue != null
+          ? DateTime.fromMillisecondsSinceEpoch(updatedAtValue)
+          : createdAt,
     );
   }
 

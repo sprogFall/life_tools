@@ -7,7 +7,9 @@ import '../../models/work_task.dart';
 import '../../services/work_log_service.dart';
 
 class WorkTaskEditPage extends StatefulWidget {
-  const WorkTaskEditPage({super.key});
+  final WorkTask? task;
+
+  const WorkTaskEditPage({super.key, this.task});
 
   @override
   State<WorkTaskEditPage> createState() => _WorkTaskEditPageState();
@@ -21,6 +23,25 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
   WorkTaskStatus _status = WorkTaskStatus.todo;
   DateTime? _startAt;
   DateTime? _endAt;
+
+  bool get _isEditMode => widget.task != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.task != null) {
+      _titleController.text = widget.task!.title;
+      _descriptionController.text = widget.task!.description;
+      if (widget.task!.estimatedMinutes > 0) {
+        final hours = widget.task!.estimatedMinutes / 60.0;
+        _estimatedHoursController.text =
+            hours == hours.roundToDouble() ? hours.toInt().toString() : hours.toString();
+      }
+      _status = widget.task!.status;
+      _startAt = widget.task!.startAt;
+      _endAt = widget.task!.endAt;
+    }
+  }
 
   @override
   void dispose() {
@@ -85,10 +106,10 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                   size: 20,
                 ),
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '创建任务',
-                  style: TextStyle(
+                  _isEditMode ? '编辑任务' : '创建任务',
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.41,
@@ -361,16 +382,33 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
 
     final service = context.read<WorkLogService>();
     final navigator = Navigator.of(context);
-    await service.createTask(
-      WorkTask.create(
-        title: title,
-        description: _descriptionController.text.trim(),
-        startAt: _startAt,
-        endAt: _endAt,
-        status: _status,
-        estimatedMinutes: estimatedMinutes,
-      ),
-    );
+
+    if (_isEditMode) {
+      await service.updateTask(
+        widget.task!.copyWith(
+          title: title,
+          description: _descriptionController.text.trim(),
+          startAt: _startAt,
+          endAt: _endAt,
+          clearStartAt: _startAt == null && widget.task!.startAt != null,
+          clearEndAt: _endAt == null && widget.task!.endAt != null,
+          status: _status,
+          estimatedMinutes: estimatedMinutes,
+          updatedAt: DateTime.now(),
+        ),
+      );
+    } else {
+      await service.createTask(
+        WorkTask.create(
+          title: title,
+          description: _descriptionController.text.trim(),
+          startAt: _startAt,
+          endAt: _endAt,
+          status: _status,
+          estimatedMinutes: estimatedMinutes,
+        ),
+      );
+    }
 
     if (!mounted) return;
     navigator.pop(true);

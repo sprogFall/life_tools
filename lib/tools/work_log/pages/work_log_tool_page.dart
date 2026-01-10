@@ -8,6 +8,7 @@ import '../repository/work_log_repository.dart';
 import '../repository/work_log_repository_base.dart';
 import '../services/work_log_service.dart';
 import 'calendar/work_log_calendar_view.dart';
+import 'log/operation_log_list_page.dart';
 import 'task/work_task_edit_page.dart';
 import 'task/work_task_list_view.dart';
 
@@ -162,6 +163,15 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
               ),
               CupertinoButton(
                 padding: const EdgeInsets.all(8),
+                onPressed: _openOperationLogs,
+                child: const Icon(
+                  CupertinoIcons.time,
+                  color: IOS26Theme.primaryColor,
+                  size: 22,
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
                 onPressed: _onPressedAdd,
                 child: const Icon(
                   CupertinoIcons.add,
@@ -225,6 +235,17 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
         _service.loadTasks();
       }
     });
+  }
+
+  void _openOperationLogs() {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: const OperationLogListPage(),
+        ),
+      ),
+    );
   }
 
   void _navigateToHome(BuildContext context) {

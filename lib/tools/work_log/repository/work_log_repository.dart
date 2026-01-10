@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_helper.dart';
+import '../models/operation_log.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
 import 'work_log_repository_base.dart';
@@ -126,6 +127,87 @@ class WorkLogRepository implements WorkLogRepositoryBase {
       [day],
     );
     return (results.first['total'] as int?) ?? 0;
+  }
+
+  @override
+  Future<WorkTimeEntry?> getTimeEntry(int id) async {
+    final db = await _database;
+    final results = await db.query(
+      'work_time_entries',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (results.isEmpty) return null;
+    return WorkTimeEntry.fromMap(results.first);
+  }
+
+  @override
+  Future<void> updateTimeEntry(WorkTimeEntry entry) async {
+    final id = entry.id;
+    if (id == null) {
+      throw ArgumentError('updateTimeEntry 需要 entry.id');
+    }
+    final db = await _database;
+    await db.update(
+      'work_time_entries',
+      entry.toMap(includeId: false),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  @override
+  Future<void> deleteTimeEntry(int id) async {
+    final db = await _database;
+    await db.delete('work_time_entries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  @override
+  Future<int> createOperationLog(OperationLog log) async {
+    final db = await _database;
+    return db.insert('operation_logs', log.toMap(includeId: false));
+  }
+
+  @override
+  Future<List<OperationLog>> listOperationLogs({
+    int? limit,
+    int? offset,
+    TargetType? targetType,
+    int? targetId,
+  }) async {
+    final db = await _database;
+
+    final whereParts = <String>[];
+    final whereArgs = <Object?>[];
+
+    if (targetType != null) {
+      whereParts.add('target_type = ?');
+      whereArgs.add(targetType.value);
+    }
+    if (targetId != null) {
+      whereParts.add('target_id = ?');
+      whereArgs.add(targetId);
+    }
+
+    final results = await db.query(
+      'operation_logs',
+      where: whereParts.isEmpty ? null : whereParts.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      orderBy: 'created_at DESC',
+      limit: limit,
+      offset: offset,
+    );
+    return results.map(OperationLog.fromMap).toList();
+  }
+
+  @override
+  Future<int> getOperationLogCount() async {
+    final db = await _database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS count FROM operation_logs',
+    );
+    return (result.first['count'] as int?) ?? 0;
   }
 
   static DateTime _startOfDay(DateTime dateTime) {

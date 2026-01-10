@@ -7,6 +7,7 @@ import '../../models/work_task.dart';
 import '../../models/work_time_entry.dart';
 import '../../services/work_log_service.dart';
 import '../time/work_time_entry_edit_page.dart';
+import 'work_task_edit_page.dart';
 
 class WorkTaskDetailPage extends StatefulWidget {
   final int taskId;
@@ -100,9 +101,18 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
               ),
               CupertinoButton(
                 padding: const EdgeInsets.all(8),
-                onPressed: _openAddTimeEntry,
+                onPressed: _task != null ? _openEditTask : null,
                 child: const Icon(
-                  CupertinoIcons.clock,
+                  CupertinoIcons.pencil,
+                  color: IOS26Theme.primaryColor,
+                  size: 22,
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                onPressed: _showMoreOptions,
+                child: const Icon(
+                  CupertinoIcons.ellipsis,
                   color: IOS26Theme.primaryColor,
                   size: 22,
                 ),
@@ -218,50 +228,193 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             ),
           )
         else
-          ..._entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GlassContainer(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
+          ..._entries.map((e) => _buildTimeEntryItem(e)),
+      ],
+    );
+  }
+
+  Widget _buildTimeEntryItem(WorkTimeEntry entry) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Dismissible(
+        key: ValueKey('time_entry_${entry.id}'),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: IOS26Theme.toolRed,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(CupertinoIcons.delete, color: Colors.white),
+        ),
+        confirmDismiss: (_) => _confirmDeleteTimeEntry(entry),
+        child: GestureDetector(
+          onTap: () => _openEditTimeEntry(entry),
+          child: GlassContainer(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              e.content.trim().isEmpty ? '（无内容）' : e.content,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: IOS26Theme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _formatDate(e.workDate),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: IOS26Theme.textSecondary,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        entry.content.trim().isEmpty ? '（无内容）' : entry.content,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: IOS26Theme.textPrimary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(height: 6),
                       Text(
-                        _minutesToHoursText(e.minutes),
+                        _formatDate(entry.workDate),
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: IOS26Theme.primaryColor,
+                          fontSize: 13,
+                          color: IOS26Theme.textSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
-              )),
-      ],
+                const SizedBox(width: 12),
+                Text(
+                  _minutesToHoursText(entry.minutes),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: IOS26Theme.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+  }
+
+  void _openEditTask() {
+    final service = context.read<WorkLogService>();
+    Navigator.of(context)
+        .push<bool>(
+          CupertinoPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: service,
+              child: WorkTaskEditPage(task: _task),
+            ),
+          ),
+        )
+        .then((saved) {
+      if (saved == true && mounted) {
+        _load();
+      }
+    });
+  }
+
+  void _showMoreOptions() {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _openAddTimeEntry();
+            },
+            child: const Text('添加工时'),
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(ctx);
+              _confirmDeleteTask();
+            },
+            child: const Text('删除任务'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('取消'),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteTask() {
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('确认删除'),
+        content: const Text('删除任务将同时删除所有相关的工时记录，此操作不可撤销。'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              Navigator.pop(context);
+              final service = context.read<WorkLogService>();
+              await service.deleteTask(widget.taskId);
+              if (mounted) Navigator.pop(context, true);
+            },
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openEditTimeEntry(WorkTimeEntry entry) {
+    final service = context.read<WorkLogService>();
+    Navigator.of(context)
+        .push<bool>(
+          CupertinoPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: service,
+              child: WorkTimeEntryEditPage(
+                taskId: widget.taskId,
+                entry: entry,
+              ),
+            ),
+          ),
+        )
+        .then((saved) {
+      if (saved == true && mounted) {
+        _load();
+      }
+    });
+  }
+
+  Future<bool> _confirmDeleteTimeEntry(WorkTimeEntry entry) async {
+    final service = context.read<WorkLogService>();
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除这条 ${entry.minutes} 分钟的工时记录吗？'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await service.deleteTimeEntry(entry.id!);
+      if (mounted) _load();
+    }
+    return false;
   }
 
   void _openAddTimeEntry() {
