@@ -14,6 +14,7 @@
 ## 项目概述
 
 这是一个名为 "life_tools" 的 Flutter 应用，支持 Android、iOS、Web、Linux、macOS 和 Windows 多平台。使用 Dart SDK ^3.10.7。
+数据全部记录在应用本地（SQLite）
 
 ## 常用命令
 

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import '../models/tool_info.dart';
 import '../theme/ios26_theme.dart';
 import '../../tools/placeholder_tool_page.dart';
+import '../../tools/work_log/pages/work_log_tool_page.dart';
 
 /// 工具注册表，管理所有可用工具
 class ToolRegistry {
@@ -23,7 +24,7 @@ class ToolRegistry {
       description: '记录和管理日常工作内容',
       icon: CupertinoIcons.briefcase,
       color: IOS26Theme.toolBlue,
-      pageBuilder: () => const PlaceholderToolPage(toolName: '工作记录'),
+      pageBuilder: () => const WorkLogToolPage(),
     ));
 
     register(ToolInfo(

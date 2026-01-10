@@ -1,0 +1,160 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/tools/work_log/models/work_task.dart';
+import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
+import 'package:life_tools/tools/work_log/repository/work_log_repository.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+void main() {
+  group('WorkLogRepository', () {
+    late WorkLogRepository repository;
+    late Database db;
+
+    setUpAll(() {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    });
+
+    setUp(() async {
+      db = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      repository = WorkLogRepository.withDatabase(db);
+    });
+
+    tearDown(() async {
+      await db.close();
+    });
+
+    test('应该可以创建并读取任务', () async {
+      final now = DateTime(2026, 1, 1, 8);
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '描述A',
+          startAt: DateTime(2026, 1, 1, 9),
+          endAt: DateTime(2026, 1, 3, 18),
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 60,
+          now: now,
+        ),
+      );
+
+      final task = await repository.getTask(taskId);
+      expect(task, isNotNull);
+      expect(task!.title, '任务A');
+      expect(task.status, WorkTaskStatus.todo);
+      expect(task.createdAt, now);
+    });
+
+    test('应该可以更新任务状态与预计工时', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final task = (await repository.getTask(taskId))!;
+      final updated = task.copyWith(
+        status: WorkTaskStatus.done,
+        estimatedMinutes: 120,
+        updatedAt: DateTime(2026, 1, 2),
+      );
+      await repository.updateTask(updated);
+
+      final again = (await repository.getTask(taskId))!;
+      expect(again.status, WorkTaskStatus.done);
+      expect(again.estimatedMinutes, 120);
+      expect(again.updatedAt, DateTime(2026, 1, 2));
+    });
+
+    test('应该可以在任务下添加工时并按日期汇总', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 30,
+          content: 'A-1',
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 45,
+          content: 'A-2',
+          now: DateTime(2026, 1, 2, 18),
+        ),
+      );
+
+      final minutes = await repository.getTotalMinutesForDate(
+        DateTime(2026, 1, 2),
+      );
+      expect(minutes, 75);
+    });
+
+    test('应该可以按时间范围查询工时记录', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 30,
+          content: 'A-1',
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 3),
+          minutes: 60,
+          content: 'A-2',
+          now: DateTime(2026, 1, 3, 9),
+        ),
+      );
+
+      final entries = await repository.listTimeEntriesInRange(
+        DateTime(2026, 1, 2),
+        DateTime(2026, 1, 4),
+      );
+      expect(entries.length, 2);
+      expect(entries.map((e) => e.workDate), contains(DateTime(2026, 1, 2)));
+      expect(entries.map((e) => e.workDate), contains(DateTime(2026, 1, 3)));
+    });
+  });
+}
