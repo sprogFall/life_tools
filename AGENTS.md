@@ -1,6 +1,5 @@
-# CLAUDE.md
+# Repository Guidelines
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Agent注意事项
 1. 永远用中文回答我
