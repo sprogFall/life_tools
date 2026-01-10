@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter clean:*)",
+      "Bash(Remove-Item -Recurse -Force \"d:\\\\Projects\\\\android\\\\life_tools\\\\build\" -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
