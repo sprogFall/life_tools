@@ -316,6 +316,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
         else
           ...todaysEntries.map((e) {
             final taskTitle = taskTitleById[e.taskId] ?? '任务#${e.taskId}';
+            final content = e.content.trim().isEmpty ? '（无内容）' : e.content;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: GestureDetector(
@@ -329,7 +330,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              taskTitle,
+                              '工作内容：$content',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -338,7 +339,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              e.content.trim().isEmpty ? '（无内容）' : e.content,
+                              '任务：$taskTitle',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: IOS26Theme.textSecondary,
@@ -597,4 +598,3 @@ class _DayCell extends StatelessWidget {
     return '${hours.toStringAsFixed(1)}h';
   }
 }
-

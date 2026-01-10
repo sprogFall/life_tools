@@ -159,6 +159,49 @@ void main() {
 
       expect(find.text('1.5h'), findsWidgets);
     });
+
+    testWidgets('日历日视图工时卡片应以工作内容为主并显示字段名', (tester) async {
+      final fake = _FakeWorkLogRepository();
+      final taskId = await fake.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime.now(),
+          minutes: 90,
+          content: '开发功能A',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkLogToolPage(repository: fake),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.text('日历'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // 点击月视图中包含工时汇总的日期格子，进入日视图
+      await tester.tap(find.text('1.5h').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
+
+      expect(find.text('工作内容：开发功能A'), findsOneWidget);
+      expect(find.text('任务：任务A'), findsOneWidget);
+    });
   });
 }
 
