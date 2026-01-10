@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
+import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
 
 void main() async {
@@ -36,10 +38,9 @@ class MyApp extends StatelessWidget {
       value: settingsService,
       child: MaterialApp(
         title: '生活助手',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-          useMaterial3: true,
-        ),
+        debugShowCheckedModeBanner: false,
+        theme: IOS26Theme.lightTheme,
+        scrollBehavior: const CupertinoScrollBehavior(),
         home: _buildInitialPage(),
       ),
     );

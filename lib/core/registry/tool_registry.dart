@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../models/tool_info.dart';
+import '../theme/ios26_theme.dart';
 import '../../tools/placeholder_tool_page.dart';
 
 /// 工具注册表，管理所有可用工具
@@ -20,8 +21,8 @@ class ToolRegistry {
       id: 'work_log',
       name: '工作记录',
       description: '记录和管理日常工作内容',
-      icon: Icons.work_outline,
-      color: Colors.blue,
+      icon: CupertinoIcons.briefcase,
+      color: IOS26Theme.toolBlue,
       pageBuilder: () => const PlaceholderToolPage(toolName: '工作记录'),
     ));
 
@@ -29,8 +30,8 @@ class ToolRegistry {
       id: 'review',
       name: '复盘笔记',
       description: '工作和生活复盘记录',
-      icon: Icons.rate_review_outlined,
-      color: Colors.orange,
+      icon: CupertinoIcons.doc_text,
+      color: IOS26Theme.toolOrange,
       pageBuilder: () => const PlaceholderToolPage(toolName: '复盘笔记'),
     ));
 
@@ -38,8 +39,8 @@ class ToolRegistry {
       id: 'expense',
       name: '日常开销',
       description: '记录日常消费支出',
-      icon: Icons.account_balance_wallet_outlined,
-      color: Colors.red,
+      icon: CupertinoIcons.creditcard,
+      color: IOS26Theme.toolRed,
       pageBuilder: () => const PlaceholderToolPage(toolName: '日常开销'),
     ));
 
@@ -47,8 +48,8 @@ class ToolRegistry {
       id: 'income',
       name: '收入记录',
       description: '记录各类收入来源',
-      icon: Icons.trending_up,
-      color: Colors.green,
+      icon: CupertinoIcons.chart_bar_alt_fill,
+      color: IOS26Theme.toolGreen,
       pageBuilder: () => const PlaceholderToolPage(toolName: '收入记录'),
     ));
   }

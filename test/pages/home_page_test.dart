@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +15,7 @@ void main() {
       mockSettingsService = SettingsService();
     });
 
-    testWidgets('应该显示欢迎标题', (WidgetTester tester) async {
+    testWidgets('应该显示应用标题', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: ChangeNotifierProvider<SettingsService>.value(
@@ -25,7 +26,19 @@ void main() {
       );
 
       expect(find.text('生活助手'), findsOneWidget);
-      expect(find.text('欢迎使用生活助手'), findsOneWidget);
+    });
+
+    testWidgets('应该显示欢迎卡片', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<SettingsService>.value(
+            value: mockSettingsService,
+            child: const HomePage(),
+          ),
+        ),
+      );
+
+      expect(find.text('欢迎回来'), findsOneWidget);
     });
 
     testWidgets('应该显示设置按钮', (WidgetTester tester) async {
@@ -38,7 +51,7 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.settings), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.gear), findsOneWidget);
     });
 
     testWidgets('应该显示工具卡片', (WidgetTester tester) async {
@@ -58,7 +71,7 @@ void main() {
       expect(find.text('收入记录'), findsOneWidget);
     });
 
-    testWidgets('点击设置按钮应该打开设置对话框', (WidgetTester tester) async {
+    testWidgets('点击设置按钮应该打开设置弹出层', (WidgetTester tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider<SettingsService>.value(
           value: mockSettingsService,
@@ -68,11 +81,11 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.settings));
+      await tester.tap(find.byIcon(CupertinoIcons.gear));
       await tester.pumpAndSettle();
 
       expect(find.text('设置'), findsOneWidget);
-      expect(find.text('默认打开工具:'), findsOneWidget);
+      expect(find.text('默认打开工具'), findsOneWidget);
     });
   });
 }
