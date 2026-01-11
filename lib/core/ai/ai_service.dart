@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'ai_config.dart';
 import 'ai_config_service.dart';
 import 'ai_errors.dart';
 import 'ai_models.dart';
 import 'openai_client.dart';
-import 'ai_config.dart';
 
 class AiService {
   final AiConfigService _configService;
@@ -112,5 +115,64 @@ class AiService {
     );
 
     return result.text;
+  }
+
+  Future<String> transcribeAudioFile({
+    required String filePath,
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    final config = _configService.config;
+    if (config == null || !config.isValid) {
+      throw const AiNotConfiguredException('请先在设置中完成 AI 配置');
+    }
+
+    final bytes = await File(filePath).readAsBytes();
+    final base64Audio = base64Encode(bytes);
+    final format = _inferAudioFormat(filePath);
+
+    final body = <String, Object?>{
+      'model': config.speechToTextModel,
+      'messages': [
+        {
+          'role': 'system',
+          'content': '你是语音转写助手。请把用户提供的音频转写为中文纯文本，只输出转写结果，不要输出多余内容。',
+        },
+        {
+          'role': 'user',
+          'content': [
+            {
+              'type': 'input_audio',
+              'input_audio': {
+                'data': base64Audio,
+                'format': format,
+              },
+            },
+            {
+              'type': 'text',
+              'text': '请转写以上音频为中文文本。',
+            },
+          ],
+        },
+      ],
+      'temperature': 0,
+      'max_tokens': 1024,
+    };
+
+    final result = await _client.chatCompletionsRaw(
+      config: config,
+      body: body,
+      timeout: timeout,
+    );
+
+    return result.text;
+  }
+
+  static String _inferAudioFormat(String filePath) {
+    final lower = filePath.toLowerCase();
+    if (lower.endsWith('.wav')) return 'wav';
+    if (lower.endsWith('.mp3')) return 'mp3';
+    if (lower.endsWith('.m4a')) return 'm4a';
+    if (lower.endsWith('.aac')) return 'aac';
+    return 'wav';
   }
 }

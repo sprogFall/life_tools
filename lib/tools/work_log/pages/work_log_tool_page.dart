@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/voice/ai_audio_transcription_input_service.dart';
+import '../../../core/voice/fallback_speech_input_service.dart';
 import '../../../core/voice/speech_input_service.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
@@ -48,7 +50,20 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       repository: widget.repository ?? WorkLogRepository(),
     );
     _service.loadTasks();
-    _speechInputService = widget.speechInputService ?? SpeechToTextInputService();
+    _speechInputService = widget.speechInputService ?? _createDefaultSpeechInputService();
+  }
+
+  SpeechInputService _createDefaultSpeechInputService() {
+    final primary = SpeechToTextInputService();
+    try {
+      final aiService = context.read<AiService>();
+      return FallbackSpeechInputService(
+        primary: primary,
+        fallback: AiAudioTranscriptionInputService(aiService: aiService),
+      );
+    } on ProviderNotFoundException {
+      return primary;
+    }
   }
 
   @override

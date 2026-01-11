@@ -52,6 +52,10 @@ dependencies:
   # 语音转文字（语音输入）
   speech_to_text: ^7.3.0
 
+  # 录音（用于无系统语音识别时走AI转写）
+  record: ^6.1.2
+  path_provider: ^2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,6 +66,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+# 避免 Windows / 国内网络环境下因 sqlite3 预编译库下载 GitHub 失败导致 `flutter test` 无法运行。
+# 使用系统自带的 SQLite 动态库（Windows 默认：winsqlite3.dll）。
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
+      name_windows: winsqlite3
+      name: sqlite3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -2,7 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../../../core/ai/ai_errors.dart';
 import '../../../../core/theme/ios26_theme.dart';
 import '../../../../core/voice/speech_input_service.dart';
 
@@ -204,6 +206,29 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      final code = e.code;
+      setState(() {
+        if (code == 'recognizerNotAvailable') {
+          _error = '该设备未提供系统语音识别服务（Speech recognition not available）。\n'
+              '常见原因：未安装/禁用“Speech Services by Google”(或系统语音服务)、系统为无 GMS 机型。\n'
+              '你可以改为手动输入，或更换/启用语音识别服务后再试。';
+        } else {
+          _error = '语音识别失败：${e.message ?? e.toString()}';
+        }
+      });
+    } on AiNotConfiguredException catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = '未配置 AI，无法使用网络语音识别。\n请先到「设置 -> AI配置」填写 Base URL / API Key，并将「语音识别模型」设置为可用的 ASR 模型（例如 whisper-1）。';
+      });
+    } on AiApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '网络语音识别失败：${e.message}\n'
+            '请确认你的 AI 服务在 `/v1/chat/completions` 支持音频输入（input_audio），且「语音识别模型」可用。';
       });
     } catch (e) {
       if (!mounted) return;

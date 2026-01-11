@@ -121,6 +121,54 @@ void main() {
         ),
       );
     });
+
+    test('chatCompletionsRaw 应使用与文字相同的 chat/completions 路径', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.url.toString(), 'https://example.com/v1/chat/completions');
+        expect(request.headers['Authorization'], 'Bearer test-key');
+        expect(request.headers['Content-Type'], 'application/json');
+
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['model'], 'whisper-1');
+        expect(body['messages'], isA<List<dynamic>>());
+
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'role': 'assistant', 'content': '转写文本'},
+                },
+              ],
+            }),
+          ),
+          200,
+          headers: {'Content-Type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final client = OpenAiClient(httpClient: mockClient);
+      const config = AiConfig(
+        baseUrl: 'https://example.com',
+        apiKey: 'test-key',
+        model: 'gpt-4o-mini',
+        speechToTextModel: 'whisper-1',
+        temperature: 0.2,
+        maxOutputTokens: 128,
+      );
+
+      final result = await client.chatCompletionsRaw(
+        config: config,
+        body: const {
+          'model': 'whisper-1',
+          'messages': [
+            {'role': 'user', 'content': 'hi'},
+          ],
+        },
+      );
+
+      expect(result.text, '转写文本');
+    });
   });
 }
 
