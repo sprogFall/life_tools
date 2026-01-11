@@ -21,7 +21,7 @@ class ToolRegistry {
     register(ToolInfo(
       id: 'work_log',
       name: '工作记录',
-      description: '记录和管理日常工作内容',
+      description: '日常工作管理',
       icon: CupertinoIcons.briefcase,
       color: IOS26Theme.toolBlue,
       pageBuilder: () => const WorkLogToolPage(),
