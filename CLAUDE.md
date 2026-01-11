@@ -59,3 +59,9 @@ dart format .
 - **test/** - 使用 `flutter_test` 包的 Widget 测试
 - 使用 Material Design（`uses-material-design: true`）
 - 通过 `flutter_lints` 包进行代码检查（配置在 `analysis_options.yaml`）
+
+## AI 调用（公共入口）
+
+项目在 `lib/main.dart` 已注入 `AiService`，业务侧通过 Provider 获取后调用 `chatText(...)` 或 `chat(...)` 即可。
+
+示例代码请查看：`examples/ai.md`
