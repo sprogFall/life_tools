@@ -1,0 +1,121 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.claude/**'
+
+env:
+  FLUTTER_VERSION: '3.19.0'
+
+jobs:
+  build-apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Parse build type from commit message
+        id: parse-build-type
+        run: |
+          MESSAGE="${{ github.event.head_commit.message }}"
+          echo "Commit message: $MESSAGE"
+          
+          if [[ "$MESSAGE" == *"[build-apk:release]"* ]]; then
+            echo "build_type=release" >> $GITHUB_OUTPUT
+            echo "Building RELEASE APK"
+          elif [[ "$MESSAGE" == *"[build-apk:debug]"* ]]; then
+            echo "build_type=debug" >> $GITHUB_OUTPUT
+            echo "Building DEBUG APK"
+          elif [[ "$MESSAGE" == *"[build-apk]"* ]]; then
+            echo "build_type=debug" >> $GITHUB_OUTPUT
+            echo "Building DEBUG APK (default)"
+          else
+            echo "No build-apk tag found, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "should_build=true" >> $GITHUB_OUTPUT
+
+      - name: Setup Java
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        run: flutter pub get
+
+      - name: Build APK
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        run: |
+          BUILD_TYPE="${{ steps.parse-build-type.outputs.build_type }}"
+          if [ "$BUILD_TYPE" = "release" ]; then
+            flutter build apk --release
+          else
+            flutter build apk --debug
+          fi
+
+      - name: Get APK info
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        id: apk-info
+        run: |
+          BUILD_TYPE="${{ steps.parse-build-type.outputs.build_type }}"
+          if [ "$BUILD_TYPE" = "release" ]; then
+            APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+            APK_NAME="life_tools-release-${{ github.sha }}.apk"
+          else
+            APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
+            APK_NAME="life_tools-debug-${{ github.sha }}.apk"
+          fi
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
+          
+          if [ -f "$APK_PATH" ]; then
+            APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+            echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload APK artifact
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk-info.outputs.apk_name }}
+          path: ${{ steps.apk-info.outputs.apk_path }}
+          retention-days: 30
+
+      - name: Create release summary
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        run: |
+          BUILD_TYPE="${{ steps.parse-build-type.outputs.build_type }}"
+          APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
+          APK_SIZE="${{ steps.apk-info.outputs.apk_size }}"
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
+          
+          echo "## 📱 APK Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Type**: $BUILD_TYPE" >> $GITHUB_STEP_SUMMARY
+          echo "- **APK Name**: $APK_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "- **APK Size**: $APK_SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: $COMMIT_SHA" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author**: $COMMIT_AUTHOR" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download" >> $GITHUB_STEP_SUMMARY
+          echo "The APK has been uploaded as an artifact. You can download it from the Actions run page." >> $GITHUB_STEP_SUMMARY
