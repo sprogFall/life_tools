@@ -55,6 +55,9 @@ class _TaskCard extends StatelessWidget {
       onTap: taskId == null
           ? null
           : () => _openDetail(context, taskId, task.title),
+      onLongPress: task.status == WorkTaskStatus.done
+          ? null
+          : () => _showCompleteDialog(context),
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -131,6 +134,54 @@ class _TaskCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showCompleteDialog(BuildContext context) async {
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('完成任务'),
+        content: Text('确认将「${task.title}」标记为已完成？'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('完成'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      await _completeTask(context);
+    }
+  }
+
+  Future<void> _completeTask(BuildContext context) async {
+    final service = context.read<WorkLogService>();
+    try {
+      final updatedTask = task.copyWith(status: WorkTaskStatus.done);
+      await service.updateTask(updatedTask);
+    } catch (e) {
+      if (!context.mounted) return;
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('操作失败'),
+          content: Text('无法完成任务：$e'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   static String _minutesToHoursText(int minutes) {

@@ -145,90 +145,127 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
     final totalMinutes =
         _entries.fold<int>(0, (sum, e) => sum + e.minutes);
 
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+    return Stack(
       children: [
-        GlassContainer(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '任务信息',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.textPrimary,
-                ),
+        ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          children: [
+            GlassContainer(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '任务信息',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: IOS26Theme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(label: '状态', value: _statusLabel(task.status)),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    label: '预计',
+                    value: task.estimatedMinutes <= 0
+                        ? '未设置'
+                        : _minutesToHoursText(task.estimatedMinutes),
+                  ),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    label: '已记录',
+                    value: totalMinutes <= 0
+                        ? '0h'
+                        : _minutesToHoursText(totalMinutes),
+                  ),
+                  if (task.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      task.description,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: IOS26Theme.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 12),
-              _InfoRow(label: '状态', value: _statusLabel(task.status)),
-              const SizedBox(height: 8),
-              _InfoRow(
-                label: '预计',
-                value: task.estimatedMinutes <= 0
-                    ? '未设置'
-                    : _minutesToHoursText(task.estimatedMinutes),
-              ),
-              const SizedBox(height: 8),
-              _InfoRow(
-                label: '已记录',
-                value: totalMinutes <= 0
-                    ? '0h'
-                    : _minutesToHoursText(totalMinutes),
-              ),
-              if (task.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  task.description,
-                  style: const TextStyle(
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text(
+                  '工时记录',
+                  style: TextStyle(
                     fontSize: 15,
-                    color: IOS26Theme.textSecondary,
-                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                    color: IOS26Theme.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: _openAddTimeEntry,
+                  child: const Text(
+                    '添加',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: IOS26Theme.primaryColor,
+                    ),
                   ),
                 ),
               ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            const Text(
-              '工时记录',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: IOS26Theme.textPrimary,
-              ),
             ),
-            const Spacer(),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _openAddTimeEntry,
-              child: const Text(
-                '添加',
+            const SizedBox(height: 8),
+            if (_entries.isEmpty)
+              Text(
+                '暂无工时记录，点击右上角时钟添加',
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.primaryColor,
+                  fontSize: 15,
+                  color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                ),
+              )
+            else
+              ..._entries.map((e) => _buildTimeEntryItem(e)),
+          ],
+        ),
+        if (task.status != WorkTaskStatus.done)
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 20,
+            child: SafeArea(
+              child: CupertinoButton(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                color: IOS26Theme.toolGreen,
+                borderRadius: BorderRadius.circular(14),
+                onPressed: _showCompleteTaskDialog,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      CupertinoIcons.check_mark_circled_solid,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '完成任务',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_entries.isEmpty)
-          Text(
-            '暂无工时记录，点击右上角时钟添加',
-            style: TextStyle(
-              fontSize: 15,
-              color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-            ),
-          )
-        else
-          ..._entries.map((e) => _buildTimeEntryItem(e)),
+          ),
       ],
     );
   }
@@ -366,6 +403,61 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showCompleteTaskDialog() async {
+    final task = _task;
+    if (task == null) return;
+
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('完成任务'),
+        content: Text('确认将「${task.title}」标记为已完成？'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('完成'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      await _completeTask();
+    }
+  }
+
+  Future<void> _completeTask() async {
+    final task = _task;
+    if (task == null) return;
+
+    final service = context.read<WorkLogService>();
+    try {
+      final updatedTask = task.copyWith(status: WorkTaskStatus.done);
+      await service.updateTask(updatedTask);
+      await _load(); // 重新加载数据以更新UI
+    } catch (e) {
+      if (!mounted) return;
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('操作失败'),
+          content: Text('无法完成任务：$e'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _openEditTimeEntry(WorkTimeEntry entry) {
