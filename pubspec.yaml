@@ -46,6 +46,9 @@ dependencies:
   # 本地存储（用于简单配置）
   shared_preferences: ^2.3.5
 
+  # OpenAI 格式 API 调用
+  http: ^1.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

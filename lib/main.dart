@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'core/ai/ai_config_service.dart';
+import 'core/ai/ai_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/theme/ios26_theme.dart';
@@ -24,18 +26,37 @@ void main() async {
   final settingsService = SettingsService();
   await settingsService.init();
 
-  runApp(MyApp(settingsService: settingsService));
+  final aiConfigService = AiConfigService();
+  await aiConfigService.init();
+
+  runApp(
+    MyApp(
+      settingsService: settingsService,
+      aiConfigService: aiConfigService,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   final SettingsService settingsService;
+  final AiConfigService aiConfigService;
 
-  const MyApp({super.key, required this.settingsService});
+  const MyApp({
+    super.key,
+    required this.settingsService,
+    required this.aiConfigService,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: settingsService,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: settingsService),
+        ChangeNotifierProvider.value(value: aiConfigService),
+        Provider<AiService>(
+          create: (_) => AiService(configService: aiConfigService),
+        ),
+      ],
       child: MaterialApp(
         title: '生活助手',
         debugShowCheckedModeBanner: false,

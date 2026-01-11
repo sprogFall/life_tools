@@ -2,9 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
 import '../core/services/settings_service.dart';
 import '../core/theme/ios26_theme.dart';
+import 'ai_settings_page.dart';
 
 /// 首页欢迎页面，iOS 26 风格
 class HomePage extends StatelessWidget {
@@ -480,9 +482,12 @@ class _SettingsSheet extends StatelessWidget {
                   color: IOS26Theme.backgroundColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Consumer<SettingsService>(
-                  builder: (context, settings, _) {
+                child: Consumer2<SettingsService, AiConfigService>(
+                  builder: (context, settings, aiConfig, _) {
                     final tools = settings.getSortedTools();
+                    final aiValue =
+                        aiConfig.isConfigured ? aiConfig.config!.model : '未配置';
+
                     return Column(
                       children: [
                         _SettingsItem(
@@ -498,6 +503,18 @@ class _SettingsSheet extends StatelessWidget {
                                   '首页',
                           onTap: () =>
                               _showToolPicker(context, settings, tools),
+                        ),
+                        Container(
+                          height: 0.5,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          color:
+                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                        ),
+                        _SettingsItem(
+                          icon: CupertinoIcons.sparkles,
+                          title: 'AI配置',
+                          value: aiValue,
+                          onTap: () => _openAiSettings(context),
                         ),
                       ],
                     );
@@ -587,6 +604,16 @@ class _SettingsSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _openAiSettings(BuildContext context) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.pop();
+    Future<void>.microtask(() {
+      navigator.push(
+        CupertinoPageRoute<void>(builder: (_) => const AiSettingsPage()),
+      );
+    });
   }
 }
 

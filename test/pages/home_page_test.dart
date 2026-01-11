@@ -3,23 +3,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:life_tools/pages/home_page.dart';
+import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('HomePage', () {
     late SettingsService mockSettingsService;
+    late AiConfigService aiConfigService;
 
-    setUp(() {
+    setUp(() async {
       ToolRegistry.instance.registerAll();
       mockSettingsService = SettingsService();
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      aiConfigService = AiConfigService();
+      await aiConfigService.init();
     });
 
     testWidgets('应该显示应用标题', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<SettingsService>.value(
-            value: mockSettingsService,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsService>.value(
+                value: mockSettingsService,
+              ),
+              ChangeNotifierProvider<AiConfigService>.value(
+                value: aiConfigService,
+              ),
+            ],
             child: const HomePage(),
           ),
         ),
@@ -31,8 +45,15 @@ void main() {
     testWidgets('应该显示欢迎卡片', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<SettingsService>.value(
-            value: mockSettingsService,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsService>.value(
+                value: mockSettingsService,
+              ),
+              ChangeNotifierProvider<AiConfigService>.value(
+                value: aiConfigService,
+              ),
+            ],
             child: const HomePage(),
           ),
         ),
@@ -44,8 +65,15 @@ void main() {
     testWidgets('应该显示设置按钮', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<SettingsService>.value(
-            value: mockSettingsService,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsService>.value(
+                value: mockSettingsService,
+              ),
+              ChangeNotifierProvider<AiConfigService>.value(
+                value: aiConfigService,
+              ),
+            ],
             child: const HomePage(),
           ),
         ),
@@ -57,8 +85,15 @@ void main() {
     testWidgets('应该显示工具卡片', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<SettingsService>.value(
-            value: mockSettingsService,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsService>.value(
+                value: mockSettingsService,
+              ),
+              ChangeNotifierProvider<AiConfigService>.value(
+                value: aiConfigService,
+              ),
+            ],
             child: const HomePage(),
           ),
         ),
@@ -73,11 +108,16 @@ void main() {
 
     testWidgets('点击设置按钮应该打开设置弹出层', (WidgetTester tester) async {
       await tester.pumpWidget(
-        ChangeNotifierProvider<SettingsService>.value(
-          value: mockSettingsService,
-          child: const MaterialApp(
-            home: HomePage(),
-          ),
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SettingsService>.value(
+              value: mockSettingsService,
+            ),
+            ChangeNotifierProvider<AiConfigService>.value(
+              value: aiConfigService,
+            ),
+          ],
+          child: const MaterialApp(home: HomePage()),
         ),
       );
 

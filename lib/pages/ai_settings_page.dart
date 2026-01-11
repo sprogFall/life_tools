@@ -1,0 +1,509 @@
+import 'dart:ui';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../core/ai/ai_config.dart';
+import '../core/ai/ai_config_service.dart';
+import '../core/ai/ai_service.dart';
+import '../core/theme/ios26_theme.dart';
+
+class AiSettingsPage extends StatefulWidget {
+  const AiSettingsPage({super.key});
+
+  @override
+  State<AiSettingsPage> createState() => _AiSettingsPageState();
+}
+
+class _AiSettingsPageState extends State<AiSettingsPage> {
+  final _baseUrlController = TextEditingController();
+  final _apiKeyController = TextEditingController();
+  final _modelController = TextEditingController();
+  final _temperatureController = TextEditingController();
+  final _maxOutputTokensController = TextEditingController();
+
+  bool _showApiKey = false;
+  bool _isTesting = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final config = context.read<AiConfigService>().config;
+    _baseUrlController.text = config?.baseUrl ?? 'https://api.openai.com/v1';
+    _apiKeyController.text = config?.apiKey ?? '';
+    _modelController.text = config?.model ?? 'gpt-4o-mini';
+    _temperatureController.text = (config?.temperature ?? 0.7).toString();
+    _maxOutputTokensController.text =
+        (config?.maxOutputTokens ?? 1024).toString();
+  }
+
+  @override
+  void dispose() {
+    _baseUrlController.dispose();
+    _apiKeyController.dispose();
+    _modelController.dispose();
+    _temperatureController.dispose();
+    _maxOutputTokensController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: IOS26Theme.backgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildAppBar(context),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildConfigCard(),
+                    const SizedBox(height: 16),
+                    _buildTipsCard(),
+                    const SizedBox(height: 16),
+                    _buildDangerZoneCard(),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          decoration: BoxDecoration(
+            color: IOS26Theme.glassColor,
+            border: Border(
+              bottom: BorderSide(
+                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                onPressed: () => Navigator.pop(context),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: IOS26Theme.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const Expanded(
+                child: Text(
+                  'AI配置',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.41,
+                    color: IOS26Theme.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: () => _save(context),
+                child: const Text(
+                  '保存',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: IOS26Theme.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfigCard() {
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'OpenAI 兼容配置',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: IOS26Theme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'Base URL',
+            child: CupertinoTextField(
+              key: const ValueKey('ai_baseUrl_field'),
+              controller: _baseUrlController,
+              placeholder: 'https://api.openai.com/v1',
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'API Key',
+            child: CupertinoTextField(
+              key: const ValueKey('ai_apiKey_field'),
+              controller: _apiKeyController,
+              placeholder: 'sk-...',
+              obscureText: !_showApiKey,
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+              suffix: CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                onPressed: () => setState(() => _showApiKey = !_showApiKey),
+                child: Icon(
+                  _showApiKey
+                      ? CupertinoIcons.eye_slash
+                      : CupertinoIcons.eye,
+                  size: 18,
+                  color: IOS26Theme.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'Model',
+            child: CupertinoTextField(
+              key: const ValueKey('ai_model_field'),
+              controller: _modelController,
+              placeholder: 'gpt-4o-mini',
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildLabeledField(
+                  label: 'Temperature',
+                  child: CupertinoTextField(
+                    key: const ValueKey('ai_temperature_field'),
+                    controller: _temperatureController,
+                    placeholder: '0.7',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _fieldDecoration(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildLabeledField(
+                  label: 'Max Tokens',
+                  child: CupertinoTextField(
+                    key: const ValueKey('ai_maxTokens_field'),
+                    controller: _maxOutputTokensController,
+                    placeholder: '1024',
+                    keyboardType: TextInputType.number,
+                    decoration: _fieldDecoration(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              key: const ValueKey('ai_test_button'),
+              color: IOS26Theme.primaryColor.withValues(alpha: 0.12),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              onPressed: _isTesting ? null : () => _testConnection(context),
+              child: Text(
+                _isTesting ? '测试中...' : '测试连接',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: IOS26Theme.primaryColor,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipsCard() {
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            '说明',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: IOS26Theme.textPrimary,
+            ),
+          ),
+          SizedBox(height: 10),
+          Text(
+            '1. Base URL 支持填写到域名（如 https://example.com），也支持直接填写到 /v1。\n'
+            '2. 该配置用于 OpenAI 格式的 /v1/chat/completions。\n'
+            '3. API Key 将保存在本地设备（SharedPreferences）。',
+            style: TextStyle(
+              fontSize: 13,
+              color: IOS26Theme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDangerZoneCard() {
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '危险区',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: IOS26Theme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              color: IOS26Theme.toolRed.withValues(alpha: 0.12),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              onPressed: () => _confirmAndClear(context),
+              child: const Text(
+                '清除AI配置',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: IOS26Theme.toolRed,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildLabeledField({
+    required String label,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: IOS26Theme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
+    );
+  }
+
+  static BoxDecoration _fieldDecoration() {
+    return BoxDecoration(
+      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+        width: 0.5,
+      ),
+    );
+  }
+
+  Future<void> _save(BuildContext context) async {
+    final config = _readConfigFromFields();
+
+    if (!config.isValid) {
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('提示'),
+          content: const Text(
+            '请检查配置项：Base URL / API Key / Model 不能为空，Temperature 范围 0~2，Max Tokens > 0',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    await context.read<AiConfigService>().save(config);
+    if (!mounted) return;
+
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('已保存'),
+        content: Text('当前模型：${config.model}'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  AiConfig _readConfigFromFields() {
+    final baseUrl = _baseUrlController.text.trim();
+    final apiKey = _apiKeyController.text.trim();
+    final model = _modelController.text.trim();
+    final temperature = double.tryParse(_temperatureController.text.trim());
+    final maxTokens = int.tryParse(_maxOutputTokensController.text.trim());
+
+    return AiConfig(
+      baseUrl: baseUrl,
+      apiKey: apiKey,
+      model: model,
+      temperature: temperature ?? 0.7,
+      maxOutputTokens: maxTokens ?? 1024,
+    );
+  }
+
+  Future<void> _testConnection(BuildContext context) async {
+    final config = _readConfigFromFields();
+    if (!config.isValid) {
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('提示'),
+          content: const Text('请先填写合法的 AI 配置，再进行测试。'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isTesting = true);
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('测试中'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+
+    try {
+      final text = await context.read<AiService>().chatTextWithConfig(
+            config: config,
+            prompt: '你好，请介绍一下你是什么模型',
+            systemPrompt: '请用中文简要回答，不要输出多余内容。',
+          );
+
+      if (!mounted) return;
+      if (navigator.canPop()) navigator.pop();
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('测试结果'),
+          content: Text(text),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      if (navigator.canPop()) navigator.pop();
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('测试失败'),
+          content: Text(e.toString()),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isTesting = false);
+    }
+  }
+
+  Future<void> _confirmAndClear(BuildContext context) async {
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('确认清除？'),
+        content: const Text('清除后将无法使用 AI 相关功能，直到重新配置。'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != true) return;
+    await context.read<AiConfigService>().clear();
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
+}
