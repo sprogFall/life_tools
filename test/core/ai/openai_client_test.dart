@@ -152,7 +152,6 @@ void main() {
         baseUrl: 'https://example.com',
         apiKey: 'test-key',
         model: 'gpt-4o-mini',
-        speechToTextModel: 'whisper-1',
         temperature: 0.2,
         maxOutputTokens: 128,
       );

@@ -20,7 +20,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   final _baseUrlController = TextEditingController();
   final _apiKeyController = TextEditingController();
   final _modelController = TextEditingController();
-  final _speechModelController = TextEditingController();
   final _temperatureController = TextEditingController();
   final _maxOutputTokensController = TextEditingController();
 
@@ -35,7 +34,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     _baseUrlController.text = config?.baseUrl ?? 'https://api.openai.com/v1';
     _apiKeyController.text = config?.apiKey ?? '';
     _modelController.text = config?.model ?? 'gpt-4o-mini';
-    _speechModelController.text = config?.speechToTextModel ?? 'whisper-1';
     _temperatureController.text = (config?.temperature ?? 0.7).toString();
     _maxOutputTokensController.text =
         (config?.maxOutputTokens ?? 1024).toString();
@@ -46,7 +44,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     _baseUrlController.dispose();
     _apiKeyController.dispose();
     _modelController.dispose();
-    _speechModelController.dispose();
     _temperatureController.dispose();
     _maxOutputTokensController.dispose();
     super.dispose();
@@ -195,17 +192,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               key: const ValueKey('ai_model_field'),
               controller: _modelController,
               placeholder: 'gpt-4o-mini',
-              autocorrect: false,
-              decoration: _fieldDecoration(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildLabeledField(
-            label: '语音识别模型（Speech-to-Text）',
-            child: CupertinoTextField(
-              key: const ValueKey('ai_speech_model_field'),
-              controller: _speechModelController,
-              placeholder: 'whisper-1',
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
@@ -406,7 +392,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     final baseUrl = _baseUrlController.text.trim();
     final apiKey = _apiKeyController.text.trim();
     final model = _modelController.text.trim();
-    final speechModel = _speechModelController.text.trim();
     final temperature = double.tryParse(_temperatureController.text.trim());
     final maxTokens = int.tryParse(_maxOutputTokensController.text.trim());
 
@@ -414,7 +399,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       baseUrl: baseUrl,
       apiKey: apiKey,
       model: model,
-      speechToTextModel: speechModel.isEmpty ? 'whisper-1' : speechModel,
       temperature: temperature ?? 0.7,
       maxOutputTokens: maxTokens ?? 1024,
     );

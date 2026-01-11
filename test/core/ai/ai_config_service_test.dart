@@ -37,7 +37,6 @@ void main() {
       expect(service.config!.baseUrl, config.baseUrl);
       expect(service.config!.apiKey, config.apiKey);
       expect(service.config!.model, config.model);
-      expect(service.config!.speechToTextModel, config.speechToTextModel);
       expect(service.config!.temperature, config.temperature);
       expect(service.config!.maxOutputTokens, config.maxOutputTokens);
     });

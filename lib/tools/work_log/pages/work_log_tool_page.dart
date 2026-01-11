@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/theme/ios26_theme.dart';
-import '../../../core/voice/ai_audio_transcription_input_service.dart';
-import '../../../core/voice/fallback_speech_input_service.dart';
-import '../../../core/voice/speech_input_service.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
 import '../ai/work_log_ai_intent.dart';
@@ -24,13 +21,11 @@ import 'time/work_time_entry_edit_page.dart';
 
 class WorkLogToolPage extends StatefulWidget {
   final WorkLogRepositoryBase? repository;
-  final SpeechInputService? speechInputService;
   final WorkLogAiAssistant? aiAssistant;
 
   const WorkLogToolPage({
     super.key,
     this.repository,
-    this.speechInputService,
     this.aiAssistant,
   });
 
@@ -41,7 +36,6 @@ class WorkLogToolPage extends StatefulWidget {
 class _WorkLogToolPageState extends State<WorkLogToolPage> {
   int _tab = 0;
   late final WorkLogService _service;
-  late final SpeechInputService _speechInputService;
 
   @override
   void initState() {
@@ -50,20 +44,6 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       repository: widget.repository ?? WorkLogRepository(),
     );
     _service.loadTasks();
-    _speechInputService = widget.speechInputService ?? _createDefaultSpeechInputService();
-  }
-
-  SpeechInputService _createDefaultSpeechInputService() {
-    final primary = SpeechToTextInputService();
-    try {
-      final aiService = context.read<AiService>();
-      return FallbackSpeechInputService(
-        primary: primary,
-        fallback: AiAudioTranscriptionInputService(aiService: aiService),
-      );
-    } on ProviderNotFoundException {
-      return primary;
-    }
   }
 
   @override
@@ -152,20 +132,20 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
           borderRadius: 999,
           padding: const EdgeInsets.all(6),
           child: CupertinoButton(
-            key: const ValueKey('work_log_voice_input_button'),
+            key: const ValueKey('work_log_ai_input_button'),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             onPressed: _openVoiceInput,
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  CupertinoIcons.mic_fill,
+                  CupertinoIcons.sparkles,
                   size: 18,
                   color: IOS26Theme.primaryColor,
                 ),
                 SizedBox(width: 8),
                 Text(
-                  '语音录入',
+                  'AI录入',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -327,10 +307,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
   }
 
   Future<void> _openVoiceInput() async {
-    final text = await WorkLogVoiceInputSheet.show(
-      context,
-      speechInputService: _speechInputService,
-    );
+    final text = await WorkLogVoiceInputSheet.show(context);
     if (!mounted || text == null) return;
 
     final assistant = widget.aiAssistant ?? _maybeCreateAiAssistant(context);

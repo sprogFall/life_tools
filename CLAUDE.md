@@ -65,3 +65,47 @@ dart format .
 项目在 `lib/main.dart` 已注入 `AiService`，业务侧通过 Provider 获取后调用 `chatText(...)` 或 `chat(...)` 即可。
 
 示例代码请查看：`examples/ai.md`
+
+## UI 设计规范
+
+### 主题颜色
+
+项目使用 iOS 26 风格的设计主题，所有颜色定义在 `lib/core/theme/ios26_theme.dart` 中：
+
+**主色调：**
+- `IOS26Theme.primaryColor` - 主要操作色（蓝色 #007AFF）
+- `IOS26Theme.secondaryColor` - 次要操作色（紫色 #5856D6）
+
+**文字颜色：**
+- `IOS26Theme.textPrimary` - 主要文字（深色 #1C1C1E）
+- `IOS26Theme.textSecondary` - 次要文字（灰色 #8E8E93）
+- `IOS26Theme.textTertiary` - 辅助文字（浅灰 #C7C7CC）
+
+**工具颜色：**
+- `IOS26Theme.toolBlue` - 工具蓝（#007AFF）
+- `IOS26Theme.toolGreen` - 工具绿（#34C759）
+- `IOS26Theme.toolOrange` - 工具橙（#FF9500）
+- `IOS26Theme.toolRed` - 工具红（#FF3B30）
+- `IOS26Theme.toolPurple` - 工具紫（#5856D6）
+- `IOS26Theme.toolPink` - 工具粉（#FF2D55）
+
+### 按钮颜色使用规范
+
+**主要操作按钮（Primary）：**
+- 背景色：`IOS26Theme.primaryColor`
+- 文字色：`Colors.white`
+- 适用场景：提交、确认、保存等主要操作
+- 示例：AI录入页面的"提交给AI"按钮
+
+**次要操作按钮（Secondary）：**
+- 背景色：`IOS26Theme.textTertiary.withValues(alpha: 0.3)` （半透明浅灰）
+- 图标色：`IOS26Theme.textSecondary`
+- 适用场景：取消、清空、删除等辅助操作
+- 示例：AI录入页面的清空（垃圾桶）、取消（×）按钮
+
+**按钮圆角：**
+- 统一使用 `BorderRadius.circular(14)` 保持 iOS 26 风格
+
+**按钮内边距：**
+- 主要按钮：`EdgeInsets.symmetric(vertical: 14)`
+- 图标按钮：`EdgeInsets.symmetric(horizontal: 16, vertical: 14)`

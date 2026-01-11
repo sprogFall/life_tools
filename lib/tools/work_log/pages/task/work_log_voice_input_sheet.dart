@@ -2,28 +2,18 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-import '../../../../core/ai/ai_errors.dart';
 import '../../../../core/theme/ios26_theme.dart';
-import '../../../../core/voice/speech_input_service.dart';
 
 class WorkLogVoiceInputSheet extends StatefulWidget {
-  final SpeechInputService speechInputService;
+  const WorkLogVoiceInputSheet({super.key});
 
-  const WorkLogVoiceInputSheet({super.key, required this.speechInputService});
-
-  static Future<String?> show(
-    BuildContext context, {
-    required SpeechInputService speechInputService,
-  }) {
+  static Future<String?> show(BuildContext context) {
     return showModalBottomSheet<String?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => WorkLogVoiceInputSheet(
-        speechInputService: speechInputService,
-      ),
+      builder: (_) => const WorkLogVoiceInputSheet(),
     );
   }
 
@@ -33,8 +23,6 @@ class WorkLogVoiceInputSheet extends StatefulWidget {
 
 class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
   final _controller = TextEditingController();
-  bool _listening = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -62,17 +50,6 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
                   _buildHeader(context),
                   const SizedBox(height: 12),
                   _buildInputCard(),
-                  if (_error != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      _error!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.toolRed.withValues(alpha: 0.95),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
                   const SizedBox(height: 12),
                   _buildActions(context),
                 ],
@@ -87,14 +64,10 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
   Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        CupertinoButton(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          onPressed: _listening ? null : () => Navigator.pop(context),
-          child: const Text('取消'),
-        ),
+        const SizedBox(width: 8),
         const Expanded(
           child: Text(
-            '语音输入',
+            'AI录入',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -103,11 +76,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             textAlign: TextAlign.center,
           ),
         ),
-        CupertinoButton(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          onPressed: _listening ? null : _confirm,
-          child: const Text('确认'),
-        ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -120,7 +89,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '识别文本（可编辑）',
+            '输入内容（告诉AI你想记录什么）',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -135,11 +104,11 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: CupertinoTextField(
-              key: const ValueKey('work_log_voice_text_field'),
+              key: const ValueKey('work_log_ai_text_field'),
               controller: _controller,
               maxLines: 4,
-              placeholder: '点击下方按钮开始说话…',
-              enabled: !_listening,
+              placeholder: '例如：今天完成了登录模块的开发，花了3小时…',
+              autofocus: true,
               decoration: null,
             ),
           ),
@@ -153,93 +122,61 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
       children: [
         Expanded(
           child: CupertinoButton(
-            onPressed: _listening ? null : _startListening,
+            onPressed: _confirm,
             color: IOS26Theme.primaryColor,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(_listening ? '识别中…' : '开始说话'),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            borderRadius: BorderRadius.circular(14),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.sparkles,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  '提交给AI',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 10),
         CupertinoButton(
-          onPressed: _listening
-              ? null
-              : () {
-                  setState(() {
-                    _controller.clear();
-                    _error = null;
-                  });
-                },
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: const Text('清空'),
+          onPressed: () {
+            setState(() {
+              _controller.clear();
+            });
+          },
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(14),
+          child: const Icon(
+            CupertinoIcons.trash,
+            size: 20,
+            color: IOS26Theme.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 10),
+        CupertinoButton(
+          onPressed: () => Navigator.pop(context),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(14),
+          child: const Icon(
+            CupertinoIcons.xmark,
+            size: 20,
+            color: IOS26Theme.textSecondary,
+          ),
         ),
       ],
     );
-  }
-
-  Future<void> _startListening() async {
-    setState(() {
-      _listening = true;
-      _error = null;
-    });
-
-    try {
-      final text = await widget.speechInputService.listenOnce(
-        onPartial: (partial) {
-          if (!mounted) return;
-          _controller.text = partial;
-          _controller.selection = TextSelection.collapsed(
-            offset: _controller.text.length,
-          );
-        },
-      );
-
-      if (!mounted) return;
-      if (text == null || text.trim().isEmpty) {
-        setState(() {
-          _error = '未识别到有效内容（或当前平台不支持），请重试或直接手动输入';
-        });
-      } else {
-        _controller.text = text;
-        _controller.selection = TextSelection.collapsed(offset: text.length);
-      }
-    } on SpeechInputNotSupportedException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
-    } on PlatformException catch (e) {
-      if (!mounted) return;
-      final code = e.code;
-      setState(() {
-        if (code == 'recognizerNotAvailable') {
-          _error = '该设备未提供系统语音识别服务（Speech recognition not available）。\n'
-              '常见原因：未安装/禁用“Speech Services by Google”(或系统语音服务)、系统为无 GMS 机型。\n'
-              '你可以改为手动输入，或更换/启用语音识别服务后再试。';
-        } else {
-          _error = '语音识别失败：${e.message ?? e.toString()}';
-        }
-      });
-    } on AiNotConfiguredException catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _error = '未配置 AI，无法使用网络语音识别。\n请先到「设置 -> AI配置」填写 Base URL / API Key，并将「语音识别模型」设置为可用的 ASR 模型（例如 whisper-1）。';
-      });
-    } on AiApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = '网络语音识别失败：${e.message}\n'
-            '请确认你的 AI 服务在 `/v1/chat/completions` 支持音频输入（input_audio），且「语音识别模型」可用。';
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = '语音识别失败：$e';
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _listening = false);
-      }
-    }
   }
 
   void _confirm() {

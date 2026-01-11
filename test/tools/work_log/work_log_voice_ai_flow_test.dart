@@ -27,14 +27,14 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
 
-      await tester.tap(find.byKey(const ValueKey('work_log_voice_input_button')));
+      await tester.tap(find.byKey(const ValueKey('work_log_ai_input_button')));
       await tester.pumpAndSettle(const Duration(milliseconds: 800));
 
       await tester.enterText(
-        find.byKey(const ValueKey('work_log_voice_text_field')),
-        '我要创建一个任务：实现语音输入',
+        find.byKey(const ValueKey('work_log_ai_text_field')),
+        '我要创建一个任务:实现语音输入',
       );
-      await tester.tap(find.widgetWithText(CupertinoButton, '确认'));
+      await tester.tap(find.text('提交给AI'));
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pump(const Duration(milliseconds: 800));
 
@@ -76,14 +76,14 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 600));
 
-      await tester.tap(find.byKey(const ValueKey('work_log_voice_input_button')));
+      await tester.tap(find.byKey(const ValueKey('work_log_ai_input_button')));
       await tester.pumpAndSettle(const Duration(milliseconds: 800));
 
       await tester.enterText(
-        find.byKey(const ValueKey('work_log_voice_text_field')),
-        '在任务A下面记录 90 分钟：开发功能A',
+        find.byKey(const ValueKey('work_log_ai_text_field')),
+        '在任务A下面记录 90 分钟:开发功能A',
       );
-      await tester.tap(find.widgetWithText(CupertinoButton, '确认'));
+      await tester.tap(find.text('提交给AI'));
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pump(const Duration(milliseconds: 800));
 

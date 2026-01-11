@@ -4,7 +4,6 @@ class AiConfig {
   final String baseUrl;
   final String apiKey;
   final String model;
-  final String speechToTextModel;
   final double temperature;
   final int maxOutputTokens;
 
@@ -12,7 +11,6 @@ class AiConfig {
     required this.baseUrl,
     required this.apiKey,
     required this.model,
-    this.speechToTextModel = 'whisper-1',
     required this.temperature,
     required this.maxOutputTokens,
   });
@@ -21,7 +19,6 @@ class AiConfig {
       baseUrl.trim().isNotEmpty &&
       apiKey.trim().isNotEmpty &&
       model.trim().isNotEmpty &&
-      speechToTextModel.trim().isNotEmpty &&
       temperature.isFinite &&
       temperature >= 0 &&
       temperature <= 2 &&
@@ -31,7 +28,6 @@ class AiConfig {
         'baseUrl': baseUrl,
         'apiKey': apiKey,
         'model': model,
-        'speechToTextModel': speechToTextModel,
         'temperature': temperature,
         'maxOutputTokens': maxOutputTokens,
       };
@@ -41,7 +37,6 @@ class AiConfig {
       baseUrl: (map['baseUrl'] as String?) ?? '',
       apiKey: (map['apiKey'] as String?) ?? '',
       model: (map['model'] as String?) ?? '',
-      speechToTextModel: (map['speechToTextModel'] as String?) ?? 'whisper-1',
       temperature: (map['temperature'] as num?)?.toDouble() ?? 0.7,
       maxOutputTokens: (map['maxOutputTokens'] as num?)?.toInt() ?? 1024,
     );
