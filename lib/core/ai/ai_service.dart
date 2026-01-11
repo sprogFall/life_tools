@@ -8,12 +8,20 @@ class AiService {
   final AiConfigService _configService;
   final OpenAiClient _client;
 
+  /// AI 调用入口（OpenAI 兼容）。
+  ///
+  /// 说明：
+  /// - 默认从 `AiConfigService` 读取配置（由 UI 保存到本地）。
+  /// - 需要在业务层处理异常：未配置/调用失败等。
   AiService({
     required AiConfigService configService,
     OpenAiClient? client,
   })  : _configService = configService,
         _client = client ?? OpenAiClient();
 
+  /// 发送完整 messages（多轮对话/自定义 role 等）。
+  ///
+  /// 如果你只需要「一段 prompt -> 返回文本」，优先使用 `chatText(...)`。
   Future<AiChatResult> chat({
     required List<AiMessage> messages,
     double? temperature,
@@ -38,6 +46,9 @@ class AiService {
     );
   }
 
+  /// 便捷方法：传入 prompt（可选 systemPrompt/history），返回纯文本内容。
+  ///
+  /// 当你希望 AI 返回 JSON 给业务侧解析时，传 `responseFormat: AiResponseFormat.jsonObject`。
   Future<String> chatText({
     required String prompt,
     String? systemPrompt,
@@ -65,6 +76,9 @@ class AiService {
     return result.text;
   }
 
+  /// 用“临时配置”直接发起请求（不依赖已保存的配置）。
+  ///
+  /// 主要用于「AI配置页」的连接测试：用户可能还没点保存，也需要立即验证可用性。
   Future<String> chatTextWithConfig({
     required AiConfig config,
     required String prompt,
