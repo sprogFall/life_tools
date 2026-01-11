@@ -3,13 +3,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../models/work_log_drafts.dart';
 import '../../models/work_task.dart';
 import '../../services/work_log_service.dart';
 
 class WorkTaskEditPage extends StatefulWidget {
   final WorkTask? task;
+  final WorkTaskDraft? draft;
 
-  const WorkTaskEditPage({super.key, this.task});
+  const WorkTaskEditPage({super.key, this.task, this.draft});
 
   @override
   State<WorkTaskEditPage> createState() => _WorkTaskEditPageState();
@@ -40,6 +42,18 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       _status = widget.task!.status;
       _startAt = widget.task!.startAt;
       _endAt = widget.task!.endAt;
+    } else if (widget.draft != null) {
+      final draft = widget.draft!;
+      _titleController.text = draft.title;
+      _descriptionController.text = draft.description;
+      if (draft.estimatedMinutes > 0) {
+        final hours = draft.estimatedMinutes / 60.0;
+        _estimatedHoursController.text =
+            hours == hours.roundToDouble() ? hours.toInt().toString() : hours.toString();
+      }
+      _status = draft.status;
+      _startAt = draft.startAt;
+      _endAt = draft.endAt;
     }
   }
 

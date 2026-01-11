@@ -49,6 +49,9 @@ dependencies:
   # OpenAI 格式 API 调用
   http: ^1.2.2
 
+  # 语音转文字（语音输入）
+  speech_to_text: ^7.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -33,7 +33,7 @@ class WorkTaskListView extends StatelessWidget {
 
         return ListView.separated(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
           itemCount: tasks.length,
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) => _TaskCard(task: tasks[index]),
