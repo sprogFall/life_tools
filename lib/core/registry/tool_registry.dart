@@ -3,6 +3,8 @@ import '../models/tool_info.dart';
 import '../theme/ios26_theme.dart';
 import '../../tools/placeholder_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
+import '../../tools/work_log/repository/work_log_repository.dart';
+import '../../tools/work_log/sync/work_log_sync_provider.dart';
 
 /// 工具注册表，管理所有可用工具
 class ToolRegistry {
@@ -17,7 +19,11 @@ class ToolRegistry {
   void registerAll() {
     _tools.clear();
 
-    // 注册示例工具（后续可以在这里添加更多工具）
+    // 创建WorkLog的Repository和SyncProvider
+    final workLogRepository = WorkLogRepository();
+    final workLogSyncProvider = WorkLogSyncProvider(repository: workLogRepository);
+
+    // 注册工作记录工具（支持同步）
     register(ToolInfo(
       id: 'work_log',
       name: '工作记录',
@@ -25,6 +31,7 @@ class ToolRegistry {
       icon: CupertinoIcons.briefcase,
       color: IOS26Theme.toolBlue,
       pageBuilder: () => const WorkLogToolPage(),
+      syncProvider: workLogSyncProvider, // 添加同步支持
     ));
 
     register(ToolInfo(

@@ -7,6 +7,8 @@ import 'core/ai/ai_config_service.dart';
 import 'core/ai/ai_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
+import 'core/sync/services/sync_config_service.dart';
+import 'core/sync/services/sync_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
 
@@ -29,10 +31,23 @@ void main() async {
   final aiConfigService = AiConfigService();
   await aiConfigService.init();
 
+  // 初始化同步服务
+  final syncConfigService = SyncConfigService();
+  await syncConfigService.init();
+
+  final syncService = SyncService(configService: syncConfigService);
+
+  // 自动同步（在后台静默执行，不阻塞启动）
+  if (syncConfigService.config?.autoSyncOnStartup ?? false) {
+    Future.microtask(() => syncService.sync());
+  }
+
   runApp(
     MyApp(
       settingsService: settingsService,
       aiConfigService: aiConfigService,
+      syncConfigService: syncConfigService,
+      syncService: syncService,
     ),
   );
 }
@@ -40,11 +55,15 @@ void main() async {
 class MyApp extends StatelessWidget {
   final SettingsService settingsService;
   final AiConfigService aiConfigService;
+  final SyncConfigService syncConfigService;
+  final SyncService syncService;
 
   const MyApp({
     super.key,
     required this.settingsService,
     required this.aiConfigService,
+    required this.syncConfigService,
+    required this.syncService,
   });
 
   @override
@@ -53,6 +72,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: settingsService),
         ChangeNotifierProvider.value(value: aiConfigService),
+        ChangeNotifierProvider.value(value: syncConfigService),
+        ChangeNotifierProvider.value(value: syncService),
         Provider<AiService>(
           create: (_) => AiService(configService: aiConfigService),
         ),

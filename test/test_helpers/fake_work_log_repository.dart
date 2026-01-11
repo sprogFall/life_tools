@@ -157,5 +157,31 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   Future<int> getOperationLogCount() async {
     return _logs.length;
   }
+
+  @override
+  Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData) async {
+    _tasks.clear();
+    for (final taskMap in tasksData) {
+      _tasks.add(WorkTask.fromMap(taskMap));
+    }
+  }
+
+  @override
+  Future<void> importTimeEntriesFromServer(
+      List<Map<String, dynamic>> entriesData) async {
+    _entries.clear();
+    for (final entryMap in entriesData) {
+      _entries.add(WorkTimeEntry.fromMap(entryMap));
+    }
+  }
+
+  @override
+  Future<void> importOperationLogsFromServer(
+      List<Map<String, dynamic>> logsData) async {
+    _logs.clear();
+    for (final logMap in logsData) {
+      _logs.add(OperationLog.fromMap(logMap));
+    }
+  }
 }
 

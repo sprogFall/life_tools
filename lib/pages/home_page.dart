@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
 import '../core/services/settings_service.dart';
+import '../core/sync/services/sync_config_service.dart';
+import '../core/sync/pages/sync_settings_page.dart';
 import '../core/theme/ios26_theme.dart';
 import 'ai_settings_page.dart';
 
@@ -516,6 +518,22 @@ class _SettingsSheet extends StatelessWidget {
                           value: aiValue,
                           onTap: () => _openAiSettings(context),
                         ),
+                        Container(
+                          height: 0.5,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          color:
+                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                        ),
+                        Consumer<SyncConfigService>(
+                          builder: (context, syncConfig, _) {
+                            return _SettingsItem(
+                              icon: CupertinoIcons.cloud_upload,
+                              title: '数据同步',
+                              value: syncConfig.isConfigured ? '已配置' : '未配置',
+                              onTap: () => _openSyncSettings(context),
+                            );
+                          },
+                        ),
                       ],
                     );
                   },
@@ -612,6 +630,16 @@ class _SettingsSheet extends StatelessWidget {
     Future<void>.microtask(() {
       navigator.push(
         CupertinoPageRoute<void>(builder: (_) => const AiSettingsPage()),
+      );
+    });
+  }
+
+  void _openSyncSettings(BuildContext context) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.pop();
+    Future<void>.microtask(() {
+      navigator.push(
+        CupertinoPageRoute<void>(builder: (_) => const SyncSettingsPage()),
       );
     });
   }

@@ -35,5 +35,17 @@ abstract class WorkLogRepositoryBase {
     int? targetId,
   });
   Future<int> getOperationLogCount();
+
+  // 同步相关方法：批量导入数据
+  /// 从服务端数据批量导入任务（覆盖本地）
+  Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData);
+
+  /// 从服务端数据批量导入工时记录（覆盖本地）
+  Future<void> importTimeEntriesFromServer(
+      List<Map<String, dynamic>> entriesData);
+
+  /// 从服务端数据批量导入操作日志（覆盖本地）
+  Future<void> importOperationLogsFromServer(
+      List<Map<String, dynamic>> logsData);
 }
 

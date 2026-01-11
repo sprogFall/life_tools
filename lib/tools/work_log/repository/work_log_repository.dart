@@ -210,6 +210,53 @@ class WorkLogRepository implements WorkLogRepositoryBase {
     return (result.first['count'] as int?) ?? 0;
   }
 
+  @override
+  Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData) async {
+    final db = await _database;
+
+    await db.transaction((txn) async {
+      // 1. 清空现有任务（级联删除会自动删除关联的time_entries）
+      await txn.delete('work_tasks');
+
+      // 2. 批量插入服务端任务
+      for (final taskMap in tasksData) {
+        await txn.insert('work_tasks', taskMap);
+      }
+    });
+  }
+
+  @override
+  Future<void> importTimeEntriesFromServer(
+      List<Map<String, dynamic>> entriesData) async {
+    final db = await _database;
+
+    await db.transaction((txn) async {
+      // 1. 清空现有工时记录
+      await txn.delete('work_time_entries');
+
+      // 2. 批量插入服务端工时记录
+      for (final entryMap in entriesData) {
+        await txn.insert('work_time_entries', entryMap);
+      }
+    });
+  }
+
+  @override
+  Future<void> importOperationLogsFromServer(
+      List<Map<String, dynamic>> logsData) async {
+    final db = await _database;
+
+    await db.transaction((txn) async {
+      // 1. 清空现有操作日志
+      await txn.delete('operation_logs');
+
+      // 2. 批量插入服务端操作日志
+      for (final logMap in logsData) {
+        await txn.insert('operation_logs', logMap);
+      }
+    });
+  }
+
   static DateTime _startOfDay(DateTime dateTime) {
     return DateTime(dateTime.year, dateTime.month, dateTime.day);
   }
