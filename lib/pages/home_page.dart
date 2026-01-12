@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import '../core/backup/pages/backup_restore_page.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
 import '../core/services/settings_service.dart';
@@ -535,6 +536,18 @@ class _SettingsSheet extends StatelessWidget {
                             );
                           },
                         ),
+                        Container(
+                          height: 0.5,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          color:
+                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                        ),
+                        _SettingsItem(
+                          icon: CupertinoIcons.archivebox,
+                          title: '备份与还原',
+                          value: '导入/导出',
+                          onTap: () => _openBackupRestore(context),
+                        ),
                       ],
                     );
                   },
@@ -644,6 +657,16 @@ class _SettingsSheet extends StatelessWidget {
       );
     });
   }
+
+  void _openBackupRestore(BuildContext context) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.pop();
+    Future<void>.microtask(() {
+      navigator.push(
+        CupertinoPageRoute<void>(builder: (_) => const BackupRestorePage()),
+      );
+    });
+  }
 }
 
 /// 设置项组件
@@ -691,13 +714,19 @@ class _SettingsItem extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                color: IOS26Theme.textSecondary,
+            if (value.trim().isNotEmpty)
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: IOS26Theme.textSecondary,
+                  ),
+                ),
               ),
-            ),
             const SizedBox(width: 8),
             const Icon(
               CupertinoIcons.chevron_right,

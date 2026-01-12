@@ -1,12 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../theme/ios26_theme.dart';
 import '../models/sync_config.dart';
-import '../services/backup_restore_service.dart';
 import '../services/sync_config_service.dart';
 import '../services/sync_service.dart';
 import '../services/wifi_service.dart';
@@ -120,8 +122,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     _buildAdvancedCard(),
                     const SizedBox(height: 16),
                     _buildSyncActionCard(),
-                    const SizedBox(height: 16),
-                    _buildBackupRestoreCard(),
                   ],
                 ),
               ),
@@ -499,62 +499,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     );
   }
 
-  Widget _buildBackupRestoreCard() {
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCardTitle('备份与还原'),
-          const SizedBox(height: 10),
-          _buildHint('导出：同步配置 + 工具数据导出为 JSON，并复制到剪切板'),
-          const SizedBox(height: 4),
-          _buildHint('还原：粘贴 JSON 覆盖写入本地（请谨慎操作）'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: CupertinoButton(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  borderRadius: BorderRadius.circular(14),
-                  color: IOS26Theme.primaryColor,
-                  onPressed: _exportBackupToClipboard,
-                  child: const Text(
-                    '导出到剪切板',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.24,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CupertinoButton(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  borderRadius: BorderRadius.circular(14),
-                  color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-                  onPressed: _openRestoreSheet,
-                  child: const Text(
-                    '从 JSON 还原',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textSecondary,
-                      letterSpacing: -0.24,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _refreshCurrentWifi() async {
     final wifiService = WifiService();
     final status = await wifiService.getNetworkStatus();
@@ -568,6 +512,18 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       return;
     }
 
+    if (_networkType == SyncNetworkType.privateWifi) {
+      final permissionOk = await _ensureWifiNamePermission();
+      if (!permissionOk) {
+        if (!mounted) return;
+        setState(() {
+          _currentWifiName = null;
+          _currentWifiHint = '无法获取 SSID：未获得定位权限（Android 读取 WiFi 名称需要定位权限）';
+        });
+        return;
+      }
+    }
+
     final raw = await wifiService.getCurrentWifiName();
     final normalized = WifiService.normalizeWifiName(raw);
     if (!mounted) return;
@@ -578,6 +534,57 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           ? '已连接 WiFi，但无法获取 SSID（可能缺少定位权限/未开启定位/系统限制）'
           : null;
     });
+  }
+
+  Future<bool> _ensureWifiNamePermission() async {
+    if (!Platform.isAndroid) return true;
+
+    final status = await Permission.locationWhenInUse.status;
+    if (status.isGranted) return true;
+
+    final result = await Permission.locationWhenInUse.request();
+    if (result.isGranted) return true;
+
+    if (!mounted) return false;
+
+    if (result.isPermanentlyDenied) {
+      final go = await _confirmOpenAppSettings();
+      if (go) {
+        await openAppSettings();
+      }
+      return false;
+    }
+
+    await _showDialog(
+      title: '需要定位权限',
+      content: 'Android 读取当前 WiFi 名称（SSID）需要定位权限，请在系统弹窗中选择允许后再重试。',
+    );
+    return false;
+  }
+
+  Future<bool> _confirmOpenAppSettings() async {
+    var ok = false;
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('权限被永久拒绝'),
+        content: const Text('请前往系统设置开启定位权限后再获取 WiFi 名称。'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () {
+              ok = true;
+              Navigator.pop(context);
+            },
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
+    return ok;
   }
 
   Future<void> _saveConfig() async {
@@ -606,6 +613,15 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Future<void> _performSync() async {
+    if (_networkType == SyncNetworkType.privateWifi) {
+      final permissionOk = await _ensureWifiNamePermission();
+      if (!mounted) return;
+      if (!permissionOk) return;
+
+      await _refreshCurrentWifi();
+      if (!mounted) return;
+    }
+
     final ok = await context.read<SyncService>().sync();
     if (!mounted) return;
 
@@ -616,6 +632,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Future<void> _addWifiName() async {
+    await _refreshCurrentWifi();
+    if (!mounted) return;
+
     final controller = TextEditingController(text: _currentWifiName ?? '');
 
     await showCupertinoDialog<void>(
@@ -658,117 +677,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     );
 
     controller.dispose();
-  }
-
-  Future<void> _exportBackupToClipboard() async {
-    final service = BackupRestoreService(
-      syncConfigService: context.read<SyncConfigService>(),
-    );
-
-    final jsonText = await service.exportAsJson(pretty: true);
-    await _copyToClipboard(jsonText);
-    if (!mounted) return;
-
-    final kb = (jsonText.length / 1024).toStringAsFixed(1);
-    await _showDialog(title: '已导出', content: 'JSON 已复制到剪切板（约 $kb KB）');
-  }
-
-  Future<void> _openRestoreSheet() async {
-    final controller = TextEditingController();
-
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (_) => CupertinoActionSheet(
-        title: const Text('从 JSON 还原'),
-        message: SizedBox(
-          height: 180,
-          child: CupertinoTextField(
-            controller: controller,
-            placeholder: '粘贴备份 JSON（将覆盖写入本地）',
-            maxLines: null,
-            decoration: _fieldDecoration(),
-          ),
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              final data = await Clipboard.getData('text/plain');
-              controller.text = data?.text ?? '';
-            },
-            child: const Text('从剪切板粘贴'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => controller.clear(),
-            isDestructiveAction: true,
-            child: const Text('清空输入'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              final confirmed = await _confirmRestore();
-              if (!confirmed) return;
-              if (!mounted) return;
-
-              try {
-                final service = BackupRestoreService(
-                  syncConfigService: context.read<SyncConfigService>(),
-                );
-                final result = await service.restoreFromJson(controller.text);
-                if (!mounted) return;
-
-                Navigator.pop(context);
-                _loadConfigFromService();
-
-                final summary = [
-                  '已导入工具：${result.importedTools}',
-                  '已跳过工具：${result.skippedTools}',
-                  if (result.failedTools.isNotEmpty)
-                    '失败工具：${result.failedTools.keys.join("，")}',
-                ].join('\n');
-
-                await _showDialog(title: '还原完成', content: summary);
-              } catch (e) {
-                if (!mounted) return;
-                await _showDialog(title: '还原失败', content: e.toString());
-              }
-            },
-            isDestructiveAction: true,
-            child: const Text('开始还原（覆盖本地）'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
-        ),
-      ),
-    );
-
-    controller.dispose();
-  }
-
-  Future<bool> _confirmRestore() async {
-    var confirmed = false;
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('确认还原？'),
-        content: const Text('该操作会覆盖本地配置与数据，建议先导出备份。'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              confirmed = true;
-              Navigator.pop(context);
-            },
-            child: const Text('继续'),
-          ),
-        ],
-      ),
-    );
-    return confirmed;
   }
 
   Future<void> _copyToClipboard(String text) async {

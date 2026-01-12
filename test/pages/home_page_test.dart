@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
+import 'package:life_tools/core/ai/ai_config.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
@@ -91,6 +92,31 @@ void main() {
 
       expect(find.text('设置'), findsOneWidget);
       expect(find.text('默认打开工具'), findsOneWidget);
+    });
+
+    testWidgets('设置弹出层中 AI 模型名过长应使用省略号', (tester) async {
+      await aiConfigService.save(
+        const AiConfig(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'test-key',
+          model: 'this-is-a-very-very-very-very-very-long-model-name-for-testing',
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        ),
+      );
+
+      await tester.pumpWidget(wrap(const HomePage()));
+      await tester.tap(find.byIcon(CupertinoIcons.gear));
+      await tester.pumpAndSettle();
+
+      final modelText = find.text(
+        'this-is-a-very-very-very-very-very-long-model-name-for-testing',
+      );
+      expect(modelText, findsOneWidget);
+
+      final widget = tester.widget<Text>(modelText);
+      expect(widget.maxLines, 1);
+      expect(widget.overflow, TextOverflow.ellipsis);
     });
   });
 }

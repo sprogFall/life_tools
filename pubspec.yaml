@@ -60,6 +60,9 @@ dependencies:
   connectivity_plus: ^6.0.5
   network_info_plus: ^6.0.2
 
+  # 权限申请（用于读取 WiFi SSID 所需的定位权限）
+  permission_handler: ^11.3.1
+
   # 国际化和时间格式化
   intl: ^0.19.0
 
