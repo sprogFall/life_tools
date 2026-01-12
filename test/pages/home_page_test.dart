@@ -6,120 +6,85 @@ import 'package:life_tools/pages/home_page.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:life_tools/core/sync/services/sync_config_service.dart';
+import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   group('HomePage', () {
     late SettingsService mockSettingsService;
     late AiConfigService aiConfigService;
+    late SyncConfigService syncConfigService;
+    late SyncService syncService;
 
-    setUp(() async {
-      ToolRegistry.instance.registerAll();
-      mockSettingsService = SettingsService();
-      TestWidgetsFlutterBinding.ensureInitialized();
-      SharedPreferences.setMockInitialValues({});
-      aiConfigService = AiConfigService();
-      await aiConfigService.init();
+    setUpAll(() {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
     });
 
-    testWidgets('应该显示应用标题', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider<SettingsService>.value(
-                value: mockSettingsService,
-              ),
-              ChangeNotifierProvider<AiConfigService>.value(
-                value: aiConfigService,
-              ),
-            ],
-            child: const HomePage(),
-          ),
-        ),
-      );
+    setUp(() async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
 
+      ToolRegistry.instance.registerAll();
+      mockSettingsService = SettingsService();
+
+      aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+      syncService = SyncService(configService: syncConfigService);
+    });
+
+    Widget wrap(Widget child) {
+      return MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SettingsService>.value(
+            value: mockSettingsService,
+          ),
+          ChangeNotifierProvider<AiConfigService>.value(
+            value: aiConfigService,
+          ),
+          ChangeNotifierProvider<SyncConfigService>.value(
+            value: syncConfigService,
+          ),
+          ChangeNotifierProvider<SyncService>.value(
+            value: syncService,
+          ),
+        ],
+        child: MaterialApp(home: child),
+      );
+    }
+
+    testWidgets('åº”è¯¥æ˜¾ç¤ºåº”ç”¨æ ‡é¢˜', (WidgetTester tester) async {
+      await tester.pumpWidget(wrap(const HomePage()));
       expect(find.text('生活助手'), findsOneWidget);
     });
 
-    testWidgets('应该显示欢迎卡片', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider<SettingsService>.value(
-                value: mockSettingsService,
-              ),
-              ChangeNotifierProvider<AiConfigService>.value(
-                value: aiConfigService,
-              ),
-            ],
-            child: const HomePage(),
-          ),
-        ),
-      );
-
+    testWidgets('åº”è¯¥æ˜¾ç¤ºæ¬¢è¿Žå¡ç‰‡', (WidgetTester tester) async {
+      await tester.pumpWidget(wrap(const HomePage()));
       expect(find.text('欢迎回来'), findsOneWidget);
     });
 
-    testWidgets('应该显示设置按钮', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider<SettingsService>.value(
-                value: mockSettingsService,
-              ),
-              ChangeNotifierProvider<AiConfigService>.value(
-                value: aiConfigService,
-              ),
-            ],
-            child: const HomePage(),
-          ),
-        ),
-      );
-
+    testWidgets('åº”è¯¥æ˜¾ç¤ºè®¾ç½®æŒ‰é’®', (WidgetTester tester) async {
+      await tester.pumpWidget(wrap(const HomePage()));
       expect(find.byIcon(CupertinoIcons.gear), findsOneWidget);
     });
 
-    testWidgets('应该显示工具卡片', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider<SettingsService>.value(
-                value: mockSettingsService,
-              ),
-              ChangeNotifierProvider<AiConfigService>.value(
-                value: aiConfigService,
-              ),
-            ],
-            child: const HomePage(),
-          ),
-        ),
-      );
+    testWidgets('åº”è¯¥æ˜¾ç¤ºå·¥å…·å¡ç‰‡', (WidgetTester tester) async {
+      await tester.pumpWidget(wrap(const HomePage()));
 
-      // 检查是否显示了注册的工具
+      // æ£€æŸ¥æ˜¯å¦æ˜¾ç¤ºäº†æ³¨å†Œçš„å·¥å…?
       expect(find.text('工作记录'), findsOneWidget);
       expect(find.text('复盘笔记'), findsOneWidget);
       expect(find.text('日常开销'), findsOneWidget);
       expect(find.text('收入记录'), findsOneWidget);
     });
 
-    testWidgets('点击设置按钮应该打开设置弹出层', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<SettingsService>.value(
-              value: mockSettingsService,
-            ),
-            ChangeNotifierProvider<AiConfigService>.value(
-              value: aiConfigService,
-            ),
-          ],
-          child: const MaterialApp(home: HomePage()),
-        ),
-      );
+    testWidgets('ç‚¹å‡»è®¾ç½®æŒ‰é’®åº”è¯¥æ‰“å¼€è®¾ç½®å¼¹å‡ºå±?', (tester) async {
+      await tester.pumpWidget(wrap(const HomePage()));
 
       await tester.tap(find.byIcon(CupertinoIcons.gear));
       await tester.pumpAndSettle();

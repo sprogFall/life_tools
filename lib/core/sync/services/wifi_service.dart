@@ -9,7 +9,7 @@ enum NetworkStatus {
   unknown,
 }
 
-/// WiFi检测服务
+/// WiFi 检测服务
 class WifiService {
   final Connectivity _connectivity;
   final NetworkInfo _networkInfo;
@@ -35,35 +35,48 @@ class WifiService {
     return NetworkStatus.unknown;
   }
 
-  /// 获取当前连接的WiFi名称（SSID）
+  /// 获取当前连接的 WiFi 名称（SSID）
   ///
   /// 注意：
-  /// - Android 需要位置权限（ACCESS_FINE_LOCATION）
-  /// - iOS 需要"Access WiFi Information"权限
+  /// - Android 需要定位权限（ACCESS_FINE_LOCATION），且通常需要开启定位
+  /// - iOS 需要 “Access WiFi Information” 权限
   /// - 失败时返回 null
   Future<String?> getCurrentWifiName() async {
     try {
-      final wifiName = await _networkInfo.getWifiName();
-      // 移除可能的引号（iOS会返回带引号的SSID）
-      if (wifiName != null) {
-        return wifiName.replaceAll('"', '');
-      }
-      return null;
+      return normalizeWifiName(await _networkInfo.getWifiName());
     } catch (_) {
       return null;
     }
   }
 
-  /// 检查当前WiFi是否在允许列表中
+  /// 对 WiFi 名称做基础归一化（去引号/trim/过滤未知 SSID）
+  static String? normalizeWifiName(String? wifiName) {
+    if (wifiName == null) return null;
+
+    final normalized = wifiName.replaceAll('"', '').trim();
+    if (normalized.isEmpty) return null;
+
+    final lower = normalized.toLowerCase();
+    if (lower == '<unknown ssid>' || lower == 'unknown ssid') return null;
+
+    return normalized;
+  }
+
+  /// 检查当前 WiFi 是否在允许列表中
   Future<bool> isWifiAllowed(List<String> allowedWifiNames) async {
     if (allowedWifiNames.isEmpty) return false;
 
     final status = await getNetworkStatus();
     if (status != NetworkStatus.wifi) return false;
 
-    final currentWifi = await getCurrentWifiName();
+    final currentWifi = normalizeWifiName(await getCurrentWifiName());
     if (currentWifi == null) return false;
 
-    return allowedWifiNames.contains(currentWifi);
+    final normalizedAllowed = allowedWifiNames
+        .map(normalizeWifiName)
+        .whereType<String>()
+        .toSet();
+    return normalizedAllowed.contains(currentWifi);
   }
 }
+

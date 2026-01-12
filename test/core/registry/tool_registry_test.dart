@@ -1,12 +1,18 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/models/tool_info.dart';
+import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   group('ToolRegistry', () {
+    setUpAll(() {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    });
+
     setUp(() {
-      // 每次测试前清空注册表
+      // 每次测试前清空注册表并注册默认工具
       ToolRegistry.instance.registerAll();
     });
 
@@ -38,14 +44,20 @@ void main() {
 
     test('tools 列表应该是不可修改的', () {
       final tools = ToolRegistry.instance.tools;
-      expect(() => tools.add(ToolInfo(
-        id: 'test',
-        name: 'test',
-        description: 'test',
-        icon: Icons.abc,
-        color: Colors.red,
-        pageBuilder: () => const SizedBox(),
-      )), throwsUnsupportedError);
+      expect(
+        () => tools.add(
+          ToolInfo(
+            id: 'test',
+            name: 'test',
+            description: 'test',
+            icon: Icons.abc,
+            color: Colors.red,
+            pageBuilder: () => const SizedBox(),
+          ),
+        ),
+        throwsUnsupportedError,
+      );
     });
   });
 }
+

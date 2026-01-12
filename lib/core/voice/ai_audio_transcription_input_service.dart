@@ -47,7 +47,12 @@ class AiAudioTranscriptionInputService implements SpeechInputService {
       final recordedPath = await _recorder.stop();
       if (recordedPath == null) return null;
 
-      final text = await _aiService.transcribeAudioFile(filePath: recordedPath);
+      String text;
+      try {
+        text = await _aiService.transcribeAudioFile(filePath: recordedPath);
+      } on UnimplementedError {
+        return null;
+      }
       final cleaned = text.trim();
       return cleaned.isEmpty ? null : cleaned;
     } finally {
@@ -70,7 +75,6 @@ class AiAudioTranscriptionInputService implements SpeechInputService {
 
   Future<void> _waitForSpeechEnd({required Duration timeout}) async {
     final done = Completer<void>();
-    Timer? hardTimeout;
     Timer? silenceTimer;
     StreamSubscription<Amplitude>? sub;
     var heardNonSilence = false;
@@ -80,7 +84,7 @@ class AiAudioTranscriptionInputService implements SpeechInputService {
       done.complete();
     }
 
-    hardTimeout = Timer(timeout, finish);
+    final hardTimeout = Timer(timeout, finish);
 
     try {
       sub = _recorder
@@ -105,9 +109,12 @@ class AiAudioTranscriptionInputService implements SpeechInputService {
     try {
       await done.future;
     } finally {
-      hardTimeout?.cancel();
+      hardTimeout.cancel();
       silenceTimer?.cancel();
-      await sub?.cancel();
+      final subscription = sub;
+      if (subscription != null) {
+        await subscription.cancel();
+      }
     }
   }
 }

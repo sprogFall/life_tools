@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../../registry/tool_registry.dart';
 import '../models/sync_config.dart';
 import '../models/sync_request.dart';
@@ -8,11 +9,11 @@ import 'wifi_service.dart';
 
 /// 同步状态
 enum SyncState {
-  idle,       // 空闲
-  checking,   // 检查条件
-  syncing,    // 同步中
-  success,    // 同步成功
-  failed,     // 同步失败
+  idle, // 空闲
+  checking, // 检查条件
+  syncing, // 同步中
+  success, // 同步成功
+  failed, // 同步失败
 }
 
 /// 同步核心服务
@@ -39,9 +40,9 @@ class SyncService extends ChangeNotifier {
 
   /// 执行同步（主入口）
   Future<bool> sync() async {
-    // 加锁，防止并发同步
     if (_isSyncing) {
-      _lastError = '同步正在进行中，请稍候';
+      _lastError = '同步正在进行中，请稍后';
+      notifyListeners();
       return false;
     }
 
@@ -53,13 +54,15 @@ class SyncService extends ChangeNotifier {
       // 1. 检查配置
       final config = _configService.config;
       if (config == null || !config.isValid) {
-        throw Exception('同步配置未设置或不完整');
+        _lastError = '同步配置未设置或不完整';
+        _setState(SyncState.failed);
+        return false;
       }
 
       // 2. 检查网络条件
-      final canSync = await _checkNetworkCondition(config);
-      if (!canSync) {
-        throw Exception('当前网络条件不满足同步要求');
+      if (!await _checkNetworkCondition(config)) {
+        _setState(SyncState.failed);
+        return false;
       }
 
       // 3. 收集工具数据
@@ -67,13 +70,13 @@ class SyncService extends ChangeNotifier {
       final toolsData = await _collectToolsData();
 
       if (toolsData.isEmpty) {
-        // 没有工具支持同步，直接返回成功
+        // 没有工具支持同步：视为成功
         _setState(SyncState.success);
         await _configService.updateLastSyncTime(DateTime.now());
         return true;
       }
 
-      // 4. 调用同步API
+      // 4. 调用同步 API
       final request = SyncRequest(
         userId: config.userId,
         toolsData: toolsData,
@@ -85,7 +88,9 @@ class SyncService extends ChangeNotifier {
       );
 
       if (!response.success) {
-        throw Exception(response.message ?? '同步失败');
+        _lastError = response.message ?? '同步失败';
+        _setState(SyncState.failed);
+        return false;
       }
 
       // 5. 分发服务端数据给各工具
@@ -99,7 +104,7 @@ class SyncService extends ChangeNotifier {
       _setState(SyncState.success);
       return true;
     } catch (e) {
-      _lastError = e.toString();
+      _lastError ??= _stringifyError(e);
       _setState(SyncState.failed);
       return false;
     } finally {
@@ -107,31 +112,61 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  static String _stringifyError(Object e) {
+    final text = e.toString();
+    if (text.startsWith('Exception: ')) {
+      return text.substring('Exception: '.length);
+    }
+    return text;
+  }
+
   /// 检查网络条件
   Future<bool> _checkNetworkCondition(SyncConfig config) async {
     final networkStatus = await _wifiService.getNetworkStatus();
 
-    // 离线直接失败
     if (networkStatus == NetworkStatus.offline) {
-      _lastError = '当前无网络连接';
+      _lastError = '网络预检失败：当前无网络连接';
       return false;
     }
 
-    // 公网模式：任何网络都可以
+    // 公网模式：只要不是离线即可
     if (config.networkType == SyncNetworkType.public) {
       return true;
     }
 
-    // 私网模式：必须是WiFi且在允许列表中
+    // 私网模式：必须是 WiFi 且在允许列表中
     if (networkStatus != NetworkStatus.wifi) {
-      _lastError = '私网模式下必须连接WiFi';
+      _lastError = '网络预检失败：私网模式下必须连接 WiFi（当前：${networkStatus.name}）';
       return false;
     }
 
-    final isAllowed = await _wifiService.isWifiAllowed(config.allowedWifiNames);
-    if (!isAllowed) {
-      final currentWifi = await _wifiService.getCurrentWifiName();
-      _lastError = '当前WiFi（${currentWifi ?? "未知"}）不在允许列表中';
+    final allowed = config.allowedWifiNames
+        .map(WifiService.normalizeWifiName)
+        .whereType<String>()
+        .toSet();
+
+    if (allowed.isEmpty) {
+      _lastError = '网络预检失败：私网模式未配置允许的 WiFi 列表';
+      return false;
+    }
+
+    final rawSsid = await _wifiService.getCurrentWifiName();
+    final currentSsid = WifiService.normalizeWifiName(rawSsid);
+
+    if (currentSsid == null) {
+      _lastError = [
+        '网络预检失败：已连接 WiFi，但无法获取当前 WiFi 名称（SSID）',
+        '可能原因：未授予定位权限 / 未开启定位 / 系统限制（返回 <unknown ssid>）',
+        '调试信息：networkStatus=wifi, rawSsid=${rawSsid ?? "null"}, allowed=${allowed.join("，")}',
+      ].join('\n');
+      return false;
+    }
+
+    if (!allowed.contains(currentSsid)) {
+      _lastError = [
+        '网络预检失败：当前 WiFi（$currentSsid）不在允许列表中：${allowed.join("，")}',
+        '调试信息：rawSsid=${rawSsid ?? "null"}（注意是否包含引号/空格）',
+      ].join('\n');
       return false;
     }
 
@@ -144,14 +179,11 @@ class SyncService extends ChangeNotifier {
     final tools = ToolRegistry.instance.tools;
 
     for (final tool in tools) {
-      if (tool.supportSync) {
-        try {
-          final data = await tool.syncProvider!.exportData();
-          result[tool.id] = data;
-        } catch (e) {
-          debugPrint('工具 ${tool.name} 导出数据失败: $e');
-          // 单个工具失败不影响其他工具
-        }
+      if (!tool.supportSync) continue;
+      try {
+        result[tool.id] = await tool.syncProvider!.exportData();
+      } catch (e) {
+        debugPrint('工具 ${tool.name} 导出数据失败: $e');
       }
     }
 
@@ -169,17 +201,13 @@ class SyncService extends ChangeNotifier {
       final data = entry.value;
 
       final tool = tools.where((t) => t.id == toolId).firstOrNull;
-      if (tool != null && tool.supportSync) {
-        try {
-          await tool.syncProvider!.importData(data);
-        } catch (e) {
-          debugPrint('工具 ${tool.name} 导入数据失败: $e');
-          // 单个工具导入失败不影响其他工具
-          // 但应该记录到lastError中
-          if (_lastError == null) {
-            _lastError = '部分工具数据导入失败';
-          }
-        }
+      if (tool == null || !tool.supportSync) continue;
+
+      try {
+        await tool.syncProvider!.importData(data);
+      } catch (e) {
+        debugPrint('工具 ${tool.name} 导入数据失败: $e');
+        _lastError ??= '部分工具数据导入失败';
       }
     }
   }
@@ -195,3 +223,4 @@ class SyncService extends ChangeNotifier {
     super.dispose();
   }
 }
+

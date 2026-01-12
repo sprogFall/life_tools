@@ -491,6 +491,7 @@ class _SettingsSheet extends StatelessWidget {
                         aiConfig.isConfigured ? aiConfig.config!.model : '未配置';
 
                     return Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _SettingsItem(
                           icon: CupertinoIcons.app,

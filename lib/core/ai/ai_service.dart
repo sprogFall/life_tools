@@ -113,4 +113,15 @@ class AiService {
 
     return result.text;
   }
+
+  /// 语音转文字（占位实现）
+  ///
+  /// 当前仓库已引入语音录音能力，但尚未接入转写 API。
+  /// 若你需要开启该能力，我可以按你的服务端/模型要求补全实现（例如 OpenAI /whisper）。
+  Future<String> transcribeAudioFile({
+    required String filePath,
+    Duration timeout = const Duration(seconds: 120),
+  }) async {
+    throw UnimplementedError('当前版本暂未实现语音转文字（filePath: $filePath, timeout: $timeout）');
+  }
 }

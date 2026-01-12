@@ -370,8 +370,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       return;
     }
 
-    await context.read<AiConfigService>().save(config);
-    if (!mounted) return;
+    final configService = context.read<AiConfigService>();
+    await configService.save(config);
+    if (!context.mounted) return;
 
     await showCupertinoDialog<void>(
       context: context,
@@ -425,6 +426,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
     setState(() => _isTesting = true);
 
+    final aiService = context.read<AiService>();
     final navigator = Navigator.of(context, rootNavigator: true);
     showCupertinoDialog<void>(
       context: context,
@@ -439,13 +441,13 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     );
 
     try {
-      final text = await context.read<AiService>().chatTextWithConfig(
+      final text = await aiService.chatTextWithConfig(
             config: config,
             prompt: '你好，请介绍一下你是什么模型',
             systemPrompt: '请用中文简要回答，不要输出多余内容。',
           );
 
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (navigator.canPop()) navigator.pop();
       await showCupertinoDialog<void>(
         context: context,
@@ -461,7 +463,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (navigator.canPop()) navigator.pop();
       await showCupertinoDialog<void>(
         context: context,
@@ -482,6 +484,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Future<void> _confirmAndClear(BuildContext context) async {
+    final configService = context.read<AiConfigService>();
+    final navigator = Navigator.of(context);
+
     final result = await showCupertinoDialog<bool>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -502,8 +507,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     );
 
     if (result != true) return;
-    await context.read<AiConfigService>().clear();
+    await configService.clear();
     if (!mounted) return;
-    Navigator.pop(context);
+    navigator.pop();
   }
 }
