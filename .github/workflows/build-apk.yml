@@ -38,7 +38,15 @@ jobs:
             exit 0
           fi
           
-          # 如果是 main 分支，检查 commit message 标签
+          # 如果是 main 分支，自动构建 release 包
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "build_type=release" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "Building RELEASE APK (main branch auto-build)"
+            exit 0
+          fi
+          
+          # 其他分支，检查 commit message 标签
           if [[ "$MESSAGE" == *"[build-apk:release]"* ]]; then
             echo "build_type=release" >> $GITHUB_OUTPUT
             echo "Building RELEASE APK"
