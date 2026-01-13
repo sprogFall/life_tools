@@ -381,11 +381,21 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       final taskId = await _resolveTaskIdForTimeEntry(ref: intent.taskRef);
       if (taskId == null || !mounted) return;
 
+      // 获取任务标题
+      final task = _service.tasks.firstWhere(
+        (t) => t.id == taskId,
+        orElse: () => _service.tasks.first,
+      );
+
       final saved = await Navigator.of(context).push<bool>(
         CupertinoPageRoute(
           builder: (_) => ChangeNotifierProvider.value(
             value: _service,
-            child: WorkTimeEntryEditPage(taskId: taskId, draft: intent.draft),
+            child: WorkTimeEntryEditPage(
+              taskId: taskId,
+              draft: intent.draft,
+              taskTitle: task.title,
+            ),
           ),
         ),
       );

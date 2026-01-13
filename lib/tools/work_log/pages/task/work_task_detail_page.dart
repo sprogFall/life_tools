@@ -157,6 +157,16 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    task.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: IOS26Theme.textPrimary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   const Text(
                     '任务信息',
                     style: TextStyle(
@@ -240,30 +250,66 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             right: 20,
             bottom: 20,
             child: SafeArea(
-              child: CupertinoButton(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                color: IOS26Theme.toolGreen,
-                borderRadius: BorderRadius.circular(14),
-                onPressed: _showCompleteTaskDialog,
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.check_mark_circled_solid,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      '完成任务',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      color: IOS26Theme.primaryColor,
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: _openAddTimeEntry,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            CupertinoIcons.clock_fill,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '记录工时',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      color: IOS26Theme.toolGreen,
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: _showCompleteTaskDialog,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            CupertinoIcons.check_mark_circled_solid,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            '完成',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -468,7 +514,11 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
           CupertinoPageRoute(
             builder: (_) => ChangeNotifierProvider.value(
               value: service,
-              child: WorkTimeEntryEditPage(taskId: widget.taskId, entry: entry),
+              child: WorkTimeEntryEditPage(
+                taskId: widget.taskId,
+                entry: entry,
+                taskTitle: _task?.title,
+              ),
             ),
           ),
         )
@@ -514,7 +564,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
           CupertinoPageRoute(
             builder: (_) => ChangeNotifierProvider.value(
               value: service,
-              child: WorkTimeEntryEditPage(taskId: widget.taskId),
+              child: WorkTimeEntryEditPage(
+                taskId: widget.taskId,
+                taskTitle: _task?.title,
+              ),
             ),
           ),
         )

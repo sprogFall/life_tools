@@ -11,12 +11,14 @@ class WorkTimeEntryEditPage extends StatefulWidget {
   final int taskId;
   final WorkTimeEntry? entry;
   final WorkTimeEntryDraft? draft;
+  final String? taskTitle;
 
   const WorkTimeEntryEditPage({
     super.key,
     required this.taskId,
     this.entry,
     this.draft,
+    this.taskTitle,
   });
 
   @override
@@ -66,6 +68,10 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
+                    if (widget.taskTitle != null) ...[
+                      _buildTaskInfoCard(),
+                      const SizedBox(height: 16),
+                    ],
                     _buildDateCard(),
                     const SizedBox(height: 16),
                     _buildFormCard(),
@@ -135,6 +141,35 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTaskInfoCard() {
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '关联任务',
+            style: TextStyle(
+              fontSize: 13,
+              color: IOS26Theme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.taskTitle!,
+            style: const TextStyle(
+              fontSize: 17,
+              color: IOS26Theme.textPrimary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
