@@ -36,8 +36,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       _descriptionController.text = widget.task!.description;
       if (widget.task!.estimatedMinutes > 0) {
         final hours = widget.task!.estimatedMinutes / 60.0;
-        _estimatedHoursController.text =
-            hours == hours.roundToDouble() ? hours.toInt().toString() : hours.toString();
+        _estimatedHoursController.text = hours == hours.roundToDouble()
+            ? hours.toInt().toString()
+            : hours.toString();
       }
       _status = widget.task!.status;
       _startAt = widget.task!.startAt;
@@ -48,8 +49,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       _descriptionController.text = draft.description;
       if (draft.estimatedMinutes > 0) {
         final hours = draft.estimatedMinutes / 60.0;
-        _estimatedHoursController.text =
-            hours == hours.roundToDouble() ? hours.toInt().toString() : hours.toString();
+        _estimatedHoursController.text = hours == hours.roundToDouble()
+            ? hours.toInt().toString()
+            : hours.toString();
       }
       _status = draft.status;
       _startAt = draft.startAt;
@@ -133,7 +135,10 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                 ),
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 onPressed: () => _save(context),
                 child: const Text(
                   '保存',
@@ -210,18 +215,25 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
           _TimeRow(
             label: '开始时间',
             value: _startAt,
-            onTap: () => _pickDateTime((value) => setState(() => _startAt = value),
-                initial: _startAt),
-            onClear: _startAt == null ? null : () => setState(() => _startAt = null),
+            onTap: () => _pickDateTime(
+              (value) => setState(() => _startAt = value),
+              initial: _startAt,
+            ),
+            onClear: _startAt == null
+                ? null
+                : () => setState(() => _startAt = null),
           ),
           const SizedBox(height: 10),
           _TimeRow(
             label: '结束时间',
             value: _endAt,
-            onTap:
-                () => _pickDateTime((value) => setState(() => _endAt = value),
-                    initial: _endAt ?? _startAt),
-            onClear: _endAt == null ? null : () => setState(() => _endAt = null),
+            onTap: () => _pickDateTime(
+              (value) => setState(() => _endAt = value),
+              initial: _endAt ?? _startAt,
+            ),
+            onClear: _endAt == null
+                ? null
+                : () => setState(() => _endAt = null),
           ),
         ],
       ),
@@ -306,10 +318,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
     );
   }
 
-  void _pickDateTime(
-    ValueChanged<DateTime> onPicked, {
-    DateTime? initial,
-  }) {
+  void _pickDateTime(ValueChanged<DateTime> onPicked, {DateTime? initial}) {
     final initialValue = initial ?? DateTime.now();
     showCupertinoModalPopup<void>(
       context: context,
@@ -372,7 +381,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       return;
     }
 
-    final estimatedHours = double.tryParse(_estimatedHoursController.text.trim());
+    final estimatedHours = double.tryParse(
+      _estimatedHoursController.text.trim(),
+    );
     final estimatedMinutes = estimatedHours == null
         ? 0
         : (estimatedHours * 60).round().clamp(0, 1000000);

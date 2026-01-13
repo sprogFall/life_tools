@@ -78,8 +78,8 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
               child: _loading
                   ? const Center(child: CupertinoActivityIndicator())
                   : _logs.isEmpty
-                      ? _buildEmptyState()
-                      : _buildLogList(),
+                  ? _buildEmptyState()
+                  : _buildLogList(),
             ),
           ],
         ),
@@ -223,12 +223,30 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
 
   Widget _buildOperationIcon(OperationType type) {
     final (IconData icon, Color color) = switch (type) {
-      OperationType.createTask => (CupertinoIcons.add_circled_solid, IOS26Theme.toolGreen),
-      OperationType.updateTask => (CupertinoIcons.pencil_circle_fill, IOS26Theme.toolBlue),
-      OperationType.deleteTask => (CupertinoIcons.minus_circle_fill, IOS26Theme.toolRed),
-      OperationType.createTimeEntry => (CupertinoIcons.clock_fill, IOS26Theme.toolGreen),
-      OperationType.updateTimeEntry => (CupertinoIcons.clock_fill, IOS26Theme.toolOrange),
-      OperationType.deleteTimeEntry => (CupertinoIcons.clock_fill, IOS26Theme.toolRed),
+      OperationType.createTask => (
+        CupertinoIcons.add_circled_solid,
+        IOS26Theme.toolGreen,
+      ),
+      OperationType.updateTask => (
+        CupertinoIcons.pencil_circle_fill,
+        IOS26Theme.toolBlue,
+      ),
+      OperationType.deleteTask => (
+        CupertinoIcons.minus_circle_fill,
+        IOS26Theme.toolRed,
+      ),
+      OperationType.createTimeEntry => (
+        CupertinoIcons.clock_fill,
+        IOS26Theme.toolGreen,
+      ),
+      OperationType.updateTimeEntry => (
+        CupertinoIcons.clock_fill,
+        IOS26Theme.toolOrange,
+      ),
+      OperationType.deleteTimeEntry => (
+        CupertinoIcons.clock_fill,
+        IOS26Theme.toolRed,
+      ),
     };
     return Icon(icon, color: color, size: 24);
   }

@@ -23,11 +23,7 @@ class WorkLogToolPage extends StatefulWidget {
   final WorkLogRepositoryBase? repository;
   final WorkLogAiAssistant? aiAssistant;
 
-  const WorkLogToolPage({
-    super.key,
-    this.repository,
-    this.aiAssistant,
-  });
+  const WorkLogToolPage({super.key, this.repository, this.aiAssistant});
 
   @override
   State<WorkLogToolPage> createState() => _WorkLogToolPageState();
@@ -103,15 +99,15 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                     child: _buildSegmentedControl(),
                   ),
                   Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: _tab == 0
-                            ? const WorkTaskListView(key: ValueKey('tasks'))
-                            : const WorkLogCalendarView(
-                                key: ValueKey('calendar'),
-                              ),
-                      ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _tab == 0
+                          ? const WorkTaskListView(key: ValueKey('tasks'))
+                          : const WorkLogCalendarView(
+                              key: ValueKey('calendar'),
+                            ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -243,10 +239,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       decoration: BoxDecoration(
         color: IOS26Theme.glassColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: IOS26Theme.glassBorderColor,
-          width: 1,
-        ),
+        border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
       ),
       child: CupertinoSlidingSegmentedControl<int>(
         groupValue: _tab,
@@ -282,10 +275,10 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
           ),
         )
         .then((saved) {
-      if (saved == true && mounted) {
-        _service.loadTasks();
-      }
-    });
+          if (saved == true && mounted) {
+            _service.loadTasks();
+          }
+        });
   }
 
   void _openOperationLogs() {
@@ -360,7 +353,10 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
     ].join('\n');
   }
 
-  Future<void> _applyAiIntent(WorkLogAiIntent intent, {required String rawJson}) async {
+  Future<void> _applyAiIntent(
+    WorkLogAiIntent intent, {
+    required String rawJson,
+  }) async {
     if (intent is UnknownIntent) {
       await _showMessage('无法识别指令', '${intent.reason}\n\nAI 返回：\n$rawJson');
       return;
@@ -382,19 +378,14 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
     }
 
     if (intent is AddTimeEntryIntent) {
-      final taskId = await _resolveTaskIdForTimeEntry(
-        ref: intent.taskRef,
-      );
+      final taskId = await _resolveTaskIdForTimeEntry(ref: intent.taskRef);
       if (taskId == null || !mounted) return;
 
       final saved = await Navigator.of(context).push<bool>(
         CupertinoPageRoute(
           builder: (_) => ChangeNotifierProvider.value(
             value: _service,
-            child: WorkTimeEntryEditPage(
-              taskId: taskId,
-              draft: intent.draft,
-            ),
+            child: WorkTimeEntryEditPage(taskId: taskId, draft: intent.draft),
           ),
         ),
       );
@@ -406,9 +397,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
     }
   }
 
-  Future<int?> _resolveTaskIdForTimeEntry({
-    required WorkLogTaskRef ref,
-  }) async {
+  Future<int?> _resolveTaskIdForTimeEntry({required WorkLogTaskRef ref}) async {
     final tasks = _service.tasks.where((t) => t.id != null).toList();
 
     if (ref.id != null) {
@@ -446,9 +435,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
         CupertinoPageRoute(
           builder: (_) => ChangeNotifierProvider.value(
             value: _service,
-            child: WorkTaskEditPage(
-              draft: WorkTaskDraft(title: title),
-            ),
+            child: WorkTaskEditPage(draft: WorkTaskDraft(title: title)),
           ),
         ),
       );

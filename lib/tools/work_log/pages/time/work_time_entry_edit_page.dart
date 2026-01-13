@@ -118,7 +118,10 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
                 ),
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 onPressed: () => _save(context),
                 child: const Text(
                   '保存',

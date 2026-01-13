@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/ios26_theme.dart';
 import '../../models/work_task.dart';
@@ -13,44 +14,193 @@ class WorkTaskListView extends StatelessWidget {
     return Consumer<WorkLogService>(
       builder: (context, service, child) {
         if (service.loadingTasks) {
-          return const Center(
-            child: CupertinoActivityIndicator(),
-          );
+          return const Center(child: CupertinoActivityIndicator());
         }
 
         final tasks = service.tasks;
-        if (tasks.isEmpty) {
-          return Center(
-            child: Text(
-              '暂无任务，点击右上角 + 创建',
-              style: TextStyle(
-                fontSize: 15,
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-              ),
-            ),
-          );
-        }
 
-        return ListView.separated(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
-          itemCount: tasks.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) => _TaskCard(task: tasks[index]),
+        return Column(
+          children: [
+            _StatusFilterBar(service: service),
+            Expanded(
+              child: tasks.isEmpty
+                  ? Center(
+                      child: Text(
+                        '暂无符合条件的任务',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.9,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                      itemCount: tasks.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) =>
+                          _TaskCard(task: tasks[index], service: service),
+                    ),
+            ),
+          ],
         );
       },
     );
   }
 }
 
+class _StatusFilterBar extends StatelessWidget {
+  final WorkLogService service;
+
+  const _StatusFilterBar({required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    final currentFilters = service.statusFilters;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _FilterChip(
+              label: '待办',
+              status: WorkTaskStatus.todo,
+              isSelected: currentFilters.contains(WorkTaskStatus.todo),
+              onTap: () => _toggleStatus(WorkTaskStatus.todo),
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: '进行中',
+              status: WorkTaskStatus.doing,
+              isSelected: currentFilters.contains(WorkTaskStatus.doing),
+              onTap: () => _toggleStatus(WorkTaskStatus.doing),
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: '已完成',
+              status: WorkTaskStatus.done,
+              isSelected: currentFilters.contains(WorkTaskStatus.done),
+              onTap: () => _toggleStatus(WorkTaskStatus.done),
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: '已取消',
+              status: WorkTaskStatus.canceled,
+              isSelected: currentFilters.contains(WorkTaskStatus.canceled),
+              onTap: () => _toggleStatus(WorkTaskStatus.canceled),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _toggleStatus(WorkTaskStatus status) {
+    final current = List<WorkTaskStatus>.from(service.statusFilters);
+    if (current.contains(status)) {
+      current.remove(status);
+      if (current.isEmpty) return;
+    } else {
+      current.add(status);
+    }
+    service.setStatusFilters(current);
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final WorkTaskStatus status;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.status,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? _statusColor(status).withValues(alpha: 0.15)
+              : IOS26Theme.textTertiary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? _statusColor(status).withValues(alpha: 0.4)
+                : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? _statusColor(status) : IOS26Theme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _statusColor(WorkTaskStatus status) {
+    return switch (status) {
+      WorkTaskStatus.todo => IOS26Theme.toolOrange,
+      WorkTaskStatus.doing => IOS26Theme.toolBlue,
+      WorkTaskStatus.done => IOS26Theme.toolGreen,
+      WorkTaskStatus.canceled => IOS26Theme.textTertiary,
+    };
+  }
+}
+
 class _TaskCard extends StatelessWidget {
   final WorkTask task;
+  final WorkLogService service;
 
-  const _TaskCard({required this.task});
+  const _TaskCard({required this.task, required this.service});
 
   @override
   Widget build(BuildContext context) {
     final taskId = task.id;
+    if (taskId == null) {
+      return _buildCardContent(context);
+    }
+
+    return Dismissible(
+      key: ValueKey('task_$taskId'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: IOS26Theme.toolRed,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(CupertinoIcons.delete, color: CupertinoColors.white),
+      ),
+      confirmDismiss: (_) => _confirmDelete(context),
+      child: _buildCardContent(context),
+    );
+  }
+
+  Widget _buildCardContent(BuildContext context) {
+    final taskId = task.id;
+    final totalMinutes = taskId != null
+        ? service.getTaskTotalMinutes(taskId)
+        : 0;
+
     return GestureDetector(
       onTap: taskId == null
           ? null
@@ -95,16 +245,18 @@ class _TaskCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (task.estimatedMinutes > 0)
+            if (task.estimatedMinutes > 0 || totalMinutes > 0)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: IOS26Theme.primaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_minutesToHoursText(task.estimatedMinutes)} 预计',
+                  _formatTimeProgress(totalMinutes, task.estimatedMinutes),
                   style: const TextStyle(
                     fontSize: 12,
                     color: IOS26Theme.primaryColor,
@@ -122,6 +274,43 @@ class _TaskCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatTimeProgress(int usedMinutes, int estimatedMinutes) {
+    if (estimatedMinutes <= 0) {
+      return '${_minutesToHoursText(usedMinutes)} 已用';
+    }
+    return '${_minutesToHoursText(usedMinutes)}/${_minutesToHoursText(estimatedMinutes)}';
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除任务「${task.title}」吗？\n相关的工时记录也会被删除。'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      final taskId = task.id;
+      if (taskId != null) {
+        await service.deleteTask(taskId);
+      }
+    }
+
+    return result ?? false;
   }
 
   void _openDetail(BuildContext context, int taskId, String title) {

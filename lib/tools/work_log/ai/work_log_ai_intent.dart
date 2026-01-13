@@ -24,10 +24,7 @@ class AddTimeEntryIntent extends WorkLogAiIntent {
   final WorkLogTaskRef taskRef;
   final WorkTimeEntryDraft draft;
 
-  const AddTimeEntryIntent({
-    required this.taskRef,
-    required this.draft,
-  });
+  const AddTimeEntryIntent({required this.taskRef, required this.draft});
 }
 
 class WorkLogAiIntentParser {
@@ -84,7 +81,10 @@ class WorkLogAiIntentParser {
 
     final timeEntry = _asMap(root['time_entry']);
     if (timeEntry == null) {
-      return UnknownIntent(reason: 'add_time_entry 缺少 time_entry 对象', raw: root);
+      return UnknownIntent(
+        reason: 'add_time_entry 缺少 time_entry 对象',
+        raw: root,
+      );
     }
 
     final minutes = _asInt(timeEntry['minutes']);

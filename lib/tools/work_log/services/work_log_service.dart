@@ -9,7 +9,7 @@ class WorkLogService extends ChangeNotifier {
   final WorkLogRepositoryBase _repository;
 
   WorkLogService({required WorkLogRepositoryBase repository})
-      : _repository = repository;
+    : _repository = repository;
 
   bool _disposed = false;
 
@@ -19,16 +19,45 @@ class WorkLogService extends ChangeNotifier {
   List<WorkTask> _tasks = [];
   List<WorkTask> get tasks => List.unmodifiable(_tasks);
 
+  List<WorkTaskStatus> _statusFilters = [
+    WorkTaskStatus.todo,
+    WorkTaskStatus.doing,
+  ];
+  List<WorkTaskStatus> get statusFilters => List.unmodifiable(_statusFilters);
+
+  final Map<int, int> _taskTotalMinutes = {};
+
   Future<void> loadTasks() async {
     if (_disposed) return;
     _loadingTasks = true;
     _safeNotify();
     try {
-      _tasks = await _repository.listTasks();
+      _tasks = await _repository.listTasks(statuses: _statusFilters);
+      await _loadTaskTotalMinutes();
     } finally {
       _loadingTasks = false;
       _safeNotify();
     }
+  }
+
+  Future<void> _loadTaskTotalMinutes() async {
+    _taskTotalMinutes.clear();
+    for (final task in _tasks) {
+      if (task.id != null) {
+        _taskTotalMinutes[task.id!] = await _repository.getTotalMinutesForTask(
+          task.id!,
+        );
+      }
+    }
+  }
+
+  int getTaskTotalMinutes(int taskId) {
+    return _taskTotalMinutes[taskId] ?? 0;
+  }
+
+  void setStatusFilters(List<WorkTaskStatus> filters) {
+    _statusFilters = filters;
+    loadTasks();
   }
 
   Future<int> createTask(WorkTask task) async {
@@ -208,11 +237,13 @@ class WorkLogService extends ChangeNotifier {
     }
     if (oldTask.status != newTask.status) {
       changes.add(
-          '状态: ${_statusLabel(oldTask.status)} -> ${_statusLabel(newTask.status)}');
+        '状态: ${_statusLabel(oldTask.status)} -> ${_statusLabel(newTask.status)}',
+      );
     }
     if (oldTask.estimatedMinutes != newTask.estimatedMinutes) {
       changes.add(
-          '预计工时: ${oldTask.estimatedMinutes}分钟 -> ${newTask.estimatedMinutes}分钟');
+        '预计工时: ${oldTask.estimatedMinutes}分钟 -> ${newTask.estimatedMinutes}分钟',
+      );
     }
     if (oldTask.description != newTask.description) {
       changes.add('描述已修改');
@@ -222,7 +253,9 @@ class WorkLogService extends ChangeNotifier {
   }
 
   String _generateTimeEntryChangeSummary(
-      WorkTimeEntry? oldEntry, WorkTimeEntry newEntry) {
+    WorkTimeEntry? oldEntry,
+    WorkTimeEntry newEntry,
+  ) {
     if (oldEntry == null) return '更新工时记录';
 
     final changes = <String>[];

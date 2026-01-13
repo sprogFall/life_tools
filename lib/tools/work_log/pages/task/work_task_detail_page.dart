@@ -13,7 +13,11 @@ class WorkTaskDetailPage extends StatefulWidget {
   final int taskId;
   final String title;
 
-  const WorkTaskDetailPage({super.key, required this.taskId, required this.title});
+  const WorkTaskDetailPage({
+    super.key,
+    required this.taskId,
+    required this.title,
+  });
 
   @override
   State<WorkTaskDetailPage> createState() => _WorkTaskDetailPageState();
@@ -51,9 +55,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
         child: Column(
           children: [
             _buildAppBar(context),
-            Expanded(
-              child: _loading ? _buildLoading() : _buildContent(),
-            ),
+            Expanded(child: _loading ? _buildLoading() : _buildContent()),
           ],
         ),
       ),
@@ -142,8 +144,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
       );
     }
 
-    final totalMinutes =
-        _entries.fold<int>(0, (sum, e) => sum + e.minutes);
+    final totalMinutes = _entries.fold<int>(0, (sum, e) => sum + e.minutes);
 
     return Stack(
       children: [
@@ -344,10 +345,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
           ),
         )
         .then((saved) {
-      if (saved == true && mounted) {
-        _load();
-      }
-    });
+          if (saved == true && mounted) {
+            _load();
+          }
+        });
   }
 
   void _showMoreOptions() {
@@ -467,18 +468,15 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
           CupertinoPageRoute(
             builder: (_) => ChangeNotifierProvider.value(
               value: service,
-              child: WorkTimeEntryEditPage(
-                taskId: widget.taskId,
-                entry: entry,
-              ),
+              child: WorkTimeEntryEditPage(taskId: widget.taskId, entry: entry),
             ),
           ),
         )
         .then((saved) {
-      if (saved == true && mounted) {
-        _load();
-      }
-    });
+          if (saved == true && mounted) {
+            _load();
+          }
+        });
   }
 
   Future<bool> _confirmDeleteTimeEntry(WorkTimeEntry entry) async {
@@ -521,10 +519,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
           ),
         )
         .then((saved) {
-      if (saved == true && mounted) {
-        _load();
-      }
-    });
+          if (saved == true && mounted) {
+            _load();
+          }
+        });
   }
 
   static String _minutesToHoursText(int minutes) {
@@ -562,10 +560,7 @@ class _InfoRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: IOS26Theme.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
         ),
         const Spacer(),
         Text(

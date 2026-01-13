@@ -17,9 +17,7 @@ void main() {
 
     testWidgets('应该展示标题与分段切换', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(repository: repository),
-        ),
+        MaterialApp(home: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -30,9 +28,7 @@ void main() {
 
     testWidgets('默认应展示任务列表页入口', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(repository: repository),
-        ),
+        MaterialApp(home: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -41,9 +37,7 @@ void main() {
 
     testWidgets('应该可以创建任务并在列表中显示', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(repository: repository),
-        ),
+        MaterialApp(home: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -75,9 +69,7 @@ void main() {
 
     testWidgets('应该可以在任务下记录工时并查看', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(repository: repository),
-        ),
+        MaterialApp(home: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -150,9 +142,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(repository: fake),
-        ),
+        MaterialApp(home: WorkLogToolPage(repository: fake)),
       );
       await tester.pump(const Duration(milliseconds: 600));
 
@@ -191,9 +181,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(repository: fake),
-        ),
+        MaterialApp(home: WorkLogToolPage(repository: fake)),
       );
       await tester.pump(const Duration(milliseconds: 600));
 

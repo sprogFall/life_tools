@@ -120,4 +120,3 @@ class WorkTask {
     return DateTime.fromMillisecondsSinceEpoch(value as int);
   }
 }
-

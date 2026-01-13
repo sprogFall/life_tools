@@ -69,7 +69,9 @@ class WorkTimeEntry {
   }
 
   factory WorkTimeEntry.fromMap(Map<String, Object?> map) {
-    final createdAt = DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int);
+    final createdAt = DateTime.fromMillisecondsSinceEpoch(
+      map['created_at'] as int,
+    );
     final updatedAtValue = map['updated_at'] as int?;
     return WorkTimeEntry(
       id: map['id'] as int?,
@@ -88,4 +90,3 @@ class WorkTimeEntry {
     return DateTime(dateTime.year, dateTime.month, dateTime.day);
   }
 }
-

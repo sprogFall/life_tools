@@ -6,7 +6,7 @@ class WorkLogSyncProvider implements ToolSyncProvider {
   final WorkLogRepositoryBase _repository;
 
   WorkLogSyncProvider({required WorkLogRepositoryBase repository})
-      : _repository = repository;
+    : _repository = repository;
 
   @override
   String get toolId => 'work_log';
