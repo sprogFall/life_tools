@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'core/ai/ai_config_service.dart';
@@ -83,6 +84,16 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: IOS26Theme.lightTheme,
         scrollBehavior: const CupertinoScrollBehavior(),
+        locale: const Locale('zh', 'CN'),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('zh', 'CN'),
+          Locale('en', 'US'),
+        ],
         home: _buildInitialPage(),
       ),
     );
