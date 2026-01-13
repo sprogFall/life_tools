@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     paths-ignore:
       - '**.md'
       - '.gitignore'
@@ -25,8 +26,19 @@ jobs:
         id: parse-build-type
         run: |
           MESSAGE="${{ github.event.head_commit.message }}"
+          BRANCH="${{ github.ref_name }}"
           echo "Commit message: $MESSAGE"
+          echo "Branch: $BRANCH"
           
+          # 如果是 dev 分支，自动构建 debug 包
+          if [[ "$BRANCH" == "dev" ]]; then
+            echo "build_type=debug" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "Building DEBUG APK (dev branch auto-build)"
+            exit 0
+          fi
+          
+          # 如果是 main 分支，检查 commit message 标签
           if [[ "$MESSAGE" == *"[build-apk:release]"* ]]; then
             echo "build_type=release" >> $GITHUB_OUTPUT
             echo "Building RELEASE APK"
@@ -108,9 +120,11 @@ jobs:
           APK_SIZE="${{ steps.apk-info.outputs.apk_size }}"
           COMMIT_SHA="${{ github.sha }}"
           COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
+          BRANCH="${{ github.ref_name }}"
           
           echo "## 📱 APK Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: $BRANCH" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Type**: $BUILD_TYPE" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Name**: $APK_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Size**: $APK_SIZE" >> $GITHUB_STEP_SUMMARY
