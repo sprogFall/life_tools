@@ -21,6 +21,7 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   @override
   Future<void> deleteTask(int id) async {
     _tasks.removeWhere((t) => t.id == id);
+    _entries.removeWhere((e) => e.taskId == id);
   }
 
   @override
@@ -32,13 +33,23 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
+  Future<int> getTotalMinutesForTask(int taskId) async {
+    return _entries
+        .where((e) => e.taskId == taskId)
+        .fold<int>(0, (sum, e) => sum + e.minutes);
+  }
+
+  @override
   Future<List<WorkTask>> listTasks({
     WorkTaskStatus? status,
+    List<WorkTaskStatus>? statuses,
     String? keyword,
   }) async {
     Iterable<WorkTask> result = _tasks;
     if (status != null) {
       result = result.where((t) => t.status == status);
+    } else if (statuses != null && statuses.isNotEmpty) {
+      result = result.where((t) => statuses.contains(t.status));
     }
     if (keyword != null && keyword.trim().isNotEmpty) {
       final lower = keyword.trim().toLowerCase();
@@ -48,7 +59,9 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
             t.description.toLowerCase().contains(lower),
       );
     }
-    return result.toList();
+    var list = result.toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 
   @override
@@ -105,8 +118,16 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
     DateTime startInclusive,
     DateTime endExclusive,
   ) async {
-    final start = DateTime(startInclusive.year, startInclusive.month, startInclusive.day);
-    final end = DateTime(endExclusive.year, endExclusive.month, endExclusive.day);
+    final start = DateTime(
+      startInclusive.year,
+      startInclusive.month,
+      startInclusive.day,
+    );
+    final end = DateTime(
+      endExclusive.year,
+      endExclusive.month,
+      endExclusive.day,
+    );
     return _entries
         .where((e) => !e.workDate.isBefore(start) && e.workDate.isBefore(end))
         .toList();
@@ -115,17 +136,19 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   @override
   Future<int> createOperationLog(OperationLog log) async {
     final id = ++_logId;
-    _logs.add(OperationLog(
-      id: id,
-      operationType: log.operationType,
-      targetType: log.targetType,
-      targetId: log.targetId,
-      targetTitle: log.targetTitle,
-      beforeSnapshot: log.beforeSnapshot,
-      afterSnapshot: log.afterSnapshot,
-      summary: log.summary,
-      createdAt: log.createdAt,
-    ));
+    _logs.add(
+      OperationLog(
+        id: id,
+        operationType: log.operationType,
+        targetType: log.targetType,
+        targetId: log.targetId,
+        targetTitle: log.targetTitle,
+        beforeSnapshot: log.beforeSnapshot,
+        afterSnapshot: log.afterSnapshot,
+        summary: log.summary,
+        createdAt: log.createdAt,
+      ),
+    );
     return id;
   }
 
@@ -143,7 +166,8 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
     if (targetId != null) {
       result = result.where((l) => l.targetId == targetId);
     }
-    var list = result.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    var list = result.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     if (offset != null && offset > 0) {
       list = list.skip(offset).toList();
     }
@@ -159,7 +183,9 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
-  Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData) async {
+  Future<void> importTasksFromServer(
+    List<Map<String, dynamic>> tasksData,
+  ) async {
     _tasks.clear();
     for (final taskMap in tasksData) {
       _tasks.add(WorkTask.fromMap(taskMap));
@@ -168,7 +194,8 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
 
   @override
   Future<void> importTimeEntriesFromServer(
-      List<Map<String, dynamic>> entriesData) async {
+    List<Map<String, dynamic>> entriesData,
+  ) async {
     _entries.clear();
     for (final entryMap in entriesData) {
       _entries.add(WorkTimeEntry.fromMap(entryMap));
@@ -177,11 +204,11 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
 
   @override
   Future<void> importOperationLogsFromServer(
-      List<Map<String, dynamic>> logsData) async {
+    List<Map<String, dynamic>> logsData,
+  ) async {
     _logs.clear();
     for (final logMap in logsData) {
       _logs.add(OperationLog.fromMap(logMap));
     }
   }
 }
-

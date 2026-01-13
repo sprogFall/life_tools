@@ -36,4 +36,3 @@ class WorkLogAiPrompts {
 4) 如果用户表述含糊但能合理推断，尽量推断；无法推断时仍需输出 JSON，但用最安全的默认值（例如 estimated_minutes=0、description为空）。
 ''';
 }
-

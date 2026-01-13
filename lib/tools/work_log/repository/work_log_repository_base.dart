@@ -8,11 +8,13 @@ abstract class WorkLogRepositoryBase {
 
   Future<List<WorkTask>> listTasks({
     WorkTaskStatus? status,
+    List<WorkTaskStatus>? statuses,
     String? keyword,
   });
 
   Future<void> updateTask(WorkTask task);
   Future<void> deleteTask(int id);
+  Future<int> getTotalMinutesForTask(int taskId);
 
   Future<int> createTimeEntry(WorkTimeEntry entry);
   Future<WorkTimeEntry?> getTimeEntry(int id);
@@ -42,10 +44,11 @@ abstract class WorkLogRepositoryBase {
 
   /// 从服务端数据批量导入工时记录（覆盖本地）
   Future<void> importTimeEntriesFromServer(
-      List<Map<String, dynamic>> entriesData);
+    List<Map<String, dynamic>> entriesData,
+  );
 
   /// 从服务端数据批量导入操作日志（覆盖本地）
   Future<void> importOperationLogsFromServer(
-      List<Map<String, dynamic>> logsData);
+    List<Map<String, dynamic>> logsData,
+  );
 }
-

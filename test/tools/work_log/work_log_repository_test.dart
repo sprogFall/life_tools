@@ -293,5 +293,189 @@ void main() {
       expect(entryLogs.length, 1);
       expect(entryLogs.first.operationType, OperationType.createTimeEntry);
     });
+
+    test('应该按创建时间倒序排列任务列表', () async {
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 9),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务B',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 10),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务C',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 11),
+        ),
+      );
+
+      final tasks = await repository.listTasks();
+      expect(tasks.length, 3);
+      expect(tasks[0].title, '任务C');
+      expect(tasks[1].title, '任务B');
+      expect(tasks[2].title, '任务A');
+    });
+
+    test('应该支持多状态筛选任务', () async {
+      await repository.createTask(
+        WorkTask.create(
+          title: '待办任务',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '进行中任务',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '已完成任务',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.done,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '已取消任务',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.canceled,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final todoAndDoing = await repository.listTasks(
+        statuses: [WorkTaskStatus.todo, WorkTaskStatus.doing],
+      );
+      expect(todoAndDoing.length, 2);
+      expect(todoAndDoing.map((t) => t.status), contains(WorkTaskStatus.todo));
+      expect(todoAndDoing.map((t) => t.status), contains(WorkTaskStatus.doing));
+
+      final doneOnly = await repository.listTasks(
+        statuses: [WorkTaskStatus.done],
+      );
+      expect(doneOnly.length, 1);
+      expect(doneOnly.first.status, WorkTaskStatus.done);
+    });
+
+    test('应该能计算任务的总工时', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 120,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 30,
+          content: 'A-1',
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 3),
+          minutes: 45,
+          content: 'A-2',
+          now: DateTime(2026, 1, 3, 9),
+        ),
+      );
+
+      final totalMinutes = await repository.getTotalMinutesForTask(taskId);
+      expect(totalMinutes, 75);
+    });
+
+    test('删除任务应级联删除工时记录但保留操作日志', () async {
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final entryId = await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 2),
+          minutes: 30,
+          content: 'A-1',
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+
+      await repository.createOperationLog(
+        OperationLog.create(
+          operationType: OperationType.createTask,
+          targetType: TargetType.task,
+          targetId: taskId,
+          targetTitle: '任务A',
+          summary: '创建任务',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await repository.deleteTask(taskId);
+
+      final task = await repository.getTask(taskId);
+      expect(task, isNull);
+
+      final entry = await repository.getTimeEntry(entryId);
+      expect(entry, isNull);
+
+      final logs = await repository.listOperationLogs();
+      expect(logs.length, 1);
+    });
   });
 }

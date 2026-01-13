@@ -36,4 +36,3 @@ class WorkTimeEntryDraft {
     this.content = '',
   });
 }
-

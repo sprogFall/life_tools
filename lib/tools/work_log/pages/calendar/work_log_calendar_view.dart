@@ -56,7 +56,8 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   Widget _buildHeader() {
     final title = switch (_mode) {
       WorkCalendarMode.month => _formatMonth(_focusedMonth),
-      WorkCalendarMode.week => '周 · ${_formatDate(_startOfWeek(_selectedDate))}',
+      WorkCalendarMode.week =>
+        '周 · ${_formatDate(_startOfWeek(_selectedDate))}',
       WorkCalendarMode.day => _formatDate(_selectedDate),
     };
 
@@ -106,10 +107,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
       decoration: BoxDecoration(
         color: IOS26Theme.glassColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: IOS26Theme.glassBorderColor,
-          width: 1,
-        ),
+        border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
       ),
       child: CupertinoSlidingSegmentedControl<WorkCalendarMode>(
         groupValue: _mode,
@@ -213,7 +211,10 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                 _load();
               },
               child: GlassContainer(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 color: selected
                     ? IOS26Theme.primaryColor.withValues(alpha: 0.10)
                     : null,
@@ -251,7 +252,9 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.9,
+                          ),
                         ),
                       ),
                     const SizedBox(width: 6),
@@ -272,8 +275,9 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
 
   Widget _buildDayView() {
     final day = _startOfDay(_selectedDate);
-    final todaysEntries = _entries.where((e) => _isSameDay(e.workDate, day)).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final todaysEntries =
+        _entries.where((e) => _isSameDay(e.workDate, day)).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final total = todaysEntries.fold<int>(0, (sum, e) => sum + e.minutes);
     final taskTitleById = _taskTitleMap(context.watch<WorkLogService>().tasks);
@@ -421,17 +425,17 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   (DateTime, DateTime) _rangeForMode() {
     return switch (_mode) {
       WorkCalendarMode.month => (
-          _startOfMonth(_focusedMonth),
-          _startOfMonth(_addMonths(_focusedMonth, 1)),
-        ),
+        _startOfMonth(_focusedMonth),
+        _startOfMonth(_addMonths(_focusedMonth, 1)),
+      ),
       WorkCalendarMode.week => (
-          _startOfWeek(_selectedDate),
-          _startOfWeek(_selectedDate).add(const Duration(days: 7)),
-        ),
+        _startOfWeek(_selectedDate),
+        _startOfWeek(_selectedDate).add(const Duration(days: 7)),
+      ),
       WorkCalendarMode.day => (
-          _startOfDay(_selectedDate),
-          _startOfDay(_selectedDate).add(const Duration(days: 1)),
-        ),
+        _startOfDay(_selectedDate),
+        _startOfDay(_selectedDate).add(const Duration(days: 1)),
+      ),
     };
   }
 
@@ -474,7 +478,10 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   }
 
   static Map<int, String> _taskTitleMap(List<WorkTask> tasks) {
-    return {for (final t in tasks) if (t.id != null) t.id!: t.title};
+    return {
+      for (final t in tasks)
+        if (t.id != null) t.id!: t.title,
+    };
   }
 
   static DateTime _startOfDay(DateTime dateTime) {
@@ -547,7 +554,9 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = inMonth ? IOS26Theme.textPrimary : IOS26Theme.textTertiary;
+    final textColor = inMonth
+        ? IOS26Theme.textPrimary
+        : IOS26Theme.textTertiary;
     final minutesText = minutes > 0 ? _minutesToHoursText(minutes) : null;
     return GestureDetector(
       onTap: onTap,
@@ -558,10 +567,7 @@ class _DayCell extends StatelessWidget {
               ? IOS26Theme.primaryColor.withValues(alpha: 0.12)
               : IOS26Theme.glassColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: IOS26Theme.glassBorderColor,
-            width: 1,
-          ),
+          border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

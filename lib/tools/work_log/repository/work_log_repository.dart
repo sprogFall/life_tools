@@ -9,10 +9,10 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   final Future<Database> _database;
 
   WorkLogRepository({DatabaseHelper? dbHelper})
-      : _database = (dbHelper ?? DatabaseHelper.instance).database;
+    : _database = (dbHelper ?? DatabaseHelper.instance).database;
 
   WorkLogRepository.withDatabase(Database database)
-      : _database = Future.value(database);
+    : _database = Future.value(database);
 
   @override
   Future<int> createTask(WorkTask task) async {
@@ -36,6 +36,7 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   @override
   Future<List<WorkTask>> listTasks({
     WorkTaskStatus? status,
+    List<WorkTaskStatus>? statuses,
     String? keyword,
   }) async {
     final db = await _database;
@@ -46,18 +47,25 @@ class WorkLogRepository implements WorkLogRepositoryBase {
     if (status != null) {
       whereParts.add('status = ?');
       whereArgs.add(status.value);
+    } else if (statuses != null && statuses.isNotEmpty) {
+      final placeholders = List.filled(statuses.length, '?').join(',');
+      whereParts.add('status IN ($placeholders)');
+      whereArgs.addAll(statuses.map((s) => s.value));
     }
+
     if (keyword != null && keyword.trim().isNotEmpty) {
       whereParts.add('(title LIKE ? OR description LIKE ?)');
       final like = '%${keyword.trim()}%';
-      whereArgs..add(like)..add(like);
+      whereArgs
+        ..add(like)
+        ..add(like);
     }
 
     final results = await db.query(
       'work_tasks',
       where: whereParts.isEmpty ? null : whereParts.join(' AND '),
       whereArgs: whereArgs.isEmpty ? null : whereArgs,
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     return results.map(WorkTask.fromMap).toList();
   }
@@ -81,6 +89,16 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   Future<void> deleteTask(int id) async {
     final db = await _database;
     await db.delete('work_tasks', where: 'id = ?', whereArgs: [id]);
+  }
+
+  @override
+  Future<int> getTotalMinutesForTask(int taskId) async {
+    final db = await _database;
+    final results = await db.rawQuery(
+      'SELECT COALESCE(SUM(minutes), 0) AS total FROM work_time_entries WHERE task_id = ?',
+      [taskId],
+    );
+    return (results.first['total'] as int?) ?? 0;
   }
 
   @override
@@ -211,7 +229,9 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
-  Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData) async {
+  Future<void> importTasksFromServer(
+    List<Map<String, dynamic>> tasksData,
+  ) async {
     final db = await _database;
 
     await db.transaction((txn) async {
@@ -227,7 +247,8 @@ class WorkLogRepository implements WorkLogRepositoryBase {
 
   @override
   Future<void> importTimeEntriesFromServer(
-      List<Map<String, dynamic>> entriesData) async {
+    List<Map<String, dynamic>> entriesData,
+  ) async {
     final db = await _database;
 
     await db.transaction((txn) async {
@@ -243,7 +264,8 @@ class WorkLogRepository implements WorkLogRepositoryBase {
 
   @override
   Future<void> importOperationLogsFromServer(
-      List<Map<String, dynamic>> logsData) async {
+    List<Map<String, dynamic>> logsData,
+  ) async {
     final db = await _database;
 
     await db.transaction((txn) async {

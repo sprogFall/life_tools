@@ -12,7 +12,8 @@ abstract interface class WorkLogAiAssistant {
 class DefaultWorkLogAiAssistant implements WorkLogAiAssistant {
   final AiService _aiService;
 
-  const DefaultWorkLogAiAssistant({required AiService aiService}) : _aiService = aiService;
+  const DefaultWorkLogAiAssistant({required AiService aiService})
+    : _aiService = aiService;
 
   @override
   Future<String> voiceTextToIntentJson({
@@ -30,4 +31,3 @@ class DefaultWorkLogAiAssistant implements WorkLogAiAssistant {
     );
   }
 }
-

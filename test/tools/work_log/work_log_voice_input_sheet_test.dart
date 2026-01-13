@@ -30,7 +30,10 @@ void main() {
       expect(find.text('AI录入'), findsOneWidget);
 
       // 验证输入框存在
-      expect(find.byKey(const ValueKey('work_log_ai_text_field')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('work_log_ai_text_field')),
+        findsOneWidget,
+      );
 
       // 验证提交按钮存在
       expect(find.text('提交给AI'), findsOneWidget);
