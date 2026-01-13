@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:cross_file/cross_file.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -104,7 +110,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         children: [
           _buildCardTitle('导出'),
           const SizedBox(height: 10),
-          _buildHint('将以下内容导出为 JSON 并复制到剪切板：'),
+          _buildHint('将以下内容导出为 JSON（大数据量推荐导出为 TXT 文件）：'),
           const SizedBox(height: 6),
           _buildHint('1) AI 配置（含 API Key）'),
           _buildHint('2) 数据同步配置'),
@@ -117,11 +123,30 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               borderRadius: BorderRadius.circular(14),
               color: IOS26Theme.primaryColor,
+              onPressed: _exportToTxtFile,
+              child: const Text(
+                '导出为 TXT 文件',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.24,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              borderRadius: BorderRadius.circular(14),
+              color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
               onPressed: _exportToClipboard,
               child: const Text(
                 '导出 JSON 到剪切板',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: IOS26Theme.textSecondary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.24,
@@ -159,7 +184,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   borderRadius: BorderRadius.circular(14),
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-                  onPressed: _pasteFromClipboard,
+                  onPressed: _isRestoring ? null : _pasteFromClipboard,
                   child: const Text(
                     '从剪切板粘贴',
                     style: TextStyle(
@@ -176,11 +201,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   borderRadius: BorderRadius.circular(14),
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-                  onPressed: _restoreController.text.isEmpty
-                      ? null
-                      : () => _restoreController.clear(),
+                  onPressed: _isRestoring ? null : _importFromTxtFile,
                   child: const Text(
-                    '清空',
+                    '从 TXT 文件导入',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -190,6 +213,26 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              borderRadius: BorderRadius.circular(14),
+              color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+              onPressed: _isRestoring || _restoreController.text.isEmpty
+                  ? null
+                  : () => _restoreController.clear(),
+              child: const Text(
+                '清空',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: IOS26Theme.textSecondary,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -224,14 +267,47 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     );
   }
 
+  Future<void> _exportToTxtFile() async {
+    try {
+      final service = _buildService(context);
+      final jsonText = await service.exportAsJson(pretty: false);
+
+      final fileName = _buildBackupFileName(DateTime.now());
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: '导出备份 TXT 文件',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: const ['txt'],
+      );
+      if (path == null) return;
+
+      final file = XFile.fromData(
+        Uint8List.fromList(utf8.encode(jsonText)),
+        mimeType: 'text/plain',
+        name: fileName,
+      );
+      await file.saveTo(path);
+      if (!mounted) return;
+
+      final kb = (jsonText.length / 1024).toStringAsFixed(1);
+      await _showDialog(
+        title: '已导出',
+        content: '已保存到：\n$path\n\n内容为紧凑 JSON（约 $kb KB）',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await _showDialog(title: '导出失败', content: e.toString());
+    }
+  }
+
   Future<void> _exportToClipboard() async {
     final service = _buildService(context);
-    final jsonText = await service.exportAsJson(pretty: true);
+    final jsonText = await service.exportAsJson(pretty: false);
     await Clipboard.setData(ClipboardData(text: jsonText));
     if (!mounted) return;
 
     final kb = (jsonText.length / 1024).toStringAsFixed(1);
-    await _showDialog(title: '已导出', content: 'JSON 已复制到剪切板（约 $kb KB）');
+    await _showDialog(title: '已导出', content: '紧凑 JSON 已复制到剪切板（约 $kb KB）');
   }
 
   Future<void> _pasteFromClipboard() async {
@@ -240,8 +316,38 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     setState(() => _restoreController.text = data?.text ?? '');
   }
 
+  Future<void> _importFromTxtFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: '选择备份 TXT 文件',
+        type: FileType.custom,
+        allowedExtensions: const ['txt', 'json'],
+        withData: kIsWeb,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final picked = result.files.single;
+      final bytes = picked.bytes;
+      final path = picked.path;
+
+      final jsonText = bytes != null
+          ? utf8.decode(bytes)
+          : path != null
+              ? await XFile(path).readAsString(encoding: utf8)
+              : '';
+      await _restoreFromJsonText(jsonText);
+    } catch (e) {
+      if (!mounted) return;
+      await _showDialog(title: '导入失败', content: e.toString());
+    }
+  }
+
   Future<void> _confirmAndRestore() async {
-    final text = _restoreController.text.trim();
+    await _restoreFromJsonText(_restoreController.text);
+  }
+
+  Future<void> _restoreFromJsonText(String jsonText) async {
+    final text = jsonText.trim();
     if (text.isEmpty) return;
 
     final confirmed = await _confirmRestore();
@@ -268,6 +374,17 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     } finally {
       if (mounted) setState(() => _isRestoring = false);
     }
+  }
+
+  static String _buildBackupFileName(DateTime time) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    final y = time.year.toString().padLeft(4, '0');
+    final m = two(time.month);
+    final d = two(time.day);
+    final h = two(time.hour);
+    final min = two(time.minute);
+    final s = two(time.second);
+    return 'life_tools_backup_${y}${m}${d}_${h}${min}${s}.txt';
   }
 
   Future<bool> _confirmRestore() async {
@@ -315,4 +432,3 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     );
   }
 }
-

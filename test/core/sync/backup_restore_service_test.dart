@@ -100,6 +100,31 @@ void main() {
       expect((map['tools'] as Map).containsKey('work_log'), isTrue);
     });
 
+    test('导出为 TXT 文件时应使用紧凑 JSON（不换行）', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        toolProviders: const [],
+      );
+
+      final compact = await service.exportAsJson(pretty: false);
+      expect(compact, isNot(contains('\n')));
+      expect(compact, isNot(contains('\r')));
+
+      final pretty = await service.exportAsJson(pretty: true);
+      expect(pretty, contains('\n'));
+    });
+
     test('restoreFromJson 应还原 AI 配置/同步配置/默认工具配置，并调用工具导入', () async {
       final aiConfigService = AiConfigService();
       await aiConfigService.init();
