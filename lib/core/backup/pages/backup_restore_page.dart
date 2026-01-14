@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
@@ -8,15 +7,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../ai/ai_config_service.dart';
 import '../../services/settings_service.dart';
 import '../../sync/services/backup_restore_service.dart';
 import '../../sync/services/sync_config_service.dart';
 import '../../theme/ios26_theme.dart';
+import '../services/share_service.dart';
 
 class BackupRestorePage extends StatefulWidget {
-  const BackupRestorePage({super.key});
+  final String? initialJson;
+
+  const BackupRestorePage({super.key, this.initialJson});
 
   @override
   State<BackupRestorePage> createState() => _BackupRestorePageState();
@@ -25,6 +28,20 @@ class BackupRestorePage extends StatefulWidget {
 class _BackupRestorePageState extends State<BackupRestorePage> {
   final _restoreController = TextEditingController();
   bool _isRestoring = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialJson != null && widget.initialJson!.isNotEmpty) {
+      _restoreController.text = widget.initialJson!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showDialog(
+          title: '已接收备份文件',
+          content: '备份内容已填入，请检查后点击"开始还原"按钮。',
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -123,11 +140,37 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               borderRadius: BorderRadius.circular(14),
               color: IOS26Theme.primaryColor,
+              onPressed: _exportAndShare,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.share, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    '导出并分享',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              borderRadius: BorderRadius.circular(14),
+              color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
               onPressed: _exportToTxtFile,
               child: const Text(
-                '导出为 TXT 文件',
+                '保存为 TXT 文件',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: IOS26Theme.textSecondary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.24,
@@ -265,6 +308,25 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _exportAndShare() async {
+    try {
+      final service = _buildService(context);
+      final jsonText = await service.exportAsJson(pretty: false);
+      final fileName = _buildBackupFileName(DateTime.now());
+
+      final result = await ShareService.shareBackup(jsonText, fileName);
+
+      if (!mounted) return;
+
+      if (result.status == ShareResultStatus.success) {
+        await _showDialog(title: '分享成功', content: '备份文件已分享');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      await _showDialog(title: '分享失败', content: e.toString());
+    }
   }
 
   Future<void> _exportToTxtFile() async {

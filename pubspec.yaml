@@ -61,6 +61,10 @@ dependencies:
   cross_file: ^0.3.5+1
   file_saver: ^0.2.14
 
+  # 分享功能
+  share_plus: ^10.0.0
+  receive_sharing_intent: ^1.8.0
+
   # 网络状态检测和WiFi信息（用于数据同步）
   connectivity_plus: ^6.0.5
   network_info_plus: ^6.0.2

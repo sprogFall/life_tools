@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'core/ai/ai_config_service.dart';
 import 'core/ai/ai_service.dart';
+import 'core/backup/pages/backup_restore_page.dart';
+import 'core/backup/services/receive_share_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
@@ -53,7 +55,7 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final SettingsService settingsService;
   final AiConfigService aiConfigService;
   final SyncConfigService syncConfigService;
@@ -68,18 +70,52 @@ class MyApp extends StatelessWidget {
   });
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  final _receiveShareService = ReceiveShareService();
+
+  @override
+  void initState() {
+    super.initState();
+    // 仅在移动端初始化接收分享
+    if (Platform.isAndroid || Platform.isIOS) {
+      _receiveShareService.init(_handleReceivedShare);
+    }
+  }
+
+  @override
+  void dispose() {
+    _receiveShareService.dispose();
+    super.dispose();
+  }
+
+  void _handleReceivedShare(String jsonText) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigatorKey.currentState?.push(
+        CupertinoPageRoute(
+          builder: (_) => BackupRestorePage(initialJson: jsonText),
+        ),
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: settingsService),
-        ChangeNotifierProvider.value(value: aiConfigService),
-        ChangeNotifierProvider.value(value: syncConfigService),
-        ChangeNotifierProvider.value(value: syncService),
+        ChangeNotifierProvider.value(value: widget.settingsService),
+        ChangeNotifierProvider.value(value: widget.aiConfigService),
+        ChangeNotifierProvider.value(value: widget.syncConfigService),
+        ChangeNotifierProvider.value(value: widget.syncService),
         Provider<AiService>(
-          create: (_) => AiService(configService: aiConfigService),
+          create: (_) => AiService(configService: widget.aiConfigService),
         ),
       ],
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: '生活助手',
         debugShowCheckedModeBanner: false,
         theme: IOS26Theme.lightTheme,
@@ -100,8 +136,7 @@ class MyApp extends StatelessWidget {
   }
 
   Widget _buildInitialPage() {
-    // 检查是否有默认工具设置
-    final defaultTool = settingsService.getDefaultTool();
+    final defaultTool = widget.settingsService.getDefaultTool();
     if (defaultTool != null) {
       return defaultTool.pageBuilder();
     }

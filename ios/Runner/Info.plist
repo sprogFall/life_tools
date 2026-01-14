@@ -49,5 +49,21 @@
 	<string>用于语音输入，识别为文字以便快速创建任务/工时。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>用于语音输入，识别为文字以便快速创建任务/工时。</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Life Tools Backup</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.plain-text</string>
+				<string>public.json</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
