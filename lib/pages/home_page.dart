@@ -174,7 +174,9 @@ class HomePage extends StatelessWidget {
                         '选择下方工具开始使用',
                         style: TextStyle(
                           fontSize: 15,
-                          color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.8,
+                          ),
                         ),
                       ),
                     ],
@@ -252,6 +254,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+  static const double _cardRadius = 24;
 
   @override
   void initState() {
@@ -260,9 +263,10 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -285,12 +289,11 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
 
   @override
   Widget build(BuildContext context) {
+    final cardBorderRadius = BorderRadius.circular(_cardRadius);
     return AnimatedBuilder(
       animation: _scaleAnimation,
-      builder: (context, child) => Transform.scale(
-        scale: _scaleAnimation.value,
-        child: child,
-      ),
+      builder: (context, child) =>
+          Transform.scale(scale: _scaleAnimation.value, child: child),
       child: GestureDetector(
         onTapDown: _onTapDown,
         onTapUp: _onTapUp,
@@ -299,7 +302,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: cardBorderRadius,
             boxShadow: [
               BoxShadow(
                 color: widget.tool.color.withValues(alpha: 0.15),
@@ -313,119 +316,128 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              // 背景渐变装饰
-              Positioned(
-                top: -20,
-                right: -20,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        widget.tool.color.withValues(alpha: 0.2),
-                        widget.tool.color.withValues(alpha: 0.0),
-                      ],
+          child: ClipRRect(
+            key: ValueKey('ios26_tool_card_clip_${widget.tool.id}'),
+            borderRadius: cardBorderRadius,
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              children: [
+                // 背景渐变装饰
+                Positioned(
+                  top: -20,
+                  right: -20,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          widget.tool.color.withValues(alpha: 0.2),
+                          widget.tool.color.withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // 内容
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 图标
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            widget.tool.color,
-                            widget.tool.color.withValues(alpha: 0.7),
+                // 内容
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 图标
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              widget.tool.color,
+                              widget.tool.color.withValues(alpha: 0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.tool.color.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.tool.color.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
+                        child: Icon(
+                          widget.tool.icon,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                      const Spacer(),
+                      // 名称
+                      Text(
+                        widget.tool.name,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.41,
+                          color: IOS26Theme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // 描述
+                      Text(
+                        widget.tool.description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.8,
+                          ),
+                          letterSpacing: -0.08,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                // 默认标记
+                if (widget.isDefault)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: IOS26Theme.primaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            CupertinoIcons.star_fill,
+                            color: Colors.white,
+                            size: 10,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            '默认',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
-                      child: Icon(
-                        widget.tool.icon,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                    ),
-                    const Spacer(),
-                    // 名称
-                    Text(
-                      widget.tool.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.41,
-                        color: IOS26Theme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // 描述
-                    Text(
-                      widget.tool.description,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
-                        letterSpacing: -0.08,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              // 默认标记
-              if (widget.isDefault)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: IOS26Theme.primaryColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          CupertinoIcons.star_fill,
-                          color: Colors.white,
-                          size: 10,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          '默认',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -488,8 +500,9 @@ class _SettingsSheet extends StatelessWidget {
                 child: Consumer2<SettingsService, AiConfigService>(
                   builder: (context, settings, aiConfig, _) {
                     final tools = settings.getSortedTools();
-                    final aiValue =
-                        aiConfig.isConfigured ? aiConfig.config!.model : '未配置';
+                    final aiValue = aiConfig.isConfigured
+                        ? aiConfig.config!.model
+                        : '未配置';
 
                     return Column(
                       mainAxisSize: MainAxisSize.min,
@@ -500,19 +513,21 @@ class _SettingsSheet extends StatelessWidget {
                           value: settings.defaultToolId == null
                               ? '首页'
                               : tools
-                                      .where(
-                                          (t) => t.id == settings.defaultToolId)
-                                      .firstOrNull
-                                      ?.name ??
-                                  '首页',
+                                        .where(
+                                          (t) => t.id == settings.defaultToolId,
+                                        )
+                                        .firstOrNull
+                                        ?.name ??
+                                    '首页',
                           onTap: () =>
                               _showToolPicker(context, settings, tools),
                         ),
                         Container(
                           height: 0.5,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color:
-                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                         _SettingsItem(
                           icon: CupertinoIcons.sparkles,
@@ -523,8 +538,9 @@ class _SettingsSheet extends StatelessWidget {
                         Container(
                           height: 0.5,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color:
-                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                         Consumer<SyncConfigService>(
                           builder: (context, syncConfig, _) {
@@ -539,8 +555,9 @@ class _SettingsSheet extends StatelessWidget {
                         Container(
                           height: 0.5,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color:
-                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                         _SettingsItem(
                           icon: CupertinoIcons.archivebox,
@@ -698,11 +715,7 @@ class _SettingsItem extends StatelessWidget {
                 color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: IOS26Theme.primaryColor,
-                size: 20,
-              ),
+              child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
