@@ -82,6 +82,28 @@ jobs:
         if: steps.parse-build-type.outputs.should_build == 'true'
         run: flutter pub get
 
+      - name: Setup Android signing (release)
+        if: steps.parse-build-type.outputs.should_build == 'true' && steps.parse-build-type.outputs.build_type == 'release'
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "Missing GitHub Secret: ANDROID_KEYSTORE_BASE64" >&2
+            exit 1
+          fi
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ] || [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ] || [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]; then
+            echo "Missing GitHub Secrets: ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_PASSWORD / ANDROID_KEY_ALIAS" >&2
+            exit 1
+          fi
+
+          mkdir -p android/app
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=app/upload-keystore.jks
+          EOF
+
       - name: Build APK
         if: steps.parse-build-type.outputs.should_build == 'true'
         run: |

@@ -1,0 +1,12 @@
+## 说明
+# 1) 复制为 `android/key.properties`（该文件已在 `.gitignore` 中忽略，不要提交）。
+# 2) `storeFile` 建议填写相对 `android/` 目录的路径，例如：`app/upload-keystore.jks`
+#
+# ⚠️ 注意：一旦对外发布过某个签名的 APK，后续版本必须继续使用同一份 keystore，
+# 否则 Android 会报 “签名不一致 / INSTALL_FAILED_UPDATE_INCOMPATIBLE”，无法覆盖安装。
+
+storePassword=请替换为你的storePassword
+keyPassword=请替换为你的keyPassword
+keyAlias=请替换为你的keyAlias
+storeFile=app/upload-keystore.jks
+
