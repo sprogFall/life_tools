@@ -145,6 +145,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
     }
 
     final totalMinutes = _entries.fold<int>(0, (sum, e) => sum + e.minutes);
+    final canAddTimeEntry = _canAddTimeEntry(task.status);
 
     return Stack(
       children: [
@@ -217,24 +218,25 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   ),
                 ),
                 const Spacer(),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _openAddTimeEntry,
-                  child: const Text(
-                    '添加',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
+                if (canAddTimeEntry)
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _openAddTimeEntry,
+                    child: const Text(
+                      '添加',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: IOS26Theme.primaryColor,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 8),
             if (_entries.isEmpty)
               Text(
-                '暂无工时记录，点击右上角时钟添加',
+                '暂无工时记录${canAddTimeEntry ? '，点击右上角时钟添加' : ''}',
                 style: TextStyle(
                   fontSize: 15,
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
@@ -244,7 +246,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
               ..._entries.map((e) => _buildTimeEntryItem(e)),
           ],
         ),
-        if (task.status != WorkTaskStatus.done)
+        if (canAddTimeEntry)
           Positioned(
             left: 20,
             right: 20,
@@ -398,17 +400,21 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
   }
 
   void _showMoreOptions() {
+    final task = _task;
+    final canAddTimeEntry = task != null && _canAddTimeEntry(task.status);
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _openAddTimeEntry();
-            },
-            child: const Text('添加工时'),
-          ),
+          if (canAddTimeEntry)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openAddTimeEntry();
+              },
+              child: const Text('添加工时'),
+            ),
           CupertinoActionSheetAction(
             isDestructiveAction: true,
             onPressed: () {
@@ -584,6 +590,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
       return '${hours.toInt()}h';
     }
     return '${hours.toStringAsFixed(1)}h';
+  }
+
+  static bool _canAddTimeEntry(WorkTaskStatus status) {
+    return status != WorkTaskStatus.done && status != WorkTaskStatus.canceled;
   }
 
   static String _statusLabel(WorkTaskStatus status) {

@@ -70,6 +70,7 @@ class _StatusFilterBar extends StatelessWidget {
             _FilterChip(
               label: '待办',
               status: WorkTaskStatus.todo,
+              count: service.getTaskCountByStatus(WorkTaskStatus.todo),
               isSelected: currentFilters.contains(WorkTaskStatus.todo),
               onTap: () => _toggleStatus(WorkTaskStatus.todo),
             ),
@@ -77,6 +78,7 @@ class _StatusFilterBar extends StatelessWidget {
             _FilterChip(
               label: '进行中',
               status: WorkTaskStatus.doing,
+              count: service.getTaskCountByStatus(WorkTaskStatus.doing),
               isSelected: currentFilters.contains(WorkTaskStatus.doing),
               onTap: () => _toggleStatus(WorkTaskStatus.doing),
             ),
@@ -84,6 +86,7 @@ class _StatusFilterBar extends StatelessWidget {
             _FilterChip(
               label: '已完成',
               status: WorkTaskStatus.done,
+              count: service.getTaskCountByStatus(WorkTaskStatus.done),
               isSelected: currentFilters.contains(WorkTaskStatus.done),
               onTap: () => _toggleStatus(WorkTaskStatus.done),
             ),
@@ -91,6 +94,7 @@ class _StatusFilterBar extends StatelessWidget {
             _FilterChip(
               label: '已取消',
               status: WorkTaskStatus.canceled,
+              count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
               isSelected: currentFilters.contains(WorkTaskStatus.canceled),
               onTap: () => _toggleStatus(WorkTaskStatus.canceled),
             ),
@@ -115,12 +119,14 @@ class _StatusFilterBar extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final WorkTaskStatus status;
+  final int count;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _FilterChip({
     required this.label,
     required this.status,
+    required this.count,
     required this.isSelected,
     required this.onTap,
   });
@@ -143,13 +149,42 @@ class _FilterChip extends StatelessWidget {
             width: 1.5,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? _statusColor(status) : IOS26Theme.textSecondary,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? _statusColor(status)
+                    : IOS26Theme.textSecondary,
+              ),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? _statusColor(status).withValues(alpha: 0.2)
+                      : IOS26Theme.textSecondary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected
+                        ? _statusColor(status)
+                        : IOS26Theme.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

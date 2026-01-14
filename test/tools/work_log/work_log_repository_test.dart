@@ -477,5 +477,97 @@ void main() {
       final logs = await repository.listOperationLogs();
       expect(logs.length, 1);
     });
+
+    test('应该能按状态统计任务数量', () async {
+      // 创建不同状态的任务
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务A-待办',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务B-待办',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务C-进行中',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务D-已完成',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.done,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务E-已取消',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.canceled,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await repository.createTask(
+        WorkTask.create(
+          title: '任务F-已取消',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.canceled,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      // 获取所有任务并按状态统计
+      final allTasks = await repository.listTasks();
+      expect(allTasks.length, 6);
+
+      final todoCount = allTasks
+          .where((t) => t.status == WorkTaskStatus.todo)
+          .length;
+      final doingCount = allTasks
+          .where((t) => t.status == WorkTaskStatus.doing)
+          .length;
+      final doneCount = allTasks
+          .where((t) => t.status == WorkTaskStatus.done)
+          .length;
+      final canceledCount = allTasks
+          .where((t) => t.status == WorkTaskStatus.canceled)
+          .length;
+
+      expect(todoCount, 2);
+      expect(doingCount, 1);
+      expect(doneCount, 1);
+      expect(canceledCount, 2);
+    });
   });
 }

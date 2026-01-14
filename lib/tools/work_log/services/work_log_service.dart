@@ -19,6 +19,9 @@ class WorkLogService extends ChangeNotifier {
   List<WorkTask> _tasks = [];
   List<WorkTask> get tasks => List.unmodifiable(_tasks);
 
+  List<WorkTask> _allTasks = [];
+  List<WorkTask> get allTasks => List.unmodifiable(_allTasks);
+
   List<WorkTaskStatus> _statusFilters = [
     WorkTaskStatus.todo,
     WorkTaskStatus.doing,
@@ -32,7 +35,10 @@ class WorkLogService extends ChangeNotifier {
     _loadingTasks = true;
     _safeNotify();
     try {
-      _tasks = await _repository.listTasks(statuses: _statusFilters);
+      _allTasks = await _repository.listTasks();
+      _tasks = _allTasks
+          .where((t) => _statusFilters.contains(t.status))
+          .toList();
       await _loadTaskTotalMinutes();
     } finally {
       _loadingTasks = false;
@@ -58,6 +64,10 @@ class WorkLogService extends ChangeNotifier {
   void setStatusFilters(List<WorkTaskStatus> filters) {
     _statusFilters = filters;
     loadTasks();
+  }
+
+  int getTaskCountByStatus(WorkTaskStatus status) {
+    return _allTasks.where((t) => t.status == status).length;
   }
 
   Future<int> createTask(WorkTask task) async {
