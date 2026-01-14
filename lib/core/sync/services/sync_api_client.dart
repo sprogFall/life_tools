@@ -25,7 +25,7 @@ class SyncApiClient {
   final http.Client _httpClient;
 
   SyncApiClient({http.Client? httpClient})
-      : _httpClient = httpClient ?? http.Client();
+    : _httpClient = httpClient ?? http.Client();
 
   /// 调用同步接口
   /// POST /sync
@@ -43,11 +43,7 @@ class SyncApiClient {
 
     try {
       final response = await _httpClient
-          .post(
-            uri,
-            headers: headers,
-            body: jsonEncode(request.toJson()),
-          )
+          .post(uri, headers: headers, body: jsonEncode(request.toJson()))
           .timeout(timeout);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {

@@ -2,23 +2,16 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
 /// 网络状态
-enum NetworkStatus {
-  wifi,
-  mobile,
-  offline,
-  unknown,
-}
+enum NetworkStatus { wifi, mobile, offline, unknown }
 
 /// WiFi 检测服务
 class WifiService {
   final Connectivity _connectivity;
   final NetworkInfo _networkInfo;
 
-  WifiService({
-    Connectivity? connectivity,
-    NetworkInfo? networkInfo,
-  })  : _connectivity = connectivity ?? Connectivity(),
-        _networkInfo = networkInfo ?? NetworkInfo();
+  WifiService({Connectivity? connectivity, NetworkInfo? networkInfo})
+    : _connectivity = connectivity ?? Connectivity(),
+      _networkInfo = networkInfo ?? NetworkInfo();
 
   /// 获取当前网络状态
   Future<NetworkStatus> getNetworkStatus() async {
@@ -79,4 +72,3 @@ class WifiService {
     return normalizedAllowed.contains(currentWifi);
   }
 }
-

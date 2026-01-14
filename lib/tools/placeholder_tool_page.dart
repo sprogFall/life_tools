@@ -56,9 +56,7 @@ class PlaceholderToolPage extends StatelessWidget {
             child: Column(
               children: [
                 _buildAppBar(context),
-                Expanded(
-                  child: _buildContent(context),
-                ),
+                Expanded(child: _buildContent(context)),
               ],
             ),
           ),
@@ -181,8 +179,10 @@ class PlaceholderToolPage extends StatelessWidget {
             GestureDetector(
               onTap: () => _navigateToHome(context),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: IOS26Theme.primaryColor,
                   borderRadius: BorderRadius.circular(14),

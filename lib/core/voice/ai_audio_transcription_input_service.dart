@@ -15,8 +15,8 @@ class AiAudioTranscriptionInputService implements SpeechInputService {
   AiAudioTranscriptionInputService({
     required AiService aiService,
     AudioRecorder? recorder,
-  })  : _aiService = aiService,
-        _recorder = recorder ?? AudioRecorder();
+  }) : _aiService = aiService,
+       _recorder = recorder ?? AudioRecorder();
 
   @override
   Future<String?> listenOnce({
@@ -90,18 +90,21 @@ class AiAudioTranscriptionInputService implements SpeechInputService {
       sub = _recorder
           .onAmplitudeChanged(const Duration(milliseconds: 200))
           .listen((amp) {
-        // `record` 的振幅单位为 dB，越接近 0 越大声，负数越小声。
-        final current = amp.current;
+            // `record` 的振幅单位为 dB，越接近 0 越大声，负数越小声。
+            final current = amp.current;
 
-        // 简单阈值：>-35 认为有声音；连续静默 > 1.2s 认为结束。
-        if (current > -35) {
-          heardNonSilence = true;
-          silenceTimer?.cancel();
-          silenceTimer = null;
-        } else if (heardNonSilence) {
-          silenceTimer ??= Timer(const Duration(milliseconds: 1200), finish);
-        }
-      });
+            // 简单阈值：>-35 认为有声音；连续静默 > 1.2s 认为结束。
+            if (current > -35) {
+              heardNonSilence = true;
+              silenceTimer?.cancel();
+              silenceTimer = null;
+            } else if (heardNonSilence) {
+              silenceTimer ??= Timer(
+                const Duration(milliseconds: 1200),
+                finish,
+              );
+            }
+          });
     } catch (_) {
       // 某些平台/实现可能不支持振幅回调，退化为仅硬超时。
     }

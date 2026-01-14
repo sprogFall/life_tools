@@ -2,7 +2,7 @@ import 'dart:convert';
 
 /// 同步网络类型
 enum SyncNetworkType {
-  public(0),      // 公网模式：直接同步
+  public(0), // 公网模式：直接同步
   privateWifi(1); // 私网模式：需要匹配WiFi名称
 
   final int value;
@@ -18,14 +18,14 @@ enum SyncNetworkType {
 
 /// 同步配置模型
 class SyncConfig {
-  final String userId;              // 用户标识（用于服务端区分用户）
+  final String userId; // 用户标识（用于服务端区分用户）
   final SyncNetworkType networkType; // 网络类型
-  final String serverUrl;           // 服务器地址（不含端口）
-  final int serverPort;             // 服务器端口
+  final String serverUrl; // 服务器地址（不含端口）
+  final int serverPort; // 服务器端口
   final Map<String, String> customHeaders; // 自定义请求头（如认证token）
   final List<String> allowedWifiNames; // 私网模式下允许的WiFi名称列表
-  final bool autoSyncOnStartup;     // 启动时自动同步
-  final DateTime? lastSyncTime;     // 上次同步时间
+  final bool autoSyncOnStartup; // 启动时自动同步
+  final DateTime? lastSyncTime; // 上次同步时间
 
   const SyncConfig({
     required this.userId,
@@ -56,15 +56,15 @@ class SyncConfig {
   }
 
   Map<String, dynamic> toMap() => {
-        'userId': userId,
-        'networkType': networkType.value,
-        'serverUrl': serverUrl,
-        'serverPort': serverPort,
-        'customHeaders': customHeaders,
-        'allowedWifiNames': allowedWifiNames,
-        'autoSyncOnStartup': autoSyncOnStartup,
-        'lastSyncTime': lastSyncTime?.millisecondsSinceEpoch,
-      };
+    'userId': userId,
+    'networkType': networkType.value,
+    'serverUrl': serverUrl,
+    'serverPort': serverPort,
+    'customHeaders': customHeaders,
+    'allowedWifiNames': allowedWifiNames,
+    'autoSyncOnStartup': autoSyncOnStartup,
+    'lastSyncTime': lastSyncTime?.millisecondsSinceEpoch,
+  };
 
   static SyncConfig fromMap(Map<String, dynamic> map) {
     return SyncConfig(
@@ -116,7 +116,9 @@ class SyncConfig {
       customHeaders: customHeaders ?? this.customHeaders,
       allowedWifiNames: allowedWifiNames ?? this.allowedWifiNames,
       autoSyncOnStartup: autoSyncOnStartup ?? this.autoSyncOnStartup,
-      lastSyncTime: clearLastSyncTime ? null : (lastSyncTime ?? this.lastSyncTime),
+      lastSyncTime: clearLastSyncTime
+          ? null
+          : (lastSyncTime ?? this.lastSyncTime),
     );
   }
 }

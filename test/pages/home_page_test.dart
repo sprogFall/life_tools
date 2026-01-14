@@ -45,15 +45,11 @@ void main() {
           ChangeNotifierProvider<SettingsService>.value(
             value: mockSettingsService,
           ),
-          ChangeNotifierProvider<AiConfigService>.value(
-            value: aiConfigService,
-          ),
+          ChangeNotifierProvider<AiConfigService>.value(value: aiConfigService),
           ChangeNotifierProvider<SyncConfigService>.value(
             value: syncConfigService,
           ),
-          ChangeNotifierProvider<SyncService>.value(
-            value: syncService,
-          ),
+          ChangeNotifierProvider<SyncService>.value(value: syncService),
         ],
         child: MaterialApp(home: child),
       );
@@ -84,7 +80,9 @@ void main() {
       expect(find.text('收入记录'), findsOneWidget);
     });
 
-    testWidgets('ç‚¹å‡»è®¾ç½®æŒ‰é’®åº”è¯¥æ‰“å¼€è®¾ç½®å¼¹å‡ºå±?', (tester) async {
+    testWidgets('ç‚¹å‡»è®¾ç½®æŒ‰é’®åº”è¯¥æ‰“å¼€è®¾ç½®å¼¹å‡ºå±?', (
+      tester,
+    ) async {
       await tester.pumpWidget(wrap(const HomePage()));
 
       await tester.tap(find.byIcon(CupertinoIcons.gear));
@@ -99,7 +97,8 @@ void main() {
         const AiConfig(
           baseUrl: 'https://api.openai.com/v1',
           apiKey: 'test-key',
-          model: 'this-is-a-very-very-very-very-very-long-model-name-for-testing',
+          model:
+              'this-is-a-very-very-very-very-very-long-model-name-for-testing',
           temperature: 0.7,
           maxOutputTokens: 1024,
         ),

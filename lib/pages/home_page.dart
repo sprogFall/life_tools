@@ -174,7 +174,9 @@ class HomePage extends StatelessWidget {
                         '选择下方工具开始使用',
                         style: TextStyle(
                           fontSize: 15,
-                          color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.8,
+                          ),
                         ),
                       ),
                     ],
@@ -260,9 +262,10 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -287,10 +290,8 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _scaleAnimation,
-      builder: (context, child) => Transform.scale(
-        scale: _scaleAnimation.value,
-        child: child,
-      ),
+      builder: (context, child) =>
+          Transform.scale(scale: _scaleAnimation.value, child: child),
       child: GestureDetector(
         onTapDown: _onTapDown,
         onTapUp: _onTapUp,
@@ -398,8 +399,10 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: IOS26Theme.primaryColor,
                       borderRadius: BorderRadius.circular(8),
@@ -488,8 +491,9 @@ class _SettingsSheet extends StatelessWidget {
                 child: Consumer2<SettingsService, AiConfigService>(
                   builder: (context, settings, aiConfig, _) {
                     final tools = settings.getSortedTools();
-                    final aiValue =
-                        aiConfig.isConfigured ? aiConfig.config!.model : '未配置';
+                    final aiValue = aiConfig.isConfigured
+                        ? aiConfig.config!.model
+                        : '未配置';
 
                     return Column(
                       mainAxisSize: MainAxisSize.min,
@@ -500,19 +504,21 @@ class _SettingsSheet extends StatelessWidget {
                           value: settings.defaultToolId == null
                               ? '首页'
                               : tools
-                                      .where(
-                                          (t) => t.id == settings.defaultToolId)
-                                      .firstOrNull
-                                      ?.name ??
-                                  '首页',
+                                        .where(
+                                          (t) => t.id == settings.defaultToolId,
+                                        )
+                                        .firstOrNull
+                                        ?.name ??
+                                    '首页',
                           onTap: () =>
                               _showToolPicker(context, settings, tools),
                         ),
                         Container(
                           height: 0.5,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color:
-                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                         _SettingsItem(
                           icon: CupertinoIcons.sparkles,
@@ -523,8 +529,9 @@ class _SettingsSheet extends StatelessWidget {
                         Container(
                           height: 0.5,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color:
-                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                         Consumer<SyncConfigService>(
                           builder: (context, syncConfig, _) {
@@ -539,8 +546,9 @@ class _SettingsSheet extends StatelessWidget {
                         Container(
                           height: 0.5,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color:
-                              IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                         _SettingsItem(
                           icon: CupertinoIcons.archivebox,
@@ -698,11 +706,7 @@ class _SettingsItem extends StatelessWidget {
                 color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: IOS26Theme.primaryColor,
-                size: 20,
-              ),
+              child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(

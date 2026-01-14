@@ -25,12 +25,12 @@ class AiConfig {
       maxOutputTokens > 0;
 
   Map<String, dynamic> toMap() => {
-        'baseUrl': baseUrl,
-        'apiKey': apiKey,
-        'model': model,
-        'temperature': temperature,
-        'maxOutputTokens': maxOutputTokens,
-      };
+    'baseUrl': baseUrl,
+    'apiKey': apiKey,
+    'model': model,
+    'temperature': temperature,
+    'maxOutputTokens': maxOutputTokens,
+  };
 
   static AiConfig fromMap(Map<String, dynamic> map) {
     return AiConfig(

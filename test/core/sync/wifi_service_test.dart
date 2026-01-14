@@ -5,10 +5,7 @@ class _FakeWifiService extends WifiService {
   final NetworkStatus status;
   final String? wifiName;
 
-  _FakeWifiService({
-    required this.status,
-    required this.wifiName,
-  });
+  _FakeWifiService({required this.status, required this.wifiName});
 
   @override
   Future<NetworkStatus> getNetworkStatus() async => status;
@@ -30,4 +27,3 @@ void main() {
     });
   });
 }
-

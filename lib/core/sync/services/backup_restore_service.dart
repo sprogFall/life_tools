@@ -39,11 +39,11 @@ class BackupRestoreService {
     required this.settingsService,
     Iterable<ToolSyncProvider>? toolProviders,
   }) : toolProviders = List<ToolSyncProvider>.unmodifiable(
-          toolProviders ??
-              ToolRegistry.instance.tools
-                  .where((t) => t.supportSync)
-                  .map((t) => t.syncProvider!),
-        );
+         toolProviders ??
+             ToolRegistry.instance.tools
+                 .where((t) => t.supportSync)
+                 .map((t) => t.syncProvider!),
+       );
 
   Future<String> exportAsJson({bool pretty = false}) async {
     final tools = <String, Map<String, dynamic>>{};
@@ -122,8 +122,9 @@ class BackupRestoreService {
     }
 
     final toolsNode = decoded['tools'];
-    final toolsMap =
-        toolsNode is Map ? Map<String, dynamic>.from(toolsNode) : null;
+    final toolsMap = toolsNode is Map
+        ? Map<String, dynamic>.from(toolsNode)
+        : null;
 
     if (toolsMap == null) {
       return const BackupRestoreResult(
@@ -133,9 +134,7 @@ class BackupRestoreService {
       );
     }
 
-    final providersById = {
-      for (final p in toolProviders) p.toolId: p,
-    };
+    final providersById = {for (final p in toolProviders) p.toolId: p};
 
     var imported = 0;
     var skipped = 0;
@@ -171,4 +170,3 @@ class BackupRestoreService {
     );
   }
 }
-

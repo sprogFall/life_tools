@@ -136,17 +136,13 @@ class IOS26Theme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         color: cardColor,
       ),
       dialogTheme: DialogThemeData(
         elevation: 0,
         backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         elevation: 0,
@@ -193,11 +189,9 @@ class GlassContainer extends StatelessWidget {
             decoration: BoxDecoration(
               color: color ?? IOS26Theme.glassColor,
               borderRadius: BorderRadius.circular(borderRadius),
-              border: border ??
-                  Border.all(
-                    color: IOS26Theme.glassBorderColor,
-                    width: 1,
-                  ),
+              border:
+                  border ??
+                  Border.all(color: IOS26Theme.glassBorderColor, width: 1),
             ),
             child: child,
           ),

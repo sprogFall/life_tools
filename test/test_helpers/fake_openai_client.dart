@@ -7,7 +7,8 @@ class FakeOpenAiClient extends OpenAiClient {
   AiChatRequest? lastRequest;
   final AiChatResult reply;
 
-  FakeOpenAiClient({required String replyText}) : reply = AiChatResult(text: replyText);
+  FakeOpenAiClient({required String replyText})
+    : reply = AiChatResult(text: replyText);
 
   @override
   Future<AiChatResult> chatCompletions({
@@ -20,4 +21,3 @@ class FakeOpenAiClient extends OpenAiClient {
     return reply;
   }
 }
-

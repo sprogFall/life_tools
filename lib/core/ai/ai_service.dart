@@ -13,11 +13,9 @@ class AiService {
   /// 说明：
   /// - 默认从 `AiConfigService` 读取配置（由 UI 保存到本地）。
   /// - 需要在业务层处理异常：未配置/调用失败等。
-  AiService({
-    required AiConfigService configService,
-    OpenAiClient? client,
-  })  : _configService = configService,
-        _client = client ?? OpenAiClient();
+  AiService({required AiConfigService configService, OpenAiClient? client})
+    : _configService = configService,
+      _client = client ?? OpenAiClient();
 
   /// 发送完整 messages（多轮对话/自定义 role 等）。
   ///
@@ -90,7 +88,9 @@ class AiService {
     Duration timeout = const Duration(seconds: 60),
   }) async {
     if (!config.isValid) {
-      throw const AiNotConfiguredException('AI 配置不合法，请检查 Base URL / API Key / Model 等配置');
+      throw const AiNotConfiguredException(
+        'AI 配置不合法，请检查 Base URL / API Key / Model 等配置',
+      );
     }
 
     final messages = <AiMessage>[
@@ -122,6 +122,8 @@ class AiService {
     required String filePath,
     Duration timeout = const Duration(seconds: 120),
   }) async {
-    throw UnimplementedError('当前版本暂未实现语音转文字（filePath: $filePath, timeout: $timeout）');
+    throw UnimplementedError(
+      '当前版本暂未实现语音转文字（filePath: $filePath, timeout: $timeout）',
+    );
   }
 }

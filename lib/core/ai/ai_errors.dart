@@ -20,4 +20,3 @@ class AiApiException implements Exception {
   @override
   String toString() => 'AiApiException($statusCode): $message';
 }
-

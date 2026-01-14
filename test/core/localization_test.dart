@@ -15,15 +15,8 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: [
-            Locale('zh', 'CN'),
-            Locale('en', 'US'),
-          ],
-          home: Scaffold(
-            body: Center(
-              child: Text('测试'),
-            ),
-          ),
+          supportedLocales: [Locale('zh', 'CN'), Locale('en', 'US')],
+          home: Scaffold(body: Center(child: Text('测试'))),
         ),
       );
 
@@ -42,10 +35,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('zh', 'CN'),
-            Locale('en', 'US'),
-          ],
+          supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
           home: Scaffold(
             body: SizedBox(
               height: 300,
@@ -62,7 +52,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      
+
       // 验证日期选择器已渲染
       expect(find.byType(CupertinoDatePicker), findsOneWidget);
     });

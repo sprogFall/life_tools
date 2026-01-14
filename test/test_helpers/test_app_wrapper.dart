@@ -6,11 +6,7 @@ class TestAppWrapper extends StatelessWidget {
   final Widget child;
   final Locale? locale;
 
-  const TestAppWrapper({
-    super.key,
-    required this.child,
-    this.locale,
-  });
+  const TestAppWrapper({super.key, required this.child, this.locale});
 
   @override
   Widget build(BuildContext context) {
@@ -21,10 +17,7 @@ class TestAppWrapper extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('zh', 'CN'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
       home: child,
     );
   }
