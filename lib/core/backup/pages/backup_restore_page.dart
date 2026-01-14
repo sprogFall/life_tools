@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
@@ -281,12 +281,22 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       );
       if (path == null) return;
 
-      final file = XFile.fromData(
-        Uint8List.fromList(utf8.encode(jsonText)),
-        mimeType: 'text/plain',
-        name: fileName,
-      );
-      await file.saveTo(path);
+      // 在移动平台使用 dart:io 的 File 类直接写入
+      final bytes = Uint8List.fromList(utf8.encode(jsonText));
+      if (kIsWeb) {
+        // Web 平台使用 XFile
+        final file = XFile.fromData(
+          bytes,
+          mimeType: 'text/plain',
+          name: fileName,
+        );
+        await file.saveTo(path);
+      } else {
+        // Android/iOS/桌面平台使用 File 类
+        final file = File(path);
+        await file.writeAsBytes(bytes);
+      }
+
       if (!mounted) return;
 
       final kb = (jsonText.length / 1024).toStringAsFixed(1);
