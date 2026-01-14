@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -273,20 +273,16 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       final jsonText = await service.exportAsJson(pretty: false);
 
       final fileName = _buildBackupFileName(DateTime.now());
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: '导出备份 TXT 文件',
-        fileName: fileName,
-        type: FileType.custom,
-        allowedExtensions: const ['txt'],
-      );
-      if (path == null) return;
+      final bytes = Uint8List.fromList(utf8.encode(jsonText));
 
-      final file = XFile.fromData(
-        Uint8List.fromList(utf8.encode(jsonText)),
-        mimeType: 'text/plain',
-        name: fileName,
+      // 使用 file_saver 来保存文件，支持所有平台
+      final path = await FileSaver.instance.saveFile(
+        name: fileName.replaceAll('.txt', ''), // file_saver 会自动添加扩展名
+        bytes: bytes,
+        ext: 'txt',
+        mimeType: MimeType.text,
       );
-      await file.saveTo(path);
+
       if (!mounted) return;
 
       final kb = (jsonText.length / 1024).toStringAsFixed(1);
@@ -381,10 +377,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final y = time.year.toString().padLeft(4, '0');
     final m = two(time.month);
     final d = two(time.day);
-    final h = two(time.hour);
-    final min = two(time.minute);
-    final s = two(time.second);
-    return 'life_tools_backup_${y}${m}${d}_${h}${min}${s}.txt';
+    final hh = two(time.hour);
+    final mm = two(time.minute);
+    final ss = two(time.second);
+    return 'life_tools_backup_$y$m${d}_$hh$mm$ss.txt';
   }
 
   Future<bool> _confirmRestore() async {

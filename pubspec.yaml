@@ -59,6 +59,7 @@ dependencies:
   path_provider: ^2.1.5
   file_picker: ^8.1.7
   cross_file: ^0.3.5+1
+  file_saver: ^0.2.14
 
   # 网络状态检测和WiFi信息（用于数据同步）
   connectivity_plus: ^6.0.5
