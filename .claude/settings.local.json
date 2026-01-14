@@ -5,7 +5,8 @@
       "Bash(flutter test:*)",
       "Bash(flutter analyze:*)",
       "Bash(flutter clean:*)",
-      "Bash(Remove-Item -Recurse -Force \"d:\\\\Projects\\\\android\\\\life_tools\\\\build\" -ErrorAction SilentlyContinue)"
+      "Bash(Remove-Item -Recurse -Force \"d:\\\\Projects\\\\android\\\\life_tools\\\\build\" -ErrorAction SilentlyContinue)",
+      "Bash(git checkout:*)"
     ]
   }
 }

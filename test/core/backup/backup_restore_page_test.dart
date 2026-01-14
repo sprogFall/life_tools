@@ -12,7 +12,8 @@ void main() {
     );
 
     expect(find.text('导出 JSON 到剪切板'), findsOneWidget);
-    expect(find.text('导出为 TXT 文件'), findsOneWidget);
+    expect(find.text('导出并分享'), findsOneWidget);
+    expect(find.text('保存为 TXT 文件'), findsOneWidget);
     expect(find.text('从剪切板粘贴'), findsOneWidget);
     expect(find.text('从 TXT 文件导入'), findsOneWidget);
     expect(find.text('开始还原（覆盖本地）'), findsOneWidget);
