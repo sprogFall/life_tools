@@ -281,20 +281,22 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       );
       if (path == null) return;
 
-      // 在移动平台使用 dart:io 的 File 类直接写入
+      // 将 JSON 文本转换为 bytes
       final bytes = Uint8List.fromList(utf8.encode(jsonText));
+
       if (kIsWeb) {
         // Web 平台使用 XFile
-        final file = XFile.fromData(
+        final xFile = XFile.fromData(
           bytes,
           mimeType: 'text/plain',
           name: fileName,
+          length: bytes.length,
         );
-        await file.saveTo(path);
+        await xFile.saveTo(path);
       } else {
-        // Android/iOS/桌面平台使用 File 类
+        // 移动和桌面平台使用 File 类直接写入
         final file = File(path);
-        await file.writeAsBytes(bytes);
+        await file.writeAsBytes(bytes, flush: true);
       }
 
       if (!mounted) return;
