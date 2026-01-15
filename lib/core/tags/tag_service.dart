@@ -67,15 +67,43 @@ class TagService extends ChangeNotifier {
   }
 
   Future<void> reorderTags(List<int> tagIds) async {
-    // 先本地更新顺序，避免闪烁
-    final reordered = <TagWithTools>[];
+    if (_all.isEmpty) return;
+
+    // 先本地更新顺序，避免闪烁；同时兜底处理：入参缺失/重复/包含未知 id
+    final byId = <int, TagWithTools>{
+      for (final item in _all)
+        if (item.tag.id != null) item.tag.id!: item,
+    };
+
+    final used = <int>{};
+    final normalizedIds = <int>[];
     for (final id in tagIds) {
-      final item = _all.firstWhere((e) => e.tag.id == id);
-      reordered.add(item);
+      if (byId.containsKey(id) && used.add(id)) {
+        normalizedIds.add(id);
+      }
     }
+    for (final item in _all) {
+      final id = item.tag.id;
+      if (id != null && used.add(id)) {
+        normalizedIds.add(id);
+      }
+    }
+
+    final reordered = normalizedIds.map((id) => byId[id]!).toList();
+    if (reordered.length != _all.length) {
+      // 极端情况下（例如本地缓存里存在 null id），直接刷新以恢复一致性
+      await refreshAll();
+      return;
+    }
+
     _all = reordered;
     notifyListeners();
-    // 异步保存到数据库
-    await _repository.reorderTags(tagIds);
+
+    try {
+      await _repository.reorderTags(normalizedIds);
+    } catch (_) {
+      // 保存失败时回滚到数据库状态，避免 UI 与数据不一致
+      await refreshAll();
+    }
   }
 }

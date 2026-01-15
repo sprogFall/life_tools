@@ -91,6 +91,16 @@ class WorkLogService extends ChangeNotifier {
         _availableTags = const [];
       }
 
+      if (_tagRepository != null && _tagFilters.isNotEmpty) {
+        final availableIds =
+            _availableTags.map((t) => t.id).whereType<int>().toSet();
+        final next = _tagFilters.where(availableIds.contains).toList();
+        if (!listEquals(next, _tagFilters)) {
+          _tagFilters = next;
+          await _saveFilters();
+        }
+      }
+
       _allTasks = await _repository.listTasks();
 
       final firstPage = await _repository.listTasks(

@@ -118,5 +118,68 @@ void main() {
       final tagIds = await tagRepository.listTagIdsForWorkTask(taskId);
       expect(tagIds, isEmpty);
     });
+
+    test('创建新标签应自动追加到排序末尾', () async {
+      final firstId = await tagRepository.createTag(
+        name: 'B',
+        toolIds: const ['work_log'],
+        now: DateTime(2026, 1, 1, 10),
+      );
+      await tagRepository.createTag(
+        name: 'A',
+        toolIds: const ['work_log'],
+        now: DateTime(2026, 1, 1, 11),
+      );
+
+      // 先手动设置排序（模拟用户拖拽过）
+      await tagRepository.reorderTags(
+        [firstId],
+        now: DateTime(2026, 1, 1, 12),
+      );
+
+      final newId = await tagRepository.createTag(
+        name: 'C',
+        toolIds: const ['work_log'],
+        now: DateTime(2026, 1, 1, 13),
+      );
+
+      final tags = await tagRepository.listAllTagsWithTools();
+      final byId = {for (final t in tags) t.tag.id!: t.tag};
+
+      final maxExisting = [
+        for (final entry in byId.entries)
+          if (entry.key != newId) entry.value.sortIndex,
+      ].reduce((a, b) => a > b ? a : b);
+
+      expect(byId[newId]!.sortIndex, maxExisting + 1);
+    });
+
+    test('reorderTags 应更新 sortIndex 和 updatedAt', () async {
+      final t1 = DateTime(2026, 1, 1, 10);
+      final t2 = DateTime(2026, 1, 2, 10);
+
+      final a = await tagRepository.createTag(
+        name: 'A',
+        toolIds: const ['work_log'],
+        now: t1,
+      );
+      final b = await tagRepository.createTag(
+        name: 'B',
+        toolIds: const ['work_log'],
+        now: t1,
+      );
+      final c = await tagRepository.createTag(
+        name: 'C',
+        toolIds: const ['work_log'],
+        now: t1,
+      );
+
+      await tagRepository.reorderTags([c, a, b], now: t2);
+
+      final tags = await tagRepository.listAllTagsWithTools();
+      expect(tags.map((t) => t.tag.id), [c, a, b]);
+      expect(tags.map((t) => t.tag.sortIndex), [0, 1, 2]);
+      expect(tags.map((t) => t.tag.updatedAt), [t2, t2, t2]);
+    });
   });
 }

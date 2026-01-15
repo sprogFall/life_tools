@@ -30,9 +30,16 @@ class TagRepository {
     final time = now ?? DateTime.now();
     final db = await _database;
     return db.transaction((txn) async {
+      final maxSortIndexRows = await txn.rawQuery(
+        'SELECT MAX(sort_index) AS max_sort_index FROM tags',
+      );
+      final maxSortIndex =
+          (maxSortIndexRows.first['max_sort_index'] as int?) ?? -1;
+
       final tagId = await txn.insert('tags', {
         'name': trimmed,
         'color': color,
+        'sort_index': maxSortIndex + 1,
         'created_at': time.millisecondsSinceEpoch,
         'updated_at': time.millisecondsSinceEpoch,
       });
@@ -95,13 +102,17 @@ class TagRepository {
     await db.delete('tags', where: 'id = ?', whereArgs: [tagId]);
   }
 
-  Future<void> reorderTags(List<int> tagIds) async {
+  Future<void> reorderTags(List<int> tagIds, {DateTime? now}) async {
+    final time = now ?? DateTime.now();
     final db = await _database;
     await db.transaction((txn) async {
       for (int i = 0; i < tagIds.length; i++) {
         await txn.update(
           'tags',
-          {'sort_index': i},
+          {
+            'sort_index': i,
+            'updated_at': time.millisecondsSinceEpoch,
+          },
           where: 'id = ?',
           whereArgs: [tagIds[i]],
         );
