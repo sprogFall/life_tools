@@ -46,9 +46,9 @@
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>用于语音输入，识别为文字以便快速创建任务/工时。</string>
+    <string>用于语音输入，快速记录工作内容、生活事务及各类信息，让小蜜帮您智能化管理日常生活和工作。</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>用于语音输入，识别为文字以便快速创建任务/工时。</string>
+    <string>用于语音输入，快速记录工作内容、生活事务及各类信息，让小蜜帮您智能化管理日常生活和工作。</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
