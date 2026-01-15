@@ -105,43 +105,58 @@ class _StatusFilterBar extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _FilterChip(
-              label: '待办',
-              status: WorkTaskStatus.todo,
-              count: service.getTaskCountByStatus(WorkTaskStatus.todo),
-              isSelected: currentFilters.contains(WorkTaskStatus.todo),
-              onTap: () => _toggleStatus(WorkTaskStatus.todo),
+      child: Row(
+        children: [
+          const Text(
+            '状态',
+            style: TextStyle(
+              fontSize: 12,
+              color: IOS26Theme.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: '进行中',
-              status: WorkTaskStatus.doing,
-              count: service.getTaskCountByStatus(WorkTaskStatus.doing),
-              isSelected: currentFilters.contains(WorkTaskStatus.doing),
-              onTap: () => _toggleStatus(WorkTaskStatus.doing),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: '待办',
+                    status: WorkTaskStatus.todo,
+                    count: service.getTaskCountByStatus(WorkTaskStatus.todo),
+                    isSelected: currentFilters.contains(WorkTaskStatus.todo),
+                    onTap: () => _toggleStatus(WorkTaskStatus.todo),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: '进行中',
+                    status: WorkTaskStatus.doing,
+                    count: service.getTaskCountByStatus(WorkTaskStatus.doing),
+                    isSelected: currentFilters.contains(WorkTaskStatus.doing),
+                    onTap: () => _toggleStatus(WorkTaskStatus.doing),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: '已完成',
+                    status: WorkTaskStatus.done,
+                    count: service.getTaskCountByStatus(WorkTaskStatus.done),
+                    isSelected: currentFilters.contains(WorkTaskStatus.done),
+                    onTap: () => _toggleStatus(WorkTaskStatus.done),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: '已取消',
+                    status: WorkTaskStatus.canceled,
+                    count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
+                    isSelected: currentFilters.contains(WorkTaskStatus.canceled),
+                    onTap: () => _toggleStatus(WorkTaskStatus.canceled),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: '已完成',
-              status: WorkTaskStatus.done,
-              count: service.getTaskCountByStatus(WorkTaskStatus.done),
-              isSelected: currentFilters.contains(WorkTaskStatus.done),
-              onTap: () => _toggleStatus(WorkTaskStatus.done),
-            ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: '已取消',
-              status: WorkTaskStatus.canceled,
-              count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
-              isSelected: currentFilters.contains(WorkTaskStatus.canceled),
-              onTap: () => _toggleStatus(WorkTaskStatus.canceled),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -256,31 +271,40 @@ class _TagFilterBar extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _TagChip(
-              label: '全部',
-              isSelected: selected.isEmpty,
-              onTap: () => service.setTagFilters(const []),
+      child: Row(
+        children: [
+          const Text(
+            '标签',
+            style: TextStyle(
+              fontSize: 12,
+              color: IOS26Theme.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(width: 8),
-            for (final tag in tags) ...[
-              _TagChip(
-                label: tag.name,
-                isSelected: selected.contains(tag.id),
-                onTap: () {
-                  final next = {...selected};
-                  final id = tag.id!;
-                  if (!next.add(id)) next.remove(id);
-                  service.setTagFilters(next.toList());
-                },
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (int i = 0; i < tags.length; i++) ...[
+                    _TagChip(
+                      label: tags[i].name,
+                      isSelected: selected.contains(tags[i].id),
+                      onTap: () {
+                        final next = {...selected};
+                        final id = tags[i].id!;
+                        if (!next.add(id)) next.remove(id);
+                        service.setTagFilters(next.toList());
+                      },
+                    ),
+                    if (i < tags.length - 1) const SizedBox(width: 8),
+                  ],
+                ],
               ),
-              const SizedBox(width: 8),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

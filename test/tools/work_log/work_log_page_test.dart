@@ -147,8 +147,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       await tester.tap(find.text('日历'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
 
       expect(find.text('月'), findsOneWidget);
       expect(find.text('周'), findsOneWidget);
@@ -186,8 +185,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       await tester.tap(find.text('日历'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
 
       // 点击月视图中包含工时汇总的日期格子，进入日视图
       await tester.tap(find.text('1.5h').first);

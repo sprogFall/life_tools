@@ -39,10 +39,12 @@ class WorkLogToolPage extends StatefulWidget {
 class _WorkLogToolPageState extends State<WorkLogToolPage> {
   int _tab = 0;
   late final WorkLogService _service;
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _service = WorkLogService(
       repository: widget.repository ?? WorkLogRepository(),
       tagRepository:
@@ -54,6 +56,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
 
   @override
   void dispose() {
+    _pageController.dispose();
     _service.dispose();
     super.dispose();
   }
@@ -104,18 +107,15 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
               child: Column(
                 children: [
                   _buildAppBar(context),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                    child: _buildSegmentedControl(),
-                  ),
+                  _buildPageIndicator(),
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: _tab == 0
-                          ? const WorkTaskListView(key: ValueKey('tasks'))
-                          : const WorkLogCalendarView(
-                              key: ValueKey('calendar'),
-                            ),
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (index) => setState(() => _tab = index),
+                      children: const [
+                        WorkTaskListView(key: ValueKey('tasks')),
+                        WorkLogCalendarView(key: ValueKey('calendar')),
+                      ],
                     ),
                   ),
                 ],
@@ -243,31 +243,53 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
     );
   }
 
-  Widget _buildSegmentedControl() {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: IOS26Theme.glassColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
+  Widget _buildPageIndicator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildDot(0, '任务'),
+          const SizedBox(width: 24),
+          _buildDot(1, '日历'),
+        ],
       ),
-      child: CupertinoSlidingSegmentedControl<int>(
-        groupValue: _tab,
-        thumbColor: IOS26Theme.surfaceColor,
-        children: const {
-          0: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            child: Text('任务'),
+    );
+  }
+
+  Widget _buildDot(int index, String label) {
+    final isActive = _tab == index;
+    return GestureDetector(
+      onTap: () => _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive
+                  ? IOS26Theme.primaryColor
+                  : IOS26Theme.textTertiary.withValues(alpha: 0.5),
+            ),
           ),
-          1: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            child: Text('日历'),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: isActive
+                  ? IOS26Theme.primaryColor
+                  : IOS26Theme.textSecondary,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
-        },
-        onValueChanged: (value) {
-          if (value == null) return;
-          setState(() => _tab = value);
-        },
+        ],
       ),
     );
   }
