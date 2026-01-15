@@ -362,26 +362,7 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final taskId = task.id;
-    if (taskId == null) {
-      return _buildCardContent(context);
-    }
-
-    return Dismissible(
-      key: ValueKey('task_$taskId'),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: IOS26Theme.toolRed,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Icon(CupertinoIcons.delete, color: CupertinoColors.white),
-      ),
-      confirmDismiss: (_) => _confirmDelete(context),
-      child: _buildCardContent(context),
-    );
+    return _buildCardContent(context);
   }
 
   Widget _buildCardContent(BuildContext context) {
@@ -397,9 +378,7 @@ class _TaskCard extends StatelessWidget {
       onTap: taskId == null
           ? null
           : () => _openDetail(context, taskId, task.title),
-      onLongPress: task.status == WorkTaskStatus.done
-          ? null
-          : () => _showCompleteDialog(context),
+      onLongPress: taskId == null ? null : () => _showDeleteDialog(context),
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -483,11 +462,11 @@ class _TaskCard extends StatelessWidget {
     return '${_minutesToHoursText(usedMinutes)}/${_minutesToHoursText(estimatedMinutes)}';
   }
 
-  Future<bool> _confirmDelete(BuildContext context) async {
+  Future<void> _showDeleteDialog(BuildContext context) async {
     final result = await showCupertinoDialog<bool>(
       context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('确认删除'),
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('删除任务'),
         content: Text('确定要删除任务「${task.title}」吗？\n相关的工时记录也会被删除。'),
         actions: [
           CupertinoDialogAction(
@@ -509,8 +488,6 @@ class _TaskCard extends StatelessWidget {
         await service.deleteTask(taskId);
       }
     }
-
-    return result ?? false;
   }
 
   void _openDetail(BuildContext context, int taskId, String title) {
@@ -523,54 +500,6 @@ class _TaskCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _showCompleteDialog(BuildContext context) async {
-    final result = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('完成任务'),
-        content: Text('确认将「${task.title}」标记为已完成？'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('完成'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true && context.mounted) {
-      await _completeTask(context);
-    }
-  }
-
-  Future<void> _completeTask(BuildContext context) async {
-    final service = context.read<WorkLogService>();
-    try {
-      final updatedTask = task.copyWith(status: WorkTaskStatus.done);
-      await service.updateTask(updatedTask);
-    } catch (e) {
-      if (!context.mounted) return;
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('操作失败'),
-          content: Text('无法完成任务：$e'),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   static String _minutesToHoursText(int minutes) {
