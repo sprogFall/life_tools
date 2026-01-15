@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 3;
+  static const int version = 4;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -12,6 +12,7 @@ class DatabaseSchema {
   static Future<void> onCreate(Database db, int version) async {
     await _createCoreTables(db);
     await _createWorkLogTables(db);
+    await _createTagTables(db);
     await _createOperationLogTables(db);
   }
 
@@ -25,6 +26,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 3) {
       await _upgradeToVersion3(db);
+    }
+    if (oldVersion < 4) {
+      await _createTagTables(db);
     }
   }
 
@@ -115,5 +119,47 @@ class DatabaseSchema {
       'CREATE INDEX IF NOT EXISTS idx_operation_logs_target ON operation_logs(target_type, target_id)',
     );
   }
-}
 
+  static Future<void> _createTagTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        color INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(name)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tool_tags (
+        tool_id TEXT NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (tool_id, tag_id),
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id ON tool_tags(tool_id)',
+    );
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_task_tags (
+        task_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (task_id, tag_id),
+        FOREIGN KEY (task_id) REFERENCES work_tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_task_tags_task_id ON work_task_tags(task_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_task_tags_tag_id ON work_task_tags(tag_id)',
+    );
+  }
+}

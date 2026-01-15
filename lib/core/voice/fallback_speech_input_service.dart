@@ -17,7 +17,10 @@ class FallbackSpeechInputService implements SpeechInputService {
     void Function(String partialText)? onPartial,
   }) async {
     try {
-      final text = await primary.listenOnce(timeout: timeout, onPartial: onPartial);
+      final text = await primary.listenOnce(
+        timeout: timeout,
+        onPartial: onPartial,
+      );
       if (text != null && text.trim().isNotEmpty) return text.trim();
     } on SpeechInputNotSupportedException {
       // fallback
@@ -25,13 +28,16 @@ class FallbackSpeechInputService implements SpeechInputService {
       if (!_shouldFallbackForPlatformException(e)) rethrow;
     }
 
-    final text = await fallback.listenOnce(timeout: timeout, onPartial: onPartial);
+    final text = await fallback.listenOnce(
+      timeout: timeout,
+      onPartial: onPartial,
+    );
     return text?.trim().isEmpty == true ? null : text?.trim();
   }
 
   static bool _shouldFallbackForPlatformException(PlatformException e) {
     final code = e.code;
-    return code == 'recognizerNotAvailable' || code == 'speech_recognition_not_available';
+    return code == 'recognizerNotAvailable' ||
+        code == 'speech_recognition_not_available';
   }
 }
-

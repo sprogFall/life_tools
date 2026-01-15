@@ -10,7 +10,7 @@ class OpenAiClient {
   final http.Client _httpClient;
 
   OpenAiClient({http.Client? httpClient})
-      : _httpClient = httpClient ?? http.Client();
+    : _httpClient = httpClient ?? http.Client();
 
   Future<AiChatResult> chatCompletionsRaw({
     required AiConfig config,

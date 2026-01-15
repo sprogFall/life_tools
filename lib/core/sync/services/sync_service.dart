@@ -34,9 +34,9 @@ class SyncService extends ChangeNotifier {
     required SyncConfigService configService,
     WifiService? wifiService,
     SyncApiClient? apiClient,
-  })  : _configService = configService,
-        _wifiService = wifiService ?? WifiService(),
-        _apiClient = apiClient ?? SyncApiClient();
+  }) : _configService = configService,
+       _wifiService = wifiService ?? WifiService(),
+       _apiClient = apiClient ?? SyncApiClient();
 
   /// 执行同步（主入口）
   Future<bool> sync() async {
@@ -77,15 +77,9 @@ class SyncService extends ChangeNotifier {
       }
 
       // 4. 调用同步 API
-      final request = SyncRequest(
-        userId: config.userId,
-        toolsData: toolsData,
-      );
+      final request = SyncRequest(userId: config.userId, toolsData: toolsData);
 
-      final response = await _apiClient.sync(
-        config: config,
-        request: request,
-      );
+      final response = await _apiClient.sync(config: config, request: request);
 
       if (!response.success) {
         _lastError = response.message ?? '同步失败';
@@ -223,4 +217,3 @@ class SyncService extends ChangeNotifier {
     super.dispose();
   }
 }
-

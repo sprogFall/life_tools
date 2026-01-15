@@ -7,6 +7,7 @@ import '../registry/tool_registry.dart';
 /// 应用设置服务，管理工具排序和默认工具配置
 class SettingsService extends ChangeNotifier {
   static const String _defaultToolKey = 'default_tool_id';
+  static const String _tagManagerToolId = 'tag_manager';
 
   SharedPreferences? _prefs;
   String? _defaultToolId;
@@ -32,7 +33,11 @@ class SettingsService extends ChangeNotifier {
       _toolOrder = ToolRegistry.instance.tools.map((t) => t.id).toList();
       await _saveToolOrder();
     } else {
-      _toolOrder = results.map((row) => row['tool_id'] as String).toList();
+      final loaded = results.map((row) => row['tool_id'] as String).toList();
+      _toolOrder = _ensureTagManagerLast(loaded);
+      if (!listEquals(loaded, _toolOrder)) {
+        await _saveToolOrder();
+      }
     }
   }
 
@@ -74,7 +79,7 @@ class SettingsService extends ChangeNotifier {
 
   /// 更新工具排序
   Future<void> updateToolOrder(List<String> newOrder) async {
-    _toolOrder = List.from(newOrder);
+    _toolOrder = _ensureTagManagerLast(newOrder);
     await _saveToolOrder();
     notifyListeners();
   }
@@ -94,5 +99,13 @@ class SettingsService extends ChangeNotifier {
   ToolInfo? getDefaultTool() {
     if (_defaultToolId == null) return null;
     return ToolRegistry.instance.getById(_defaultToolId!);
+  }
+
+  static List<String> _ensureTagManagerLast(List<String> order) {
+    final cleaned = order.where((id) => id != _tagManagerToolId).toList();
+    if (order.contains(_tagManagerToolId)) {
+      cleaned.add(_tagManagerToolId);
+    }
+    return cleaned;
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
+import '../../../core/tags/tag_repository.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
@@ -22,8 +23,14 @@ import 'time/work_time_entry_edit_page.dart';
 class WorkLogToolPage extends StatefulWidget {
   final WorkLogRepositoryBase? repository;
   final WorkLogAiAssistant? aiAssistant;
+  final TagRepository? tagRepository;
 
-  const WorkLogToolPage({super.key, this.repository, this.aiAssistant});
+  const WorkLogToolPage({
+    super.key,
+    this.repository,
+    this.aiAssistant,
+    this.tagRepository,
+  });
 
   @override
   State<WorkLogToolPage> createState() => _WorkLogToolPageState();
@@ -38,6 +45,9 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
     super.initState();
     _service = WorkLogService(
       repository: widget.repository ?? WorkLogRepository(),
+      tagRepository:
+          widget.tagRepository ??
+          (widget.repository == null ? TagRepository() : null),
     );
     _service.loadTasks();
   }

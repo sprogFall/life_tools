@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/tags/models/tag.dart';
 import '../../../../core/theme/ios26_theme.dart';
 import '../../models/work_task.dart';
 import '../../services/work_log_service.dart';
@@ -53,6 +54,8 @@ class _WorkTaskListViewState extends State<WorkTaskListView> {
         return Column(
           children: [
             _StatusFilterBar(service: service),
+            if (service.availableTags.isNotEmpty)
+              _TagFilterBar(service: service),
             Expanded(
               child: tasks.isEmpty
                   ? Center(
@@ -239,6 +242,94 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+class _TagFilterBar extends StatelessWidget {
+  final WorkLogService service;
+
+  const _TagFilterBar({required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    final tags = service.availableTags.where((t) => t.id != null).toList();
+    if (tags.isEmpty) return const SizedBox.shrink();
+
+    final selected = service.tagFilters.toSet();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _TagChip(
+              label: '全部',
+              isSelected: selected.isEmpty,
+              onTap: () => service.setTagFilters(const []),
+            ),
+            const SizedBox(width: 8),
+            for (final tag in tags) ...[
+              _TagChip(
+                label: tag.name,
+                isSelected: selected.contains(tag.id),
+                onTap: () {
+                  final next = {...selected};
+                  final id = tag.id!;
+                  if (!next.add(id)) next.remove(id);
+                  service.setTagFilters(next.toList());
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TagChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? IOS26Theme.primaryColor.withValues(alpha: 0.15)
+              : IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isSelected
+                ? IOS26Theme.primaryColor.withValues(alpha: 0.35)
+                : IOS26Theme.glassBorderColor,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: isSelected
+                ? IOS26Theme.primaryColor
+                : IOS26Theme.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TaskCard extends StatelessWidget {
   final WorkTask task;
   final WorkLogService service;
@@ -274,6 +365,9 @@ class _TaskCard extends StatelessWidget {
     final totalMinutes = taskId != null
         ? service.getTaskTotalMinutes(taskId)
         : 0;
+    final tags = taskId != null
+        ? service.getTagsForTask(taskId)
+        : const <Tag>[];
 
     return GestureDetector(
       onTap: taskId == null
@@ -316,6 +410,14 @@ class _TaskCard extends StatelessWidget {
                       color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
                     ),
                   ),
+                  if (tags.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: tags.take(3).map(_tagChip).toList(),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -471,5 +573,23 @@ class _TaskCard extends StatelessWidget {
       WorkTaskStatus.done => IOS26Theme.toolGreen,
       WorkTaskStatus.canceled => IOS26Theme.textTertiary,
     };
+  }
+
+  static Widget _tagChip(Tag tag) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        tag.name,
+        style: const TextStyle(
+          fontSize: 12,
+          color: IOS26Theme.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

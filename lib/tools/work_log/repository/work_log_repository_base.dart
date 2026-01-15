@@ -10,6 +10,7 @@ abstract class WorkLogRepositoryBase {
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    List<int>? tagIds,
     int? limit,
     int? offset,
   });

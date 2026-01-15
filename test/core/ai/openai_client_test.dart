@@ -12,7 +12,10 @@ void main() {
   group('OpenAiClient', () {
     test('baseUrl不含/v1时应自动补全chat/completions路径', () async {
       final mockClient = MockClient((request) async {
-        expect(request.url.toString(), 'https://example.com/v1/chat/completions');
+        expect(
+          request.url.toString(),
+          'https://example.com/v1/chat/completions',
+        );
         expect(request.headers['Authorization'], 'Bearer test-key');
         expect(request.headers['Content-Type'], 'application/json');
 
@@ -44,9 +47,7 @@ void main() {
 
       final result = await client.chatCompletions(
         config: config,
-        request: const AiChatRequest(
-          messages: [AiMessage.user('hi')],
-        ),
+        request: const AiChatRequest(messages: [AiMessage.user('hi')]),
       );
 
       expect(result.text, 'hello');
@@ -54,7 +55,10 @@ void main() {
 
     test('baseUrl含/v1时不应重复拼接/v1', () async {
       final mockClient = MockClient((request) async {
-        expect(request.url.toString(), 'https://example.com/v1/chat/completions');
+        expect(
+          request.url.toString(),
+          'https://example.com/v1/chat/completions',
+        );
         return http.Response(
           jsonEncode({
             'choices': [
@@ -79,9 +83,7 @@ void main() {
 
       final result = await client.chatCompletions(
         config: config,
-        request: const AiChatRequest(
-          messages: [AiMessage.user('hi')],
-        ),
+        request: const AiChatRequest(messages: [AiMessage.user('hi')]),
       );
 
       expect(result.text, 'ok');
@@ -124,7 +126,10 @@ void main() {
 
     test('chatCompletionsRaw 应使用与文字相同的 chat/completions 路径', () async {
       final mockClient = MockClient((request) async {
-        expect(request.url.toString(), 'https://example.com/v1/chat/completions');
+        expect(
+          request.url.toString(),
+          'https://example.com/v1/chat/completions',
+        );
         expect(request.headers['Authorization'], 'Bearer test-key');
         expect(request.headers['Content-Type'], 'application/json');
 
@@ -170,4 +175,3 @@ void main() {
     });
   });
 }
-

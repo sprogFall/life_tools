@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import '../../../core/tags/models/tag.dart';
+import '../../../core/tags/tag_repository.dart';
 import '../models/operation_log.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
@@ -7,9 +9,13 @@ import '../repository/work_log_repository_base.dart';
 
 class WorkLogService extends ChangeNotifier {
   final WorkLogRepositoryBase _repository;
+  final TagRepository? _tagRepository;
 
-  WorkLogService({required WorkLogRepositoryBase repository})
-    : _repository = repository;
+  WorkLogService({
+    required WorkLogRepositoryBase repository,
+    TagRepository? tagRepository,
+  }) : _repository = repository,
+       _tagRepository = tagRepository;
 
   bool _disposed = false;
 
@@ -28,7 +34,14 @@ class WorkLogService extends ChangeNotifier {
   ];
   List<WorkTaskStatus> get statusFilters => List.unmodifiable(_statusFilters);
 
+  List<int> _tagFilters = [];
+  List<int> get tagFilters => List.unmodifiable(_tagFilters);
+
+  List<Tag> _availableTags = const [];
+  List<Tag> get availableTags => List.unmodifiable(_availableTags);
+
   final Map<int, int> _taskTotalMinutes = {};
+  final Map<int, List<Tag>> _taskTags = {};
 
   // 任务列表分页状态
   static const int _taskPageSize = 10;
@@ -43,13 +56,21 @@ class WorkLogService extends ChangeNotifier {
     _hasMoreTasks = true;
     _tasks = [];
     _taskTotalMinutes.clear();
+    _taskTags.clear();
     _safeNotify();
 
     try {
+      if (_tagRepository != null) {
+        _availableTags = await _tagRepository.listTagsForTool('work_log');
+      } else {
+        _availableTags = const [];
+      }
+
       _allTasks = await _repository.listTasks();
 
       final firstPage = await _repository.listTasks(
         statuses: _statusFilters,
+        tagIds: _tagFilters.isEmpty ? null : _tagFilters,
         limit: _taskPageSize,
         offset: 0,
       );
@@ -59,6 +80,7 @@ class WorkLogService extends ChangeNotifier {
       _hasMoreTasks = firstPage.length >= _taskPageSize;
 
       await _loadTaskTotalMinutes(firstPage);
+      await _loadTaskTags(firstPage);
     } finally {
       _loadingTasks = false;
       _safeNotify();
@@ -74,6 +96,7 @@ class WorkLogService extends ChangeNotifier {
     try {
       final newTasks = await _repository.listTasks(
         statuses: _statusFilters,
+        tagIds: _tagFilters.isEmpty ? null : _tagFilters,
         limit: _taskPageSize,
         offset: _taskOffset,
       );
@@ -86,6 +109,7 @@ class WorkLogService extends ChangeNotifier {
       _taskOffset += newTasks.length;
 
       await _loadTaskTotalMinutes(newTasks);
+      await _loadTaskTags(newTasks);
     } finally {
       _loadingTasks = false;
       _safeNotify();
@@ -102,6 +126,21 @@ class WorkLogService extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadTaskTags(List<WorkTask> tasks) async {
+    final repo = _tagRepository;
+    if (repo == null) return;
+
+    final ids = tasks.where((t) => t.id != null).map((t) => t.id!).toList();
+    if (ids.isEmpty) return;
+
+    final map = await repo.listTagsForWorkTasks(ids);
+    _taskTags.addAll(map);
+  }
+
+  List<Tag> getTagsForTask(int taskId) {
+    return _taskTags[taskId] ?? const [];
+  }
+
   int getTaskTotalMinutes(int taskId) {
     return _taskTotalMinutes[taskId] ?? 0;
   }
@@ -111,12 +150,26 @@ class WorkLogService extends ChangeNotifier {
     loadTasks();
   }
 
+  void setTagFilters(List<int> tagIds) {
+    _tagFilters = tagIds;
+    loadTasks();
+  }
+
   int getTaskCountByStatus(WorkTaskStatus status) {
     return _allTasks.where((t) => t.status == status).length;
   }
 
-  Future<int> createTask(WorkTask task) async {
+  Future<int> createTask(WorkTask task, {List<int> tagIds = const []}) async {
     final id = await _repository.createTask(task);
+
+    final repo = _tagRepository;
+    if (repo != null && tagIds.isNotEmpty) {
+      try {
+        await repo.setTagsForWorkTask(id, tagIds);
+      } catch (_) {
+        // 标签保存失败不影响任务创建
+      }
+    }
 
     await _repository.createOperationLog(
       OperationLog.create(
@@ -133,11 +186,20 @@ class WorkLogService extends ChangeNotifier {
     return id;
   }
 
-  Future<void> updateTask(WorkTask task) async {
+  Future<void> updateTask(WorkTask task, {List<int>? tagIds}) async {
     final oldTask = await _repository.getTask(task.id!);
     await _repository.updateTask(task);
 
     final changes = _generateTaskChangeSummary(oldTask, task);
+
+    final repo = _tagRepository;
+    if (repo != null && tagIds != null) {
+      try {
+        await repo.setTagsForWorkTask(task.id!, tagIds);
+      } catch (_) {
+        // 标签保存失败不影响任务更新
+      }
+    }
 
     await _repository.createOperationLog(
       OperationLog.create(
@@ -152,6 +214,12 @@ class WorkLogService extends ChangeNotifier {
     );
 
     await loadTasks();
+  }
+
+  Future<List<int>> listTagIdsForTask(int taskId) async {
+    final repo = _tagRepository;
+    if (repo == null) return const [];
+    return repo.listTagIdsForWorkTask(taskId);
   }
 
   Future<void> deleteTask(int id) async {

@@ -2,7 +2,9 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/tags/models/tag.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../models/work_log_drafts.dart';
 import '../../models/work_task.dart';
 import '../../services/work_log_service.dart';
@@ -25,6 +27,8 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
   WorkTaskStatus _status = WorkTaskStatus.todo;
   DateTime? _startAt;
   DateTime? _endAt;
+  bool _loadingTaskTags = false;
+  List<int> _selectedTagIds = [];
 
   bool get _isEditMode => widget.task != null;
 
@@ -57,6 +61,10 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       _startAt = draft.startAt;
       _endAt = draft.endAt;
     }
+
+    if (widget.task?.id != null) {
+      _loadSelectedTags(widget.task!.id!);
+    }
   }
 
   @override
@@ -86,6 +94,8 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                     _buildTimeCard(),
                     const SizedBox(height: 16),
                     _buildStatusCard(),
+                    const SizedBox(height: 16),
+                    _buildTagsCard(),
                   ],
                 ),
               ),
@@ -362,6 +372,160 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
     );
   }
 
+  Widget _buildTagsCard() {
+    return Consumer<WorkLogService>(
+      builder: (context, service, child) {
+        final tags = service.availableTags.where((t) => t.id != null).toList();
+
+        return GlassContainer(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    '标签',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: IOS26Theme.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => _openTagManager(context),
+                    child: const Text(
+                      '管理',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: IOS26Theme.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (_loadingTaskTags)
+                const Center(child: CupertinoActivityIndicator())
+              else if (tags.isEmpty)
+                Text(
+                  '暂无可用标签，请先在「标签管理」中创建并关联到「工作记录」',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _tagSelectChip(
+                      label: '清空',
+                      isSelected: _selectedTagIds.isEmpty,
+                      onTap: () => setState(() => _selectedTagIds = []),
+                      isSecondary: true,
+                    ),
+                    for (final tag in tags) _tagSelectChipForTag(tag),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _tagSelectChipForTag(Tag tag) {
+    final id = tag.id!;
+    final selected = _selectedTagIds.contains(id);
+
+    return _tagSelectChip(
+      label: tag.name,
+      isSelected: selected,
+      onTap: () {
+        setState(() {
+          if (selected) {
+            _selectedTagIds = _selectedTagIds.where((e) => e != id).toList();
+          } else {
+            _selectedTagIds = [..._selectedTagIds, id];
+          }
+        });
+      },
+    );
+  }
+
+  Widget _tagSelectChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    bool isSecondary = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? IOS26Theme.primaryColor.withValues(alpha: 0.15)
+              : IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isSelected
+                ? IOS26Theme.primaryColor.withValues(alpha: 0.35)
+                : IOS26Theme.glassBorderColor,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: isSelected
+                ? IOS26Theme.primaryColor
+                : (isSecondary
+                      ? IOS26Theme.textSecondary
+                      : IOS26Theme.textPrimary),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openTagManager(BuildContext context) async {
+    final service = context.read<WorkLogService>();
+    final navigator = Navigator.of(context);
+    await navigator.push(
+      CupertinoPageRoute(
+        builder: (_) => const TagManagerToolPage(initialToolId: 'work_log'),
+      ),
+    );
+
+    if (!mounted) return;
+    await service.loadTasks();
+    final taskId = widget.task?.id;
+    if (taskId != null) {
+      await _loadSelectedTags(taskId);
+    }
+  }
+
+  Future<void> _loadSelectedTags(int taskId) async {
+    if (!mounted) return;
+    setState(() => _loadingTaskTags = true);
+    try {
+      final service = context.read<WorkLogService>();
+      final ids = await service.listTagIdsForTask(taskId);
+      if (!mounted) return;
+      setState(() => _selectedTagIds = ids);
+    } finally {
+      if (mounted) setState(() => _loadingTaskTags = false);
+    }
+  }
+
   Future<void> _save(BuildContext context) async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -421,6 +585,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
           estimatedMinutes: estimatedMinutes,
           updatedAt: DateTime.now(),
         ),
+        tagIds: _selectedTagIds,
       );
     } else {
       await service.createTask(
@@ -432,6 +597,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
           status: _status,
           estimatedMinutes: estimatedMinutes,
         ),
+        tagIds: _selectedTagIds,
       );
     }
 

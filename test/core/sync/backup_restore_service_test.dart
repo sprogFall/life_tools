@@ -19,10 +19,7 @@ class _FakeToolSyncProvider implements ToolSyncProvider {
   final Map<String, dynamic> exportPayload;
   Map<String, dynamic>? lastImported;
 
-  _FakeToolSyncProvider({
-    required this.toolId,
-    required this.exportPayload,
-  });
+  _FakeToolSyncProvider({required this.toolId, required this.exportPayload});
 
   @override
   Future<Map<String, dynamic>> exportData() async => exportPayload;
@@ -79,7 +76,10 @@ void main() {
 
       final tool = _FakeToolSyncProvider(
         toolId: 'work_log',
-        exportPayload: const {'version': 1, 'data': {'tasks': []}},
+        exportPayload: const {
+          'version': 1,
+          'data': {'tasks': []},
+        },
       );
 
       final service = BackupRestoreService(
@@ -137,7 +137,10 @@ void main() {
 
       final tool = _FakeToolSyncProvider(
         toolId: 'work_log',
-        exportPayload: const {'version': 1, 'data': {'tasks': []}},
+        exportPayload: const {
+          'version': 1,
+          'data': {'tasks': []},
+        },
       );
 
       final service = BackupRestoreService(
@@ -170,7 +173,10 @@ void main() {
           'tool_order': ['work_log', 'review', 'expense', 'income'],
         },
         'tools': {
-          'work_log': {'version': 1, 'data': {'tasks': []}},
+          'work_log': {
+            'version': 1,
+            'data': {'tasks': []},
+          },
         },
       };
 

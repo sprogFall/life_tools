@@ -20,7 +20,10 @@ void main() {
       await configService.init();
 
       final fakeClient = FakeOpenAiClient(replyText: '我是测试模型');
-      final aiService = AiService(configService: configService, client: fakeClient);
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
 
       await tester.pumpWidget(
         MultiProvider(
@@ -51,4 +54,3 @@ void main() {
     });
   });
 }
-

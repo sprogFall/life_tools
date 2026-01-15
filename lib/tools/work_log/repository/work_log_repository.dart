@@ -38,6 +38,7 @@ class WorkLogRepository implements WorkLogRepositoryBase {
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    List<int>? tagIds,
     int? limit,
     int? offset,
   }) async {
@@ -61,6 +62,18 @@ class WorkLogRepository implements WorkLogRepositoryBase {
       whereArgs
         ..add(like)
         ..add(like);
+    }
+
+    if (tagIds != null && tagIds.isNotEmpty) {
+      final placeholders = List.filled(tagIds.length, '?').join(',');
+      whereParts.add('''
+EXISTS (
+  SELECT 1 FROM work_task_tags wtt
+  WHERE wtt.task_id = work_tasks.id
+    AND wtt.tag_id IN ($placeholders)
+)
+''');
+      whereArgs.addAll(tagIds);
     }
 
     final results = await db.query(

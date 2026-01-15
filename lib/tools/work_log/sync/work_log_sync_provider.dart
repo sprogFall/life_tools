@@ -1,12 +1,17 @@
 import '../../../core/sync/interfaces/tool_sync_provider.dart';
+import '../../../core/tags/tag_repository.dart';
 import '../repository/work_log_repository_base.dart';
 
 /// WorkLog工具的同步提供者
 class WorkLogSyncProvider implements ToolSyncProvider {
   final WorkLogRepositoryBase _repository;
+  final TagRepository _tagRepository;
 
-  WorkLogSyncProvider({required WorkLogRepositoryBase repository})
-    : _repository = repository;
+  WorkLogSyncProvider({
+    required WorkLogRepositoryBase repository,
+    TagRepository? tagRepository,
+  }) : _repository = repository,
+       _tagRepository = tagRepository ?? TagRepository();
 
   @override
   String get toolId => 'work_log';
@@ -27,12 +32,14 @@ class WorkLogSyncProvider implements ToolSyncProvider {
 
     // 导出操作日志（限制最近1000条，避免数据量过大）
     final operationLogs = await _repository.listOperationLogs(limit: 1000);
+    final taskTags = await _tagRepository.exportWorkTaskTags();
 
     return {
       'version': 1,
       'data': {
         'tasks': tasks.map((t) => t.toMap()).toList(),
         'time_entries': allTimeEntries,
+        'task_tags': taskTags,
         'operation_logs': operationLogs.map((l) => l.toMap()).toList(),
       },
     };
@@ -53,6 +60,7 @@ class WorkLogSyncProvider implements ToolSyncProvider {
 
     final tasks = (dataMap['tasks'] as List<dynamic>?) ?? [];
     final timeEntries = (dataMap['time_entries'] as List<dynamic>?) ?? [];
+    final taskTags = (dataMap['task_tags'] as List<dynamic>?) ?? [];
     final operationLogs = (dataMap['operation_logs'] as List<dynamic>?) ?? [];
 
     // 批量导入（使用事务确保原子性）
@@ -62,6 +70,11 @@ class WorkLogSyncProvider implements ToolSyncProvider {
     await _repository.importTimeEntriesFromServer(
       timeEntries.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
     );
+    if (taskTags.isNotEmpty) {
+      await _tagRepository.importWorkTaskTagsFromServer(
+        taskTags.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      );
+    }
     await _repository.importOperationLogsFromServer(
       operationLogs.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
     );

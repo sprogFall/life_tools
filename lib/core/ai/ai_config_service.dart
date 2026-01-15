@@ -29,4 +29,3 @@ class AiConfigService extends ChangeNotifier {
     notifyListeners();
   }
 }
-

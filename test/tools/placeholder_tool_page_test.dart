@@ -7,9 +7,7 @@ void main() {
   group('PlaceholderToolPage', () {
     testWidgets('应该显示工具名称', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: PlaceholderToolPage(toolName: '测试工具'),
-        ),
+        const MaterialApp(home: PlaceholderToolPage(toolName: '测试工具')),
       );
 
       // 新 UI 中工具名称出现在标题栏和内容区域
@@ -18,9 +16,7 @@ void main() {
 
     testWidgets('应该显示开发中提示', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: PlaceholderToolPage(toolName: '测试工具'),
-        ),
+        const MaterialApp(home: PlaceholderToolPage(toolName: '测试工具')),
       );
 
       expect(find.text('功能开发中，敬请期待...'), findsOneWidget);
@@ -28,9 +24,7 @@ void main() {
 
     testWidgets('应该显示锤子图标', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: PlaceholderToolPage(toolName: '测试工具'),
-        ),
+        const MaterialApp(home: PlaceholderToolPage(toolName: '测试工具')),
       );
 
       expect(find.byIcon(CupertinoIcons.hammer), findsOneWidget);
@@ -38,9 +32,7 @@ void main() {
 
     testWidgets('应该显示返回首页按钮', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: PlaceholderToolPage(toolName: '测试工具'),
-        ),
+        const MaterialApp(home: PlaceholderToolPage(toolName: '测试工具')),
       );
 
       expect(find.text('返回首页'), findsOneWidget);

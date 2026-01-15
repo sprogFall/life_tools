@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import '../models/tool_info.dart';
+import '../tags/tag_repository.dart';
+import '../tags/tag_sync_provider.dart';
 import '../theme/ios26_theme.dart';
 import '../../tools/placeholder_tool_page.dart';
+import '../../tools/tag_manager/pages/tag_manager_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
 import '../../tools/work_log/repository/work_log_repository.dart';
 import '../../tools/work_log/sync/work_log_sync_provider.dart';
@@ -20,46 +23,74 @@ class ToolRegistry {
     _tools.clear();
 
     // 创建WorkLog的Repository和SyncProvider
+    // 创建标签管理的 Repository 和 SyncProvider（供全局工具复用）
+    final tagRepository = TagRepository();
+    final tagSyncProvider = TagSyncProvider(repository: tagRepository);
+
     final workLogRepository = WorkLogRepository();
-    final workLogSyncProvider = WorkLogSyncProvider(repository: workLogRepository);
+    final workLogSyncProvider = WorkLogSyncProvider(
+      repository: workLogRepository,
+      tagRepository: tagRepository,
+    );
 
     // 注册工作记录工具（支持同步）
-    register(ToolInfo(
-      id: 'work_log',
-      name: '工作记录',
-      description: '日常工作管理',
-      icon: CupertinoIcons.briefcase,
-      color: IOS26Theme.toolBlue,
-      pageBuilder: () => const WorkLogToolPage(),
-      syncProvider: workLogSyncProvider, // 添加同步支持
-    ));
+    register(
+      ToolInfo(
+        id: 'work_log',
+        name: '工作记录',
+        description: '日常工作管理',
+        icon: CupertinoIcons.briefcase,
+        color: IOS26Theme.toolBlue,
+        pageBuilder: () => const WorkLogToolPage(),
+        syncProvider: workLogSyncProvider, // 添加同步支持
+      ),
+    );
 
-    register(ToolInfo(
-      id: 'review',
-      name: '复盘笔记',
-      description: '工作和生活复盘记录',
-      icon: CupertinoIcons.doc_text,
-      color: IOS26Theme.toolOrange,
-      pageBuilder: () => const PlaceholderToolPage(toolName: '复盘笔记'),
-    ));
+    register(
+      ToolInfo(
+        id: 'review',
+        name: '复盘笔记',
+        description: '工作和生活复盘记录',
+        icon: CupertinoIcons.doc_text,
+        color: IOS26Theme.toolOrange,
+        pageBuilder: () => const PlaceholderToolPage(toolName: '复盘笔记'),
+      ),
+    );
 
-    register(ToolInfo(
-      id: 'expense',
-      name: '日常开销',
-      description: '记录日常消费支出',
-      icon: CupertinoIcons.creditcard,
-      color: IOS26Theme.toolRed,
-      pageBuilder: () => const PlaceholderToolPage(toolName: '日常开销'),
-    ));
+    register(
+      ToolInfo(
+        id: 'expense',
+        name: '日常开销',
+        description: '记录日常消费支出',
+        icon: CupertinoIcons.creditcard,
+        color: IOS26Theme.toolRed,
+        pageBuilder: () => const PlaceholderToolPage(toolName: '日常开销'),
+      ),
+    );
 
-    register(ToolInfo(
-      id: 'income',
-      name: '收入记录',
-      description: '记录各类收入来源',
-      icon: CupertinoIcons.chart_bar_alt_fill,
-      color: IOS26Theme.toolGreen,
-      pageBuilder: () => const PlaceholderToolPage(toolName: '收入记录'),
-    ));
+    register(
+      ToolInfo(
+        id: 'income',
+        name: '收入记录',
+        description: '记录各类收入来源',
+        icon: CupertinoIcons.chart_bar_alt_fill,
+        color: IOS26Theme.toolGreen,
+        pageBuilder: () => const PlaceholderToolPage(toolName: '收入记录'),
+      ),
+    );
+
+    // 注册标签管理工具（放到最后）
+    register(
+      ToolInfo(
+        id: 'tag_manager',
+        name: '标签管理',
+        description: '公共标签维护',
+        icon: CupertinoIcons.tag,
+        color: IOS26Theme.toolPurple,
+        pageBuilder: () => const TagManagerToolPage(),
+        syncProvider: tagSyncProvider,
+      ),
+    );
   }
 
   /// 注册单个工具

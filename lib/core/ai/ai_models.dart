@@ -7,12 +7,13 @@ class AiMessage {
   const AiMessage({required this.role, required this.content});
 
   const AiMessage.system(String content)
-      : this(role: AiRole.system, content: content);
+    : this(role: AiRole.system, content: content);
 
-  const AiMessage.user(String content) : this(role: AiRole.user, content: content);
+  const AiMessage.user(String content)
+    : this(role: AiRole.user, content: content);
 
   const AiMessage.assistant(String content)
-      : this(role: AiRole.assistant, content: content);
+    : this(role: AiRole.assistant, content: content);
 
   Map<String, dynamic> toJson() => {'role': role.name, 'content': content};
 }
@@ -37,4 +38,3 @@ class AiChatResult {
   final String text;
   const AiChatResult({required this.text});
 }
-

@@ -44,7 +44,10 @@ void main() {
       );
 
       final fakeClient = FakeOpenAiClient(replyText: 'hello');
-      final aiService = AiService(configService: configService, client: fakeClient);
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
 
       final text = await aiService.chatText(
         prompt: '请回复OK',
@@ -57,7 +60,10 @@ void main() {
       expect(fakeClient.lastRequest, isNotNull);
       expect(fakeClient.lastRequest!.messages.length, 2);
       expect(fakeClient.lastRequest!.messages.first.role, AiRole.system);
-      expect(fakeClient.lastRequest!.responseFormat, AiResponseFormat.jsonObject);
+      expect(
+        fakeClient.lastRequest!.responseFormat,
+        AiResponseFormat.jsonObject,
+      );
     });
   });
 }

@@ -5,11 +5,7 @@ import '../../test_helpers/test_app_wrapper.dart';
 
 void main() {
   testWidgets('备份与还原页应包含 TXT 文件导出/导入入口', (tester) async {
-    await tester.pumpWidget(
-      const TestAppWrapper(
-        child: BackupRestorePage(),
-      ),
-    );
+    await tester.pumpWidget(const TestAppWrapper(child: BackupRestorePage()));
 
     expect(find.text('导出 JSON 到剪切板'), findsOneWidget);
     expect(find.text('导出并分享'), findsOneWidget);
@@ -19,4 +15,3 @@ void main() {
     expect(find.text('开始还原（覆盖本地）'), findsOneWidget);
   });
 }
-

@@ -35,10 +35,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     if (widget.initialJson != null && widget.initialJson!.isNotEmpty) {
       _restoreController.text = widget.initialJson!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showDialog(
-          title: '已接收备份文件',
-          content: '备份内容已填入，请检查后点击"开始还原"按钮。',
-        );
+        _showDialog(title: '已接收备份文件', content: '备份内容已填入，请检查后点击"开始还原"按钮。');
       });
     }
   }
@@ -67,10 +64,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       body: SafeArea(
         child: Column(
           children: [
-            const IOS26AppBar(
-              title: '备份与还原',
-              showBackButton: true,
-            ),
+            const IOS26AppBar(title: '备份与还原', showBackButton: true),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -391,8 +385,8 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       final jsonText = bytes != null
           ? utf8.decode(bytes)
           : path != null
-              ? await XFile(path).readAsString(encoding: utf8)
-              : '';
+          ? await XFile(path).readAsString(encoding: utf8)
+          : '';
       await _restoreFromJsonText(jsonText);
     } catch (e) {
       if (!mounted) return;

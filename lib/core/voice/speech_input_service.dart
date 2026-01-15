@@ -22,7 +22,8 @@ class SpeechInputNotSupportedException implements Exception {
 class SpeechToTextInputService implements SpeechInputService {
   final stt.SpeechToText _speech;
 
-  SpeechToTextInputService({stt.SpeechToText? speech}) : _speech = speech ?? stt.SpeechToText();
+  SpeechToTextInputService({stt.SpeechToText? speech})
+    : _speech = speech ?? stt.SpeechToText();
 
   @override
   Future<String?> listenOnce({

@@ -35,8 +35,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     _apiKeyController.text = config?.apiKey ?? '';
     _modelController.text = config?.model ?? 'gpt-4o-mini';
     _temperatureController.text = (config?.temperature ?? 0.7).toString();
-    _maxOutputTokensController.text =
-        (config?.maxOutputTokens ?? 1024).toString();
+    _maxOutputTokensController.text = (config?.maxOutputTokens ?? 1024)
+        .toString();
   }
 
   @override
@@ -117,8 +117,10 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 ),
               ),
               CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 onPressed: () => _save(context),
                 child: const Text(
                   '保存',
@@ -176,9 +178,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 onPressed: () => setState(() => _showApiKey = !_showApiKey),
                 child: Icon(
-                  _showApiKey
-                      ? CupertinoIcons.eye_slash
-                      : CupertinoIcons.eye,
+                  _showApiKey ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
                   size: 18,
                   color: IOS26Theme.textSecondary,
                 ),
@@ -206,8 +206,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     key: const ValueKey('ai_temperature_field'),
                     controller: _temperatureController,
                     placeholder: '0.7',
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: _fieldDecoration(),
                   ),
                 ),
@@ -442,10 +443,10 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
     try {
       final text = await aiService.chatTextWithConfig(
-            config: config,
-            prompt: '你好，请介绍一下你是什么模型',
-            systemPrompt: '请用中文简要回答，不要输出多余内容。',
-          );
+        config: config,
+        prompt: '你好，请介绍一下你是什么模型',
+        systemPrompt: '请用中文简要回答，不要输出多余内容。',
+      );
 
       if (!context.mounted) return;
       if (navigator.canPop()) navigator.pop();

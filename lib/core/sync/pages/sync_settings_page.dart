@@ -91,8 +91,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               showBackButton: true,
               actions: [
                 CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   onPressed: _saveConfig,
                   child: const Text(
                     '保存',
@@ -153,10 +155,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     );
   }
 
-  Widget _buildLabeledField({
-    required String label,
-    required Widget child,
-  }) {
+  Widget _buildLabeledField({required String label, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -264,7 +263,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             children: [
               Expanded(child: _buildCardTitle('允许的 WiFi（SSID）')),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 onPressed: _refreshCurrentWifi,
                 child: const Icon(
                   CupertinoIcons.refresh,
@@ -273,7 +275,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 ),
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 onPressed: _addWifiName,
                 child: const Icon(
                   CupertinoIcons.add_circled,
@@ -294,9 +299,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           if (_wifiNames.isEmpty)
             _buildHint('未配置允许的 WiFi 名称')
           else
-            Column(
-              children: _wifiNames.map(_buildWifiItem).toList(),
-            ),
+            Column(children: _wifiNames.map(_buildWifiItem).toList()),
           const SizedBox(height: 10),
           _buildHint('提示：SSID 区分大小写，建议不要包含引号和首尾空格'),
         ],
@@ -335,10 +338,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           ),
           CupertinoButton(
             padding: const EdgeInsets.all(6),
-            onPressed: () => setState(() => _wifiNames = [
-              for (final name in _wifiNames)
-                if (name != wifiName) name,
-            ]),
+            onPressed: () => setState(
+              () => _wifiNames = [
+                for (final name in _wifiNames)
+                  if (name != wifiName) name,
+              ],
+            ),
             child: const Icon(
               CupertinoIcons.trash,
               size: 18,
@@ -363,10 +368,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               const Expanded(
                 child: Text(
                   '启动时自动同步',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: TextStyle(fontSize: 15, color: IOS26Theme.textPrimary),
                 ),
               ),
               CupertinoSwitch(
@@ -656,13 +658,14 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           ),
           CupertinoDialogAction(
             onPressed: () {
-              final normalized =
-                  WifiService.normalizeWifiName(controller.text);
+              final normalized = WifiService.normalizeWifiName(controller.text);
               if (normalized == null) return;
 
               setState(() {
                 final set = <String>{
-                  ..._wifiNames.map(WifiService.normalizeWifiName).whereType<String>(),
+                  ..._wifiNames
+                      .map(WifiService.normalizeWifiName)
+                      .whereType<String>(),
                   normalized,
                 };
                 _wifiNames = set.toList()..sort();
