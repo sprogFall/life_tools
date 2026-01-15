@@ -5,6 +5,7 @@ import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
 import 'package:life_tools/tools/work_log/pages/work_log_tool_page.dart';
 import 'package:life_tools/tools/work_log/repository/work_log_repository_base.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../test_helpers/fake_work_log_repository.dart';
 
 void main() {
@@ -12,6 +13,7 @@ void main() {
     late WorkLogRepositoryBase repository;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
       repository = FakeWorkLogRepository();
     });
 

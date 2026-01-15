@@ -4,11 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/tools/work_log/ai/work_log_ai_assistant.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/pages/work_log_tool_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_helpers/fake_work_log_repository.dart';
 
 void main() {
   group('WorkLog 语音 -> AI -> 预填表单', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
     testWidgets('create_task 应打开创建任务页并预填标题', (tester) async {
       final repository = FakeWorkLogRepository();
       final aiAssistant = _FakeAiAssistant(

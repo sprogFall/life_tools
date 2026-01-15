@@ -66,11 +66,15 @@ class WorkLogRepository implements WorkLogRepositoryBase {
 
     if (tagIds != null && tagIds.isNotEmpty) {
       final placeholders = List.filled(tagIds.length, '?').join(',');
+      // 没有标签的任务始终显示，有标签的任务需要匹配筛选条件
       whereParts.add('''
-EXISTS (
-  SELECT 1 FROM work_task_tags wtt
-  WHERE wtt.task_id = work_tasks.id
-    AND wtt.tag_id IN ($placeholders)
+(
+  NOT EXISTS (SELECT 1 FROM work_task_tags wtt WHERE wtt.task_id = work_tasks.id)
+  OR EXISTS (
+    SELECT 1 FROM work_task_tags wtt
+    WHERE wtt.task_id = work_tasks.id
+      AND wtt.tag_id IN ($placeholders)
+  )
 )
 ''');
       whereArgs.addAll(tagIds);

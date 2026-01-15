@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_repository.dart';
 import '../models/operation_log.dart';
@@ -8,8 +9,13 @@ import '../models/work_time_entry.dart';
 import '../repository/work_log_repository_base.dart';
 
 class WorkLogService extends ChangeNotifier {
+  static const String _statusFiltersKey = 'work_log_status_filters';
+  static const String _tagFiltersKey = 'work_log_tag_filters';
+
   final WorkLogRepositoryBase _repository;
   final TagRepository? _tagRepository;
+
+  bool _filtersLoaded = false;
 
   WorkLogService({
     required WorkLogRepositoryBase repository,
@@ -60,6 +66,25 @@ class WorkLogService extends ChangeNotifier {
     _safeNotify();
 
     try {
+      // 只在首次加载时读取保存的筛选状态
+      if (!_filtersLoaded) {
+        final prefs = await SharedPreferences.getInstance();
+        final savedStatuses = prefs.getStringList(_statusFiltersKey);
+        if (savedStatuses != null && savedStatuses.isNotEmpty) {
+          _statusFilters = savedStatuses
+              .map((s) => WorkTaskStatus.values.firstWhere(
+                    (e) => e.name == s,
+                    orElse: () => WorkTaskStatus.todo,
+                  ))
+              .toList();
+        }
+        final savedTags = prefs.getStringList(_tagFiltersKey);
+        if (savedTags != null) {
+          _tagFilters = savedTags.map((s) => int.tryParse(s) ?? 0).where((id) => id > 0).toList();
+        }
+        _filtersLoaded = true;
+      }
+
       if (_tagRepository != null) {
         _availableTags = await _tagRepository.listTagsForTool('work_log');
       } else {
@@ -147,12 +172,26 @@ class WorkLogService extends ChangeNotifier {
 
   void setStatusFilters(List<WorkTaskStatus> filters) {
     _statusFilters = filters;
+    _saveFilters();
     loadTasks();
   }
 
   void setTagFilters(List<int> tagIds) {
     _tagFilters = tagIds;
+    _saveFilters();
     loadTasks();
+  }
+
+  Future<void> _saveFilters() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _statusFiltersKey,
+      _statusFilters.map((s) => s.name).toList(),
+    );
+    await prefs.setStringList(
+      _tagFiltersKey,
+      _tagFilters.map((id) => id.toString()).toList(),
+    );
   }
 
   int getTaskCountByStatus(WorkTaskStatus status) {
