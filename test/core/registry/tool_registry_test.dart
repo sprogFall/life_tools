@@ -26,9 +26,7 @@ void main() {
       final tools = ToolRegistry.instance.tools;
       expect(tools.isNotEmpty, true);
       expect(tools.any((t) => t.id == 'work_log'), true);
-      expect(tools.any((t) => t.id == 'review'), true);
-      expect(tools.any((t) => t.id == 'expense'), true);
-      expect(tools.any((t) => t.id == 'income'), true);
+      expect(tools.any((t) => t.id == 'tag_manager'), true);
     });
 
     test('getById 应该返回正确的工具', () {

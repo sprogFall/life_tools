@@ -3,7 +3,6 @@ import '../models/tool_info.dart';
 import '../tags/tag_repository.dart';
 import '../tags/tag_sync_provider.dart';
 import '../theme/ios26_theme.dart';
-import '../../tools/placeholder_tool_page.dart';
 import '../../tools/tag_manager/pages/tag_manager_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
 import '../../tools/work_log/repository/work_log_repository.dart';
@@ -43,39 +42,6 @@ class ToolRegistry {
         color: IOS26Theme.toolBlue,
         pageBuilder: () => const WorkLogToolPage(),
         syncProvider: workLogSyncProvider, // 添加同步支持
-      ),
-    );
-
-    register(
-      ToolInfo(
-        id: 'review',
-        name: '复盘笔记',
-        description: '工作和生活复盘记录',
-        icon: CupertinoIcons.doc_text,
-        color: IOS26Theme.toolOrange,
-        pageBuilder: () => const PlaceholderToolPage(toolName: '复盘笔记'),
-      ),
-    );
-
-    register(
-      ToolInfo(
-        id: 'expense',
-        name: '日常开销',
-        description: '记录日常消费支出',
-        icon: CupertinoIcons.creditcard,
-        color: IOS26Theme.toolRed,
-        pageBuilder: () => const PlaceholderToolPage(toolName: '日常开销'),
-      ),
-    );
-
-    register(
-      ToolInfo(
-        id: 'income',
-        name: '收入记录',
-        description: '记录各类收入来源',
-        icon: CupertinoIcons.chart_bar_alt_fill,
-        color: IOS26Theme.toolGreen,
-        pageBuilder: () => const PlaceholderToolPage(toolName: '收入记录'),
       ),
     );
 

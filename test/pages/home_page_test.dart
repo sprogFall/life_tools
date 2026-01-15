@@ -75,9 +75,7 @@ void main() {
 
       // æ£€æŸ¥æ˜¯å¦æ˜¾ç¤ºäº†æ³¨å†Œçš„å·¥å…?
       expect(find.text('工作记录'), findsOneWidget);
-      expect(find.text('复盘笔记'), findsOneWidget);
-      expect(find.text('日常开销'), findsOneWidget);
-      expect(find.text('收入记录'), findsOneWidget);
+      expect(find.text('标签管理'), findsOneWidget);
     });
 
     testWidgets('ç‚¹å‡»è®¾ç½®æŒ‰é’®åº”è¯¥æ‰“å¼€è®¾ç½®å¼¹å‡ºå±?', (

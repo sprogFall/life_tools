@@ -1,16 +1,28 @@
-# life_tools
+# life_tools - 小蜜
 
-A new Flutter project.
+一款多功能生活工具 Flutter 应用，支持 Android、iOS、Web、Linux、macOS 和 Windows 多平台。
 
-## Getting Started
+## 功能工具
 
-This project is a starting point for a Flutter application.
+- **工作记录** - 日常工作任务管理，支持 AI 辅助录入、语音输入、日历视图、标签筛选
+- **标签管理** - 公共标签维护，供各工具复用
 
-A few resources to get you started if this is your first Flutter project:
+## 技术栈
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Flutter / Dart ^3.10.7
+- SQLite（本地数据存储）
+- Provider（状态管理）
+- OpenAI API（AI 功能）
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 快速开始
+
+```bash
+# 安装依赖
+flutter pub get
+
+# 运行应用
+flutter run
+
+# 运行测试
+flutter test
+```
