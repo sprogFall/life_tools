@@ -116,7 +116,7 @@ class _MyAppState extends State<MyApp> {
       ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: '生活助手',
+        title: '小蜜',
         debugShowCheckedModeBanner: false,
         theme: IOS26Theme.lightTheme,
         scrollBehavior: const CupertinoScrollBehavior(),
@@ -126,10 +126,7 @@ class _MyAppState extends State<MyApp> {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [
-          Locale('zh', 'CN'),
-          Locale('en', 'US'),
-        ],
+        supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
         home: _buildInitialPage(),
       ),
     );

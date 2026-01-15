@@ -87,7 +87,7 @@ class HomePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '生活助手',
+                '小蜜',
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w700,
