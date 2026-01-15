@@ -10,6 +10,8 @@ abstract class WorkLogRepositoryBase {
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    int? limit,
+    int? offset,
   });
 
   Future<void> updateTask(WorkTask task);
@@ -20,7 +22,11 @@ abstract class WorkLogRepositoryBase {
   Future<WorkTimeEntry?> getTimeEntry(int id);
   Future<void> updateTimeEntry(WorkTimeEntry entry);
   Future<void> deleteTimeEntry(int id);
-  Future<List<WorkTimeEntry>> listTimeEntriesForTask(int taskId);
+  Future<List<WorkTimeEntry>> listTimeEntriesForTask(
+    int taskId, {
+    int? limit,
+    int? offset,
+  });
 
   Future<List<WorkTimeEntry>> listTimeEntriesInRange(
     DateTime startInclusive,

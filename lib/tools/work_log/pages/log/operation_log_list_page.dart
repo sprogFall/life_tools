@@ -16,7 +16,7 @@ class OperationLogListPage extends StatefulWidget {
 class _OperationLogListPageState extends State<OperationLogListPage> {
   bool _loading = true;
   List<OperationLog> _logs = [];
-  static const int _pageSize = 50;
+  static const int _pageSize = 10;
   int _offset = 0;
   bool _hasMore = true;
 

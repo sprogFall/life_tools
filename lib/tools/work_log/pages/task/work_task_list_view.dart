@@ -6,18 +6,49 @@ import '../../models/work_task.dart';
 import '../../services/work_log_service.dart';
 import 'work_task_detail_page.dart';
 
-class WorkTaskListView extends StatelessWidget {
+class WorkTaskListView extends StatefulWidget {
   const WorkTaskListView({super.key});
+
+  @override
+  State<WorkTaskListView> createState() => _WorkTaskListViewState();
+}
+
+class _WorkTaskListViewState extends State<WorkTaskListView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final service = context.read<WorkLogService>();
+      if (!service.loadingTasks && service.hasMoreTasks) {
+        service.loadMoreTasks();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<WorkLogService>(
       builder: (context, service, child) {
-        if (service.loadingTasks) {
+        final tasks = service.tasks;
+        final isInitialLoading = service.loadingTasks && tasks.isEmpty;
+
+        if (isInitialLoading) {
           return const Center(child: CupertinoActivityIndicator());
         }
-
-        final tasks = service.tasks;
 
         return Column(
           children: [
@@ -36,13 +67,21 @@ class WorkTaskListView extends StatelessWidget {
                       ),
                     )
                   : ListView.separated(
+                      controller: _scrollController,
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
-                      itemCount: tasks.length,
+                      itemCount: tasks.length + (service.hasMoreTasks ? 1 : 0),
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
-                      itemBuilder: (context, index) =>
-                          _TaskCard(task: tasks[index], service: service),
+                      itemBuilder: (context, index) {
+                        if (index >= tasks.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CupertinoActivityIndicator()),
+                          );
+                        }
+                        return _TaskCard(task: tasks[index], service: service);
+                      },
                     ),
             ),
           ],
