@@ -16,6 +16,7 @@ void main() {
         estimatedMinutes: 8 * 60,
         createdAt: DateTime(2026, 1, 1, 8),
         updatedAt: DateTime(2026, 1, 1, 8, 30),
+        tags: const [],
       );
 
       final restored = WorkTask.fromMap(task.toMap());

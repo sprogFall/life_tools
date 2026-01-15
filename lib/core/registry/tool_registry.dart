@@ -5,6 +5,9 @@ import '../../tools/placeholder_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
 import '../../tools/work_log/repository/work_log_repository.dart';
 import '../../tools/work_log/sync/work_log_sync_provider.dart';
+import '../../core/tag/repository/tag_repository.dart';
+import '../../core/tag/sync/tag_sync_provider.dart';
+import '../../tools/tag_management/tag_management_tool_page.dart';
 
 /// 工具注册表，管理所有可用工具
 class ToolRegistry {
@@ -18,6 +21,21 @@ class ToolRegistry {
   /// 初始化注册所有工具
   void registerAll() {
     _tools.clear();
+
+    // 创建Tag的Repository和SyncProvider
+    final tagRepository = TagRepository();
+    final tagSyncProvider = TagSyncProvider(repository: tagRepository);
+
+    // 注册标签管理工具（支持同步）
+    register(ToolInfo(
+      id: 'tag_management',
+      name: '标签管理',
+      description: '统一管理所有标签',
+      icon: CupertinoIcons.tag,
+      color: IOS26Theme.toolPurple,
+      pageBuilder: () => const TagManagementToolPage(),
+      syncProvider: tagSyncProvider,
+    ));
 
     // 创建WorkLog的Repository和SyncProvider
     final workLogRepository = WorkLogRepository();

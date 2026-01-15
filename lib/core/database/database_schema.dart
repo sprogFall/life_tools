@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 3;
+  static const int version = 4;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -13,6 +13,7 @@ class DatabaseSchema {
     await _createCoreTables(db);
     await _createWorkLogTables(db);
     await _createOperationLogTables(db);
+    await _createTagTables(db);
   }
 
   static Future<void> onUpgrade(
@@ -25,6 +26,10 @@ class DatabaseSchema {
     }
     if (oldVersion < 3) {
       await _upgradeToVersion3(db);
+    }
+    if (oldVersion < 4) {
+      await _createTagTables(db);
+      await _upgradeToVersion4(db);
     }
   }
 
@@ -114,6 +119,64 @@ class DatabaseSchema {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_operation_logs_target ON operation_logs(target_type, target_id)',
     );
+  }
+
+  static Future<void> _createTagTables(Database db) async {
+    // 创建标签表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        color INTEGER NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    // 创建标签与工具的关联表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tag_tool_associations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_id INTEGER NOT NULL,
+        tool_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+        UNIQUE(tag_id, tool_id)
+      )
+    ''');
+
+    // 创建工作任务标签关联表（支持多对多关系）
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_task_tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES work_tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+        UNIQUE(task_id, tag_id)
+      )
+    ''');
+
+    // 创建索引提高查询性能
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tag_tool_associations_tag_id ON tag_tool_associations(tag_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tag_tool_associations_tool_id ON tag_tool_associations(tool_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_task_tags_task_id ON work_task_tags(task_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_task_tags_tag_id ON work_task_tags(tag_id)',
+    );
+  }
+
+  static Future<void> _upgradeToVersion4(Database db) async {
+    // 版本4升级逻辑（如果需要）
+    // 这里可以根据需要添加数据迁移逻辑
   }
 }
 

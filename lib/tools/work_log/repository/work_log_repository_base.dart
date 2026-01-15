@@ -1,6 +1,7 @@
 import '../models/operation_log.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
+import '../../../core/tag/models/tag_model.dart';
 
 abstract class WorkLogRepositoryBase {
   Future<int> createTask(WorkTask task);
@@ -10,6 +11,8 @@ abstract class WorkLogRepositoryBase {
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    int? tagId,
+    List<int>? tagIds,
     int? limit,
     int? offset,
   });
@@ -44,6 +47,10 @@ abstract class WorkLogRepositoryBase {
   });
   Future<int> getOperationLogCount();
 
+  // 标签相关操作
+  Future<List<Tag>> getTagsForTask(int taskId);
+  Future<void> setTaskTags(int taskId, List<int> tagIds);
+
   // 同步相关方法：批量导入数据
   /// 从服务端数据批量导入任务（覆盖本地）
   Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData);
@@ -56,5 +63,10 @@ abstract class WorkLogRepositoryBase {
   /// 从服务端数据批量导入操作日志（覆盖本地）
   Future<void> importOperationLogsFromServer(
     List<Map<String, dynamic>> logsData,
+  );
+
+  /// 从服务端数据批量导入任务标签关联（覆盖本地）
+  Future<void> importWorkTaskTagsFromServer(
+    List<Map<String, dynamic>> taskTagsData,
   );
 }

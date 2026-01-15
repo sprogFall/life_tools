@@ -1,3 +1,5 @@
+import '../../../core/tag/models/tag_model.dart';
+
 enum WorkTaskStatus {
   todo(0),
   doing(1),
@@ -25,6 +27,7 @@ class WorkTask {
   final int estimatedMinutes;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<Tag> tags;
 
   const WorkTask({
     required this.id,
@@ -36,6 +39,7 @@ class WorkTask {
     required this.estimatedMinutes,
     required this.createdAt,
     required this.updatedAt,
+    required this.tags,
   });
 
   factory WorkTask.create({
@@ -45,6 +49,7 @@ class WorkTask {
     required DateTime? endAt,
     required WorkTaskStatus status,
     required int estimatedMinutes,
+    List<Tag> tags = const [],
     DateTime? now,
   }) {
     final time = now ?? DateTime.now();
@@ -58,6 +63,7 @@ class WorkTask {
       estimatedMinutes: estimatedMinutes,
       createdAt: time,
       updatedAt: time,
+      tags: tags,
     );
   }
 
@@ -71,6 +77,7 @@ class WorkTask {
     int? estimatedMinutes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<Tag>? tags,
     bool clearStartAt = false,
     bool clearEndAt = false,
   }) {
@@ -84,6 +91,7 @@ class WorkTask {
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      tags: tags ?? this.tags,
     );
   }
 
@@ -101,7 +109,7 @@ class WorkTask {
     };
   }
 
-  factory WorkTask.fromMap(Map<String, Object?> map) {
+  factory WorkTask.fromMap(Map<String, Object?> map, {List<Tag> tags = const []}) {
     return WorkTask(
       id: map['id'] as int?,
       title: map['title'] as String,
@@ -112,6 +120,7 @@ class WorkTask {
       estimatedMinutes: (map['estimated_minutes'] as int?) ?? 0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
+      tags: tags,
     );
   }
 

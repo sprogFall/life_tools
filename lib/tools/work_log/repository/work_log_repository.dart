@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/tag/services/tag_service.dart';
 import '../models/operation_log.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
@@ -21,23 +22,12 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
-  Future<WorkTask?> getTask(int id) async {
-    final db = await _database;
-    final results = await db.query(
-      'work_tasks',
-      where: 'id = ?',
-      whereArgs: [id],
-      limit: 1,
-    );
-    if (results.isEmpty) return null;
-    return WorkTask.fromMap(results.first);
-  }
-
-  @override
   Future<List<WorkTask>> listTasks({
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    int? tagId,
+    List<int>? tagIds,
     int? limit,
     int? offset,
   }) async {
@@ -47,31 +37,62 @@ class WorkLogRepository implements WorkLogRepositoryBase {
     final whereArgs = <Object?>[];
 
     if (status != null) {
-      whereParts.add('status = ?');
+      whereParts.add('wt.status = ?');
       whereArgs.add(status.value);
     } else if (statuses != null && statuses.isNotEmpty) {
       final placeholders = List.filled(statuses.length, '?').join(',');
-      whereParts.add('status IN ($placeholders)');
+      whereParts.add('wt.status IN ($placeholders)');
       whereArgs.addAll(statuses.map((s) => s.value));
     }
 
     if (keyword != null && keyword.trim().isNotEmpty) {
-      whereParts.add('(title LIKE ? OR description LIKE ?)');
+      whereParts.add('(wt.title LIKE ? OR wt.description LIKE ?)');
       final like = '%${keyword.trim()}%';
       whereArgs
         ..add(like)
         ..add(like);
     }
 
-    final results = await db.query(
-      'work_tasks',
-      where: whereParts.isEmpty ? null : whereParts.join(' AND '),
-      whereArgs: whereArgs.isEmpty ? null : whereArgs,
-      orderBy: 'created_at DESC',
-      limit: limit,
-      offset: offset,
-    );
-    return results.map(WorkTask.fromMap).toList();
+    String whereClause = whereParts.isEmpty ? '' : 'WHERE ${whereParts.join(' AND ')}';
+    
+    if (tagId != null) {
+      whereClause += whereClause.isEmpty ? ' WHERE' : ' AND';
+      whereClause += '''
+        wt.id IN (
+          SELECT task_id FROM work_task_tags 
+          WHERE tag_id = ?
+        )
+      ''';
+      whereArgs.add(tagId);
+    } else if (tagIds != null && tagIds.isNotEmpty) {
+      whereClause += whereClause.isEmpty ? ' WHERE' : ' AND';
+      final placeholders = List.filled(tagIds.length, '?').join(',');
+      whereClause += '''
+        wt.id IN (
+          SELECT task_id FROM work_task_tags 
+          WHERE tag_id IN ($placeholders)
+        )
+      ''';
+      whereArgs.addAll(tagIds);
+    }
+
+    final results = await db.rawQuery('''
+      SELECT DISTINCT wt.* FROM work_tasks wt
+      $whereClause
+      ORDER BY wt.created_at DESC
+      ${limit != null ? 'LIMIT $limit' : ''}
+      ${offset != null ? 'OFFSET $offset' : ''}
+    ''', whereArgs);
+
+    // 获取每个任务的标签
+    final tasks = <WorkTask>[];
+    for (final row in results) {
+      final taskId = row['id'] as int;
+      final tags = await getTagsForTask(taskId);
+      tasks.add(WorkTask.fromMap(row, tags: tags));
+    }
+
+    return tasks;
   }
 
   @override
@@ -273,6 +294,18 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
+  Future<List<Tag>> getTagsForTask(int taskId) async {
+    final tagService = TagService();
+    return await tagService.getTagsForTask(taskId);
+  }
+
+  @override
+  Future<void> setTaskTags(int taskId, List<int> tagIds) async {
+    final tagService = TagService();
+    await tagService.setTaskTags(taskId, tagIds);
+  }
+
+  @override
   Future<void> importOperationLogsFromServer(
     List<Map<String, dynamic>> logsData,
   ) async {
@@ -287,6 +320,38 @@ class WorkLogRepository implements WorkLogRepositoryBase {
         await txn.insert('operation_logs', logMap);
       }
     });
+  }
+
+  @override
+  Future<void> importWorkTaskTagsFromServer(
+    List<Map<String, dynamic>> taskTagsData,
+  ) async {
+    final db = await _database;
+    
+    await db.transaction((txn) async {
+      // 1. 清空现有任务标签关联
+      await txn.delete('work_task_tags');
+      
+      // 2. 批量插入服务端任务标签关联
+      for (final taskTagMap in taskTagsData) {
+        await txn.insert('work_task_tags', taskTagMap);
+      }
+    });
+  }
+
+  @override
+  Future<WorkTask?> getTask(int id) async {
+    final db = await _database;
+    final results = await db.query(
+      'work_tasks',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (results.isEmpty) return null;
+    
+    final tags = await getTagsForTask(id);
+    return WorkTask.fromMap(results.first, tags: tags);
   }
 
   static DateTime _startOfDay(DateTime dateTime) {
