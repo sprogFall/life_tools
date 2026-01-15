@@ -95,6 +95,20 @@ class TagRepository {
     await db.delete('tags', where: 'id = ?', whereArgs: [tagId]);
   }
 
+  Future<void> reorderTags(List<int> tagIds) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      for (int i = 0; i < tagIds.length; i++) {
+        await txn.update(
+          'tags',
+          {'sort_index': i},
+          where: 'id = ?',
+          whereArgs: [tagIds[i]],
+        );
+      }
+    });
+  }
+
   Future<List<Tag>> listTagsForTool(String toolId) async {
     final db = await _database;
     final results = await db.rawQuery(
@@ -103,7 +117,7 @@ SELECT t.*
 FROM tags t
 INNER JOIN tool_tags tt ON tt.tag_id = t.id
 WHERE tt.tool_id = ?
-ORDER BY t.name COLLATE NOCASE ASC
+ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
 ''',
       [toolId],
     );
@@ -117,12 +131,13 @@ SELECT
   t.id AS id,
   t.name AS name,
   t.color AS color,
+  t.sort_index AS sort_index,
   t.created_at AS created_at,
   t.updated_at AS updated_at,
   tt.tool_id AS tool_id
 FROM tags t
 LEFT JOIN tool_tags tt ON tt.tag_id = t.id
-ORDER BY t.name COLLATE NOCASE ASC
+ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
 ''');
 
     final byId = <int, TagWithTools>{};

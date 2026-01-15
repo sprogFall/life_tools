@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 4;
+  static const int version = 5;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -29,6 +29,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 4) {
       await _createTagTables(db);
+    }
+    if (oldVersion < 5) {
+      await _upgradeToVersion5(db);
     }
   }
 
@@ -120,12 +123,17 @@ class DatabaseSchema {
     );
   }
 
+  static Future<void> _upgradeToVersion5(Database db) async {
+    await db.execute('ALTER TABLE tags ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0');
+  }
+
   static Future<void> _createTagTables(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS tags (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         color INTEGER,
+        sort_index INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         UNIQUE(name)

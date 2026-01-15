@@ -56,12 +56,22 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
                     );
                   }
 
-                  return ListView.separated(
+                  return ReorderableListView.builder(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     itemCount: items.length,
-                    separatorBuilder: (_, index) => const SizedBox(height: 12),
-                    itemBuilder: (_, index) => _TagCard(tag: items[index]),
+                    onReorder: (oldIndex, newIndex) {
+                      if (newIndex > oldIndex) newIndex--;
+                      final ids = items.map((e) => e.tag.id!).toList();
+                      final id = ids.removeAt(oldIndex);
+                      ids.insert(newIndex, id);
+                      service.reorderTags(ids);
+                    },
+                    itemBuilder: (_, index) => Padding(
+                      key: ValueKey(items[index].tag.id),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _TagCard(tag: items[index]),
+                    ),
                   );
                 },
               ),

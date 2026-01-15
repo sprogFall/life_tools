@@ -65,4 +65,17 @@ class TagService extends ChangeNotifier {
     await _repository.deleteTag(tagId);
     await refreshAll();
   }
+
+  Future<void> reorderTags(List<int> tagIds) async {
+    // 先本地更新顺序，避免闪烁
+    final reordered = <TagWithTools>[];
+    for (final id in tagIds) {
+      final item = _all.firstWhere((e) => e.tag.id == id);
+      reordered.add(item);
+    }
+    _all = reordered;
+    notifyListeners();
+    // 异步保存到数据库
+    await _repository.reorderTags(tagIds);
+  }
 }

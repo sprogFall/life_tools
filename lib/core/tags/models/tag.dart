@@ -2,6 +2,7 @@ class Tag {
   final int? id;
   final String name;
   final int? color;
+  final int sortIndex;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -9,6 +10,7 @@ class Tag {
     required this.id,
     required this.name,
     required this.color,
+    required this.sortIndex,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -19,6 +21,7 @@ class Tag {
       id: null,
       name: name,
       color: color,
+      sortIndex: 0,
       createdAt: time,
       updatedAt: time,
     );
@@ -28,6 +31,7 @@ class Tag {
     int? id,
     String? name,
     int? color,
+    int? sortIndex,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -35,6 +39,7 @@ class Tag {
       id: id ?? this.id,
       name: name ?? this.name,
       color: color ?? this.color,
+      sortIndex: sortIndex ?? this.sortIndex,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -45,6 +50,7 @@ class Tag {
       if (includeId) 'id': id,
       'name': name,
       'color': color,
+      'sort_index': sortIndex,
       'created_at': createdAt.millisecondsSinceEpoch,
       'updated_at': updatedAt.millisecondsSinceEpoch,
     };
@@ -55,6 +61,7 @@ class Tag {
       id: map['id'] as int?,
       name: map['name'] as String,
       color: map['color'] as int?,
+      sortIndex: (map['sort_index'] as int?) ?? 0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
     );
