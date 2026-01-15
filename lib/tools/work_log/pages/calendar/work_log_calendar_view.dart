@@ -280,7 +280,9 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final total = todaysEntries.fold<int>(0, (sum, e) => sum + e.minutes);
-    final taskTitleById = _taskTitleMap(context.watch<WorkLogService>().tasks);
+    final taskTitleById = _taskTitleMap(
+      context.watch<WorkLogService>().allTasks,
+    );
 
     return Column(
       children: [

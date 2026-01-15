@@ -27,23 +27,81 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
   bool _loading = true;
   WorkTask? _task;
   List<WorkTimeEntry> _entries = const [];
+  int _totalMinutes = 0;
+
+  // 工时记录分页
+  static const int _pageSize = 10;
+  int _offset = 0;
+  bool _hasMore = true;
+  bool _loadingMore = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _load();
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_loadingMore && _hasMore) {
+        _loadMoreEntries();
+      }
+    }
+  }
+
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _offset = 0;
+      _hasMore = true;
+      _loadingMore = false;
+      _entries = [];
+    });
+
     final service = context.read<WorkLogService>();
     final task = await service.getTask(widget.taskId);
-    final entries = await service.listTimeEntriesForTask(widget.taskId);
+    final totalMinutes = await service.getTotalMinutesForTask(widget.taskId);
+
     if (!mounted) return;
+
     setState(() {
       _task = task;
-      _entries = entries;
+      _totalMinutes = totalMinutes;
       _loading = false;
+    });
+
+    await _loadMoreEntries();
+  }
+
+  Future<void> _loadMoreEntries() async {
+    if (_loadingMore || !_hasMore) return;
+
+    setState(() => _loadingMore = true);
+
+    final service = context.read<WorkLogService>();
+    final newEntries = await service.listTimeEntriesForTask(
+      widget.taskId,
+      limit: _pageSize,
+      offset: _offset,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _entries = [..._entries, ...newEntries];
+      _offset += newEntries.length;
+      _hasMore = newEntries.length >= _pageSize;
+      _loadingMore = false;
     });
   }
 
@@ -144,12 +202,13 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
       );
     }
 
-    final totalMinutes = _entries.fold<int>(0, (sum, e) => sum + e.minutes);
+    final totalMinutes = _totalMinutes;
     final canAddTimeEntry = _canAddTimeEntry(task.status);
 
     return Stack(
       children: [
         ListView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           children: [
@@ -234,7 +293,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
               ],
             ),
             const SizedBox(height: 8),
-            if (_entries.isEmpty)
+            if (_entries.isEmpty && !_loadingMore)
               Text(
                 '暂无工时记录${canAddTimeEntry ? '，点击右上角时钟添加' : ''}',
                 style: TextStyle(
@@ -242,8 +301,14 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
                 ),
               )
-            else
+            else ...[
               ..._entries.map((e) => _buildTimeEntryItem(e)),
+              if (_loadingMore)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CupertinoActivityIndicator()),
+                ),
+            ],
           ],
         ),
         if (canAddTimeEntry)

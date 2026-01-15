@@ -339,7 +339,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
 
   String _buildAiContext() {
     final now = DateTime.now();
-    final tasks = _service.tasks;
+    final tasks = _service.allTasks;
     final taskLines = tasks
         .where((t) => t.id != null)
         .take(60)
@@ -382,9 +382,9 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       if (taskId == null || !mounted) return;
 
       // 获取任务标题
-      final task = _service.tasks.firstWhere(
+      final task = _service.allTasks.firstWhere(
         (t) => t.id == taskId,
-        orElse: () => _service.tasks.first,
+        orElse: () => _service.allTasks.first,
       );
 
       final saved = await Navigator.of(context).push<bool>(
@@ -408,7 +408,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
   }
 
   Future<int?> _resolveTaskIdForTimeEntry({required WorkLogTaskRef ref}) async {
-    final tasks = _service.tasks.where((t) => t.id != null).toList();
+    final tasks = _service.allTasks.where((t) => t.id != null).toList();
 
     if (ref.id != null) {
       final exists = tasks.any((t) => t.id == ref.id);

@@ -38,6 +38,8 @@ class WorkLogRepository implements WorkLogRepositoryBase {
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    int? limit,
+    int? offset,
   }) async {
     final db = await _database;
 
@@ -66,6 +68,8 @@ class WorkLogRepository implements WorkLogRepositoryBase {
       where: whereParts.isEmpty ? null : whereParts.join(' AND '),
       whereArgs: whereArgs.isEmpty ? null : whereArgs,
       orderBy: 'created_at DESC',
+      limit: limit,
+      offset: offset,
     );
     return results.map(WorkTask.fromMap).toList();
   }
@@ -108,13 +112,19 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
-  Future<List<WorkTimeEntry>> listTimeEntriesForTask(int taskId) async {
+  Future<List<WorkTimeEntry>> listTimeEntriesForTask(
+    int taskId, {
+    int? limit,
+    int? offset,
+  }) async {
     final db = await _database;
     final results = await db.query(
       'work_time_entries',
       where: 'task_id = ?',
       whereArgs: [taskId],
       orderBy: 'work_date DESC, created_at DESC',
+      limit: limit,
+      offset: offset,
     );
     return results.map(WorkTimeEntry.fromMap).toList();
   }

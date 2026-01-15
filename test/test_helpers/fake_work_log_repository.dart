@@ -44,6 +44,8 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
     WorkTaskStatus? status,
     List<WorkTaskStatus>? statuses,
     String? keyword,
+    int? limit,
+    int? offset,
   }) async {
     Iterable<WorkTask> result = _tasks;
     if (status != null) {
@@ -59,8 +61,14 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
             t.description.toLowerCase().contains(lower),
       );
     }
-    var list = result.toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    var list = result.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (offset != null && offset > 0) {
+      list = list.skip(offset).toList();
+    }
+    if (limit != null && limit > 0) {
+      list = list.take(limit).toList();
+    }
     return list;
   }
 
@@ -109,8 +117,19 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
-  Future<List<WorkTimeEntry>> listTimeEntriesForTask(int taskId) async {
-    return _entries.where((e) => e.taskId == taskId).toList();
+  Future<List<WorkTimeEntry>> listTimeEntriesForTask(
+    int taskId, {
+    int? limit,
+    int? offset,
+  }) async {
+    var list = _entries.where((e) => e.taskId == taskId).toList();
+    if (offset != null && offset > 0) {
+      list = list.skip(offset).toList();
+    }
+    if (limit != null && limit > 0) {
+      list = list.take(limit).toList();
+    }
+    return list;
   }
 
   @override

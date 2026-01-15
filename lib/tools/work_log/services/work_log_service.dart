@@ -30,25 +30,70 @@ class WorkLogService extends ChangeNotifier {
 
   final Map<int, int> _taskTotalMinutes = {};
 
+  // 任务列表分页状态
+  static const int _taskPageSize = 10;
+  int _taskOffset = 0;
+  bool _hasMoreTasks = true;
+  bool get hasMoreTasks => _hasMoreTasks;
+
   Future<void> loadTasks() async {
     if (_disposed) return;
     _loadingTasks = true;
+    _taskOffset = 0;
+    _hasMoreTasks = true;
+    _tasks = [];
+    _taskTotalMinutes.clear();
     _safeNotify();
+
     try {
       _allTasks = await _repository.listTasks();
-      _tasks = _allTasks
-          .where((t) => _statusFilters.contains(t.status))
-          .toList();
-      await _loadTaskTotalMinutes();
+
+      final firstPage = await _repository.listTasks(
+        statuses: _statusFilters,
+        limit: _taskPageSize,
+        offset: 0,
+      );
+
+      _tasks = firstPage;
+      _taskOffset = firstPage.length;
+      _hasMoreTasks = firstPage.length >= _taskPageSize;
+
+      await _loadTaskTotalMinutes(firstPage);
     } finally {
       _loadingTasks = false;
       _safeNotify();
     }
   }
 
-  Future<void> _loadTaskTotalMinutes() async {
-    _taskTotalMinutes.clear();
-    for (final task in _tasks) {
+  Future<void> loadMoreTasks() async {
+    if (_disposed || !_hasMoreTasks || _loadingTasks) return;
+
+    _loadingTasks = true;
+    _safeNotify();
+
+    try {
+      final newTasks = await _repository.listTasks(
+        statuses: _statusFilters,
+        limit: _taskPageSize,
+        offset: _taskOffset,
+      );
+
+      if (newTasks.isEmpty || newTasks.length < _taskPageSize) {
+        _hasMoreTasks = false;
+      }
+
+      _tasks = [..._tasks, ...newTasks];
+      _taskOffset += newTasks.length;
+
+      await _loadTaskTotalMinutes(newTasks);
+    } finally {
+      _loadingTasks = false;
+      _safeNotify();
+    }
+  }
+
+  Future<void> _loadTaskTotalMinutes(List<WorkTask> tasks) async {
+    for (final task in tasks) {
       if (task.id != null) {
         _taskTotalMinutes[task.id!] = await _repository.getTotalMinutesForTask(
           task.id!,
@@ -129,6 +174,10 @@ class WorkLogService extends ChangeNotifier {
 
   Future<WorkTask?> getTask(int id) async {
     return _repository.getTask(id);
+  }
+
+  Future<int> getTotalMinutesForTask(int taskId) async {
+    return _repository.getTotalMinutesForTask(taskId);
   }
 
   Future<int> createTimeEntry(WorkTimeEntry entry) async {
@@ -216,8 +265,16 @@ class WorkLogService extends ChangeNotifier {
     _safeNotify();
   }
 
-  Future<List<WorkTimeEntry>> listTimeEntriesForTask(int taskId) async {
-    return _repository.listTimeEntriesForTask(taskId);
+  Future<List<WorkTimeEntry>> listTimeEntriesForTask(
+    int taskId, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _repository.listTimeEntriesForTask(
+      taskId,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   Future<List<WorkTimeEntry>> listTimeEntriesInRange(
