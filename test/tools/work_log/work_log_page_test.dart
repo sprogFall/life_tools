@@ -37,6 +37,26 @@ void main() {
       expect(find.byIcon(CupertinoIcons.add), findsOneWidget);
     });
 
+    testWidgets('日历页点击右上角加号也应进入创建任务页', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: WorkLogToolPage(repository: repository)),
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.drag(find.byType(PageView), const Offset(-600, 0));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // 日历页面不展示语音录入按钮，用于确认当前已切换到日历 tab
+      expect(find.byKey(const ValueKey('work_log_ai_input_button')), findsNothing);
+
+      await tester.tap(find.byIcon(CupertinoIcons.add));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
+
+      expect(find.text('创建任务'), findsOneWidget);
+    });
+
     testWidgets('应该可以创建任务并在列表中显示', (tester) async {
       await tester.pumpWidget(
         MaterialApp(home: WorkLogToolPage(repository: repository)),

@@ -295,8 +295,6 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
   }
 
   void _onPressedAdd() {
-    if (_tab != 0) return;
-
     Navigator.of(context)
         .push<bool>(
           CupertinoPageRoute(
