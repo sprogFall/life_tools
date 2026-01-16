@@ -15,7 +15,9 @@ import 'stock_item_detail_page.dart';
 import 'stock_item_edit_page.dart';
 
 class StockpileToolPage extends StatefulWidget {
-  const StockpileToolPage({super.key});
+  final StockpileService? service;
+
+  const StockpileToolPage({super.key, this.service});
 
   @override
   State<StockpileToolPage> createState() => _StockpileToolPageState();
@@ -23,18 +25,24 @@ class StockpileToolPage extends StatefulWidget {
 
 class _StockpileToolPageState extends State<StockpileToolPage> {
   late final StockpileService _service;
+  late final bool _ownsService;
   int _tab = 0;
 
   @override
   void initState() {
     super.initState();
-    _service = StockpileService();
-    _service.loadItems();
+    _service = widget.service ?? StockpileService();
+    _ownsService = widget.service == null;
+    if (_ownsService) {
+      _service.loadItems();
+    }
   }
 
   @override
   void dispose() {
-    _service.dispose();
+    if (_ownsService) {
+      _service.dispose();
+    }
     super.dispose();
   }
 
@@ -200,8 +208,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     final badge = _buildExpiryBadge(item, now);
     final qtyText =
         '${StockpileFormat.num(item.remainingQuantity)}/${StockpileFormat.num(item.totalQuantity)}${item.unit.isEmpty ? '' : item.unit}';
-    final tagText =
-        tags.isEmpty ? '无标签' : tags.map((t) => t.name).join('、');
+    final tagText = tags.isEmpty ? '无标签' : tags.map((t) => t.name).join('、');
 
     return GlassContainer(
       margin: const EdgeInsets.only(bottom: 12),
@@ -327,8 +334,9 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(14),
-      onPressed:
-          item.remainingQuantity <= 0 ? null : () => _openCreateConsumption(item),
+      onPressed: item.remainingQuantity <= 0
+          ? null
+          : () => _openCreateConsumption(item),
       child: const Icon(
         CupertinoIcons.minus_circle,
         size: 20,
@@ -346,7 +354,12 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
 
   Future<void> _openCreateItem() async {
     final created = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute(builder: (_) => const StockItemEditPage()),
+      CupertinoPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: const StockItemEditPage(),
+        ),
+      ),
     );
     if (!mounted) return;
     if (created == true) await _service.loadItems();
@@ -354,7 +367,12 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
 
   Future<void> _openDetail(int id) async {
     final changed = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute(builder: (_) => StockItemDetailPage(itemId: id)),
+      CupertinoPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: StockItemDetailPage(itemId: id),
+        ),
+      ),
     );
     if (!mounted) return;
     if (changed == true) await _service.loadItems();
@@ -363,7 +381,10 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   Future<void> _openCreateConsumption(StockItem item) async {
     final changed = await Navigator.of(context).push<bool>(
       CupertinoPageRoute(
-        builder: (_) => StockConsumptionEditPage(itemId: item.id!),
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: StockConsumptionEditPage(itemId: item.id!),
+        ),
       ),
     );
     if (!mounted) return;
@@ -446,4 +467,3 @@ class _StockpileAppBar extends StatelessWidget {
     );
   }
 }
-

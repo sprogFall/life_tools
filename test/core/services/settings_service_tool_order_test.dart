@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:life_tools/core/database/database_helper.dart';
+import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +7,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   group('SettingsService 工具排序', () {
+    late Database db;
+
     setUpAll(() {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -16,16 +18,21 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
       SharedPreferences.setMockInitialValues({});
       ToolRegistry.instance.registerAll();
+
+      db = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
     });
 
     tearDown(() async {
-      final db = await DatabaseHelper.instance.database;
-      await db.delete('tool_order');
-      await DatabaseHelper.instance.close();
+      await db.close();
     });
 
     test('init 时应确保标签管理在最后', () async {
-      final db = await DatabaseHelper.instance.database;
       await db.delete('tool_order');
 
       // 模拟旧版本的持久化顺序：tag_manager 在第一位
@@ -40,7 +47,7 @@ void main() {
         await db.insert('tool_order', {'tool_id': initial[i], 'sort_index': i});
       }
 
-      final service = SettingsService();
+      final service = SettingsService(databaseProvider: () async => db);
       await service.init();
 
       expect(service.toolOrder.isNotEmpty, isTrue);

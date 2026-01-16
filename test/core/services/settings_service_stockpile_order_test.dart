@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:life_tools/core/database/database_helper.dart';
+import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +7,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   group('SettingsService - 囤货助手排序', () {
+    late Database db;
+
     setUpAll(() {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -16,16 +18,22 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
       SharedPreferences.setMockInitialValues({});
       ToolRegistry.instance.registerAll();
+
+      db = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
     });
 
     tearDown(() async {
-      final db = await DatabaseHelper.instance.database;
       await db.delete('tool_order');
-      await DatabaseHelper.instance.close();
+      await db.close();
     });
 
     test('旧的 tool_order 只有工作记录/标签管理时，init 会把囤货助手插入到两者之间', () async {
-      final db = await DatabaseHelper.instance.database;
       await db.delete('tool_order');
 
       final initial = ['work_log', 'tag_manager'];
@@ -33,14 +41,14 @@ void main() {
         await db.insert('tool_order', {'tool_id': initial[i], 'sort_index': i});
       }
 
-      final service = SettingsService();
+      final service = SettingsService(databaseProvider: () async => db);
       await service.init();
 
-      expect(
-        service.toolOrder,
-        ['work_log', 'stockpile_assistant', 'tag_manager'],
-      );
+      expect(service.toolOrder, [
+        'work_log',
+        'stockpile_assistant',
+        'tag_manager',
+      ]);
     });
   });
 }
-

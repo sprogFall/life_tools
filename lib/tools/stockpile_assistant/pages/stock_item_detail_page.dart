@@ -88,12 +88,11 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
             ),
           ],
         ),
-        body:
-            _loading
-                ? const Center(child: CupertinoActivityIndicator())
-                : SafeArea(
-                  child: _item == null ? _buildNotFound() : _buildContent(_item!),
-                ),
+        body: _loading
+            ? const Center(child: CupertinoActivityIndicator())
+            : SafeArea(
+                child: _item == null ? _buildNotFound() : _buildContent(_item!),
+              ),
       ),
     );
   }
@@ -135,14 +134,19 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
               _kv('采购日期', StockpileFormat.date(item.purchaseDate)),
               _kv(
                 '到期日期',
-                item.expiryDate == null ? '无' : StockpileFormat.date(item.expiryDate!),
+                item.expiryDate == null
+                    ? '无'
+                    : StockpileFormat.date(item.expiryDate!),
               ),
               if (item.expiryDate != null) _kv('提醒', '提前 ${item.remindDays} 天'),
               if (item.note.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(
                   item.note,
-                  style: const TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: IOS26Theme.textSecondary,
+                  ),
                 ),
               ],
             ],
@@ -181,13 +185,19 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
             width: 72,
             child: Text(
               k,
-              style: const TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: IOS26Theme.textSecondary,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               v,
-              style: const TextStyle(fontSize: 13, color: IOS26Theme.textPrimary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: IOS26Theme.textPrimary,
+              ),
             ),
           ),
         ],
@@ -222,13 +232,19 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                 const SizedBox(height: 4),
                 Text(
                   StockpileFormat.dateTime(log.consumedAt),
-                  style: const TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: IOS26Theme.textSecondary,
+                  ),
                 ),
                 if (log.note.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     log.note,
-                    style: const TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: IOS26Theme.textSecondary,
+                    ),
                   ),
                 ],
               ],
@@ -250,7 +266,12 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
 
   Future<void> _openEdit() async {
     final ok = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute(builder: (_) => StockItemEditPage(itemId: widget.itemId)),
+      CupertinoPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: StockItemEditPage(itemId: widget.itemId),
+        ),
+      ),
     );
     if (!mounted) return;
     if (ok == true) {
@@ -262,7 +283,10 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
   Future<void> _openConsume() async {
     final ok = await Navigator.of(context).push<bool>(
       CupertinoPageRoute(
-        builder: (_) => StockConsumptionEditPage(itemId: widget.itemId),
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: StockConsumptionEditPage(itemId: widget.itemId),
+        ),
       ),
     );
     if (!mounted) return;
@@ -278,25 +302,24 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
 
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (context) => CupertinoAlertDialog(
-            title: const Text('确认删除'),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text('将删除「${item.name}」及其消耗记录，是否继续？'),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('删除'),
-              ),
-            ],
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('确认删除'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('将删除「${item.name}」及其消耗记录，是否继续？'),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
           ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
     );
 
     if (confirmed != true) return;
@@ -306,4 +329,3 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
     Navigator.pop(context, true);
   }
 }
-

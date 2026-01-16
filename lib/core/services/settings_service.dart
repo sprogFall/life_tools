@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 import '../database/database_helper.dart';
 import '../models/tool_info.dart';
 import '../registry/tool_registry.dart';
+
+typedef DatabaseProvider = Future<Database> Function();
 
 /// 应用设置服务：管理工具排序与默认工具配置
 class SettingsService extends ChangeNotifier {
@@ -12,9 +15,15 @@ class SettingsService extends ChangeNotifier {
   static const String _workLogToolId = 'work_log';
   static const String _stockpileToolId = 'stockpile_assistant';
 
+  final DatabaseProvider _databaseProvider;
+
   SharedPreferences? _prefs;
   String? _defaultToolId;
   List<String> _toolOrder = [];
+
+  SettingsService({DatabaseProvider? databaseProvider})
+    : _databaseProvider =
+          databaseProvider ?? (() => DatabaseHelper.instance.database);
 
   String? get defaultToolId => _defaultToolId;
   List<String> get toolOrder => List.unmodifiable(_toolOrder);
@@ -26,7 +35,7 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> _loadToolOrder() async {
-    final db = await DatabaseHelper.instance.database;
+    final db = await _databaseProvider();
     final results = await db.query('tool_order', orderBy: 'sort_index ASC');
 
     if (results.isEmpty) {
@@ -45,11 +54,14 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> _saveToolOrder() async {
-    final db = await DatabaseHelper.instance.database;
+    final db = await _databaseProvider();
     await db.delete('tool_order');
 
     for (var i = 0; i < _toolOrder.length; i++) {
-      await db.insert('tool_order', {'tool_id': _toolOrder[i], 'sort_index': i});
+      await db.insert('tool_order', {
+        'tool_id': _toolOrder[i],
+        'sort_index': i,
+      });
     }
   }
 
@@ -147,4 +159,3 @@ class SettingsService extends ChangeNotifier {
     }
   }
 }
-
