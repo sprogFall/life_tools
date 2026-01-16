@@ -26,6 +26,7 @@ void main() {
       final tools = ToolRegistry.instance.tools;
       expect(tools.isNotEmpty, true);
       expect(tools.any((t) => t.id == 'work_log'), true);
+      expect(tools.any((t) => t.id == 'stockpile_assistant'), true);
       expect(tools.any((t) => t.id == 'tag_manager'), true);
     });
 
@@ -55,6 +56,18 @@ void main() {
         ),
         throwsUnsupportedError,
       );
+    });
+
+    test('stockpile_assistant 默认排序应在 work_log 之后且在 tag_manager 之前', () {
+      final ids = ToolRegistry.instance.tools.map((t) => t.id).toList();
+      final workIndex = ids.indexOf('work_log');
+      final stockIndex = ids.indexOf('stockpile_assistant');
+      final tagIndex = ids.indexOf('tag_manager');
+
+      expect(workIndex, isNonNegative);
+      expect(stockIndex, workIndex + 1);
+      expect(tagIndex, ids.length - 1);
+      expect(stockIndex, lessThan(tagIndex));
     });
   });
 }

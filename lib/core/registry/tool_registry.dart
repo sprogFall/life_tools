@@ -3,6 +3,9 @@ import '../models/tool_info.dart';
 import '../tags/tag_repository.dart';
 import '../tags/tag_sync_provider.dart';
 import '../theme/ios26_theme.dart';
+import '../../tools/stockpile_assistant/pages/stockpile_tool_page.dart';
+import '../../tools/stockpile_assistant/repository/stockpile_repository.dart';
+import '../../tools/stockpile_assistant/sync/stockpile_sync_provider.dart';
 import '../../tools/tag_manager/pages/tag_manager_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
 import '../../tools/work_log/repository/work_log_repository.dart';
@@ -32,6 +35,12 @@ class ToolRegistry {
       tagRepository: tagRepository,
     );
 
+    final stockpileRepository = StockpileRepository();
+    final stockpileSyncProvider = StockpileSyncProvider(
+      repository: stockpileRepository,
+      tagRepository: tagRepository,
+    );
+
     // 注册工作记录工具（支持同步）
     register(
       ToolInfo(
@@ -42,6 +51,19 @@ class ToolRegistry {
         color: IOS26Theme.toolBlue,
         pageBuilder: () => const WorkLogToolPage(),
         syncProvider: workLogSyncProvider, // 添加同步支持
+      ),
+    );
+
+    // 注册囤货助手（放在工作记录之后）
+    register(
+      ToolInfo(
+        id: 'stockpile_assistant',
+        name: '囤货助手',
+        description: '家庭库存与临期提醒',
+        icon: CupertinoIcons.cube_box,
+        color: IOS26Theme.toolGreen,
+        pageBuilder: () => const StockpileToolPage(),
+        syncProvider: stockpileSyncProvider,
       ),
     );
 
