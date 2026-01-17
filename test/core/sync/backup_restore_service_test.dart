@@ -259,5 +259,109 @@ void main() {
       expect(tagProvider.lastImported, isNotNull);
       expect(dependentProvider.lastImported, isNotNull);
     });
+
+    test('restoreFromJson 应支持 ai_config/sync_config 为 JSON 字符串（避免偶现跳过导入）', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        toolProviders: const [],
+      );
+
+      final aiConfigJson = jsonEncode(
+        const AiConfig(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'k_json_string',
+          model: 'm_json_string',
+          temperature: 0.7,
+          maxOutputTokens: 256,
+        ).toMap(),
+      );
+
+      final syncConfigJson = jsonEncode(
+        const SyncConfig(
+          userId: 'u_json_string',
+          networkType: SyncNetworkType.privateWifi,
+          serverUrl: 'sync.example.com',
+          serverPort: 443,
+          customHeaders: {'X-Test': '1'},
+          allowedWifiNames: ['MyWifi'],
+          autoSyncOnStartup: true,
+        ).toMap(),
+      );
+
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': aiConfigJson,
+        'sync_config': syncConfigJson,
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': const <String, dynamic>{},
+      };
+
+      await service.restoreFromJson(jsonEncode(payload));
+
+      expect(aiConfigService.config, isNotNull);
+      expect(aiConfigService.config!.apiKey, 'k_json_string');
+      expect(syncConfigService.config, isNotNull);
+      expect(syncConfigService.config!.userId, 'u_json_string');
+      expect(syncConfigService.config!.networkType, SyncNetworkType.privateWifi);
+    });
+
+    test('restoreFromJson 应容错 sync_config 数字字段为小数/字符串', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        toolProviders: const [],
+      );
+
+      final jsonText = jsonEncode({
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': null,
+        'sync_config': {
+          'userId': 'u_num_loose',
+          'networkType': 1.0,
+          'serverUrl': 'sync.example.com',
+          'serverPort': '443',
+          'customHeaders': {'X-Test': '1'},
+          'allowedWifiNames': ['MyWifi'],
+          'autoSyncOnStartup': true,
+          'lastSyncTime': 1700000000000.0,
+        },
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': const <String, dynamic>{},
+      });
+
+      await service.restoreFromJson(jsonText);
+
+      expect(syncConfigService.config, isNotNull);
+      expect(syncConfigService.config!.userId, 'u_num_loose');
+      expect(syncConfigService.config!.networkType, SyncNetworkType.privateWifi);
+      expect(syncConfigService.config!.serverPort, 443);
+      expect(
+        syncConfigService.config!.lastSyncTime,
+        DateTime.fromMillisecondsSinceEpoch(1700000000000),
+      );
+    });
   });
 }

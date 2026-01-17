@@ -88,14 +88,32 @@ class BackupRestoreService {
       throw FormatException('不支持的备份版本: $version');
     }
 
-    final aiConfigMap = decoded['ai_config'];
-    if (aiConfigMap is Map<String, dynamic>) {
+    Map<String, dynamic>? readJsonMap(dynamic value) {
+      if (value == null) return null;
+      if (value is Map) {
+        return Map<String, dynamic>.from(value);
+      }
+      if (value is String) {
+        final text = value.trim();
+        if (text.isEmpty) return null;
+        try {
+          final decoded = jsonDecode(text);
+          if (decoded is Map) return Map<String, dynamic>.from(decoded);
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    final aiConfigMap = readJsonMap(decoded['ai_config']);
+    if (aiConfigMap != null) {
       final config = AiConfig.fromMap(aiConfigMap);
       await aiConfigService.save(config);
     }
 
-    final syncConfigMap = decoded['sync_config'];
-    if (syncConfigMap is Map<String, dynamic>) {
+    final syncConfigMap = readJsonMap(decoded['sync_config']);
+    if (syncConfigMap != null) {
       final config = SyncConfig.fromMap(syncConfigMap);
       await syncConfigService.save(config);
     }
