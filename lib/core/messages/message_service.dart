@@ -52,6 +52,22 @@ class MessageService extends ChangeNotifier {
             ? null
             : _messages.firstWhere((e) => e.dedupeKey == dedupeKey);
 
+    // 关键行为：同一条 dedupeKey 的消息若“内容未变”，则不应写库：
+    // - 避免 createdAt 被刷新导致排序跳动
+    // - 避免 markUnreadOnUpdate 把已读重置为未读
+    // - 避免重复推送系统通知
+    if (existing != null) {
+      final noOpUpdate =
+          existing.toolId == toolId &&
+          existing.title == title &&
+          existing.body == trimmedBody &&
+          existing.route == route &&
+          existing.expiresAt == expiresAt;
+      if (noOpUpdate) {
+        return existing.id;
+      }
+    }
+
     final contentChanged =
         existing == null ||
         existing.toolId != toolId ||
@@ -94,6 +110,24 @@ class MessageService extends ChangeNotifier {
   Future<void> deleteMessageByDedupeKey(String dedupeKey) async {
     await _repository.deleteByDedupeKey(dedupeKey);
     await _reload();
+  }
+
+  Future<void> scheduleSystemNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledAt,
+  }) async {
+    await _notificationService?.scheduleMessage(
+      id: id,
+      title: title,
+      body: body,
+      scheduledAt: scheduledAt,
+    );
+  }
+
+  Future<void> cancelSystemNotification(int id) async {
+    await _notificationService?.cancel(id);
   }
 
   Future<int> purgeExpired({required DateTime now}) async {

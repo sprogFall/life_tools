@@ -332,6 +332,10 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
 	    if (!mounted) return;
 	    await _service.deleteItem(widget.itemId);
 	    await messageService.deleteMessageByDedupeKey(dedupeKey);
+	    await StockpileReminderService.cancelScheduledNotificationsForItem(
+	      messageService: messageService,
+	      itemId: widget.itemId,
+	    );
 	    if (!mounted) return;
 	    Navigator.pop(context, true);
 	  }

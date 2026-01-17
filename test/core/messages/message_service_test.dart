@@ -7,6 +7,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class _FakeNotificationService implements AppNotificationService {
   final List<({String title, String body})> shown = [];
+  final List<({int id, String title, String body, DateTime scheduledAt})> scheduled =
+      [];
+  final List<int> canceled = [];
 
   @override
   Future<void> init() async {}
@@ -14,6 +17,21 @@ class _FakeNotificationService implements AppNotificationService {
   @override
   Future<void> showMessage({required String title, required String body}) async {
     shown.add((title: title, body: body));
+  }
+
+  @override
+  Future<void> scheduleMessage({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledAt,
+  }) async {
+    scheduled.add((id: id, title: title, body: body, scheduledAt: scheduledAt));
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    canceled.add(id);
   }
 }
 
@@ -141,6 +159,41 @@ void main() {
       await service.markMessageRead(id!);
 
       expect(service.unreadMessages, isEmpty);
+      final loaded = await repository.listMessages(limit: 10);
+      expect(loaded.single.isRead, isTrue);
+      expect(loaded.single.readAt, isNotNull);
+    });
+
+    test('dedupeKey 内容未变时，不应把已读重置为未读（也不应重复推送系统通知）', () async {
+      final t1 = DateTime(2026, 1, 1, 9, 0);
+      await service.upsertMessage(
+        toolId: 'stockpile_assistant',
+        title: '囤货助手',
+        body: '牛奶 将在 2 天后到期',
+        dedupeKey: 'stockpile:expiry:1',
+        createdAt: t1,
+        notify: true,
+      );
+      expect(notificationService.shown.length, 1);
+
+      final id = service.messages.single.id;
+      expect(id, isNotNull);
+      await service.markMessageRead(id!, readAt: DateTime(2026, 1, 1, 10, 0));
+
+      // 同一天内重复触发同一条 dedupeKey 的 upsert（createdAt 不同，但内容不变）
+      await service.upsertMessage(
+        toolId: 'stockpile_assistant',
+        title: '囤货助手',
+        body: '牛奶 将在 2 天后到期',
+        dedupeKey: 'stockpile:expiry:1',
+        createdAt: DateTime(2026, 1, 1, 12, 0),
+        notify: true,
+      );
+
+      expect(service.messages.single.isRead, isTrue);
+      expect(service.unreadMessages, isEmpty);
+      expect(notificationService.shown.length, 1);
+
       final loaded = await repository.listMessages(limit: 10);
       expect(loaded.single.isRead, isTrue);
       expect(loaded.single.readAt, isNotNull);

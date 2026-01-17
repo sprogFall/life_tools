@@ -258,20 +258,21 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   }
 
   Widget _buildItemCard(StockItem item, DateTime now, List<Tag> tags) {
+    final compact = item.isDepleted;
     final expiryDate = item.expiryDate;
-    final badge = _buildExpiryBadge(item, now);
+    final badge = compact ? null : _buildExpiryBadge(item, now);
     final qtyText =
         '${StockpileFormat.num(item.remainingQuantity)}/${StockpileFormat.num(item.totalQuantity)}${item.unit.isEmpty ? '' : item.unit}';
     final tagText = tags.isEmpty ? '无标签' : tags.map((t) => t.name).join('、');
 
     return GlassContainer(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.only(bottom: compact ? 8 : 12),
+      padding: EdgeInsets.all(compact ? 10 : 14),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: compact ? 34 : 40,
+            height: compact ? 34 : 40,
             decoration: BoxDecoration(
               color: IOS26Theme.toolGreen.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
@@ -297,8 +298,8 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                           item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
+                          style: TextStyle(
+                            fontSize: compact ? 15 : 16,
                             fontWeight: FontWeight.w600,
                             color: IOS26Theme.textPrimary,
                           ),
@@ -307,7 +308,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                       if (badge != null) badge,
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: compact ? 4 : 6),
                   Row(
                     children: [
                       Expanded(
@@ -315,8 +316,8 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                           tagText,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
+                          style: TextStyle(
+                            fontSize: compact ? 12 : 13,
                             color: IOS26Theme.textSecondary,
                           ),
                         ),
@@ -334,8 +335,8 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                             item.location,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
+                            style: TextStyle(
+                              fontSize: compact ? 12 : 13,
                               color: IOS26Theme.textSecondary,
                             ),
                           ),
@@ -343,13 +344,15 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: compact ? 2 : 4),
                   Text(
-                    expiryDate == null
+                    compact
+                        ? '库存：$qtyText'
+                        : expiryDate == null
                         ? '库存：$qtyText · 无保质期'
                         : '库存：$qtyText · 到期：${StockpileFormat.date(expiryDate)}',
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: TextStyle(
+                      fontSize: compact ? 12 : 13,
                       color: IOS26Theme.textSecondary,
                     ),
                   ),
@@ -435,7 +438,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   Future<void> _openAiInput() async {
     final text = await WorkLogVoiceInputSheet.show(
       context,
-      helperText: '输入内容（告诉AI你想新增物品或记录消耗）',
+      helperText: '输入内容（可不写单位，AI 会根据物品/数量自动补单位；判断不出就留空）',
       placeholder: '例如：买了牛奶2盒放冰箱，保质期到2026-01-05，提醒2天；或：牛奶 消耗1盒 早餐',
     );
     if (!mounted || text == null) return;

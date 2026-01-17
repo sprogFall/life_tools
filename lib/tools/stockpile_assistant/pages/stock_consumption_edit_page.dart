@@ -308,9 +308,10 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
 
       final updatedItem = await _service.getItem(widget.itemId);
       if (!mounted) return;
-      if (updatedItem != null && updatedItem.isDepleted) {
-        await messageService.deleteMessageByDedupeKey(
-          StockpileReminderService.dedupeKeyForItem(itemId: widget.itemId),
+      if (updatedItem != null) {
+        await StockpileReminderService().syncReminderForItem(
+          messageService: messageService,
+          item: updatedItem,
         );
       }
     } catch (e) {

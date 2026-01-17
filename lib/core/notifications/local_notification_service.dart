@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 import 'app_notification_service.dart';
 
@@ -19,6 +22,14 @@ class LocalNotificationService implements AppNotificationService {
   @override
   Future<void> init() async {
     if (_initialized) return;
+
+    tzdata.initializeTimeZones();
+    try {
+      final localName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(localName));
+    } catch (e) {
+      debugPrint('初始化时区失败，将使用 UTC: $e');
+    }
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
@@ -53,16 +64,8 @@ class LocalNotificationService implements AppNotificationService {
     _initialized = true;
   }
 
-  @override
-  Future<void> showMessage({
-    required String title,
-    required String body,
-  }) async {
-    if (!_initialized) {
-      await init();
-    }
-
-    final details = NotificationDetails(
+  NotificationDetails _details() {
+    return NotificationDetails(
       android: const AndroidNotificationDetails(
         _channelId,
         _channelName,
@@ -76,11 +79,64 @@ class LocalNotificationService implements AppNotificationService {
         presentBadge: true,
       ),
     );
+  }
+
+  @override
+  Future<void> showMessage({
+    required String title,
+    required String body,
+  }) async {
+    if (!_initialized) {
+      await init();
+    }
 
     try {
-      await _plugin.show(_nextId++, title, body, details);
+      await _plugin.show(_nextId++, title, body, _details());
     } catch (e) {
       debugPrint('本地通知发送失败: $e');
+    }
+  }
+
+  @override
+  Future<void> scheduleMessage({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledAt,
+  }) async {
+    if (!_initialized) {
+      await init();
+    }
+
+    final now = DateTime.now();
+    if (!scheduledAt.isAfter(now)) return;
+
+    final scheduled = tz.TZDateTime.from(scheduledAt, tz.local);
+
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduled,
+        _details(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: null,
+      );
+    } catch (e) {
+      debugPrint('本地通知定时发送失败: $e');
+    }
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    if (!_initialized) {
+      await init();
+    }
+    try {
+      await _plugin.cancel(id);
+    } catch (e) {
+      debugPrint('本地通知取消失败: $e');
     }
   }
 }

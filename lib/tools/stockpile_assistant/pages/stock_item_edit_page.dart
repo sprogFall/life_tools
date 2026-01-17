@@ -666,18 +666,12 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
 
       if (itemId != null) {
         await _service.setTagsForItem(itemId, _selectedTagIds.toList());
-
-        final shouldKeepReminder =
-            remaining > 0 &&
-            _hasExpiry &&
-            _isExpiredOrExpiringSoon(
-              expiry: _expiryDate,
-              now: now,
-              remindDays: remindDays,
-            );
-        if (!shouldKeepReminder) {
-          await messageService.deleteMessageByDedupeKey(
-            StockpileReminderService.dedupeKeyForItem(itemId: itemId),
+        final item = await _service.getItem(itemId);
+        if (item != null) {
+          await StockpileReminderService().syncReminderForItem(
+            messageService: messageService,
+            item: item,
+            now: now,
           );
         }
       }
@@ -693,20 +687,5 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
 
     if (!mounted) return;
     Navigator.pop(context, true);
-  }
-
-  bool _isExpiredOrExpiringSoon({
-    required DateTime? expiry,
-    required DateTime now,
-    required int remindDays,
-  }) {
-    if (expiry == null) return false;
-    final today = DateTime(now.year, now.month, now.day);
-    final exp = DateTime(expiry.year, expiry.month, expiry.day);
-    final expired = exp.isBefore(today);
-    if (expired) return true;
-
-    final threshold = today.add(Duration(days: remindDays));
-    return exp.millisecondsSinceEpoch <= threshold.millisecondsSinceEpoch;
   }
 }

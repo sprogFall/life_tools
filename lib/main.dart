@@ -96,13 +96,15 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _receiveShareService = ReceiveShareService();
+  DateTime _lastStockpileReminderCheckDay = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 仅在移动端初始化接收分享
     if (Platform.isAndroid || Platform.isIOS) {
       _receiveShareService.init(_handleReceivedShare);
@@ -111,8 +113,30 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _receiveShareService.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDay = DateTime(
+      _lastStockpileReminderCheckDay.year,
+      _lastStockpileReminderCheckDay.month,
+      _lastStockpileReminderCheckDay.day,
+    );
+    if (!today.isAfter(lastDay)) return;
+    _lastStockpileReminderCheckDay = today;
+
+    Future.microtask(
+      () => StockpileReminderService().pushDueReminders(
+        messageService: widget.messageService,
+      ),
+    );
   }
 
   void _handleReceivedShare(String jsonText) {
