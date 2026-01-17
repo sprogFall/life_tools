@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import '../core/messages/message_service.dart';
+import '../core/messages/models/app_message.dart';
 import '../core/backup/pages/backup_restore_page.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
@@ -62,10 +65,15 @@ class HomePage extends StatelessWidget {
               children: [
                 _buildAppBar(context),
                 Expanded(
-                  child: Consumer<SettingsService>(
-                    builder: (context, settings, child) {
+                  child: Consumer2<SettingsService, MessageService>(
+                    builder: (context, settings, messageService, child) {
                       final tools = settings.getSortedTools();
-                      return _buildContent(context, tools, settings);
+                      return _buildContent(
+                        context,
+                        tools,
+                        settings,
+                        messageService.messages,
+                      );
                     },
                   ),
                 ),
@@ -125,6 +133,7 @@ class HomePage extends StatelessWidget {
     BuildContext context,
     List<ToolInfo> tools,
     SettingsService settings,
+    List<AppMessage> messages,
   ) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -161,9 +170,10 @@ class HomePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '欢迎回来',
-                        style: TextStyle(
+                      _HomeMessageTicker(
+                        messages: messages,
+                        fallbackText: '欢迎回来',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
                           color: IOS26Theme.textPrimary,
@@ -171,7 +181,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '选择下方工具开始使用',
+                        messages.isEmpty ? '选择下方工具开始使用' : '共 ${messages.length} 条消息',
                         style: TextStyle(
                           fontSize: 15,
                           color: IOS26Theme.textSecondary.withValues(
@@ -230,6 +240,97 @@ class HomePage extends StatelessWidget {
     showCupertinoModalPopup(
       context: context,
       builder: (context) => const _SettingsSheet(),
+    );
+  }
+}
+
+class _HomeMessageTicker extends StatefulWidget {
+  final List<AppMessage> messages;
+  final String fallbackText;
+  final TextStyle style;
+
+  const _HomeMessageTicker({
+    required this.messages,
+    required this.fallbackText,
+    required this.style,
+  });
+
+  @override
+  State<_HomeMessageTicker> createState() => _HomeMessageTickerState();
+}
+
+class _HomeMessageTickerState extends State<_HomeMessageTicker> {
+  static const _interval = Duration(seconds: 3);
+  int _index = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTimerIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeMessageTicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messages.length != widget.messages.length) {
+      _index = 0;
+      _restartTimerIfNeeded();
+      return;
+    }
+    if (_index >= widget.messages.length) {
+      _index = 0;
+    }
+    _restartTimerIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _restartTimerIfNeeded() {
+    _timer?.cancel();
+    if (widget.messages.length <= 1) return;
+    _timer = Timer.periodic(_interval, (_) {
+      if (!mounted) return;
+      setState(() {
+        _index = (_index + 1) % widget.messages.length;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.messages.isEmpty) {
+      return Text(widget.fallbackText, style: widget.style);
+    }
+
+    final text = widget.messages[_index].body;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(0, 0.35),
+          end: Offset.zero,
+        ).animate(animation);
+        return ClipRect(
+          child: SlideTransition(
+            position: offsetAnimation,
+            child: FadeTransition(opacity: animation, child: child),
+          ),
+        );
+      },
+      child: Text(
+        text,
+        key: ValueKey('home_message_$_index'),
+        style: widget.style,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

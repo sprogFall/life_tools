@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 7;
+  static const int version = 8;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -11,6 +11,7 @@ class DatabaseSchema {
 
   static Future<void> onCreate(Database db, int version) async {
     await _createCoreTables(db);
+    await _createMessageTables(db);
     await _createWorkLogTables(db);
     await _createTagTables(db);
     await _createOperationLogTables(db);
@@ -40,6 +41,9 @@ class DatabaseSchema {
     if (oldVersion < 7) {
       await _upgradeToVersion7(db);
     }
+    if (oldVersion < 8) {
+      await _createMessageTables(db);
+    }
   }
 
   static Future<void> _createCoreTables(Database db) async {
@@ -56,6 +60,23 @@ class DatabaseSchema {
         sort_index INTEGER NOT NULL
       )
     ''');
+  }
+
+  static Future<void> _createMessageTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tool_id TEXT NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
+        body TEXT NOT NULL,
+        dedupe_key TEXT UNIQUE,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_app_messages_created_at ON app_messages(created_at DESC)',
+    );
   }
 
   static Future<void> _createWorkLogTables(Database db) async {

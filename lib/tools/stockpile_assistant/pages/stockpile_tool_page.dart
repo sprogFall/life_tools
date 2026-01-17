@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/ai/ai_service.dart';
+import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
@@ -12,6 +13,7 @@ import '../../work_log/pages/task/work_log_voice_input_sheet.dart';
 import '../ai/stockpile_ai_assistant.dart';
 import '../ai/stockpile_ai_intent.dart';
 import '../models/stock_item.dart';
+import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 import '../widgets/stockpile_consume_button.dart';
@@ -39,7 +41,10 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     _service = widget.service ?? StockpileService();
     _ownsService = widget.service == null;
     if (_ownsService) {
-      _service.loadItems();
+      _service.loadItems().then((_) {
+        if (!mounted) return;
+        _pushDueReminders();
+      });
     }
   }
 
@@ -49,6 +54,11 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
       _service.dispose();
     }
     super.dispose();
+  }
+
+  void _pushDueReminders() {
+    final messageService = Provider.of<MessageService>(context, listen: false);
+    StockpileReminderService().pushDueReminders(messageService: messageService);
   }
 
   @override

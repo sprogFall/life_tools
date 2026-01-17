@@ -8,6 +8,8 @@ import 'core/ai/ai_config_service.dart';
 import 'core/ai/ai_service.dart';
 import 'core/backup/pages/backup_restore_page.dart';
 import 'core/backup/services/receive_share_service.dart';
+import 'core/messages/message_service.dart';
+import 'core/notifications/local_notification_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
@@ -15,6 +17,7 @@ import 'core/sync/services/sync_service.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
+import 'tools/stockpile_assistant/services/stockpile_reminder_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,12 +49,29 @@ void main() async {
     Future.microtask(() => syncService.sync());
   }
 
+  final notificationService =
+      (Platform.isAndroid || Platform.isIOS) ? LocalNotificationService() : null;
+  await notificationService?.init();
+
+  final messageService = MessageService(
+    notificationService: notificationService,
+  );
+  await messageService.init();
+
+  // 启动时检查囤货临期/过期提醒（写入首页消息并推送系统通知）
+  Future.microtask(
+    () => StockpileReminderService().pushDueReminders(
+      messageService: messageService,
+    ),
+  );
+
   runApp(
     MyApp(
       settingsService: settingsService,
       aiConfigService: aiConfigService,
       syncConfigService: syncConfigService,
       syncService: syncService,
+      messageService: messageService,
     ),
   );
 }
@@ -61,6 +81,7 @@ class MyApp extends StatefulWidget {
   final AiConfigService aiConfigService;
   final SyncConfigService syncConfigService;
   final SyncService syncService;
+  final MessageService messageService;
 
   const MyApp({
     super.key,
@@ -68,6 +89,7 @@ class MyApp extends StatefulWidget {
     required this.aiConfigService,
     required this.syncConfigService,
     required this.syncService,
+    required this.messageService,
   });
 
   @override
@@ -111,6 +133,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider.value(value: widget.aiConfigService),
         ChangeNotifierProvider.value(value: widget.syncConfigService),
         ChangeNotifierProvider.value(value: widget.syncService),
+        ChangeNotifierProvider.value(value: widget.messageService),
         ChangeNotifierProvider<TagService>(create: (_) => TagService()),
         Provider<AiService>(
           create: (_) => AiService(configService: widget.aiConfigService),
