@@ -190,7 +190,14 @@ class SyncService extends ChangeNotifier {
   ) async {
     final tools = ToolRegistry.instance.tools;
 
-    for (final entry in toolsData.entries) {
+    final entries = toolsData.entries.toList()
+      ..sort((a, b) {
+        if (a.key == 'tag_manager' && b.key != 'tag_manager') return -1;
+        if (b.key == 'tag_manager' && a.key != 'tag_manager') return 1;
+        return 0;
+      });
+
+    for (final entry in entries) {
       final toolId = entry.key;
       final data = entry.value;
 

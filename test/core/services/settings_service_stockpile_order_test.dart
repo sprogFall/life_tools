@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  group('SettingsService 工具排序', () {
+  group('SettingsService - 囤货助手排序', () {
     late Database db;
 
     setUpAll(() {
@@ -29,20 +29,14 @@ void main() {
     });
 
     tearDown(() async {
+      await db.delete('tool_order');
       await db.close();
     });
 
-    test('init 时应确保标签管理在最后', () async {
+    test('旧的 tool_order 只有工作记录/标签管理时，init 会把囤货助手插入到两者之间', () async {
       await db.delete('tool_order');
 
-      // 模拟旧版本的持久化顺序：tag_manager 在第一位
-      final initial = [
-        'tag_manager',
-        'work_log',
-        'review',
-        'expense',
-        'income',
-      ];
+      final initial = ['work_log', 'tag_manager'];
       for (var i = 0; i < initial.length; i++) {
         await db.insert('tool_order', {'tool_id': initial[i], 'sort_index': i});
       }
@@ -50,9 +44,11 @@ void main() {
       final service = SettingsService(databaseProvider: () async => db);
       await service.init();
 
-      expect(service.toolOrder.isNotEmpty, isTrue);
-      expect(service.toolOrder.last, 'tag_manager');
-      expect(service.toolOrder.where((e) => e == 'tag_manager').length, 1);
+      expect(service.toolOrder, [
+        'work_log',
+        'stockpile_assistant',
+        'tag_manager',
+      ]);
     });
   });
 }

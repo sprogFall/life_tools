@@ -6,14 +6,36 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/ios26_theme.dart';
 
 class WorkLogVoiceInputSheet extends StatefulWidget {
-  const WorkLogVoiceInputSheet({super.key});
+  final String title;
+  final String helperText;
+  final String placeholder;
+  final Key textFieldKey;
 
-  static Future<String?> show(BuildContext context) {
+  const WorkLogVoiceInputSheet({
+    super.key,
+    this.title = 'AI录入',
+    this.helperText = '输入内容（告诉AI你想记录什么）',
+    this.placeholder = '例如：今天完成了登录模块的开发，花了3小时…',
+    this.textFieldKey = const ValueKey('work_log_ai_text_field'),
+  });
+
+  static Future<String?> show(
+    BuildContext context, {
+    String title = 'AI录入',
+    String helperText = '输入内容（告诉AI你想记录什么）',
+    String placeholder = '例如：今天完成了登录模块的开发，花了3小时…',
+    Key textFieldKey = const ValueKey('work_log_ai_text_field'),
+  }) {
     return showModalBottomSheet<String?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const WorkLogVoiceInputSheet(),
+      builder: (_) => WorkLogVoiceInputSheet(
+        title: title,
+        helperText: helperText,
+        placeholder: placeholder,
+        textFieldKey: textFieldKey,
+      ),
     );
   }
 
@@ -65,10 +87,10 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
     return Row(
       children: [
         const SizedBox(width: 8),
-        const Expanded(
+        Expanded(
           child: Text(
-            'AI录入',
-            style: TextStyle(
+            widget.title,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: IOS26Theme.textPrimary,
@@ -88,9 +110,9 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '输入内容（告诉AI你想记录什么）',
-            style: TextStyle(
+          Text(
+            widget.helperText,
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: IOS26Theme.textSecondary,
@@ -104,10 +126,10 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: CupertinoTextField(
-              key: const ValueKey('work_log_ai_text_field'),
+              key: widget.textFieldKey,
               controller: _controller,
               maxLines: 4,
-              placeholder: '例如：今天完成了登录模块的开发，花了3小时…',
+              placeholder: widget.placeholder,
               autofocus: true,
               decoration: null,
             ),

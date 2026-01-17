@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 5;
+  static const int version = 7;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -14,6 +14,7 @@ class DatabaseSchema {
     await _createWorkLogTables(db);
     await _createTagTables(db);
     await _createOperationLogTables(db);
+    await _createStockpileTables(db);
   }
 
   static Future<void> onUpgrade(
@@ -32,6 +33,12 @@ class DatabaseSchema {
     }
     if (oldVersion < 5) {
       await _upgradeToVersion5(db);
+    }
+    if (oldVersion < 6) {
+      await _createStockpileTables(db);
+    }
+    if (oldVersion < 7) {
+      await _upgradeToVersion7(db);
     }
   }
 
@@ -168,6 +175,136 @@ class DatabaseSchema {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_task_tags_tag_id ON work_task_tags(tag_id)',
+    );
+  }
+
+  static Future<void> _createStockpileTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stock_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        location TEXT NOT NULL DEFAULT '',
+        total_quantity REAL NOT NULL DEFAULT 1,
+        remaining_quantity REAL NOT NULL DEFAULT 1,
+        unit TEXT NOT NULL DEFAULT '',
+        purchase_date INTEGER NOT NULL,
+        expiry_date INTEGER,
+        remind_days INTEGER NOT NULL DEFAULT 3,
+        note TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stock_consumptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL,
+        consumed_at INTEGER NOT NULL,
+        quantity REAL NOT NULL,
+        method TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (item_id) REFERENCES stock_items(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stock_item_tags (
+        item_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (item_id, tag_id),
+        FOREIGN KEY (item_id) REFERENCES stock_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_items_expiry_date ON stock_items(expiry_date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_items_name ON stock_items(name COLLATE NOCASE)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_consumptions_item_id ON stock_consumptions(item_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_consumptions_consumed_at ON stock_consumptions(consumed_at DESC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_item_tags_item_id ON stock_item_tags(item_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_item_tags_tag_id ON stock_item_tags(tag_id)',
+    );
+  }
+
+  static Future<void> _upgradeToVersion7(Database db) async {
+    // 1) 新增 stock_item_tags 表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stock_item_tags (
+        item_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (item_id, tag_id),
+        FOREIGN KEY (item_id) REFERENCES stock_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_item_tags_item_id ON stock_item_tags(item_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_item_tags_tag_id ON stock_item_tags(tag_id)',
+    );
+
+    // 2) 移除 stock_items.category（SQLite 需要重建表）
+    final columns = await db.rawQuery('PRAGMA table_info(stock_items)');
+    final hasCategory = columns.any((c) => c['name'] == 'category');
+    if (hasCategory) {
+      await db.execute('PRAGMA foreign_keys = OFF');
+      await db.transaction((txn) async {
+        await txn.execute('ALTER TABLE stock_items RENAME TO stock_items_old');
+
+        await txn.execute('''
+          CREATE TABLE stock_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            location TEXT NOT NULL DEFAULT '',
+            total_quantity REAL NOT NULL DEFAULT 1,
+            remaining_quantity REAL NOT NULL DEFAULT 1,
+            unit TEXT NOT NULL DEFAULT '',
+            purchase_date INTEGER NOT NULL,
+            expiry_date INTEGER,
+            remind_days INTEGER NOT NULL DEFAULT 3,
+            note TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+          )
+        ''');
+
+        await txn.execute('''
+          INSERT INTO stock_items (
+            id, name, location, total_quantity, remaining_quantity, unit,
+            purchase_date, expiry_date, remind_days, note, created_at, updated_at
+          )
+          SELECT
+            id, name, location, total_quantity, remaining_quantity, unit,
+            purchase_date, expiry_date, remind_days, note, created_at, updated_at
+          FROM stock_items_old
+        ''');
+
+        await txn.execute('DROP TABLE stock_items_old');
+      });
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
+
+    // 3) 清理旧索引并确保现有索引存在
+    await db.execute('DROP INDEX IF EXISTS idx_stock_items_category');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_items_expiry_date ON stock_items(expiry_date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_stock_items_name ON stock_items(name COLLATE NOCASE)',
     );
   }
 }

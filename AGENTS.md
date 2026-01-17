@@ -113,3 +113,9 @@ dart format .
 **按钮内边距：**
 - 主要按钮：`EdgeInsets.symmetric(vertical: 14)`
 - 图标按钮：`EdgeInsets.symmetric(horizontal: 16, vertical: 14)`
+
+### 表单字段标题规范
+
+- 所有表单输入项必须展示“外置字段标题”（如：放在输入框上方/卡片标题/列表项左侧），禁止仅用 `placeholder` 作为字段名
+- `placeholder` 仅可用于示例/提示（如“如：牛奶”），不得影响用户在输入后识别字段含义
+- 数据较少/强相关字段可做紧凑排版（同行多列），但每个字段仍需有清晰标题

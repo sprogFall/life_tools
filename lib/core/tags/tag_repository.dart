@@ -168,55 +168,28 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
   }
 
   Future<void> setTagsForWorkTask(int taskId, List<int> tagIds) async {
-    final db = await _database;
-    await db.transaction((txn) async {
-      await txn.delete(
-        'work_task_tags',
-        where: 'task_id = ?',
-        whereArgs: [taskId],
-      );
-
-      for (final tagId in _dedupeInts(tagIds)) {
-        await txn.insert('work_task_tags', {
-          'task_id': taskId,
-          'tag_id': tagId,
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
-      }
-    });
+    await _setTagsForEntity(
+      table: 'work_task_tags',
+      entityIdColumn: 'task_id',
+      entityId: taskId,
+      tagIds: tagIds,
+    );
   }
 
   Future<List<int>> listTagIdsForWorkTask(int taskId) async {
-    final db = await _database;
-    final rows = await db.query(
-      'work_task_tags',
-      columns: const ['tag_id'],
-      where: 'task_id = ?',
-      whereArgs: [taskId],
-      orderBy: 'tag_id ASC',
+    return _listTagIdsForEntity(
+      table: 'work_task_tags',
+      entityIdColumn: 'task_id',
+      entityId: taskId,
     );
-    return rows.map((e) => e['tag_id'] as int).toList();
   }
 
   Future<Map<int, List<Tag>>> listTagsForWorkTasks(List<int> taskIds) async {
-    final ids = _dedupeInts(taskIds).toList();
-    if (ids.isEmpty) return {};
-
-    final placeholders = List.filled(ids.length, '?').join(',');
-    final db = await _database;
-    final rows = await db.rawQuery('''
-SELECT wtt.task_id AS task_id, t.*
-FROM work_task_tags wtt
-INNER JOIN tags t ON t.id = wtt.tag_id
-WHERE wtt.task_id IN ($placeholders)
-ORDER BY wtt.task_id ASC, t.name COLLATE NOCASE ASC
-''', ids);
-
-    final result = <int, List<Tag>>{};
-    for (final row in rows) {
-      final taskId = row['task_id'] as int;
-      result.putIfAbsent(taskId, () => []).add(Tag.fromMap(row));
-    }
-    return result;
+    return _listTagsForEntities(
+      table: 'work_task_tags',
+      entityIdColumn: 'task_id',
+      entityIds: taskIds,
+    );
   }
 
   Future<List<Map<String, Object?>>> exportTags() async {
@@ -235,12 +208,10 @@ ORDER BY wtt.task_id ASC, t.name COLLATE NOCASE ASC
   }
 
   Future<List<Map<String, Object?>>> exportWorkTaskTags() async {
-    final db = await _database;
-    final rows = await db.query(
-      'work_task_tags',
-      orderBy: 'task_id ASC, tag_id ASC',
+    return _exportEntityTags(
+      table: 'work_task_tags',
+      entityIdColumn: 'task_id',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
   Future<void> importTagsFromServer({
@@ -268,27 +239,55 @@ ORDER BY wtt.task_id ASC, t.name COLLATE NOCASE ASC
   Future<void> importWorkTaskTagsFromServer(
     List<Map<String, dynamic>> links,
   ) async {
-    final db = await _database;
-    await db.transaction((txn) async {
-      await txn.delete('work_task_tags');
+    await _importEntityTagsFromServer(
+      table: 'work_task_tags',
+      entityIdColumn: 'task_id',
+      entityTable: 'work_tasks',
+      links: links,
+    );
+  }
 
-      for (final link in links) {
-        final taskId = link['task_id'];
-        final tagId = link['tag_id'];
-        if (taskId is! int || tagId is! int) continue;
+  Future<void> setTagsForStockItem(int itemId, List<int> tagIds) async {
+    await _setTagsForEntity(
+      table: 'stock_item_tags',
+      entityIdColumn: 'item_id',
+      entityId: itemId,
+      tagIds: tagIds,
+    );
+  }
 
-        // 仅插入有效引用，避免 FK 报错导致整个导入失败
-        await txn.rawInsert(
-          '''
-INSERT INTO work_task_tags (task_id, tag_id)
-SELECT ?, ?
-WHERE EXISTS(SELECT 1 FROM work_tasks WHERE id = ?)
-  AND EXISTS(SELECT 1 FROM tags WHERE id = ?)
-''',
-          [taskId, tagId, taskId, tagId],
-        );
-      }
-    });
+  Future<List<int>> listTagIdsForStockItem(int itemId) async {
+    return _listTagIdsForEntity(
+      table: 'stock_item_tags',
+      entityIdColumn: 'item_id',
+      entityId: itemId,
+    );
+  }
+
+  Future<Map<int, List<Tag>>> listTagsForStockItems(List<int> itemIds) async {
+    return _listTagsForEntities(
+      table: 'stock_item_tags',
+      entityIdColumn: 'item_id',
+      entityIds: itemIds,
+    );
+  }
+
+  Future<List<Map<String, Object?>>> exportStockItemTags() async {
+    return _exportEntityTags(
+      table: 'stock_item_tags',
+      entityIdColumn: 'item_id',
+    );
+  }
+
+  Future<void> importStockItemTagsFromServer(
+    List<Map<String, dynamic>> links,
+  ) async {
+    await _importEntityTagsFromServer(
+      table: 'stock_item_tags',
+      entityIdColumn: 'item_id',
+      entityTable: 'stock_items',
+      links: links,
+    );
   }
 
   static Iterable<String> _dedupeToolIds(Iterable<String> ids) sync* {
@@ -305,5 +304,111 @@ WHERE EXISTS(SELECT 1 FROM work_tasks WHERE id = ?)
     for (final v in values) {
       if (seen.add(v)) yield v;
     }
+  }
+
+  Future<void> _setTagsForEntity({
+    required String table,
+    required String entityIdColumn,
+    required int entityId,
+    required List<int> tagIds,
+  }) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      await txn.delete(
+        table,
+        where: '$entityIdColumn = ?',
+        whereArgs: [entityId],
+      );
+
+      for (final tagId in _dedupeInts(tagIds)) {
+        await txn.insert(
+          table,
+          {entityIdColumn: entityId, 'tag_id': tagId},
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    });
+  }
+
+  Future<List<int>> _listTagIdsForEntity({
+    required String table,
+    required String entityIdColumn,
+    required int entityId,
+  }) async {
+    final db = await _database;
+    final rows = await db.query(
+      table,
+      columns: const ['tag_id'],
+      where: '$entityIdColumn = ?',
+      whereArgs: [entityId],
+      orderBy: 'tag_id ASC',
+    );
+    return rows.map((e) => e['tag_id'] as int).toList();
+  }
+
+  Future<Map<int, List<Tag>>> _listTagsForEntities({
+    required String table,
+    required String entityIdColumn,
+    required List<int> entityIds,
+  }) async {
+    final ids = _dedupeInts(entityIds).toList();
+    if (ids.isEmpty) return {};
+
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final db = await _database;
+    final rows = await db.rawQuery('''
+SELECT et.$entityIdColumn AS entity_id, t.*
+FROM $table et
+INNER JOIN tags t ON t.id = et.tag_id
+WHERE et.$entityIdColumn IN ($placeholders)
+ORDER BY et.$entityIdColumn ASC, t.name COLLATE NOCASE ASC
+''', ids);
+
+    final result = <int, List<Tag>>{};
+    for (final row in rows) {
+      final id = row['entity_id'] as int;
+      result.putIfAbsent(id, () => []).add(Tag.fromMap(row));
+    }
+    return result;
+  }
+
+  Future<List<Map<String, Object?>>> _exportEntityTags({
+    required String table,
+    required String entityIdColumn,
+  }) async {
+    final db = await _database;
+    final rows = await db.query(
+      table,
+      orderBy: '$entityIdColumn ASC, tag_id ASC',
+    );
+    return rows.map((e) => Map<String, Object?>.from(e)).toList();
+  }
+
+  Future<void> _importEntityTagsFromServer({
+    required String table,
+    required String entityIdColumn,
+    required String entityTable,
+    required List<Map<String, dynamic>> links,
+  }) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      await txn.delete(table);
+
+      for (final link in links) {
+        final entityId = link[entityIdColumn];
+        final tagId = link['tag_id'];
+        if (entityId is! int || tagId is! int) continue;
+
+        await txn.rawInsert(
+          '''
+INSERT INTO $table ($entityIdColumn, tag_id)
+SELECT ?, ?
+WHERE EXISTS(SELECT 1 FROM $entityTable WHERE id = ?)
+  AND EXISTS(SELECT 1 FROM tags WHERE id = ?)
+''',
+          [entityId, tagId, entityId, tagId],
+        );
+      }
+    });
   }
 }

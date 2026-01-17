@@ -17,9 +17,14 @@ class _FakeToolSyncProvider implements ToolSyncProvider {
   final String toolId;
 
   final Map<String, dynamic> exportPayload;
+  final void Function(Map<String, dynamic> data)? onImport;
   Map<String, dynamic>? lastImported;
 
-  _FakeToolSyncProvider({required this.toolId, required this.exportPayload});
+  _FakeToolSyncProvider({
+    required this.toolId,
+    required this.exportPayload,
+    this.onImport,
+  });
 
   @override
   Future<Map<String, dynamic>> exportData() async => exportPayload;
@@ -27,6 +32,7 @@ class _FakeToolSyncProvider implements ToolSyncProvider {
   @override
   Future<void> importData(Map<String, dynamic> data) async {
     lastImported = data;
+    onImport?.call(data);
   }
 }
 
@@ -189,6 +195,69 @@ void main() {
       expect(settingsService.defaultToolId, 'work_log');
       expect(tool.lastImported, isNotNull);
       expect(tool.lastImported!['version'], 1);
+    });
+
+    test('restoreFromJson 应优先导入 tag_manager，避免其它工具的标签关联丢失', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      var tagsImported = false;
+      final tagProvider = _FakeToolSyncProvider(
+        toolId: 'tag_manager',
+        exportPayload: const {
+          'version': 1,
+          'data': {'tags': [], 'tool_tags': []},
+        },
+        onImport: (_) => tagsImported = true,
+      );
+
+      final dependentProvider = _FakeToolSyncProvider(
+        toolId: 'work_log',
+        exportPayload: const {'version': 1, 'data': {}},
+        onImport: (_) {
+          if (!tagsImported) {
+            throw Exception('tags 未先导入');
+          }
+        },
+      );
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        toolProviders: [tagProvider, dependentProvider],
+      );
+
+      // tools 节点的插入顺序是 work_log -> tag_manager（模拟历史导出顺序）
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': null,
+        'sync_config': null,
+        'settings': {
+          'default_tool_id': null,
+          'tool_order': ['work_log', 'tag_manager'],
+        },
+        'tools': {
+          'work_log': {'version': 1, 'data': {}},
+          'tag_manager': {
+            'version': 1,
+            'data': {'tags': [], 'tool_tags': []},
+          },
+        },
+      };
+
+      await service.restoreFromJson(jsonEncode(payload));
+
+      expect(tagsImported, isTrue);
+      expect(tagProvider.lastImported, isNotNull);
+      expect(dependentProvider.lastImported, isNotNull);
     });
   });
 }

@@ -140,7 +140,14 @@ class BackupRestoreService {
     var skipped = 0;
     final failed = <String, String>{};
 
-    for (final entry in toolsMap.entries) {
+    final entries = toolsMap.entries.toList()
+      ..sort((a, b) {
+        if (a.key == 'tag_manager' && b.key != 'tag_manager') return -1;
+        if (b.key == 'tag_manager' && a.key != 'tag_manager') return 1;
+        return 0;
+      });
+
+    for (final entry in entries) {
       final toolId = entry.key;
       final data = entry.value;
 
