@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import '../core/messages/message_service.dart';
+import '../core/messages/pages/all_messages_page.dart';
+import '../core/messages/message_navigation.dart';
+import '../core/messages/models/app_message.dart';
 import '../core/backup/pages/backup_restore_page.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
@@ -62,10 +67,15 @@ class HomePage extends StatelessWidget {
               children: [
                 _buildAppBar(context),
                 Expanded(
-                  child: Consumer<SettingsService>(
-                    builder: (context, settings, child) {
+                  child: Consumer2<SettingsService, MessageService>(
+                    builder: (context, settings, messageService, child) {
                       final tools = settings.getSortedTools();
-                      return _buildContent(context, tools, settings);
+                      return _buildContent(
+                        context,
+                        tools,
+                        settings,
+                        messageService,
+                      );
                     },
                   ),
                 ),
@@ -125,61 +135,88 @@ class HomePage extends StatelessWidget {
     BuildContext context,
     List<ToolInfo> tools,
     SettingsService settings,
+    MessageService messageService,
   ) {
+    final allMessages = messageService.messages;
+    final unreadMessages = messageService.unreadMessages;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 欢迎卡片
           GlassContainer(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        IOS26Theme.primaryColor,
-                        IOS26Theme.primaryColor.withValues(alpha: 0.7),
-                      ],
+                Row(
+                  children: [
+                    const Text(
+                      '消息',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: IOS26Theme.textPrimary,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.sparkles,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '欢迎回来',
+                    const Spacer(),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed:
+                          allMessages.isEmpty
+                              ? null
+                              : () {
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute<void>(
+                                    builder: (_) => const AllMessagesPage(),
+                                  ),
+                                );
+                              },
+                      child: Text(
+                        '全部消息',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: IOS26Theme.textPrimary,
+                          color: allMessages.isEmpty
+                              ? IOS26Theme.textTertiary
+                              : IOS26Theme.primaryColor,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '选择下方工具开始使用',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: IOS26Theme.textSecondary.withValues(
-                            alpha: 0.8,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (unreadMessages.isEmpty)
+                  Text(
+                    '当前暂时没有新的消息',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.3,
+                      color: IOS26Theme.textSecondary.withValues(alpha: 0.75),
+                    ),
+                  )
+                else
+                  _HomeMessageTickerList(
+                    messages: unreadMessages,
+                    visibleCount: 3,
+                    onTap: (message) async {
+                      final id = message.id;
+                      if (id != null && !message.isRead) {
+                        await messageService.markMessageRead(id);
+                      }
+                      if (!context.mounted) return;
+                      MessageNavigation.open(context, message);
+                    },
+                  ),
+                const SizedBox(height: 12),
+                Text(
+                  unreadMessages.isEmpty
+                      ? '共 ${allMessages.length} 条消息'
+                      : '未读 ${unreadMessages.length} / 共 ${allMessages.length} 条',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: IOS26Theme.textSecondary.withValues(alpha: 0.75),
                   ),
                 ),
               ],
@@ -230,6 +267,131 @@ class HomePage extends StatelessWidget {
     showCupertinoModalPopup(
       context: context,
       builder: (context) => const _SettingsSheet(),
+    );
+  }
+}
+
+class _HomeMessageTickerList extends StatefulWidget {
+  final List<AppMessage> messages;
+  final int visibleCount;
+  final ValueChanged<AppMessage> onTap;
+
+  const _HomeMessageTickerList({
+    required this.messages,
+    required this.visibleCount,
+    required this.onTap,
+  });
+
+  @override
+  State<_HomeMessageTickerList> createState() => _HomeMessageTickerListState();
+}
+
+class _HomeMessageTickerListState extends State<_HomeMessageTickerList> {
+  static const Duration _interval = Duration(seconds: 3);
+  static const Duration _animDuration = Duration(milliseconds: 350);
+  static const double _itemHeight = 24;
+
+  final ScrollController _controller = ScrollController();
+  Timer? _timer;
+  int _scrollIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTimerIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeMessageTickerList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messages.length != widget.messages.length) {
+      _scrollIndex = 0;
+      if (_controller.hasClients) {
+        _controller.jumpTo(0);
+      }
+    }
+    _restartTimerIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _restartTimerIfNeeded() {
+    _timer?.cancel();
+    final visible = _effectiveVisibleCount();
+    if (widget.messages.length <= visible) return;
+    _timer = Timer.periodic(_interval, (_) => _tick());
+  }
+
+  int _effectiveVisibleCount() {
+    if (widget.visibleCount <= 0) return 1;
+    if (widget.messages.isEmpty) return 1;
+    return widget.visibleCount.clamp(1, widget.messages.length);
+  }
+
+  Future<void> _tick() async {
+    if (!mounted) return;
+    if (!_controller.hasClients) return;
+
+    final count = widget.messages.length;
+    if (count == 0) return;
+
+    final next = _scrollIndex + 1;
+    final shouldWrap = next >= count;
+    _scrollIndex = next;
+
+    await _controller.animateTo(
+      next * _itemHeight,
+      duration: _animDuration,
+      curve: Curves.easeOutCubic,
+    );
+
+    if (!mounted) return;
+    if (shouldWrap && _controller.hasClients) {
+      _controller.jumpTo(0);
+      _scrollIndex = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = widget.messages;
+    if (messages.isEmpty) return const SizedBox.shrink();
+
+    final visible = _effectiveVisibleCount();
+    final itemCount = messages.length + visible;
+
+    return SizedBox(
+      height: _itemHeight * visible,
+      child: ListView.builder(
+        controller: _controller,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemExtent: _itemHeight,
+        itemCount: itemCount,
+        itemBuilder: (context, index) {
+          final message = messages[index % messages.length];
+          return CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed: () => widget.onTap(message),
+            child: Text(
+              message.body,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.15,
+                color: IOS26Theme.textPrimary,
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

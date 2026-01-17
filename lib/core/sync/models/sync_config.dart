@@ -66,21 +66,56 @@ class SyncConfig {
     'lastSyncTime': lastSyncTime?.millisecondsSinceEpoch,
   };
 
+  static int _readInt(dynamic value, {required int fallback}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim()) ?? fallback;
+    return fallback;
+  }
+
+  static bool _readBool(dynamic value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is String) {
+      final v = value.trim().toLowerCase();
+      if (v == 'true') return true;
+      if (v == 'false') return false;
+    }
+    return fallback;
+  }
+
+  static List<String> _readStringList(dynamic value) {
+    if (value is List) return value.whereType<String>().toList();
+    return const <String>[];
+  }
+
+  static Map<String, String> _readStringMap(dynamic value) {
+    if (value is! Map) return const <String, String>{};
+    final result = <String, String>{};
+    for (final entry in value.entries) {
+      final key = entry.key;
+      final val = entry.value;
+      if (key is String && val is String) {
+        result[key] = val;
+      }
+    }
+    return result;
+  }
+
   static SyncConfig fromMap(Map<String, dynamic> map) {
     return SyncConfig(
       userId: (map['userId'] as String?) ?? '',
-      networkType: SyncNetworkType.fromValue((map['networkType'] as int?) ?? 0),
+      networkType: SyncNetworkType.fromValue(
+        _readInt(map['networkType'], fallback: 0),
+      ),
       serverUrl: (map['serverUrl'] as String?) ?? '',
-      serverPort: (map['serverPort'] as int?) ?? 443,
-      customHeaders: Map<String, String>.from(
-        (map['customHeaders'] as Map<String, dynamic>?) ?? {},
-      ),
-      allowedWifiNames: List<String>.from(
-        (map['allowedWifiNames'] as List<dynamic>?) ?? [],
-      ),
-      autoSyncOnStartup: (map['autoSyncOnStartup'] as bool?) ?? true,
+      serverPort: _readInt(map['serverPort'], fallback: 443),
+      customHeaders: _readStringMap(map['customHeaders']),
+      allowedWifiNames: _readStringList(map['allowedWifiNames']),
+      autoSyncOnStartup: _readBool(map['autoSyncOnStartup'], fallback: true),
       lastSyncTime: map['lastSyncTime'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['lastSyncTime'] as int)
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _readInt(map['lastSyncTime'], fallback: 0),
+            )
           : null,
     );
   }

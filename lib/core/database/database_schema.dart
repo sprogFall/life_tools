@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 7;
+  static const int version = 9;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -11,6 +11,7 @@ class DatabaseSchema {
 
   static Future<void> onCreate(Database db, int version) async {
     await _createCoreTables(db);
+    await _createMessageTables(db);
     await _createWorkLogTables(db);
     await _createTagTables(db);
     await _createOperationLogTables(db);
@@ -40,6 +41,12 @@ class DatabaseSchema {
     if (oldVersion < 7) {
       await _upgradeToVersion7(db);
     }
+    if (oldVersion < 8) {
+      await _createMessageTables(db);
+    }
+    if (oldVersion < 9) {
+      await _upgradeToVersion9(db);
+    }
   }
 
   static Future<void> _createCoreTables(Database db) async {
@@ -56,6 +63,58 @@ class DatabaseSchema {
         sort_index INTEGER NOT NULL
       )
     ''');
+  }
+
+  static Future<void> _createMessageTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tool_id TEXT NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
+        body TEXT NOT NULL,
+        route TEXT,
+        dedupe_key TEXT UNIQUE,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        is_read INTEGER NOT NULL DEFAULT 0,
+        read_at INTEGER
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_app_messages_created_at ON app_messages(created_at DESC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_app_messages_is_read_created_at ON app_messages(is_read, created_at DESC)',
+    );
+  }
+
+  static Future<void> _upgradeToVersion9(Database db) async {
+    // v9: 为 app_messages 增加 route / expires_at / is_read / read_at
+    // 由于旧版本可能没有 app_messages 表（<8），这里需要先确保表存在。
+    await _createMessageTables(db);
+
+    final columns = await db.rawQuery('PRAGMA table_info(app_messages)');
+    final names = columns.map((e) => e['name']).whereType<String>().toSet();
+
+    if (!names.contains('route')) {
+      await db.execute('ALTER TABLE app_messages ADD COLUMN route TEXT');
+    }
+    if (!names.contains('expires_at')) {
+      await db.execute('ALTER TABLE app_messages ADD COLUMN expires_at INTEGER');
+    }
+    if (!names.contains('is_read')) {
+      await db.execute(
+        'ALTER TABLE app_messages ADD COLUMN is_read INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+    if (!names.contains('read_at')) {
+      await db.execute('ALTER TABLE app_messages ADD COLUMN read_at INTEGER');
+    }
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_app_messages_is_read_created_at ON app_messages(is_read, created_at DESC)',
+    );
   }
 
   static Future<void> _createWorkLogTables(Database db) async {

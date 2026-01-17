@@ -2,6 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
+import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/core/messages/message_repository.dart';
+import 'package:life_tools/core/messages/message_service.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
@@ -33,6 +36,25 @@ void main() {
       await syncConfigService.init();
       final syncService = SyncService(configService: syncConfigService);
 
+      late Database db;
+      late MessageService messageService;
+      await tester.runAsync(() async {
+        db = await openDatabase(
+          inMemoryDatabasePath,
+          version: DatabaseSchema.version,
+          onConfigure: DatabaseSchema.onConfigure,
+          onCreate: DatabaseSchema.onCreate,
+          onUpgrade: DatabaseSchema.onUpgrade,
+        );
+        messageService = MessageService(
+          repository: MessageRepository.withDatabase(db),
+        );
+        await messageService.init();
+      });
+      addTearDown(() async {
+        await tester.runAsync(() async => db.close());
+      });
+
       await tester.pumpWidget(
         MultiProvider(
           providers: [
@@ -40,6 +62,7 @@ void main() {
             ChangeNotifierProvider.value(value: aiConfigService),
             ChangeNotifierProvider.value(value: syncConfigService),
             ChangeNotifierProvider.value(value: syncService),
+            ChangeNotifierProvider.value(value: messageService),
           ],
           child: const MaterialApp(home: HomePage()),
         ),

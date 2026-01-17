@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_item.dart';
 import '../models/stockpile_drafts.dart';
+import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 
@@ -626,6 +628,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     final now = DateTime.now();
     final editing = _editing;
     int? itemId;
+    final messageService = context.read<MessageService>();
 
     try {
       if (editing == null) {
@@ -663,6 +666,14 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
 
       if (itemId != null) {
         await _service.setTagsForItem(itemId, _selectedTagIds.toList());
+        final item = await _service.getItem(itemId);
+        if (item != null) {
+          await StockpileReminderService().syncReminderForItem(
+            messageService: messageService,
+            item: item,
+            now: now,
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;

@@ -2,9 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/messages/message_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_consumption.dart';
 import '../models/stockpile_drafts.dart';
+import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 
@@ -291,6 +293,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
       return;
     }
 
+    final messageService = context.read<MessageService>();
     try {
       await _service.createConsumption(
         StockConsumption.create(
@@ -302,6 +305,15 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
           now: DateTime.now(),
         ),
       );
+
+      final updatedItem = await _service.getItem(widget.itemId);
+      if (!mounted) return;
+      if (updatedItem != null) {
+        await StockpileReminderService().syncReminderForItem(
+          messageService: messageService,
+          item: updatedItem,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       await StockpileDialogs.showMessage(

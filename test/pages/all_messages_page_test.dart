@@ -3,26 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/messages/message_repository.dart';
 import 'package:life_tools/core/messages/message_service.dart';
-import 'package:life_tools/core/registry/tool_registry.dart';
-import 'package:life_tools/core/services/settings_service.dart';
-import 'package:life_tools/pages/home_page.dart';
+import 'package:life_tools/core/messages/pages/all_messages_page.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  group('HomePage 工具卡片', () {
+  group('AllMessagesPage', () {
     setUpAll(() {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     });
 
-    testWidgets('右上角扩散装饰应被圆角裁剪', (WidgetTester tester) async {
-      final settingsService = SettingsService();
+    testWidgets('右滑可标记为已读', (tester) async {
       late Database db;
       late MessageService messageService;
-
       await tester.runAsync(() async {
-        ToolRegistry.instance.registerAll();
         db = await openDatabase(
           inMemoryDatabasePath,
           version: DatabaseSchema.version,
@@ -34,28 +29,40 @@ void main() {
           repository: MessageRepository.withDatabase(db),
         );
         await messageService.init();
+        await messageService.upsertMessage(
+          toolId: 'work_log',
+          title: '工作记录',
+          body: '测试消息',
+          createdAt: DateTime(2026, 1, 1, 9),
+        );
       });
       addTearDown(() async {
         await tester.runAsync(() async => db.close());
       });
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<SettingsService>.value(value: settingsService),
-            ChangeNotifierProvider<MessageService>.value(value: messageService),
-          ],
-          child: const MaterialApp(home: HomePage()),
+        ChangeNotifierProvider<MessageService>.value(
+          value: messageService,
+          child: const MaterialApp(home: AllMessagesPage()),
         ),
       );
+      await tester.pumpAndSettle();
 
-      final clipFinder = find.byKey(
-        const ValueKey('ios26_tool_card_clip_work_log'),
+      expect(find.text('测试消息'), findsOneWidget);
+      expect(messageService.unreadMessages.length, 1);
+
+      final messageId = messageService.messages.single.id!;
+      final tile = find.byKey(ValueKey('all_messages_item_$messageId'));
+      expect(tile, findsOneWidget);
+
+      await tester.fling(tile, const Offset(1000, 0), 3000);
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () async => Future<void>.delayed(const Duration(milliseconds: 200)),
       );
-      expect(clipFinder, findsOneWidget);
+      await tester.pumpAndSettle();
 
-      final clip = tester.widget<ClipRRect>(clipFinder);
-      expect(clip.borderRadius, BorderRadius.circular(24));
+      expect(messageService.unreadMessages, isEmpty);
     });
   });
 }
