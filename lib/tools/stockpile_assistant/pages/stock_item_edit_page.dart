@@ -92,81 +92,115 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
         title: isEdit ? '编辑物品' : '新增物品',
         showBackButton: true,
       ),
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  children: [
-                    _buildTextField(
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                children: [
+                  _buildFormCard(
+                    title: '名称',
+                    child: _buildTextField(
                       key: const ValueKey('stock_item_name'),
                       controller: _nameController,
-                      placeholder: '名称（如：牛奶、抽纸）',
+                      placeholder: '如：牛奶、抽纸',
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
-                    _buildTagSelector(),
-                    const SizedBox(height: 12),
-                    _buildTextField(
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTagSelector(),
+                  const SizedBox(height: 12),
+                  _buildFormCard(
+                    title: '位置',
+                    child: _buildTextField(
                       key: const ValueKey('stock_item_location'),
                       controller: _locationController,
-                      placeholder: '位置（如：冰箱、客厅）',
+                      placeholder: '如：冰箱、客厅',
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
-                    Row(
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFormCard(
+                    title: '数量',
+                    compact: true,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: _buildTextField(
-                            key: const ValueKey('stock_item_total'),
-                            controller: _totalController,
-                            placeholder: '总数量',
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.next,
+                          flex: 2,
+                          child: _buildInlineLabeledField(
+                            label: '总数量',
+                            child: _buildTextField(
+                              key: const ValueKey('stock_item_total'),
+                              controller: _totalController,
+                              placeholder: '',
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              textInputAction: TextInputAction.next,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField(
-                            key: const ValueKey('stock_item_remaining'),
-                            controller: _remainingController,
-                            placeholder: '剩余数量',
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.next,
+                          flex: 2,
+                          child: _buildInlineLabeledField(
+                            label: '剩余数量',
+                            child: _buildTextField(
+                              key: const ValueKey('stock_item_remaining'),
+                              controller: _remainingController,
+                              placeholder: '',
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              textInputAction: TextInputAction.next,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 1,
+                          child: _buildInlineLabeledField(
+                            label: '单位',
+                            child: _buildTextField(
+                              key: const ValueKey('stock_item_unit'),
+                              controller: _unitController,
+                              placeholder: '如：盒',
+                              textInputAction: TextInputAction.next,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      key: const ValueKey('stock_item_unit'),
-                      controller: _unitController,
-                      placeholder: '单位（可选，如：盒/包/瓶）',
-                      textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDateRow(
+                    title: '采购日期',
+                    value: StockpileFormat.date(_purchaseDate),
+                    onTap: () => _pickDate(
+                      initial: _purchaseDate,
+                      onSelected: (v) => setState(() => _purchaseDate = v),
                     ),
-                    const SizedBox(height: 12),
-                    _buildDateRow(
-                      title: '采购日期',
-                      value: StockpileFormat.date(_purchaseDate),
-                      onTap: () => _pickDate(
-                        initial: _purchaseDate,
-                        onSelected: (v) => setState(() => _purchaseDate = v),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildExpirySection(),
-                    const SizedBox(height: 12),
-                    _buildTextField(
+                  ),
+                  const SizedBox(height: 12),
+                  _buildExpirySection(),
+                  const SizedBox(height: 12),
+                  _buildFormCard(
+                    title: '备注',
+                    compact: true,
+                    child: _buildTextField(
                       key: const ValueKey('stock_item_note'),
                       controller: _noteController,
-                      placeholder: '备注（可选）',
+                      placeholder: '可选',
                       maxLines: 3,
                       textInputAction: TextInputAction.newline,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
@@ -248,8 +282,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     if (id == null) return const SizedBox.shrink();
 
     final selected = _selectedTagIds.contains(id);
-    final dotColor =
-        tag.color == null ? IOS26Theme.textTertiary : Color(tag.color!);
+    final dotColor = tag.color == null
+        ? IOS26Theme.textTertiary
+        : Color(tag.color!);
 
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -276,7 +311,10 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
           Expanded(
             child: Text(
               tag.name,
-              style: const TextStyle(fontSize: 15, color: IOS26Theme.textPrimary),
+              style: const TextStyle(
+                fontSize: 15,
+                color: IOS26Theme.textPrimary,
+              ),
             ),
           ),
           if (selected)
@@ -300,13 +338,17 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Expanded(
                 child: Text(
                   '保质期/提醒',
-                  style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: IOS26Theme.textSecondary,
+                  ),
                 ),
               ),
               CupertinoSwitch(
@@ -328,26 +370,71 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             const SizedBox(height: 10),
             _buildDateRow(
               title: '到期日期',
-              value: _expiryDate == null ? '' : StockpileFormat.date(_expiryDate!),
-              onTap:
-                  _expiryDate == null
-                      ? null
-                      : () => _pickDate(
-                        initial: _expiryDate!,
-                        onSelected: (v) => setState(() => _expiryDate = v),
-                      ),
+              value: _expiryDate == null
+                  ? ''
+                  : StockpileFormat.date(_expiryDate!),
+              onTap: _expiryDate == null
+                  ? null
+                  : () => _pickDate(
+                      initial: _expiryDate!,
+                      onSelected: (v) => setState(() => _expiryDate = v),
+                    ),
             ),
             const SizedBox(height: 10),
-            _buildTextField(
-              key: const ValueKey('stock_item_remind_days'),
-              controller: _remindDaysController,
-              placeholder: '提前提醒天数（默认 3）',
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
+            _buildInlineLabeledField(
+              label: '提前提醒天数',
+              child: _buildTextField(
+                key: const ValueKey('stock_item_remind_days'),
+                controller: _remindDaysController,
+                placeholder: '默认 3',
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+              ),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildFormCard({
+    required String title,
+    required Widget child,
+    bool compact = false,
+  }) {
+    return GlassContainer(
+      padding: EdgeInsets.all(compact ? 12 : 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              color: IOS26Theme.textSecondary,
+            ),
+          ),
+          SizedBox(height: compact ? 8 : 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInlineLabeledField({
+    required String label,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: IOS26Theme.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
     );
   }
 
@@ -366,12 +453,18 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 15, color: IOS26Theme.textPrimary),
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: IOS26Theme.textPrimary,
+                ),
               ),
             ),
             Text(
               value,
-              style: const TextStyle(fontSize: 15, color: IOS26Theme.textSecondary),
+              style: const TextStyle(
+                fontSize: 15,
+                color: IOS26Theme.textSecondary,
+              ),
             ),
             const SizedBox(width: 6),
             const Icon(
@@ -388,7 +481,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
   Widget _buildTextField({
     required Key key,
     required TextEditingController controller,
-    required String placeholder,
+    String placeholder = '',
     TextInputType? keyboardType,
     TextInputAction? textInputAction,
     int maxLines = 1,
@@ -564,4 +657,3 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     Navigator.pop(context, true);
   }
 }
-
