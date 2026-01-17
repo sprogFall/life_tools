@@ -5,13 +5,15 @@ import 'package:provider/provider.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_item.dart';
+import '../models/stockpile_drafts.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 
 class StockItemEditPage extends StatefulWidget {
   final int? itemId;
+  final StockItemDraft? draft;
 
-  const StockItemEditPage({super.key, this.itemId});
+  const StockItemEditPage({super.key, this.itemId, this.draft});
 
   @override
   State<StockItemEditPage> createState() => _StockItemEditPageState();
@@ -54,6 +56,11 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
         });
         if (item != null) _fill(item);
       });
+    } else {
+      final draft = widget.draft;
+      if (draft != null) {
+        _fillDraft(draft);
+      }
     }
   }
 
@@ -81,6 +88,20 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _purchaseDate = item.purchaseDate;
     _expiryDate = item.expiryDate;
     _hasExpiry = item.expiryDate != null;
+  }
+
+  void _fillDraft(StockItemDraft draft) {
+    _nameController.text = draft.name;
+    _locationController.text = draft.location;
+    _unitController.text = draft.unit;
+    _totalController.text = StockpileFormat.num(draft.totalQuantity);
+    _remainingController.text = StockpileFormat.num(draft.remainingQuantity);
+    _remindDaysController.text = draft.remindDays.toString();
+    _noteController.text = draft.note;
+
+    _purchaseDate = draft.purchaseDate;
+    _expiryDate = draft.expiryDate;
+    _hasExpiry = draft.expiryDate != null;
   }
 
   @override

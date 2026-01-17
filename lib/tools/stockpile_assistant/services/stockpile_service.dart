@@ -39,10 +39,13 @@ class StockpileService extends ChangeNotifier {
 
   Future<void> loadItems() async {
     _items = await _repository.listItems(stockStatus: _stockStatus);
-    _availableTags = await _tagRepository.listTagsForTool('stockpile_assistant');
+    _availableTags = await _tagRepository.listTagsForTool(
+      'stockpile_assistant',
+    );
     final ids = _items.map((e) => e.id).whereType<int>().toList();
-    _itemTags =
-        ids.isEmpty ? <int, List<Tag>>{} : await _tagRepository.listTagsForStockItems(ids);
+    _itemTags = ids.isEmpty
+        ? <int, List<Tag>>{}
+        : await _tagRepository.listTagsForStockItems(ids);
     notifyListeners();
   }
 
@@ -96,5 +99,15 @@ class StockpileService extends ChangeNotifier {
     _itemTags = {..._itemTags, ...updated};
     notifyListeners();
     return _itemTags[itemId] ?? const [];
+  }
+
+  Future<List<StockItem>> listAllItemsForAiContext() async {
+    final inStock = await _repository.listItems(
+      stockStatus: StockItemStockStatus.inStock,
+    );
+    final depleted = await _repository.listItems(
+      stockStatus: StockItemStockStatus.depleted,
+    );
+    return [...inStock, ...depleted];
   }
 }

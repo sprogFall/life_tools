@@ -4,13 +4,15 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_consumption.dart';
+import '../models/stockpile_drafts.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 
 class StockConsumptionEditPage extends StatefulWidget {
   final int itemId;
+  final StockConsumptionDraft? draft;
 
-  const StockConsumptionEditPage({super.key, required this.itemId});
+  const StockConsumptionEditPage({super.key, required this.itemId, this.draft});
 
   @override
   State<StockConsumptionEditPage> createState() =>
@@ -33,6 +35,13 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
   void initState() {
     super.initState();
     _service = context.read<StockpileService>();
+    final draft = widget.draft;
+    if (draft != null) {
+      _qtyController.text = StockpileFormat.num(draft.quantity);
+      _methodController.text = draft.method;
+      _noteController.text = draft.note;
+      _consumedAt = draft.consumedAt;
+    }
     Future<void>.microtask(_loadItem);
   }
 
@@ -59,77 +68,76 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(title: '记录消耗', showBackButton: true),
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  children: [
-                    if (_itemName.trim().isNotEmpty)
-                      GlassContainer(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              CupertinoIcons.cube_box_fill,
-                              size: 18,
-                              color: IOS26Theme.toolGreen,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _itemName,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: IOS26Theme.textPrimary,
-                                ),
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                children: [
+                  if (_itemName.trim().isNotEmpty)
+                    GlassContainer(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            CupertinoIcons.cube_box_fill,
+                            size: 18,
+                            color: IOS26Theme.toolGreen,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _itemName,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: IOS26Theme.textPrimary,
                               ),
                             ),
-                            if (_remaining != null)
-                              Text(
-                                '剩余：${StockpileFormat.num(_remaining!)}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: IOS26Theme.textSecondary,
-                                ),
+                          ),
+                          if (_remaining != null)
+                            Text(
+                              '剩余：${StockpileFormat.num(_remaining!)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: IOS26Theme.textSecondary,
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                    _buildTextField(
-                      key: const ValueKey('stock_consumption_qty'),
-                      controller: _qtyController,
-                      placeholder: '消耗数量',
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      key: const ValueKey('stock_consumption_method'),
-                      controller: _methodController,
-                      placeholder: '如何消耗（如：吃掉/用完/送人）',
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildDateTimeRow(
-                      title: '消耗时间',
-                      value: StockpileFormat.dateTime(_consumedAt),
-                      onTap: _pickDateTime,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      key: const ValueKey('stock_consumption_note'),
-                      controller: _noteController,
-                      placeholder: '备注（可选）',
-                      maxLines: 3,
-                      textInputAction: TextInputAction.newline,
-                    ),
-                  ],
-                ),
+                  _buildTextField(
+                    key: const ValueKey('stock_consumption_qty'),
+                    controller: _qtyController,
+                    placeholder: '消耗数量',
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTextField(
+                    key: const ValueKey('stock_consumption_method'),
+                    controller: _methodController,
+                    placeholder: '如何消耗（如：吃掉/用完/送人）',
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDateTimeRow(
+                    title: '消耗时间',
+                    value: StockpileFormat.dateTime(_consumedAt),
+                    onTap: _pickDateTime,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTextField(
+                    key: const ValueKey('stock_consumption_note'),
+                    controller: _noteController,
+                    placeholder: '备注（可选）',
+                    maxLines: 3,
+                    textInputAction: TextInputAction.newline,
+                  ),
+                ],
               ),
+            ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
@@ -141,7 +149,10 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             onPressed: _save,
             child: const Text(
               '保存',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -191,12 +202,18 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 15, color: IOS26Theme.textPrimary),
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: IOS26Theme.textPrimary,
+                ),
               ),
             ),
             Text(
               value,
-              style: const TextStyle(fontSize: 15, color: IOS26Theme.textSecondary),
+              style: const TextStyle(
+                fontSize: 15,
+                color: IOS26Theme.textSecondary,
+              ),
             ),
             const SizedBox(width: 6),
             const Icon(
@@ -299,4 +316,3 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
     Navigator.pop(context, true);
   }
 }
-

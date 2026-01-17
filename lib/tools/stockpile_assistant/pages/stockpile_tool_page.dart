@@ -4,12 +4,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/ai/ai_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
+import '../../work_log/pages/task/work_log_voice_input_sheet.dart';
+import '../ai/stockpile_ai_assistant.dart';
+import '../ai/stockpile_ai_intent.dart';
 import '../models/stock_item.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
+import '../widgets/stockpile_consume_button.dart';
 import 'stock_consumption_edit_page.dart';
 import 'stock_item_detail_page.dart';
 import 'stock_item_edit_page.dart';
@@ -102,7 +107,46 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                 ],
               ),
             ),
+            _buildAiEntryButton(context),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAiEntryButton(BuildContext context) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 18,
+      child: Center(
+        child: GlassContainer(
+          borderRadius: 999,
+          padding: const EdgeInsets.all(6),
+          child: CupertinoButton(
+            key: const ValueKey('stockpile_ai_input_button'),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            onPressed: _openAiInput,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  CupertinoIcons.sparkles,
+                  size: 18,
+                  color: IOS26Theme.primaryColor,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'AI录入',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: IOS26Theme.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -159,7 +203,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         }
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
           children: [
             if (_tab == 0 && expiring.isNotEmpty)
               GlassContainer(
@@ -304,7 +348,10 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
             ),
           ),
           const SizedBox(width: 10),
-          _buildConsumeButton(item),
+          if (canShowConsumeButton(item))
+            StockpileConsumeButton(
+              onPressed: () => _openCreateConsumption(item),
+            ),
         ],
       ),
     );
@@ -326,22 +373,6 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(text, style: TextStyle(fontSize: 12, color: color)),
-    );
-  }
-
-  Widget _buildConsumeButton(StockItem item) {
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
-      borderRadius: BorderRadius.circular(14),
-      onPressed: item.remainingQuantity <= 0
-          ? null
-          : () => _openCreateConsumption(item),
-      child: const Icon(
-        CupertinoIcons.minus_circle,
-        size: 20,
-        color: IOS26Theme.textSecondary,
-      ),
     );
   }
 
@@ -389,6 +420,207 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     );
     if (!mounted) return;
     if (changed == true) await _service.loadItems();
+  }
+
+  Future<void> _openAiInput() async {
+    final text = await WorkLogVoiceInputSheet.show(
+      context,
+      helperText: '输入内容（告诉AI你想新增物品或记录消耗）',
+      placeholder: '例如：买了牛奶2盒放冰箱，保质期到2026-01-05，提醒2天；或：牛奶 消耗1盒 早餐',
+    );
+    if (!mounted || text == null) return;
+
+    final assistant = _maybeCreateAiAssistant(context);
+    if (assistant == null) {
+      await StockpileDialogs.showMessage(
+        context,
+        title: '提示',
+        content: '未找到 AI 服务，请确认已在应用入口注入 AiService。',
+      );
+      return;
+    }
+
+    late final String jsonText;
+    late final StockpileAiIntent intent;
+    try {
+      _showLoading('AI 解析中…');
+      final aiContext = await _buildAiContext();
+      jsonText = await assistant.textToIntentJson(
+        text: text,
+        context: aiContext,
+      );
+      intent = StockpileAiIntentParser.parse(jsonText);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // loading
+      await StockpileDialogs.showMessage(
+        context,
+        title: 'AI 调用失败',
+        content: e.toString(),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // loading
+    await _applyAiIntent(intent, rawJson: jsonText);
+  }
+
+  StockpileAiAssistant? _maybeCreateAiAssistant(BuildContext context) {
+    try {
+      final aiService = context.read<AiService>();
+      return DefaultStockpileAiAssistant(aiService: aiService);
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
+
+  Future<String> _buildAiContext() async {
+    final now = DateTime.now();
+    final items = await _service.listAllItemsForAiContext();
+    final lines = items
+        .where((e) => e.id != null)
+        .take(80)
+        .map((e) {
+          final id = e.id;
+          final unit = e.unit.trim();
+          final unitText = unit.isEmpty ? '' : unit;
+          return '- [id=$id] ${e.name}（库存：${StockpileFormat.num(e.remainingQuantity)}/${StockpileFormat.num(e.totalQuantity)}$unitText）';
+        })
+        .join('\n');
+
+    return [
+      '当前日期：${StockpileFormat.date(now)}',
+      '现有物品列表（可用于 item_ref.id / item_ref.name，可能为空）：',
+      lines.isEmpty ? '- (无)' : lines,
+    ].join('\n');
+  }
+
+  Future<void> _applyAiIntent(
+    StockpileAiIntent intent, {
+    required String rawJson,
+  }) async {
+    if (intent is UnknownIntent) {
+      await StockpileDialogs.showMessage(
+        context,
+        title: '无法识别指令',
+        content: '${intent.reason}\n\nAI 返回：\n$rawJson',
+      );
+      return;
+    }
+
+    if (intent is CreateItemIntent) {
+      final saved = await Navigator.of(context).push<bool>(
+        CupertinoPageRoute(
+          builder: (_) => ChangeNotifierProvider.value(
+            value: _service,
+            child: StockItemEditPage(draft: intent.draft),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (saved == true) await _service.loadItems();
+      return;
+    }
+
+    if (intent is AddConsumptionIntent) {
+      final itemId = await _resolveItemIdForConsumption(ref: intent.itemRef);
+      if (itemId == null || !mounted) return;
+
+      final saved = await Navigator.of(context).push<bool>(
+        CupertinoPageRoute(
+          builder: (_) => ChangeNotifierProvider.value(
+            value: _service,
+            child: StockConsumptionEditPage(
+              itemId: itemId,
+              draft: intent.draft,
+            ),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (saved == true) await _service.loadItems();
+      return;
+    }
+  }
+
+  Future<int?> _resolveItemIdForConsumption({
+    required StockpileAiItemRef ref,
+  }) async {
+    if (ref.id != null) return ref.id;
+
+    final name = ref.name?.trim();
+    if (name == null || name.isEmpty) {
+      await StockpileDialogs.showMessage(
+        context,
+        title: '提示',
+        content: 'AI 未提供要消耗的物品，请重试并明确物品名称。',
+      );
+      return null;
+    }
+
+    final items = await _service.listAllItemsForAiContext();
+    final exact = items
+        .where((e) => e.id != null && e.name.trim() == name)
+        .toList();
+    final candidates = exact.isNotEmpty
+        ? exact
+        : items.where((e) {
+            if (e.id == null) return false;
+            final n = e.name.trim();
+            return n.contains(name) || name.contains(n);
+          }).toList();
+
+    if (candidates.isEmpty) {
+      if (!mounted) return null;
+      await StockpileDialogs.showMessage(
+        context,
+        title: '未找到物品',
+        content: '未在本地找到「$name」，请先新增该物品或修改描述再试。',
+      );
+      return null;
+    }
+
+    if (candidates.length == 1) return candidates.single.id;
+
+    if (!mounted) return null;
+    return showCupertinoModalPopup<int?>(
+      context: context,
+      builder: (_) => CupertinoActionSheet(
+        title: const Text('选择物品'),
+        message: const Text('AI 匹配到多个可能的物品，请选择一个'),
+        actions: [
+          for (final item in candidates)
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(context, item.id),
+              child: Text(item.name),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+      ),
+    );
+  }
+
+  void _showLoading(String text) {
+    showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => CupertinoAlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            const CupertinoActivityIndicator(),
+            const SizedBox(height: 12),
+            Text(text),
+          ],
+        ),
+      ),
+    );
   }
 }
 
