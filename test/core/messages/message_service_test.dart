@@ -50,9 +50,9 @@ void main() {
       await db.close();
     });
 
-    test('pushMessage 会写入数据库并出现在 messages 中', () async {
+    test('upsertMessage 会写入数据库并出现在 messages 中', () async {
       final now = DateTime(2026, 1, 1, 9, 0);
-      await service.pushMessage(
+      await service.upsertMessage(
         toolId: 'work_log',
         title: '测试标题',
         body: '测试内容',
@@ -67,16 +67,16 @@ void main() {
       expect(loaded.first.body, '测试内容');
     });
 
-    test('dedupeKey 相同的消息不会重复写入', () async {
+    test('dedupeKey 相同的消息应更新而不是新增', () async {
       final now = DateTime(2026, 1, 1, 9, 0);
-      await service.pushMessage(
+      await service.upsertMessage(
         toolId: 'work_log',
         title: '标题',
         body: '内容 A',
         dedupeKey: 'k1',
         createdAt: now,
       );
-      await service.pushMessage(
+      await service.upsertMessage(
         toolId: 'work_log',
         title: '标题',
         body: '内容 B',
@@ -86,12 +86,13 @@ void main() {
 
       final loaded = await repository.listMessages(limit: 10);
       expect(loaded.length, 1);
-      expect(loaded.first.body, '内容 A');
+      expect(loaded.first.body, '内容 B');
+      expect(loaded.first.createdAt, now.add(const Duration(minutes: 1)));
     });
 
     test('notify=true 会触发系统通知能力', () async {
       final now = DateTime(2026, 1, 1, 9, 0);
-      await service.pushMessage(
+      await service.upsertMessage(
         toolId: 'work_log',
         title: '工作记录',
         body: '你有 1 条新消息',
@@ -105,13 +106,13 @@ void main() {
     });
 
     test('listMessages 默认按时间倒序返回', () async {
-      await repository.createMessage(
+      await repository.upsertMessage(
         toolId: 't',
         title: '',
         body: 'old',
         createdAt: DateTime(2026, 1, 1, 9, 0),
       );
-      await repository.createMessage(
+      await repository.upsertMessage(
         toolId: 't',
         title: '',
         body: 'new',
@@ -121,6 +122,28 @@ void main() {
       final loaded = await repository.listMessages(limit: 10);
       expect(loaded.first.body, 'new');
       expect(loaded.last.body, 'old');
+    });
+
+    test('markMessageRead 会让消息从 unreadMessages 中消失', () async {
+      final now = DateTime(2026, 1, 1, 9, 0);
+      await service.upsertMessage(
+        toolId: 'work_log',
+        title: '标题',
+        body: '内容',
+        dedupeKey: 'k_read',
+        createdAt: now,
+      );
+
+      expect(service.unreadMessages.length, 1);
+
+      final id = service.messages.single.id;
+      expect(id, isNotNull);
+      await service.markMessageRead(id!);
+
+      expect(service.unreadMessages, isEmpty);
+      final loaded = await repository.listMessages(limit: 10);
+      expect(loaded.single.isRead, isTrue);
+      expect(loaded.single.readAt, isNotNull);
     });
   });
 }

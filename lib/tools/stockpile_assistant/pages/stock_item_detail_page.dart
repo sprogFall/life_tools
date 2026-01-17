@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_consumption.dart';
 import '../models/stock_item.dart';
+import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 import 'stock_consumption_edit_page.dart';
@@ -296,13 +298,17 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
     }
   }
 
-  Future<void> _confirmDelete() async {
-    final item = _item;
-    if (item == null) return;
-
-    final confirmed = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
+	  Future<void> _confirmDelete() async {
+	    final item = _item;
+	    if (item == null) return;
+	    final messageService = context.read<MessageService>();
+	    final dedupeKey = StockpileReminderService.dedupeKeyForItem(
+	      itemId: widget.itemId,
+	    );
+	
+	    final confirmed = await showCupertinoDialog<bool>(
+	      context: context,
+	      builder: (context) => CupertinoAlertDialog(
         title: const Text('确认删除'),
         content: Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -322,10 +328,11 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
       ),
     );
 
-    if (confirmed != true) return;
-    if (!mounted) return;
-    await _service.deleteItem(widget.itemId);
-    if (!mounted) return;
-    Navigator.pop(context, true);
-  }
-}
+	    if (confirmed != true) return;
+	    if (!mounted) return;
+	    await _service.deleteItem(widget.itemId);
+	    await messageService.deleteMessageByDedupeKey(dedupeKey);
+	    if (!mounted) return;
+	    Navigator.pop(context, true);
+	  }
+	}

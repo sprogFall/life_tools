@@ -70,6 +70,17 @@ dart format .
 
 示例代码请查看：`examples/tags.md`
 
+## 消息通知（公共入口）
+
+项目在 `lib/main.dart` 已注入 `MessageService`，业务侧通过 Provider 获取后即可：
+
+- 写入/更新首页消息（支持 `dedupeKey` 去重更新）
+- 写入消息时携带 `route`，用户点击消息可跳转到工具页面
+- 工具可主动消除消息（如：业务已处理，不再需要提醒）
+- 支持“已读”（首页点击/全部消息页右滑）
+
+示例代码请查看：`examples/message.md`
+
 ## UI 设计规范
 
 ### 主题颜色

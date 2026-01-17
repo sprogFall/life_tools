@@ -14,41 +14,39 @@ class StockpileReminderService {
     DateTime? now,
   }) async {
     final time = now ?? DateTime.now();
-    final items = await _repository.listItems(
-      stockStatus: StockItemStockStatus.inStock,
-    );
+    final items = await _repository.listItems(stockStatus: StockItemStockStatus.all);
 
     for (final item in items) {
-      if (item.isDepleted) continue;
-      if (item.expiryDate == null) continue;
       final id = item.id;
       if (id == null) continue;
 
+      final dedupeKey = dedupeKeyForItem(itemId: id);
+      if (item.isDepleted || item.expiryDate == null) {
+        await messageService.deleteMessageByDedupeKey(dedupeKey);
+        continue;
+      }
+
       final expired = item.isExpired(time);
       final expiringSoon = item.isExpiringSoon(time);
-      if (!expired && !expiringSoon) continue;
+      if (!expired && !expiringSoon) {
+        await messageService.deleteMessageByDedupeKey(dedupeKey);
+        continue;
+      }
 
-      final dedupeKey = _dedupeKeyFor(itemId: id, now: time, expired: expired);
-      await messageService.pushMessage(
+      await messageService.upsertMessage(
         toolId: 'stockpile_assistant',
         title: '囤货助手',
         body: _buildBody(item: item, now: time),
         dedupeKey: dedupeKey,
+        route: 'tool://stockpile_assistant',
         createdAt: time,
         notify: true,
       );
     }
   }
 
-  static String _dedupeKeyFor({
-    required int itemId,
-    required DateTime now,
-    required bool expired,
-  }) {
-    final d = DateTime(now.year, now.month, now.day);
-    final dayKey = StockpileFormat.date(d);
-    final type = expired ? 'expired' : 'expiring';
-    return 'stockpile:$type:$itemId:$dayKey';
+  static String dedupeKeyForItem({required int itemId}) {
+    return 'stockpile:expiry:$itemId';
   }
 
   static String _buildBody({required StockItem item, required DateTime now}) {

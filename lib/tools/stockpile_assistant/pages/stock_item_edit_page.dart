@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_item.dart';
 import '../models/stockpile_drafts.dart';
+import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 
@@ -626,6 +628,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     final now = DateTime.now();
     final editing = _editing;
     int? itemId;
+    final messageService = context.read<MessageService>();
 
     try {
       if (editing == null) {
@@ -663,6 +666,20 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
 
       if (itemId != null) {
         await _service.setTagsForItem(itemId, _selectedTagIds.toList());
+
+        final shouldKeepReminder =
+            remaining > 0 &&
+            _hasExpiry &&
+            _isExpiredOrExpiringSoon(
+              expiry: _expiryDate,
+              now: now,
+              remindDays: remindDays,
+            );
+        if (!shouldKeepReminder) {
+          await messageService.deleteMessageByDedupeKey(
+            StockpileReminderService.dedupeKeyForItem(itemId: itemId),
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -676,5 +693,20 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
 
     if (!mounted) return;
     Navigator.pop(context, true);
+  }
+
+  bool _isExpiredOrExpiringSoon({
+    required DateTime? expiry,
+    required DateTime now,
+    required int remindDays,
+  }) {
+    if (expiry == null) return false;
+    final today = DateTime(now.year, now.month, now.day);
+    final exp = DateTime(expiry.year, expiry.month, expiry.day);
+    final expired = exp.isBefore(today);
+    if (expired) return true;
+
+    final threshold = today.add(Duration(days: remindDays));
+    return exp.millisecondsSinceEpoch <= threshold.millisecondsSinceEpoch;
   }
 }
