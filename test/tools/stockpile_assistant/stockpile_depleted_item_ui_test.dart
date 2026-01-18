@@ -62,7 +62,7 @@ void main() {
     final segmented = tester.widget<CupertinoSlidingSegmentedControl<int>>(
       find.byType(CupertinoSlidingSegmentedControl<int>),
     );
-    segmented.onValueChanged?.call(1);
+    segmented.onValueChanged.call(1);
     await tester.pump();
     await _pumpUntil(tester, () => find.text('牛奶').evaluate().isNotEmpty);
 

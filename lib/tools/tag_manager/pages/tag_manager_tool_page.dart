@@ -302,6 +302,7 @@ class _TagList extends StatelessWidget {
     }
 
     return ReorderableListView.builder(
+      buildDefaultDragHandles: false,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       itemCount: items.length,
@@ -315,7 +316,7 @@ class _TagList extends StatelessWidget {
       itemBuilder: (_, index) => Padding(
         key: ValueKey(items[index].tag.id),
         padding: const EdgeInsets.only(bottom: 10),
-        child: _TagCard(tag: items[index]),
+        child: _TagCard(tag: items[index], reorderIndex: index),
       ),
     );
   }
@@ -323,8 +324,16 @@ class _TagList extends StatelessWidget {
 
 class _TagCard extends StatelessWidget {
   final TagWithTools tag;
+  final int? reorderIndex;
 
-  const _TagCard({required this.tag});
+  const _TagCard({required this.tag, this.reorderIndex});
+
+  static String _truncateWithEllipsis(String text, int maxChars) {
+    final trimmed = text.trim();
+    final chars = trimmed.characters;
+    if (chars.length <= maxChars) return trimmed;
+    return '${chars.take(maxChars)}…';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -332,65 +341,96 @@ class _TagCard extends StatelessWidget {
         .map((id) => ToolRegistry.instance.getById(id)?.name ?? id)
         .toList();
     final toolText = toolNames.join('、');
+    final tagId = tag.tag.id ?? tag.tag.name;
 
-    return GlassContainer(
-      key: ValueKey('tag-row-${tag.tag.id ?? tag.tag.name}'),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Flexible(
-            flex: 3,
-            child: Text(
-              tag.tag.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: IOS26Theme.textPrimary,
+    return SizedBox(
+      width: double.infinity,
+      child: GlassContainer(
+        key: ValueKey('tag-row-${tag.tag.id ?? tag.tag.name}'),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  if (reorderIndex != null) ...[
+                    ReorderableDelayedDragStartListener(
+                      index: reorderIndex!,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Icon(
+                          CupertinoIcons.line_horizontal_3,
+                          size: 18,
+                          color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                  ],
+                  Flexible(
+                    flex: 3,
+                    child: Text(
+                      _truncateWithEllipsis(tag.tag.name, 6),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: IOS26Theme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 5,
+                    child: Text(
+                      toolText.isEmpty ? '未关联工具' : toolText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 5,
-            child: Text(
-              toolText.isEmpty ? '未关联工具' : toolText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
-                fontWeight: FontWeight.w600,
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 96,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _iconButton(
+                    key: ValueKey('tag-edit-$tagId'),
+                    icon: CupertinoIcons.pencil,
+                    onPressed: () => _openEdit(context),
+                  ),
+                  const SizedBox(width: 8),
+                  _iconButton(
+                    key: ValueKey('tag-delete-$tagId'),
+                    icon: CupertinoIcons.trash,
+                    color: IOS26Theme.toolRed,
+                    onPressed: () => _confirmDelete(context),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Row(
-            children: [
-              _iconButton(
-                icon: CupertinoIcons.pencil,
-                onPressed: () => _openEdit(context),
-              ),
-              const SizedBox(width: 8),
-              _iconButton(
-                icon: CupertinoIcons.trash,
-                color: IOS26Theme.toolRed,
-                onPressed: () => _confirmDelete(context),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   static Widget _iconButton({
+    Key? key,
     required IconData icon,
     required VoidCallback onPressed,
     Color color = IOS26Theme.primaryColor,
   }) {
     return CupertinoButton(
+      key: key,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       onPressed: onPressed,
       color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
