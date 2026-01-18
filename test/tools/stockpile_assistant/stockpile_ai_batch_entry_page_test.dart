@@ -85,9 +85,64 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('stockpile_ai_batch_item_0_delete')),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('stockpile_ai_batch_item_0')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('AI 批量录入页：无物品时默认进入消耗页', (tester) async {
+    late Database db;
+    await tester.runAsync(() async {
+      db = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+    });
+    addTearDown(() async {
+      await tester.runAsync(() async => db.close());
+    });
+
+    final service = StockpileService.withRepositories(
+      repository: StockpileRepository.withDatabase(db),
+      tagRepository: TagRepository.withDatabase(db),
+    );
+
+    await tester.pumpWidget(
+      TestAppWrapper(
+        child: ChangeNotifierProvider<StockpileService>.value(
+          value: service,
+          child: StockpileAiBatchEntryPage(
+            initialItems: const [],
+            initialConsumptions: [
+              StockpileAiConsumptionEntry(
+                itemRef: const StockpileAiItemRef(name: '牛奶'),
+                draft: StockConsumptionDraft(
+                  quantity: 1,
+                  method: '',
+                  consumedAt: DateTime(2026, 1, 2, 9),
+                  note: '',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('stockpile_ai_batch_add_consumption')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('stockpile_ai_batch_add_item')),
       findsNothing,
     );
   });
