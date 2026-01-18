@@ -82,6 +82,14 @@ jobs:
         if: steps.parse-build-type.outputs.should_build == 'true'
         run: flutter pub get
 
+      - name: Run tests
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        run: flutter test
+
+      - name: Analyze code
+        if: steps.parse-build-type.outputs.should_build == 'true'
+        run: flutter analyze
+
       - name: Setup Android signing (release)
         if: steps.parse-build-type.outputs.should_build == 'true' && steps.parse-build-type.outputs.build_type == 'release'
         run: |
