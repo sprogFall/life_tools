@@ -84,9 +84,15 @@ class DatabaseSchema {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_app_messages_created_at ON app_messages(created_at DESC)',
     );
-    await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_app_messages_is_read_created_at ON app_messages(is_read, created_at DESC)',
-    );
+
+    // 兼容旧版本升级：旧表可能还没有 is_read 字段，此时不能创建依赖该字段的索引。
+    final columns = await db.rawQuery('PRAGMA table_info(app_messages)');
+    final names = columns.map((e) => e['name']).whereType<String>().toSet();
+    if (names.contains('is_read')) {
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_app_messages_is_read_created_at ON app_messages(is_read, created_at DESC)',
+      );
+    }
   }
 
   static Future<void> _upgradeToVersion9(Database db) async {
@@ -101,7 +107,9 @@ class DatabaseSchema {
       await db.execute('ALTER TABLE app_messages ADD COLUMN route TEXT');
     }
     if (!names.contains('expires_at')) {
-      await db.execute('ALTER TABLE app_messages ADD COLUMN expires_at INTEGER');
+      await db.execute(
+        'ALTER TABLE app_messages ADD COLUMN expires_at INTEGER',
+      );
     }
     if (!names.contains('is_read')) {
       await db.execute(
@@ -190,7 +198,9 @@ class DatabaseSchema {
   }
 
   static Future<void> _upgradeToVersion5(Database db) async {
-    await db.execute('ALTER TABLE tags ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0');
+    await db.execute(
+      'ALTER TABLE tags ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0',
+    );
   }
 
   static Future<void> _createTagTables(Database db) async {

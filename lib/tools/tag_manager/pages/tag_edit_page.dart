@@ -156,6 +156,10 @@ class _TagEditPageState extends State<TagEditPage> {
             controller: _nameController,
             decoration: InputDecoration(
               hintText: '例如：紧急 / 例行 / 复盘',
+              hintStyle: const TextStyle(
+                fontSize: 15,
+                color: IOS26Theme.textSecondary,
+              ),
               filled: true,
               fillColor: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
               border: OutlineInputBorder(
