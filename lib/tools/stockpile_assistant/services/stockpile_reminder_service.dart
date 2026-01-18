@@ -29,7 +29,9 @@ class StockpileReminderService {
     DateTime? now,
   }) async {
     final time = now ?? DateTime.now();
-    final items = await _repository.listItems(stockStatus: StockItemStockStatus.all);
+    final items = await _repository.listItems(
+      stockStatus: StockItemStockStatus.all,
+    );
 
     for (final item in items) {
       await _syncItem(messageService: messageService, item: item, time: time);
@@ -56,7 +58,7 @@ class StockpileReminderService {
       now: time,
     );
 
-    if (item.isDepleted || item.expiryDate == null) {
+    if (item.isDepleted || item.expiryDate == null || item.remindDays < 0) {
       await messageService.deleteMessageByDedupeKey(dedupeKey);
       return;
     }
@@ -91,7 +93,8 @@ class StockpileReminderService {
 
     final location = item.location.trim();
     final locationText = location.isEmpty ? '' : '（$location）';
-    final qtyText = '${StockpileFormat.num(item.remainingQuantity)}${item.unit}';
+    final qtyText =
+        '${StockpileFormat.num(item.remainingQuantity)}${item.unit}';
     final dateText = StockpileFormat.date(exp);
 
     if (daysLeft < 0) {
@@ -116,7 +119,9 @@ class StockpileReminderService {
     required int itemId,
   }) async {
     for (var i = 0; i < _maxScheduledNotificationsPerItem; i++) {
-      await messageService.cancelSystemNotification(_notificationIdForItem(itemId, i));
+      await messageService.cancelSystemNotification(
+        _notificationIdForItem(itemId, i),
+      );
     }
   }
 
@@ -135,6 +140,7 @@ class StockpileReminderService {
 
     final expiry = item.expiryDate;
     if (item.isDepleted || expiry == null) return;
+    if (item.remindDays < 0) return;
     if (item.isExpired(now)) return;
 
     final remindDays = item.remindDays.clamp(0, _maxScheduledDays);
@@ -163,4 +169,3 @@ class StockpileReminderService {
     }
   }
 }
-

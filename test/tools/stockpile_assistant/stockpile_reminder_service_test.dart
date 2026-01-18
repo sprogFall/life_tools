@@ -10,15 +10,18 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class _FakeNotificationService implements AppNotificationService {
   final List<({String title, String body})> shown = [];
-  final List<({int id, String title, String body, DateTime scheduledAt})> scheduled =
-      [];
+  final List<({int id, String title, String body, DateTime scheduledAt})>
+  scheduled = [];
   final List<int> canceled = [];
 
   @override
   Future<void> init() async {}
 
   @override
-  Future<void> showMessage({required String title, required String body}) async {
+  Future<void> showMessage({
+    required String title,
+    required String body,
+  }) async {
     shown.add((title: title, body: body));
   }
 
@@ -216,20 +219,49 @@ void main() {
       expect(notificationService.scheduled.first.id, 1000000 + itemId * 100);
       expect(notificationService.scheduled.first.scheduledAt.hour, 9);
 
-      final days = notificationService.scheduled
-          .map((e) => DateTime(e.scheduledAt.year, e.scheduledAt.month, e.scheduledAt.day))
-          .toSet()
-          .toList()
-        ..sort((a, b) => a.compareTo(b));
-      expect(
-        days,
-        [
-          DateTime(2026, 1, 1),
-          DateTime(2026, 1, 2),
-          DateTime(2026, 1, 3),
-        ],
+      final days =
+          notificationService.scheduled
+              .map(
+                (e) => DateTime(
+                  e.scheduledAt.year,
+                  e.scheduledAt.month,
+                  e.scheduledAt.day,
+                ),
+              )
+              .toSet()
+              .toList()
+            ..sort((a, b) => a.compareTo(b));
+      expect(days, [
+        DateTime(2026, 1, 1),
+        DateTime(2026, 1, 2),
+        DateTime(2026, 1, 3),
+      ]);
+    });
+
+    test('不提醒（remindDays=-1）时不应写入消息/预定系统通知', () async {
+      final now = DateTime(2026, 1, 10, 9);
+
+      await stockpileRepository.createItem(
+        StockItem.create(
+          name: '牛奶',
+          location: '冰箱',
+          unit: '盒',
+          totalQuantity: 2,
+          remainingQuantity: 2,
+          purchaseDate: DateTime(2026, 1, 1),
+          expiryDate: DateTime(2026, 1, 11),
+          remindDays: -1,
+          note: '',
+          now: now,
+        ),
       );
+
+      final service = StockpileReminderService(repository: stockpileRepository);
+      await service.pushDueReminders(messageService: messageService, now: now);
+
+      expect(messageService.messages, isEmpty);
+      expect(notificationService.shown, isEmpty);
+      expect(notificationService.scheduled, isEmpty);
     });
   });
 }
-

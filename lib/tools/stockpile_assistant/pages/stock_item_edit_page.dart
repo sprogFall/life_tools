@@ -29,12 +29,11 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
   final _unitController = TextEditingController();
   final _totalController = TextEditingController(text: '1');
   final _remainingController = TextEditingController(text: '1');
-  final _remindDaysController = TextEditingController(text: '3');
+  final _remindDaysController = TextEditingController();
   final _noteController = TextEditingController();
 
   DateTime _purchaseDate = DateTime.now();
   DateTime? _expiryDate;
-  bool _hasExpiry = false;
 
   StockItem? _editing;
   Set<int> _selectedTagIds = {};
@@ -84,12 +83,13 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _unitController.text = item.unit;
     _totalController.text = StockpileFormat.num(item.totalQuantity);
     _remainingController.text = StockpileFormat.num(item.remainingQuantity);
-    _remindDaysController.text = item.remindDays.toString();
+    _remindDaysController.text = item.expiryDate == null || item.remindDays < 0
+        ? ''
+        : item.remindDays.toString();
     _noteController.text = item.note;
 
     _purchaseDate = item.purchaseDate;
     _expiryDate = item.expiryDate;
-    _hasExpiry = item.expiryDate != null;
   }
 
   void _fillDraft(StockItemDraft draft) {
@@ -98,12 +98,14 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _unitController.text = draft.unit;
     _totalController.text = StockpileFormat.num(draft.totalQuantity);
     _remainingController.text = StockpileFormat.num(draft.remainingQuantity);
-    _remindDaysController.text = draft.remindDays.toString();
+    _remindDaysController.text =
+        draft.expiryDate == null || draft.remindDays < 0
+            ? ''
+            : draft.remindDays.toString();
     _noteController.text = draft.note;
 
     _purchaseDate = draft.purchaseDate;
     _expiryDate = draft.expiryDate;
-    _hasExpiry = draft.expiryDate != null;
     _selectedTagIds = draft.tagIds.toSet();
   }
 
@@ -151,7 +153,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 2,
+                          flex: 1,
                           child: _buildInlineLabeledField(
                             label: '总数量',
                             child: _buildTextField(
@@ -168,7 +170,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          flex: 2,
+                          flex: 1,
                           child: _buildInlineLabeledField(
                             label: '剩余数量',
                             child: _buildTextField(
@@ -185,7 +187,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          flex: 1,
+                          flex: 2,
                           child: _buildInlineLabeledField(
                             label: '单位',
                             child: _buildTextField(
@@ -249,6 +251,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: CupertinoButton(
+                  key: const ValueKey('stock_item_save'),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   color: IOS26Theme.primaryColor,
                   borderRadius: BorderRadius.circular(14),
@@ -359,63 +362,106 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
   }
 
   Widget _buildExpirySection() {
+    final dateText = _expiryDate == null
+        ? '未设置'
+        : StockpileFormat.date(_expiryDate!);
+    final remindEnabled = _expiryDate != null;
+
     return GlassContainer(
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text(
+            '到期提醒',
+            style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+          ),
+          const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
-                child: Text(
-                  '保质期/提醒',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: IOS26Theme.textSecondary,
+              Expanded(
+                child: _buildInlineLabeledField(
+                  label: '到期日',
+                  child: GlassContainer(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: CupertinoButton(
+                      key: const ValueKey('stock_item_expiry_date'),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        final initial =
+                            _expiryDate ??
+                            DateTime.now().add(const Duration(days: 7));
+                        _pickDate(
+                          initial: initial,
+                          onSelected: (v) => setState(() => _expiryDate = v),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              dateText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: _expiryDate == null
+                                    ? IOS26Theme.textTertiary
+                                    : IOS26Theme.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          if (_expiryDate != null)
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () => setState(() {
+                                _expiryDate = null;
+                                _remindDaysController.text = '';
+                              }),
+                              child: const Icon(
+                                CupertinoIcons.clear_circled_solid,
+                                size: 18,
+                                color: IOS26Theme.textTertiary,
+                              ),
+                            )
+                          else
+                            const Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 16,
+                              color: IOS26Theme.textTertiary,
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-              CupertinoSwitch(
-                value: _hasExpiry,
-                activeTrackColor: IOS26Theme.primaryColor,
-                onChanged: (v) {
-                  setState(() {
-                    _hasExpiry = v;
-                    if (!v) _expiryDate = null;
-                    if (v && _expiryDate == null) {
-                      _expiryDate = DateTime.now().add(const Duration(days: 7));
-                    }
-                  });
-                },
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInlineLabeledField(
+                  label: '提前提醒(天)',
+                  child: AbsorbPointer(
+                    absorbing: !remindEnabled,
+                    child: Opacity(
+                      opacity: remindEnabled ? 1 : 0.45,
+                      child: _buildTextField(
+                        key: const ValueKey('stock_item_remind_days'),
+                        controller: _remindDaysController,
+                        placeholder: '不提醒',
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          if (_hasExpiry) ...[
-            const SizedBox(height: 10),
-            _buildDateRow(
-              title: '到期日期',
-              value: _expiryDate == null
-                  ? ''
-                  : StockpileFormat.date(_expiryDate!),
-              onTap: _expiryDate == null
-                  ? null
-                  : () => _pickDate(
-                      initial: _expiryDate!,
-                      onSelected: (v) => setState(() => _expiryDate = v),
-                    ),
-            ),
-            const SizedBox(height: 10),
-            _buildInlineLabeledField(
-              label: '提前提醒天数',
-              child: _buildTextField(
-                key: const ValueKey('stock_item_remind_days'),
-                controller: _remindDaysController,
-                placeholder: '默认 3',
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -552,6 +598,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                       child: const Text('取消'),
                     ),
                     CupertinoButton(
+                      key: const ValueKey('stock_item_pick_date_done'),
                       onPressed: () {
                         onSelected(temp);
                         Navigator.pop(context);
@@ -613,16 +660,31 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       return;
     }
 
-    int remindDays = 3;
-    if (_hasExpiry) {
-      remindDays = int.tryParse(_remindDaysController.text.trim()) ?? 3;
-      if (remindDays < 0) {
-        await StockpileDialogs.showMessage(
-          context,
-          title: '提示',
-          content: '提醒天数不能小于 0',
-        );
-        return;
+    final hasExpiry = _expiryDate != null;
+    var remindDays = -1;
+    if (hasExpiry) {
+      final text = _remindDaysController.text.trim();
+      if (text.isEmpty) {
+        remindDays = -1;
+      } else {
+        final parsed = int.tryParse(text);
+        if (parsed == null) {
+          await StockpileDialogs.showMessage(
+            context,
+            title: '提示',
+            content: '请输入正确的提前提醒天数（留空表示不提醒）',
+          );
+          return;
+        }
+        if (parsed < 0) {
+          await StockpileDialogs.showMessage(
+            context,
+            title: '提示',
+            content: '提前提醒天数不能小于 0（留空表示不提醒）',
+          );
+          return;
+        }
+        remindDays = parsed;
       }
     }
 
@@ -641,7 +703,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             totalQuantity: total,
             remainingQuantity: remaining,
             purchaseDate: _purchaseDate,
-            expiryDate: _hasExpiry ? _expiryDate : null,
+            expiryDate: hasExpiry ? _expiryDate : null,
             remindDays: remindDays,
             note: _noteController.text,
             now: now,
@@ -657,7 +719,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             totalQuantity: total,
             remainingQuantity: remaining,
             purchaseDate: _purchaseDate,
-            expiryDate: _hasExpiry ? _expiryDate : null,
+            expiryDate: hasExpiry ? _expiryDate : null,
             remindDays: remindDays,
             note: _noteController.text.trim(),
             updatedAt: now,

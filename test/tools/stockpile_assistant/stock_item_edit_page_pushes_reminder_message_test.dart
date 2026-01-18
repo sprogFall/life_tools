@@ -65,21 +65,24 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey('stock_item_name')),
-        '牛奶',
+        'milk',
       );
 
-      // 开启保质期/提醒，并把提醒天数设置为 10（默认到期日=今天+7，会被判定为“临期”）
       await tester.scrollUntilVisible(
-        find.text('保质期/提醒'),
+        find.byKey(const ValueKey('stock_item_expiry_date')),
         400,
         scrollable: find.byType(Scrollable).first,
       );
-      final expirySwitch = tester.widget<CupertinoSwitch>(
-        find.byType(CupertinoSwitch),
+      final expiryButton = tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('stock_item_expiry_date')),
       );
-      expirySwitch.onChanged?.call(true);
-      await tester.pump();
-      expect(find.text('到期日期'), findsOneWidget);
+      expiryButton.onPressed?.call();
+      await tester.pumpAndSettle();
+      final doneButton = tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('stock_item_pick_date_done')),
+      );
+      doneButton.onPressed?.call();
+      await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('stock_item_remind_days')),
@@ -91,10 +94,7 @@ void main() {
         '10',
       );
 
-      final saveButton = tester.widget<CupertinoButton>(
-        find.widgetWithText(CupertinoButton, '保存'),
-      );
-      saveButton.onPressed?.call();
+      await tester.tap(find.byKey(const ValueKey('stock_item_save')));
       await tester.pump();
 
       for (var i = 0; i < 80; i++) {
@@ -114,7 +114,7 @@ void main() {
       expect(messageService.messages.length, 1);
       expect(messageService.messages.single.toolId, 'stockpile_assistant');
       expect(messageService.messages.single.isRead, isFalse);
-      expect(messageService.messages.single.body, contains('牛奶'));
+      expect(messageService.messages.single.body, contains('milk'));
     });
   });
 }

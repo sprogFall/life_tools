@@ -71,6 +71,9 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('stockpile_ai_batch_add_item')),
+    );
     await tester.tap(find.byKey(const ValueKey('stockpile_ai_batch_add_item')));
     await tester.pump();
     expect(

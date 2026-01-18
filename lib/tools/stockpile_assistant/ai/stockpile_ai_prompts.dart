@@ -33,7 +33,6 @@ class StockpileAiPrompts {
       "item_ref": { "id": 123, "name": "可选" },
       "consumption": {
         "quantity": 1,
-        "method": "可选，默认空字符串（如：吃掉/用完）",
         "consumed_at": "ISO8601（可选，默认现在）",
         "note": "可选，默认空字符串"
       }
@@ -64,7 +63,6 @@ class StockpileAiPrompts {
   "item_ref": { "id": 123, "name": "可选" },
   "consumption": {
     "quantity": 1,
-    "method": "可选，默认空字符串（如：吃掉/用完）",
     "consumed_at": "ISO8601（可选，默认现在）",
     "note": "可选，默认空字符串"
   }
@@ -81,5 +79,8 @@ class StockpileAiPrompts {
  - 对于 create_item.item.tag_ids / batch_entry.items[*].tag_ids：
    - 仅从上下文提供的「可用标签列表」中选择 id
    - 若没有合适标签，输出空数组 []
+ - 对于 create_item.item.remind_days / batch_entry.items[*].remind_days：
+   - 若用户明确“不需要提醒”，或用户只提供到期日但未提到提醒：输出 -1（表示不提醒）
+   - 若用户要求提醒：输出提前提醒天数（>=0）
 ''';
 }

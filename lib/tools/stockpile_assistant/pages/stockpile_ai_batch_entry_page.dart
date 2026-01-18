@@ -63,6 +63,20 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         widget.initialItems.isNotEmpty) {
       _tab = 0;
     }
+
+    final service = context.read<StockpileService>();
+    Future<void>.microtask(() async {
+      for (final entry in _consumptions) {
+        final id = entry.resolvedItemId ?? entry.itemRef.id;
+        if (id == null) continue;
+        final item = await service.getItem(id);
+        if (!mounted) return;
+        setState(() {
+          entry.remainingQuantity = item?.remainingQuantity;
+          entry.unit = item?.unit;
+        });
+      }
+    });
   }
 
   @override
@@ -86,15 +100,6 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
       appBar: IOS26AppBar(
         title: 'AI 批量录入',
         showBackButton: true,
-        actions: [
-          CupertinoButton(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const CupertinoActivityIndicator()
-                : const Text('保存'),
-          ),
-        ],
       ),
       body: SafeArea(
         bottom: false,
@@ -122,93 +127,88 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
                 ),
               ),
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: CupertinoButton(
-                    key: ValueKey(
-                      _tab == 0
-                          ? 'stockpile_ai_batch_add_item'
-                          : 'stockpile_ai_batch_add_consumption',
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    color: IOS26Theme.primaryColor,
-                    borderRadius: BorderRadius.circular(14),
-                    onPressed: _saving
-                        ? null
-                        : () => setState(() {
-                            if (_tab == 0) {
-                              _items.add(
-                                _createItemEntry(
-                                  StockItemDraft(
-                                    name: '',
-                                    location: '',
-                                    totalQuantity: 1,
-                                    remainingQuantity: 1,
-                                    unit: '',
-                                    purchaseDate: DateTime.now(),
-                                    expiryDate: null,
-                                    remindDays: 3,
-                                    note: '',
-                                    tagIds: const [],
-                                  ),
-                                ),
-                              );
-                            } else {
-                              _consumptions.add(
-                                _createConsumptionEntry(
-                                  StockpileAiConsumptionEntry(
-                                    itemRef: const StockpileAiItemRef(),
-                                    draft: StockConsumptionDraft(
-                                      quantity: 1,
-                                      method: '',
-                                      consumedAt: DateTime.now(),
-                                      note: '',
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                          }),
-                    child: Text(
-                      _tab == 0 ? '增加物品' : '增加消耗',
-                      style: const TextStyle(
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              key: const ValueKey('stockpile_ai_batch_save'),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              color: IOS26Theme.primaryColor,
+              borderRadius: BorderRadius.circular(14),
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const CupertinoActivityIndicator(color: Colors.white)
+                  : const Text(
+                      '保存',
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ),
-              ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   List<Widget> _buildItemList() {
+    final widgets = <Widget>[];
+
     if (_items.isEmpty) {
-      return [
+      widgets.add(
         GlassContainer(
           padding: const EdgeInsets.all(12),
           child: const Text(
-            '暂无物品条目，可点击底部「增加物品」',
+            '暂无物品条目，可在下方增加物品',
             style: TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
           ),
         ),
-      ];
+      );
+      widgets.add(const SizedBox(height: 12));
     }
 
-    return [
-      for (final entry in _items) ...[
-        _buildItemEntry(entry),
-        const SizedBox(height: 12),
-      ],
-    ];
+    for (final entry in _items) {
+      widgets.add(_buildItemEntry(entry));
+      widgets.add(const SizedBox(height: 12));
+    }
+
+    widgets.add(
+      _buildAddEntryRow(
+        key: const ValueKey('stockpile_ai_batch_add_item'),
+        text: '增加物品',
+        icon: CupertinoIcons.add_circled_solid,
+        color: IOS26Theme.toolGreen,
+        onPressed: _saving
+            ? null
+            : () => setState(() {
+                  _items.add(
+                    _createItemEntry(
+                      StockItemDraft(
+                        name: '',
+                        location: '',
+                        totalQuantity: 1,
+                        remainingQuantity: 1,
+                        unit: '',
+                        purchaseDate: DateTime.now(),
+                        expiryDate: null,
+                        remindDays: -1,
+                        note: '',
+                        tagIds: const [],
+                      ),
+                    ),
+                  );
+                }),
+      ),
+    );
+
+    return widgets;
   }
 
   Widget _buildItemEntry(_ItemEntry entry) {
@@ -336,24 +336,53 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
   }
 
   List<Widget> _buildConsumptionList() {
+    final widgets = <Widget>[];
+
     if (_consumptions.isEmpty) {
-      return [
+      widgets.add(
         GlassContainer(
           padding: const EdgeInsets.all(12),
           child: const Text(
-            '暂无消耗条目，可点击底部「增加消耗」',
+            '暂无消耗条目，可在下方增加消耗',
             style: TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
           ),
         ),
-      ];
+      );
+      widgets.add(const SizedBox(height: 12));
     }
 
-    return [
-      for (final entry in _consumptions) ...[
-        _buildConsumptionEntry(entry),
-        const SizedBox(height: 12),
-      ],
-    ];
+    for (final entry in _consumptions) {
+      widgets.add(_buildConsumptionEntry(entry));
+      widgets.add(const SizedBox(height: 12));
+    }
+
+    widgets.add(
+      _buildAddEntryRow(
+        key: const ValueKey('stockpile_ai_batch_add_consumption'),
+        text: '增加消耗',
+        icon: CupertinoIcons.add_circled_solid,
+        color: IOS26Theme.toolOrange,
+        onPressed: _saving
+            ? null
+            : () => setState(() {
+                  _consumptions.add(
+                    _createConsumptionEntry(
+                      StockpileAiConsumptionEntry(
+                        itemRef: const StockpileAiItemRef(),
+                        draft: StockConsumptionDraft(
+                          quantity: 1,
+                          method: '',
+                          consumedAt: DateTime.now(),
+                          note: '',
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+      ),
+    );
+
+    return widgets;
   }
 
   Widget _buildConsumptionEntry(_ConsumptionEntry entry) {
@@ -397,77 +426,35 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
             ],
           ),
           const SizedBox(height: 10),
-          GlassContainer(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                const Icon(
-                  CupertinoIcons.cube_box_fill,
-                  size: 18,
-                  color: IOS26Theme.toolGreen,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    entry.displayItemText,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                    ),
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _saving
-                      ? null
-                      : () => _pickItemForConsumption(entry),
-                  child: const Text('选择物品'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          _buildTwoColRow(
-            left: _buildInlineField(
-              title: '数量',
-              child: _buildTextField(
-                key: ValueKey(
-                  'stockpile_ai_batch_consumption_${entry.keyId}_qty',
-                ),
-                controller: entry.qtyController,
-                placeholder: '1',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                textInputAction: TextInputAction.next,
-              ),
-            ),
-            right: _buildInlinePicker(
-              title: '消耗时间',
-              value: StockpileFormat.dateTime(entry.consumedAt),
-              onTap: _saving
-                  ? null
-                  : () => _pickDateTime(
-                      initial: entry.consumedAt,
-                      onSelected: (v) => setState(() => entry.consumedAt = v),
-                    ),
-            ),
-          ),
+          _buildConsumptionItemRow(entry),
           const SizedBox(height: 10),
           _buildInlineField(
-            title: '方式',
+            title: '消耗数量',
             child: _buildTextField(
               key: ValueKey(
-                'stockpile_ai_batch_consumption_${entry.keyId}_method',
+                'stockpile_ai_batch_consumption_${entry.keyId}_qty',
               ),
-              controller: entry.methodController,
-              placeholder: '如：喝掉/用完',
+              controller: entry.qtyController,
+              placeholder: '1',
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textInputAction: TextInputAction.next,
             ),
           ),
           const SizedBox(height: 10),
-          _buildCompactField(
+          _buildPickerRow(
+            title: '消耗时间',
+            value: StockpileFormat.dateTime(entry.consumedAt),
+            onTap: _saving
+                ? null
+                : () => _pickDateTime(
+                    initial: entry.consumedAt,
+                    onSelected: (v) => setState(() => entry.consumedAt = v),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          _buildInlineField(
             title: '备注',
             child: _buildTextField(
               key: ValueKey(
@@ -475,8 +462,62 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
               ),
               controller: entry.noteController,
               placeholder: '可选',
-              maxLines: 2,
-              textInputAction: TextInputAction.newline,
+              maxLines: 1,
+              textInputAction: TextInputAction.done,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConsumptionItemRow(_ConsumptionEntry entry) {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _saving ? null : () => _pickItemForConsumption(entry),
+              child: Row(
+                children: [
+                  const Icon(
+                    CupertinoIcons.cube_box_fill,
+                    size: 18,
+                    color: IOS26Theme.toolGreen,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      entry.displayItemText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: IOS26Theme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (entry.remainingQuantity != null) ...[
+                    const SizedBox(width: 10),
+                    Text(
+                      '库存：${StockpileFormat.num(entry.remainingQuantity!)}${entry.unitText}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: IOS26Theme.textSecondary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 6),
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 18,
+                    color: IOS26Theme.textTertiary,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -540,111 +581,125 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
     );
   }
 
-  Widget _buildExpiryInlineRow(_ItemEntry entry) {
-    final dateText = entry.expiryDate == null
-        ? ''
-        : StockpileFormat.date(entry.expiryDate!);
-
+  Widget _buildAddEntryRow({
+    required Key key,
+    required String text,
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onPressed,
+  }) {
     return GlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          const Text(
-            '保质期',
-            style: TextStyle(fontSize: 13, color: IOS26Theme.textPrimary),
-          ),
-          const SizedBox(width: 10),
-          CupertinoSwitch(
-            value: entry.hasExpiry,
-            activeTrackColor: IOS26Theme.primaryColor,
-            onChanged: _saving
-                ? null
-                : (v) {
-                    setState(() {
-                      entry.hasExpiry = v;
-                      if (!v) entry.expiryDate = null;
-                      if (v && entry.expiryDate == null) {
-                        entry.expiryDate = DateTime.now().add(
-                          const Duration(days: 7),
-                        );
-                      }
-                    });
-                  },
-          ),
-          const SizedBox(width: 10),
-          if (!entry.hasExpiry)
-            const Expanded(child: SizedBox.shrink())
-          else ...[
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: CupertinoButton(
+        key: key,
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 10),
             Expanded(
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: _saving || entry.expiryDate == null
-                    ? null
-                    : () => _pickDate(
-                        initial: entry.expiryDate!,
-                        onSelected: (v) => setState(() => entry.expiryDate = v),
-                      ),
-                child: Row(
-                  children: [
-                    const Text(
-                      '到期',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        dateText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: IOS26Theme.textSecondary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 16,
-                      color: IOS26Theme.textTertiary,
-                    ),
-                  ],
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: IOS26Theme.textPrimary,
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 120,
-              child: Row(
-                children: [
-                  const Text(
-                    '提醒',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: IOS26Theme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildMiniTextField(
-                      key: ValueKey(
-                        'stockpile_ai_batch_item_${entry.keyId}_remind_days',
-                      ),
-                      controller: entry.remindDaysController,
-                      placeholder: '3',
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.next,
-                    ),
-                  ),
-                ],
-              ),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 18,
+              color: IOS26Theme.textTertiary,
             ),
           ],
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpiryInlineRow(_ItemEntry entry) {
+    final dateText = entry.expiryDate == null
+        ? '未设置'
+        : StockpileFormat.date(entry.expiryDate!);
+    final remindEnabled = entry.expiryDate != null && !_saving;
+
+    return _buildTwoColRow(
+      left: _buildCompactField(
+        title: '到期日',
+        child: GlassContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: _saving
+                ? null
+                : () {
+                    final initial =
+                        entry.expiryDate ??
+                        DateTime.now().add(const Duration(days: 7));
+                    _pickDate(
+                      initial: initial,
+                      onSelected: (v) => setState(() => entry.expiryDate = v),
+                    );
+                  },
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    dateText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: entry.expiryDate == null
+                          ? IOS26Theme.textTertiary
+                          : IOS26Theme.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                if (entry.expiryDate != null && !_saving)
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => setState(() {
+                      entry.expiryDate = null;
+                      entry.remindDaysController.text = '';
+                    }),
+                    child: const Icon(
+                      CupertinoIcons.clear_circled_solid,
+                      size: 18,
+                      color: IOS26Theme.textTertiary,
+                    ),
+                  )
+                else
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 16,
+                    color: IOS26Theme.textTertiary,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      right: _buildCompactField(
+        title: '提前提醒(天)',
+        child: AbsorbPointer(
+          absorbing: !remindEnabled,
+          child: Opacity(
+            opacity: remindEnabled ? 1 : 0.45,
+            child: _buildTextField(
+              key: ValueKey(
+                'stockpile_ai_batch_item_${entry.keyId}_remind_days',
+              ),
+              controller: entry.remindDaysController,
+              placeholder: '不提醒',
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -768,95 +823,20 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 56,
+            width: 88,
             child: Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 13,
-                color: IOS26Theme.textPrimary,
+                fontSize: 12,
+                color: IOS26Theme.textSecondary,
               ),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(child: child),
         ],
-      ),
-    );
-  }
-
-  Widget _buildInlinePicker({
-    required String title,
-    required String value,
-    required VoidCallback? onTap,
-  }) {
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        onPressed: onTap,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 56,
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: IOS26Theme.textPrimary,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: IOS26Theme.textSecondary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Icon(
-              CupertinoIcons.chevron_right,
-              size: 16,
-              color: IOS26Theme.textTertiary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMiniTextField({
-    required Key key,
-    required TextEditingController controller,
-    required String placeholder,
-    TextInputType? keyboardType,
-    TextInputAction? textInputAction,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      child: CupertinoTextField(
-        key: key,
-        controller: controller,
-        placeholder: placeholder,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        maxLines: 1,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        decoration: null,
-        style: const TextStyle(fontSize: 13),
       ),
     );
   }
@@ -1018,6 +998,8 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
     setState(() {
       entry.resolvedItemId = selected;
       entry.itemRef = StockpileAiItemRef(id: selected, name: item.name);
+      entry.remainingQuantity = item.remainingQuantity;
+      entry.unit = item.unit;
     });
   }
 
@@ -1098,11 +1080,19 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
           throw const _UserReadableError('物品剩余数量不能大于总数量。');
         }
 
-        var remindDays =
-            int.tryParse(entry.remindDaysController.text.trim()) ?? 3;
-        if (!entry.hasExpiry) remindDays = 3;
-        if (remindDays < 0) {
-          throw const _UserReadableError('提醒天数不能小于 0。');
+        final expiryDate = entry.expiryDate;
+        final remindText = entry.remindDaysController.text.trim();
+        int remindDays;
+        if (expiryDate == null) {
+          remindDays = -1;
+        } else if (remindText.isEmpty) {
+          remindDays = -1;
+        } else {
+          final parsed = int.tryParse(remindText);
+          if (parsed == null || parsed < 0) {
+            throw const _UserReadableError('提醒天数必须是 >=0 的整数（留空表示不提醒）。');
+          }
+          remindDays = parsed;
         }
 
         final itemId = await service.createItem(
@@ -1113,7 +1103,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
             totalQuantity: total,
             remainingQuantity: remaining,
             purchaseDate: entry.purchaseDate,
-            expiryDate: entry.hasExpiry ? entry.expiryDate : null,
+            expiryDate: expiryDate,
             remindDays: remindDays,
             note: entry.noteController.text,
             now: now,
@@ -1179,7 +1169,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
             StockConsumption.create(
               itemId: itemId,
               quantity: qty,
-              method: entry.methodController.text,
+              method: '',
               consumedAt: entry.consumedAt,
               note: entry.noteController.text,
               now: now,
@@ -1306,11 +1296,10 @@ class _ItemEntry {
   final unitController = TextEditingController();
   final totalController = TextEditingController(text: '1');
   final remainingController = TextEditingController(text: '1');
-  final remindDaysController = TextEditingController(text: '3');
+  final remindDaysController = TextEditingController();
   final noteController = TextEditingController();
 
   DateTime purchaseDate = DateTime.now();
-  bool hasExpiry = false;
   DateTime? expiryDate;
   final Set<int> selectedTagIds = {};
 
@@ -1326,10 +1315,12 @@ class _ItemEntry {
     e.unitController.text = draft.unit;
     e.totalController.text = StockpileFormat.num(draft.totalQuantity);
     e.remainingController.text = StockpileFormat.num(draft.remainingQuantity);
-    e.remindDaysController.text = draft.remindDays.toString();
+    e.remindDaysController.text =
+        draft.expiryDate == null || draft.remindDays < 0
+            ? ''
+            : draft.remindDays.toString();
     e.noteController.text = draft.note;
     e.purchaseDate = draft.purchaseDate;
-    e.hasExpiry = draft.expiryDate != null;
     e.expiryDate = draft.expiryDate;
     e.selectedTagIds.addAll(draft.tagIds);
     return e;
@@ -1351,9 +1342,10 @@ class _ConsumptionEntry {
 
   StockpileAiItemRef itemRef = const StockpileAiItemRef();
   int? resolvedItemId;
+  double? remainingQuantity;
+  String? unit;
 
   final qtyController = TextEditingController(text: '1');
-  final methodController = TextEditingController();
   final noteController = TextEditingController();
   DateTime consumedAt = DateTime.now();
 
@@ -1367,10 +1359,14 @@ class _ConsumptionEntry {
     e.itemRef = entry.itemRef;
     e.resolvedItemId = entry.itemRef.id;
     e.qtyController.text = StockpileFormat.num(entry.draft.quantity);
-    e.methodController.text = entry.draft.method;
     e.noteController.text = entry.draft.note;
     e.consumedAt = entry.draft.consumedAt;
     return e;
+  }
+
+  String get unitText {
+    final u = unit?.trim() ?? '';
+    return u;
   }
 
   String get displayItemText {
@@ -1384,7 +1380,6 @@ class _ConsumptionEntry {
 
   void dispose() {
     qtyController.dispose();
-    methodController.dispose();
     noteController.dispose();
   }
 }
