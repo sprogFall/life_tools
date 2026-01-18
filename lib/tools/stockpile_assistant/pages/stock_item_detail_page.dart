@@ -140,7 +140,11 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                     ? '无'
                     : StockpileFormat.date(item.expiryDate!),
               ),
-              if (item.expiryDate != null) _kv('提醒', '提前 ${item.remindDays} 天'),
+              if (item.expiryDate != null)
+                _kv(
+                  '提醒',
+                  item.remindDays < 0 ? '不提醒' : '提前 ${item.remindDays} 天',
+                ),
               if (item.note.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -298,17 +302,17 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
     }
   }
 
-	  Future<void> _confirmDelete() async {
-	    final item = _item;
-	    if (item == null) return;
-	    final messageService = context.read<MessageService>();
-	    final dedupeKey = StockpileReminderService.dedupeKeyForItem(
-	      itemId: widget.itemId,
-	    );
-	
-	    final confirmed = await showCupertinoDialog<bool>(
-	      context: context,
-	      builder: (context) => CupertinoAlertDialog(
+  Future<void> _confirmDelete() async {
+    final item = _item;
+    if (item == null) return;
+    final messageService = context.read<MessageService>();
+    final dedupeKey = StockpileReminderService.dedupeKeyForItem(
+      itemId: widget.itemId,
+    );
+
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
         title: const Text('确认删除'),
         content: Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -328,15 +332,15 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
       ),
     );
 
-	    if (confirmed != true) return;
-	    if (!mounted) return;
-	    await _service.deleteItem(widget.itemId);
-	    await messageService.deleteMessageByDedupeKey(dedupeKey);
-	    await StockpileReminderService.cancelScheduledNotificationsForItem(
-	      messageService: messageService,
-	      itemId: widget.itemId,
-	    );
-	    if (!mounted) return;
-	    Navigator.pop(context, true);
-	  }
-	}
+    if (confirmed != true) return;
+    if (!mounted) return;
+    await _service.deleteItem(widget.itemId);
+    await messageService.deleteMessageByDedupeKey(dedupeKey);
+    await StockpileReminderService.cancelScheduledNotificationsForItem(
+      messageService: messageService,
+      itemId: widget.itemId,
+    );
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+}

@@ -54,8 +54,8 @@ class StockItem {
     if (remainingQuantity > totalQuantity) {
       throw ArgumentError('remainingQuantity 不能大于 totalQuantity');
     }
-    if (remindDays < 0) {
-      throw ArgumentError('remindDays 不能小于 0');
+    if (remindDays < -1) {
+      throw ArgumentError('remindDays 不能小于 -1');
     }
 
     return StockItem(
@@ -84,8 +84,10 @@ class StockItem {
   bool isExpiringSoon(DateTime now) {
     final e = expiryDate;
     if (e == null) return false;
+    if (remindDays < 0) return false;
     final threshold = _startOfDay(now).add(Duration(days: remindDays));
-    return _startOfDay(e).millisecondsSinceEpoch <= threshold.millisecondsSinceEpoch;
+    return _startOfDay(e).millisecondsSinceEpoch <=
+        threshold.millisecondsSinceEpoch;
   }
 
   StockItem copyWith({
@@ -126,8 +128,9 @@ class StockItem {
       'remaining_quantity': remainingQuantity,
       'unit': unit,
       'purchase_date': _startOfDay(purchaseDate).millisecondsSinceEpoch,
-      'expiry_date':
-          expiryDate == null ? null : _startOfDay(expiryDate!).millisecondsSinceEpoch,
+      'expiry_date': expiryDate == null
+          ? null
+          : _startOfDay(expiryDate!).millisecondsSinceEpoch,
       'remind_days': remindDays,
       'note': note,
       'created_at': createdAt.millisecondsSinceEpoch,
@@ -145,11 +148,12 @@ class StockItem {
       unit: (map['unit'] as String?) ?? '',
       totalQuantity: _asDouble(map['total_quantity']),
       remainingQuantity: _asDouble(map['remaining_quantity']),
-      purchaseDate: DateTime.fromMillisecondsSinceEpoch(map['purchase_date'] as int),
-      expiryDate:
-          map['expiry_date'] == null
-              ? null
-              : DateTime.fromMillisecondsSinceEpoch(map['expiry_date'] as int),
+      purchaseDate: DateTime.fromMillisecondsSinceEpoch(
+        map['purchase_date'] as int,
+      ),
+      expiryDate: map['expiry_date'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(map['expiry_date'] as int),
       remindDays: (map['remind_days'] as int?) ?? 3,
       note: (map['note'] as String?) ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
@@ -166,4 +170,3 @@ class StockItem {
     return DateTime(d.year, d.month, d.day);
   }
 }
-

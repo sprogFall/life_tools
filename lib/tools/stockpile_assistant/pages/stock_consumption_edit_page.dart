@@ -25,7 +25,6 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
   late final StockpileService _service;
 
   final _qtyController = TextEditingController(text: '1');
-  final _methodController = TextEditingController();
   final _noteController = TextEditingController();
 
   DateTime _consumedAt = DateTime.now();
@@ -40,7 +39,6 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
     final draft = widget.draft;
     if (draft != null) {
       _qtyController.text = StockpileFormat.num(draft.quantity);
-      _methodController.text = draft.method;
       _noteController.text = draft.note;
       _consumedAt = draft.consumedAt;
     }
@@ -60,7 +58,6 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
   @override
   void dispose() {
     _qtyController.dispose();
-    _methodController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -109,19 +106,23 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                         ],
                       ),
                     ),
-                  _buildTextField(
-                    key: const ValueKey('stock_consumption_qty'),
-                    controller: _qtyController,
-                    placeholder: '消耗数量',
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    key: const ValueKey('stock_consumption_method'),
-                    controller: _methodController,
-                    placeholder: '如何消耗（如：吃掉/用完/送人）',
-                    textInputAction: TextInputAction.next,
+                  _buildInlineTextField(
+                    title: '消耗数量',
+                    child: CupertinoTextField(
+                      key: const ValueKey('stock_consumption_qty'),
+                      controller: _qtyController,
+                      placeholder: '1',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      maxLines: 1,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 10,
+                      ),
+                      decoration: null,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildDateTimeRow(
@@ -130,12 +131,20 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                     onTap: _pickDateTime,
                   ),
                   const SizedBox(height: 12),
-                  _buildTextField(
-                    key: const ValueKey('stock_consumption_note'),
-                    controller: _noteController,
-                    placeholder: '备注（可选）',
-                    maxLines: 3,
-                    textInputAction: TextInputAction.newline,
+                  _buildInlineTextField(
+                    title: '备注',
+                    child: CupertinoTextField(
+                      key: const ValueKey('stock_consumption_note'),
+                      controller: _noteController,
+                      placeholder: '可选',
+                      textInputAction: TextInputAction.done,
+                      maxLines: 1,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 10,
+                      ),
+                      decoration: null,
+                    ),
                   ),
                 ],
               ),
@@ -185,6 +194,38 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
         maxLines: maxLines,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
         decoration: null,
+      ),
+    );
+  }
+
+  Widget _buildInlineTextField({required String title, required Widget child}) {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                color: IOS26Theme.textPrimary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: child,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -299,7 +340,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
         StockConsumption.create(
           itemId: widget.itemId,
           quantity: qty,
-          method: _methodController.text,
+          method: '',
           consumedAt: _consumedAt,
           note: _noteController.text,
           now: DateTime.now(),

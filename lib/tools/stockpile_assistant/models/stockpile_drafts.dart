@@ -8,6 +8,7 @@ class StockItemDraft {
   final DateTime? expiryDate;
   final int remindDays;
   final String note;
+  final List<int> tagIds;
 
   const StockItemDraft({
     required this.name,
@@ -19,6 +20,7 @@ class StockItemDraft {
     required this.expiryDate,
     required this.remindDays,
     required this.note,
+    this.tagIds = const [],
   });
 }
 
