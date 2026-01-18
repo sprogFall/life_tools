@@ -171,33 +171,6 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
     );
   }
 
-  Widget _buildTextField({
-    required Key key,
-    required TextEditingController controller,
-    required String placeholder,
-    TextInputType? keyboardType,
-    TextInputAction? textInputAction,
-    int maxLines = 1,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: CupertinoTextField(
-        key: key,
-        controller: controller,
-        placeholder: placeholder,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        maxLines: maxLines,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        decoration: null,
-      ),
-    );
-  }
-
   Widget _buildInlineTextField({required String title, required Widget child}) {
     return GlassContainer(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
