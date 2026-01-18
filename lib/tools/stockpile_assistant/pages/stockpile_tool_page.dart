@@ -7,16 +7,20 @@ import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
+import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
 import '../../work_log/pages/task/work_log_voice_input_sheet.dart';
 import '../ai/stockpile_ai_assistant.dart';
+import '../ai/stockpile_ai_context.dart';
 import '../ai/stockpile_ai_intent.dart';
 import '../models/stock_item.dart';
+import '../models/stockpile_drafts.dart';
 import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
 import '../utils/stockpile_utils.dart';
 import '../widgets/stockpile_consume_button.dart';
+import 'stockpile_ai_batch_entry_page.dart';
 import 'stock_consumption_edit_page.dart';
 import 'stock_item_detail_page.dart';
 import 'stock_item_edit_page.dart';
@@ -489,24 +493,20 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   }
 
   Future<String> _buildAiContext() async {
+    TagService? tagService;
+    try {
+      tagService = context.read<TagService>();
+    } on ProviderNotFoundException {
+      tagService = null;
+    }
+
     final now = DateTime.now();
     final items = await _service.listAllItemsForAiContext();
-    final lines = items
-        .where((e) => e.id != null)
-        .take(80)
-        .map((e) {
-          final id = e.id;
-          final unit = e.unit.trim();
-          final unitText = unit.isEmpty ? '' : unit;
-          return '- [id=$id] ${e.name}（库存：${StockpileFormat.num(e.remainingQuantity)}/${StockpileFormat.num(e.totalQuantity)}$unitText）';
-        })
-        .join('\n');
+    final tags = tagService == null
+        ? _service.availableTags
+        : await tagService.listTagsForTool('stockpile_assistant');
 
-    return [
-      '当前日期：${StockpileFormat.date(now)}',
-      '现有物品列表（可用于 item_ref.id / item_ref.name，可能为空）：',
-      lines.isEmpty ? '- (无)' : lines,
-    ].join('\n');
+    return buildStockpileAiContext(now: now, items: items, tags: tags);
   }
 
   Future<void> _applyAiIntent(
@@ -522,100 +522,44 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
       return;
     }
 
+    final items = <StockItemDraft>[];
+    final consumptions = <StockpileAiConsumptionEntry>[];
     if (intent is CreateItemIntent) {
-      final saved = await Navigator.of(context).push<bool>(
-        CupertinoPageRoute(
-          builder: (_) => ChangeNotifierProvider.value(
-            value: _service,
-            child: StockItemEditPage(draft: intent.draft),
-          ),
+      items.add(intent.draft);
+    } else if (intent is AddConsumptionIntent) {
+      consumptions.add(
+        StockpileAiConsumptionEntry(
+          itemRef: intent.itemRef,
+          draft: intent.draft,
         ),
       );
-      if (!mounted) return;
-      if (saved == true) await _service.loadItems();
+    } else if (intent is BatchEntryIntent) {
+      items.addAll(intent.items);
+      consumptions.addAll(intent.consumptions);
+    }
+
+    if (items.isEmpty && consumptions.isEmpty) {
+      await StockpileDialogs.showMessage(
+        context,
+        title: '无法识别指令',
+        content: 'AI 返回了无法处理的指令。\n\nAI 返回：\n$rawJson',
+      );
       return;
     }
 
-    if (intent is AddConsumptionIntent) {
-      final itemId = await _resolveItemIdForConsumption(ref: intent.itemRef);
-      if (itemId == null || !mounted) return;
-
-      final saved = await Navigator.of(context).push<bool>(
-        CupertinoPageRoute(
-          builder: (_) => ChangeNotifierProvider.value(
-            value: _service,
-            child: StockConsumptionEditPage(
-              itemId: itemId,
-              draft: intent.draft,
-            ),
+    final saved = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: StockpileAiBatchEntryPage(
+            initialItems: items,
+            initialConsumptions: consumptions,
           ),
-        ),
-      );
-      if (!mounted) return;
-      if (saved == true) await _service.loadItems();
-      return;
-    }
-  }
-
-  Future<int?> _resolveItemIdForConsumption({
-    required StockpileAiItemRef ref,
-  }) async {
-    if (ref.id != null) return ref.id;
-
-    final name = ref.name?.trim();
-    if (name == null || name.isEmpty) {
-      await StockpileDialogs.showMessage(
-        context,
-        title: '提示',
-        content: 'AI 未提供要消耗的物品，请重试并明确物品名称。',
-      );
-      return null;
-    }
-
-    final items = await _service.listAllItemsForAiContext();
-    final exact = items
-        .where((e) => e.id != null && e.name.trim() == name)
-        .toList();
-    final candidates = exact.isNotEmpty
-        ? exact
-        : items.where((e) {
-            if (e.id == null) return false;
-            final n = e.name.trim();
-            return n.contains(name) || name.contains(n);
-          }).toList();
-
-    if (candidates.isEmpty) {
-      if (!mounted) return null;
-      await StockpileDialogs.showMessage(
-        context,
-        title: '未找到物品',
-        content: '未在本地找到「$name」，请先新增该物品或修改描述再试。',
-      );
-      return null;
-    }
-
-    if (candidates.length == 1) return candidates.single.id;
-
-    if (!mounted) return null;
-    return showCupertinoModalPopup<int?>(
-      context: context,
-      builder: (_) => CupertinoActionSheet(
-        title: const Text('选择物品'),
-        message: const Text('AI 匹配到多个可能的物品，请选择一个'),
-        actions: [
-          for (final item in candidates)
-            CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(context, item.id),
-              child: Text(item.name),
-            ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
         ),
       ),
     );
+    if (!mounted) return;
+    if (saved == true) await _service.loadItems();
   }
 
   void _showLoading(String text) {

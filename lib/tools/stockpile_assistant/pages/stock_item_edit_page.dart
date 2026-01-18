@@ -104,6 +104,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _purchaseDate = draft.purchaseDate;
     _expiryDate = draft.expiryDate;
     _hasExpiry = draft.expiryDate != null;
+    _selectedTagIds = draft.tagIds.toSet();
   }
 
   @override

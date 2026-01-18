@@ -33,6 +33,23 @@ class AddConsumptionIntent extends StockpileAiIntent {
   const AddConsumptionIntent({required this.itemRef, required this.draft});
 }
 
+class StockpileAiConsumptionEntry {
+  final StockpileAiItemRef itemRef;
+  final StockConsumptionDraft draft;
+
+  const StockpileAiConsumptionEntry({
+    required this.itemRef,
+    required this.draft,
+  });
+}
+
+class BatchEntryIntent extends StockpileAiIntent {
+  final List<StockItemDraft> items;
+  final List<StockpileAiConsumptionEntry> consumptions;
+
+  const BatchEntryIntent({required this.items, required this.consumptions});
+}
+
 class StockpileAiIntentParser {
   static StockpileAiIntent parse(String text) {
     final map = _decodeJsonObject(text);
@@ -48,6 +65,8 @@ class StockpileAiIntentParser {
         return _parseCreateItem(map);
       case 'add_consumption':
         return _parseAddConsumption(map);
+      case 'batch_entry':
+        return _parseBatchEntry(map);
       default:
         return UnknownIntent(reason: '不支持的 type: $type', raw: map);
     }
@@ -59,9 +78,92 @@ class StockpileAiIntentParser {
       return UnknownIntent(reason: 'create_item 缺少 item 对象', raw: root);
     }
 
+    final parsed = _parseStockItemDraft(item);
+    if (parsed.error != null) {
+      return UnknownIntent(reason: 'create_item ${parsed.error}', raw: root);
+    }
+
+    return CreateItemIntent(draft: parsed.draft!);
+  }
+
+  static StockpileAiIntent _parseAddConsumption(Map<String, Object?> root) {
+    final parsed = _parseConsumptionEntry(
+      root,
+      missingConsumptionError: 'add_consumption 缺少 consumption 对象',
+      invalidQuantityError: 'add_consumption 缺少有效的 consumption.quantity',
+    );
+    if (parsed.error != null) {
+      return UnknownIntent(reason: parsed.error!, raw: root);
+    }
+
+    return AddConsumptionIntent(
+      itemRef: parsed.entry!.itemRef,
+      draft: parsed.entry!.draft,
+    );
+  }
+
+  static StockpileAiIntent _parseBatchEntry(Map<String, Object?> root) {
+    final items = <StockItemDraft>[];
+    final consumptions = <StockpileAiConsumptionEntry>[];
+
+    final itemsRaw = root['items'];
+    if (itemsRaw is List) {
+      for (var i = 0; i < itemsRaw.length; i++) {
+        final m = _asMap(itemsRaw[i]);
+        if (m == null) {
+          return UnknownIntent(reason: 'batch_entry.items[$i] 不是对象', raw: root);
+        }
+        final parsed = _parseStockItemDraft(m);
+        if (parsed.error != null) {
+          return UnknownIntent(
+            reason: 'batch_entry.items[$i] ${parsed.error}',
+            raw: root,
+          );
+        }
+        items.add(parsed.draft!);
+      }
+    }
+
+    final consumptionsRaw = root['consumptions'];
+    if (consumptionsRaw is List) {
+      for (var i = 0; i < consumptionsRaw.length; i++) {
+        final m = _asMap(consumptionsRaw[i]);
+        if (m == null) {
+          return UnknownIntent(
+            reason: 'batch_entry.consumptions[$i] 不是对象',
+            raw: root,
+          );
+        }
+        final parsed = _parseConsumptionEntry(
+          m,
+          missingConsumptionError:
+              'batch_entry.consumptions[$i] 缺少 consumption 对象',
+          invalidQuantityError:
+              'batch_entry.consumptions[$i] 缺少有效的 consumption.quantity',
+        );
+        if (parsed.error != null) {
+          return UnknownIntent(reason: parsed.error!, raw: root);
+        }
+        consumptions.add(parsed.entry!);
+      }
+    }
+
+    if (items.isEmpty && consumptions.isEmpty) {
+      return UnknownIntent(
+        reason: 'batch_entry 缺少 items/consumptions',
+        raw: root,
+      );
+    }
+
+    return BatchEntryIntent(items: items, consumptions: consumptions);
+  }
+
+  static ({StockItemDraft? draft, String? error}) _parseStockItemDraft(
+    Map<String, Object?> item,
+  ) {
     final name = _asString(item['name'])?.trim();
     if (name == null || name.isEmpty) {
-      return UnknownIntent(reason: 'create_item 缺少 item.name', raw: root);
+      return (draft: null, error: '缺少 item.name');
     }
 
     final total = _asDouble(item['total_quantity']) ?? 1;
@@ -70,7 +172,13 @@ class StockpileAiIntentParser {
         _parseDateOnly(_asString(item['purchase_date'])) ?? DateTime.now();
     final expiryDate = _parseDateOnly(_asString(item['expiry_date']));
 
-    return CreateItemIntent(
+    final tagIds =
+        _asList(
+          item['tag_ids'],
+        )?.map(_asInt).whereType<int>().toList(growable: false) ??
+        const <int>[];
+
+    return (
       draft: StockItemDraft(
         name: name,
         location: _asString(item['location'])?.trim() ?? '',
@@ -81,11 +189,18 @@ class StockpileAiIntentParser {
         expiryDate: expiryDate,
         remindDays: _asInt(item['remind_days']) ?? 3,
         note: _asString(item['note'])?.trim() ?? '',
+        tagIds: tagIds,
       ),
+      error: null,
     );
   }
 
-  static StockpileAiIntent _parseAddConsumption(Map<String, Object?> root) {
+  static ({StockpileAiConsumptionEntry? entry, String? error})
+  _parseConsumptionEntry(
+    Map<String, Object?> root, {
+    required String missingConsumptionError,
+    required String invalidQuantityError,
+  }) {
     final itemRefMap = _asMap(root['item_ref']);
     final itemRef = StockpileAiItemRef(
       id: itemRefMap != null ? _asInt(itemRefMap['id']) : null,
@@ -94,31 +209,28 @@ class StockpileAiIntentParser {
 
     final consumption = _asMap(root['consumption']);
     if (consumption == null) {
-      return UnknownIntent(
-        reason: 'add_consumption 缺少 consumption 对象',
-        raw: root,
-      );
+      return (entry: null, error: missingConsumptionError);
     }
 
     final quantity = _asDouble(consumption['quantity']);
     if (quantity == null || quantity <= 0) {
-      return UnknownIntent(
-        reason: 'add_consumption 缺少有效的 consumption.quantity',
-        raw: root,
-      );
+      return (entry: null, error: invalidQuantityError);
     }
 
     final consumedAt =
         _parseDateTime(_asString(consumption['consumed_at'])) ?? DateTime.now();
 
-    return AddConsumptionIntent(
-      itemRef: itemRef,
-      draft: StockConsumptionDraft(
-        quantity: quantity,
-        method: _asString(consumption['method'])?.trim() ?? '',
-        consumedAt: consumedAt,
-        note: _asString(consumption['note'])?.trim() ?? '',
+    return (
+      entry: StockpileAiConsumptionEntry(
+        itemRef: itemRef,
+        draft: StockConsumptionDraft(
+          quantity: quantity,
+          method: _asString(consumption['method'])?.trim() ?? '',
+          consumedAt: consumedAt,
+          note: _asString(consumption['note'])?.trim() ?? '',
+        ),
       ),
+      error: null,
     );
   }
 
@@ -146,6 +258,11 @@ class StockpileAiIntentParser {
 
   static Map<String, Object?>? _asMap(Object? value) {
     if (value is Map) return value.cast<String, Object?>();
+    return null;
+  }
+
+  static List<Object?>? _asList(Object? value) {
+    if (value is List) return value.cast<Object?>();
     return null;
   }
 

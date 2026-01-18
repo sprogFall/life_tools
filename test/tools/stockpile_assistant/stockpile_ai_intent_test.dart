@@ -65,5 +65,67 @@ void main() {
       final intent = StockpileAiIntentParser.parse(json);
       expect(intent, isA<UnknownIntent>());
     });
+
+    test('batch_entry: 能解析多物品/多消耗/标签', () {
+      const json = '''
+{
+  "type": "batch_entry",
+  "items": [
+    {
+      "name": "牛奶",
+      "location": "冰箱",
+      "total_quantity": 2,
+      "remaining_quantity": 2,
+      "unit": "盒",
+      "purchase_date": "2026-01-01",
+      "expiry_date": "2026-01-05",
+      "remind_days": 2,
+      "note": "早餐",
+      "tag_ids": [1, 3]
+    },
+    {
+      "name": "面包",
+      "location": "",
+      "total_quantity": 1,
+      "remaining_quantity": 1,
+      "unit": "袋",
+      "purchase_date": "2026-01-01",
+      "expiry_date": null,
+      "remind_days": 3,
+      "note": "",
+      "tag_ids": []
+    }
+  ],
+  "consumptions": [
+    {
+      "item_ref": { "id": 12, "name": "牛奶" },
+      "consumption": {
+        "quantity": 1,
+        "method": "喝掉",
+        "consumed_at": "2026-01-02T09:00:00",
+        "note": "早餐"
+      }
+    }
+  ]
+}
+''';
+
+      final intent = StockpileAiIntentParser.parse(json);
+      expect(intent, isA<BatchEntryIntent>());
+      final batch = intent as BatchEntryIntent;
+
+      expect(batch.items.length, 2);
+      expect(batch.items[0].name, '牛奶');
+      expect(batch.items[0].tagIds, [1, 3]);
+      expect(batch.items[0].expiryDate, DateTime(2026, 1, 5));
+      expect(batch.items[1].name, '面包');
+      expect(batch.items[1].tagIds, isEmpty);
+      expect(batch.items[1].expiryDate, isNull);
+
+      expect(batch.consumptions.length, 1);
+      expect(batch.consumptions[0].itemRef.id, 12);
+      expect(batch.consumptions[0].itemRef.name, '牛奶');
+      expect(batch.consumptions[0].draft.quantity, 1);
+    });
   });
 }
