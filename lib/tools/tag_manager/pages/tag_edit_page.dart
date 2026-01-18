@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -57,7 +55,28 @@ class _TagEditPageState extends State<TagEditPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context),
+            IOS26AppBar(
+              title: _isEdit ? '编辑标签' : '新增标签',
+              showBackButton: true,
+              onBackPressed: () => Navigator.pop(context, false),
+              actions: [
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  onPressed: () => _save(context),
+                  child: const Text(
+                    '保存',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: IOS26Theme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -72,66 +91,6 @@ class _TagEditPageState extends State<TagEditPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: IOS26Theme.glassColor,
-            border: Border(
-              bottom: BorderSide(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: () => Navigator.pop(context, false),
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: IOS26Theme.primaryColor,
-                  size: 20,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  _isEdit ? '编辑标签' : '新增标签',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.41,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                onPressed: () => _save(context),
-                child: const Text(
-                  '保存',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: IOS26Theme.primaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

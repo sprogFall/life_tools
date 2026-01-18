@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -112,73 +111,32 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(context),
+            IOS26AppBar(
+              title: _task?.title ?? widget.title,
+              showBackButton: true,
+              actions: [
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: _task != null ? _openEditTask : null,
+                  child: const Icon(
+                    CupertinoIcons.pencil,
+                    color: IOS26Theme.primaryColor,
+                    size: 22,
+                  ),
+                ),
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: _showMoreOptions,
+                  child: const Icon(
+                    CupertinoIcons.ellipsis,
+                    color: IOS26Theme.primaryColor,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
             Expanded(child: _loading ? _buildLoading() : _buildContent()),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: IOS26Theme.glassColor,
-            border: Border(
-              bottom: BorderSide(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: () => Navigator.pop(context),
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: IOS26Theme.primaryColor,
-                  size: 20,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  _task?.title ?? widget.title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.41,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: _task != null ? _openEditTask : null,
-                child: const Icon(
-                  CupertinoIcons.pencil,
-                  color: IOS26Theme.primaryColor,
-                  size: 22,
-                ),
-              ),
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: _showMoreOptions,
-                child: const Icon(
-                  CupertinoIcons.ellipsis,
-                  color: IOS26Theme.primaryColor,
-                  size: 22,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
