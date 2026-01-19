@@ -294,6 +294,8 @@ class _TagCard extends StatelessWidget {
 
   const _TagCard({required this.tag, this.reorderIndex});
 
+  static const int _tagNameMaxChars = 6;
+
   static String _truncateWithEllipsis(String text, int maxChars) {
     final trimmed = text.trim();
     final chars = trimmed.characters;
@@ -309,99 +311,79 @@ class _TagCard extends StatelessWidget {
     final toolText = toolNames.join('、');
     final tagId = tag.tag.id ?? tag.tag.name;
 
-    return SizedBox(
-      width: double.infinity,
-      child: GlassContainer(
-        key: ValueKey('tag-row-${tag.tag.id ?? tag.tag.name}'),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  if (reorderIndex != null) ...[
-                    ReorderableDelayedDragStartListener(
-                      index: reorderIndex!,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: Icon(
-                          CupertinoIcons.line_horizontal_3,
-                          size: 18,
-                          color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+    return Dismissible(
+      key: ValueKey('tag-dismiss-$tagId'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _confirmDeleteAndDelete(context),
+      background: const SizedBox.shrink(),
+      secondaryBackground: _deleteBackground(),
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minSize: 0,
+        pressedOpacity: 0.7,
+        onPressed: () => _openEdit(context),
+        child: SizedBox(
+          width: double.infinity,
+          child: GlassContainer(
+            key: ValueKey('tag-row-${tag.tag.id ?? tag.tag.name}'),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      if (reorderIndex != null) ...[
+                        ReorderableDelayedDragStartListener(
+                          index: reorderIndex!,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: Icon(
+                              CupertinoIcons.line_horizontal_3,
+                              size: 18,
+                              color: IOS26Theme.textSecondary.withValues(
+                                alpha: 0.9,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      Flexible(
+                        flex: 3,
+                        child: Text(
+                          _truncateWithEllipsis(tag.tag.name, _tagNameMaxChars),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: IOS26Theme.textPrimary,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                  Flexible(
-                    flex: 3,
-                    child: Text(
-                      _truncateWithEllipsis(tag.tag.name, 6),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: IOS26Theme.textPrimary,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 5,
+                        child: Text(
+                          toolText.isEmpty ? '未关联工具' : toolText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: IOS26Theme.textSecondary.withValues(
+                              alpha: 0.95,
+                            ),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 5,
-                    child: Text(
-                      toolText.isEmpty ? '未关联工具' : toolText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 96,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _iconButton(
-                    key: ValueKey('tag-edit-$tagId'),
-                    icon: CupertinoIcons.pencil,
-                    onPressed: () => _openEdit(context),
-                  ),
-                  const SizedBox(width: 8),
-                  _iconButton(
-                    key: ValueKey('tag-delete-$tagId'),
-                    icon: CupertinoIcons.trash,
-                    color: IOS26Theme.toolRed,
-                    onPressed: () => _confirmDelete(context),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  static Widget _iconButton({
-    Key? key,
-    required IconData icon,
-    required VoidCallback onPressed,
-    Color color = IOS26Theme.primaryColor,
-  }) {
-    return CupertinoButton(
-      key: key,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      onPressed: onPressed,
-      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
-      borderRadius: BorderRadius.circular(14),
-      child: Icon(icon, size: 18, color: color),
     );
   }
 
@@ -414,7 +396,33 @@ class _TagCard extends StatelessWidget {
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context) async {
+  static Widget _deleteBackground() {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        color: IOS26Theme.toolRed.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(CupertinoIcons.trash, color: Colors.white, size: 18),
+          SizedBox(width: 8),
+          Text(
+            '删除',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _confirmDeleteAndDelete(BuildContext context) async {
     final ok = await showCupertinoDialog<bool>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -434,8 +442,9 @@ class _TagCard extends StatelessWidget {
       ),
     );
 
-    if (ok == true && context.mounted) {
-      await context.read<TagService>().deleteTag(tag.tag.id!);
-    }
+    if (ok != true || !context.mounted) return false;
+
+    await context.read<TagService>().deleteTag(tag.tag.id!);
+    return true;
   }
 }
