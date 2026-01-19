@@ -1,9 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
+import 'package:life_tools/tools/tag_manager/pages/tag_edit_page.dart';
 import 'package:life_tools/tools/tag_manager/pages/tag_manager_tool_page.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -55,6 +57,14 @@ void main() {
         if (finder.evaluate().isNotEmpty) return;
       }
       fail('等待组件超时: $finder');
+    }
+
+    Future<void> pumpUntilNotFound(WidgetTester tester, Finder finder) async {
+      for (int i = 0; i < 200; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        if (finder.evaluate().isEmpty) return;
+      }
+      fail('等待组件消失超时: $finder');
     }
 
     testWidgets('支持按关联工具筛选标签', (tester) async {
@@ -144,42 +154,85 @@ void main() {
       expect(find.text('一二三四五六七八'), findsNothing);
     });
 
-    testWidgets('修改/删除按钮在所有行统一靠右对齐', (tester) async {
+    testWidgets('点击标签行进入编辑页（全部）', (tester) async {
       final deps = await createTagService(tester);
-      late int id1;
-      late int id2;
+      late int id;
       await tester.runAsync(() async {
-        id1 = await deps.repository.createTag(
-          name: '短名',
-          toolIds: const ['work_log'],
-        );
-        id2 = await deps.repository.createTag(
-          name: '更长一点的名字用于挤压',
+        id = await deps.repository.createTag(
+          name: '紧急',
           toolIds: const ['work_log', 'stockpile_assistant'],
         );
         await deps.service.refreshAll();
       });
 
       await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
-      await pumpUntilFound(tester, find.byKey(ValueKey('tag-edit-$id1')));
+      await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id')));
 
-      final edit1 = find.byKey(ValueKey('tag-edit-$id1'));
-      final edit2 = find.byKey(ValueKey('tag-edit-$id2'));
-      final del1 = find.byKey(ValueKey('tag-delete-$id1'));
-      final del2 = find.byKey(ValueKey('tag-delete-$id2'));
+      await tester.tap(find.byKey(ValueKey('tag-row-$id')));
+      await tester.pump();
 
-      expect(edit1, findsOneWidget);
-      expect(edit2, findsOneWidget);
-      expect(del1, findsOneWidget);
-      expect(del2, findsOneWidget);
+      await pumpUntilFound(tester, find.byType(TagEditPage));
+      expect(find.byType(TagEditPage), findsOneWidget);
+    });
 
-      final editRight1 = tester.getTopRight(edit1).dx;
-      final editRight2 = tester.getTopRight(edit2).dx;
-      final delRight1 = tester.getTopRight(del1).dx;
-      final delRight2 = tester.getTopRight(del2).dx;
+    testWidgets('点击标签行进入编辑页（筛选后）', (tester) async {
+      final deps = await createTagService(tester);
+      late int id1;
+      await tester.runAsync(() async {
+        id1 = await deps.repository.createTag(
+          name: '紧急',
+          toolIds: const ['work_log'],
+        );
+        await deps.repository.createTag(
+          name: '采购',
+          toolIds: const ['stockpile_assistant'],
+        );
+        await deps.service.refreshAll();
+      });
 
-      expect(editRight1, closeTo(editRight2, 0.5));
-      expect(delRight1, closeTo(delRight2, 0.5));
+      await tester.pumpWidget(
+        wrap(deps.service, const TagManagerToolPage(initialToolId: 'work_log')),
+      );
+      await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id1')));
+      expect(find.text('采购'), findsNothing);
+
+      await tester.tap(find.byKey(ValueKey('tag-row-$id1')));
+      await tester.pump();
+
+      await pumpUntilFound(tester, find.byType(TagEditPage));
+      expect(find.byType(TagEditPage), findsOneWidget);
+    });
+
+    testWidgets('点击删除按钮弹确认框并删除标签', (tester) async {
+      final deps = await createTagService(tester);
+      late int id;
+      await tester.runAsync(() async {
+        id = await deps.repository.createTag(
+          name: '紧急',
+          toolIds: const ['work_log'],
+        );
+        await deps.service.refreshAll();
+      });
+
+      await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
+      await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id')));
+
+      await tester.tap(find.byKey(ValueKey('tag-delete-$id')));
+      await tester.pump();
+      await pumpUntilFound(tester, find.text('确认删除'));
+
+      await tester.tap(find.widgetWithText(CupertinoDialogAction, '删除'));
+      await tester.pump();
+      await tester.runAsync(() async {
+        final deadline = DateTime.now().add(const Duration(seconds: 5));
+        while (DateTime.now().isBefore(deadline)) {
+          final exists = deps.service.allTags.any((e) => e.tag.id == id);
+          if (!deps.service.loading && !exists) return;
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+        fail('等待删除完成超时: tagId=$id');
+      });
+      await pumpUntilNotFound(tester, find.byKey(ValueKey('tag-row-$id')));
     });
   });
 }

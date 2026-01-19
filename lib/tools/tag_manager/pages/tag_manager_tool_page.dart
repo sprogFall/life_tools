@@ -294,6 +294,8 @@ class _TagCard extends StatelessWidget {
 
   const _TagCard({required this.tag, this.reorderIndex});
 
+  static const int _tagNameMaxChars = 6;
+
   static String _truncateWithEllipsis(String text, int maxChars) {
     final trimmed = text.trim();
     final chars = trimmed.characters;
@@ -317,76 +319,81 @@ class _TagCard extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Row(
-                children: [
-                  if (reorderIndex != null) ...[
-                    ReorderableDelayedDragStartListener(
-                      index: reorderIndex!,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: Icon(
-                          CupertinoIcons.line_horizontal_3,
-                          size: 18,
-                          color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                minSize: 0,
+                pressedOpacity: 0.7,
+                onPressed: () => _openEdit(context),
+                child: Row(
+                  children: [
+                    if (reorderIndex != null) ...[
+                      ReorderableDelayedDragStartListener(
+                        index: reorderIndex!,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Icon(
+                            CupertinoIcons.line_horizontal_3,
+                            size: 18,
+                            color: IOS26Theme.textSecondary.withValues(
+                              alpha: 0.9,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    Flexible(
+                      flex: 5,
+                      child: Text(
+                        _truncateWithEllipsis(tag.tag.name, _tagNameMaxChars),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: IOS26Theme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        toolText.isEmpty ? '未关联工具' : toolText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.95,
+                          ),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ],
-                  Flexible(
-                    flex: 3,
-                    child: Text(
-                      _truncateWithEllipsis(tag.tag.name, 6),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: IOS26Theme.textPrimary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 5,
-                    child: Text(
-                      toolText.isEmpty ? '未关联工具' : toolText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             const SizedBox(width: 10),
-            SizedBox(
-              width: 96,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _iconButton(
-                    key: ValueKey('tag-edit-$tagId'),
-                    icon: CupertinoIcons.pencil,
-                    onPressed: () => _openEdit(context),
-                  ),
-                  const SizedBox(width: 8),
-                  _iconButton(
-                    key: ValueKey('tag-delete-$tagId'),
-                    icon: CupertinoIcons.trash,
-                    color: IOS26Theme.toolRed,
-                    onPressed: () => _confirmDelete(context),
-                  ),
-                ],
-              ),
+            _iconButton(
+              key: ValueKey('tag-delete-$tagId'),
+              icon: CupertinoIcons.trash,
+              color: IOS26Theme.toolRed,
+              onPressed: () => _confirmDelete(context),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openEdit(BuildContext context) async {
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(CupertinoPageRoute(builder: (_) => TagEditPage(editing: tag)));
+    if (saved == true && context.mounted) {
+      await context.read<TagService>().refreshAll();
+    }
   }
 
   static Widget _iconButton({
@@ -403,15 +410,6 @@ class _TagCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Icon(icon, size: 18, color: color),
     );
-  }
-
-  Future<void> _openEdit(BuildContext context) async {
-    final saved = await Navigator.of(
-      context,
-    ).push<bool>(CupertinoPageRoute(builder: (_) => TagEditPage(editing: tag)));
-    if (saved == true && context.mounted) {
-      await context.read<TagService>().refreshAll();
-    }
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
