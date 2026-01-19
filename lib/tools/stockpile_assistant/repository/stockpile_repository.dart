@@ -191,6 +191,8 @@ WHERE EXISTS(SELECT 1 FROM stock_items WHERE id = ?)
       'purchase_date',
       'expiry_date',
       'remind_days',
+      'restock_remind_date',
+      'restock_remind_quantity',
       'note',
       'created_at',
       'updated_at',

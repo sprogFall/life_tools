@@ -33,6 +33,10 @@ class StockpileService extends ChangeNotifier {
     return _items.where((e) => !e.isDepleted && e.isExpiringSoon(now)).toList();
   }
 
+  List<StockItem> restockDueItems(DateTime now) {
+    return _items.where((e) => e.isRestockDue(now)).toList();
+  }
+
   List<Tag> tagsForItem(int itemId) {
     return List.unmodifiable(_itemTags[itemId] ?? const []);
   }

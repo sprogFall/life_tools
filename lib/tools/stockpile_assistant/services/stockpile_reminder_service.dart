@@ -11,6 +11,7 @@ class StockpileReminderService {
 
   static const int _notificationIdStride = 100;
   static const int _notificationIdBase = 1000000;
+  static const int _restockNotificationIdBase = 2000000;
   static const int _maxScheduledNotificationsPerItem = 40;
   static const int _maxScheduledDays = 30;
   static const int _defaultNotificationHour = 9;
@@ -42,6 +43,10 @@ class StockpileReminderService {
     return 'stockpile:expiry:$itemId';
   }
 
+  static String restockDedupeKeyForItem({required int itemId}) {
+    return 'stockpile:restock:$itemId';
+  }
+
   Future<void> _syncItem({
     required MessageService messageService,
     required StockItem item,
@@ -50,13 +55,38 @@ class StockpileReminderService {
     final id = item.id;
     if (id == null) return;
 
-    final dedupeKey = dedupeKeyForItem(itemId: id);
-
-    await _syncScheduledNotifications(
+    await _syncScheduledExpiryNotifications(
       messageService: messageService,
       item: item,
       now: time,
     );
+    await _syncScheduledRestockNotifications(
+      messageService: messageService,
+      item: item,
+      now: time,
+    );
+
+    await _syncExpiryMessage(
+      messageService: messageService,
+      item: item,
+      time: time,
+    );
+    await _syncRestockMessage(
+      messageService: messageService,
+      item: item,
+      time: time,
+    );
+  }
+
+  Future<void> _syncExpiryMessage({
+    required MessageService messageService,
+    required StockItem item,
+    required DateTime time,
+  }) async {
+    final id = item.id;
+    if (id == null) return;
+
+    final dedupeKey = dedupeKeyForItem(itemId: id);
 
     if (item.isDepleted || item.expiryDate == null || item.remindDays < 0) {
       await messageService.deleteMessageByDedupeKey(dedupeKey);
@@ -74,6 +104,38 @@ class StockpileReminderService {
       toolId: 'stockpile_assistant',
       title: '囤货助手',
       body: buildBody(item: item, now: time),
+      dedupeKey: dedupeKey,
+      route: 'tool://stockpile_assistant',
+      createdAt: time,
+      notify: true,
+    );
+  }
+
+  Future<void> _syncRestockMessage({
+    required MessageService messageService,
+    required StockItem item,
+    required DateTime time,
+  }) async {
+    final id = item.id;
+    if (id == null) return;
+
+    final dedupeKey = restockDedupeKeyForItem(itemId: id);
+
+    if (!item.hasRestockReminder) {
+      await messageService.deleteMessageByDedupeKey(dedupeKey);
+      return;
+    }
+
+    final due = item.isRestockDue(time);
+    if (!due) {
+      await messageService.deleteMessageByDedupeKey(dedupeKey);
+      return;
+    }
+
+    await messageService.upsertMessage(
+      toolId: 'stockpile_assistant',
+      title: '囤货助手',
+      body: buildRestockBody(item: item, now: time),
       dedupeKey: dedupeKey,
       route: 'tool://stockpile_assistant',
       createdAt: time,
@@ -114,6 +176,10 @@ class StockpileReminderService {
     return _notificationIdBase + itemId * _notificationIdStride + index;
   }
 
+  static int _restockNotificationIdForItem(int itemId) {
+    return _restockNotificationIdBase + itemId;
+  }
+
   static Future<void> cancelScheduledNotificationsForItem({
     required MessageService messageService,
     required int itemId,
@@ -123,9 +189,12 @@ class StockpileReminderService {
         _notificationIdForItem(itemId, i),
       );
     }
+    await messageService.cancelSystemNotification(
+      _restockNotificationIdForItem(itemId),
+    );
   }
 
-  Future<void> _syncScheduledNotifications({
+  Future<void> _syncScheduledExpiryNotifications({
     required MessageService messageService,
     required StockItem item,
     required DateTime now,
@@ -133,10 +202,11 @@ class StockpileReminderService {
     final id = item.id;
     if (id == null) return;
 
-    await cancelScheduledNotificationsForItem(
-      messageService: messageService,
-      itemId: id,
-    );
+    for (var i = 0; i < _maxScheduledNotificationsPerItem; i++) {
+      await messageService.cancelSystemNotification(
+        _notificationIdForItem(id, i),
+      );
+    }
 
     final expiry = item.expiryDate;
     if (item.isDepleted || expiry == null) return;
@@ -167,5 +237,61 @@ class StockpileReminderService {
         scheduledAt: scheduledAt,
       );
     }
+  }
+
+  Future<void> _syncScheduledRestockNotifications({
+    required MessageService messageService,
+    required StockItem item,
+    required DateTime now,
+  }) async {
+    final id = item.id;
+    if (id == null) return;
+
+    await messageService.cancelSystemNotification(_restockNotificationIdForItem(id));
+
+    final d = item.restockRemindDate;
+    if (d == null) return;
+
+    final scheduledAt = DateTime(d.year, d.month, d.day, _defaultNotificationHour);
+    if (!scheduledAt.isAfter(now)) return;
+
+    await messageService.scheduleSystemNotification(
+      id: _restockNotificationIdForItem(id),
+      title: '囤货助手',
+      body: buildRestockBody(item: item, now: scheduledAt),
+      scheduledAt: scheduledAt,
+    );
+  }
+
+  static String buildRestockBody({required StockItem item, required DateTime now}) {
+    final location = item.location.trim();
+    final locationText = location.isEmpty ? '' : '（$location）';
+    final qtyText = '${StockpileFormat.num(item.remainingQuantity)}${item.unit}';
+
+    final reasons = <String>[];
+    final d = item.restockRemindDate;
+    if (d != null) {
+      final today = DateTime(now.year, now.month, now.day);
+      final target = DateTime(d.year, d.month, d.day);
+      final diff = today.difference(target).inDays;
+      final dateText = StockpileFormat.date(target);
+      if (diff == 0) {
+        reasons.add('今天到提醒日期（$dateText）');
+      } else if (diff > 0) {
+        reasons.add('已到提醒日期（$dateText）');
+      } else {
+        reasons.add('提醒日期（$dateText）');
+      }
+    }
+
+    final q = item.restockRemindQuantity;
+    if (q != null) {
+      final unit = item.unit.trim();
+      final unitText = unit.isEmpty ? '' : unit;
+      reasons.add('库存≤${StockpileFormat.num(q)}$unitText');
+    }
+
+    final reasonText = reasons.isEmpty ? '' : '（${reasons.join('，')}）';
+    return '【囤货助手】${item.name}$locationText 需要补货$reasonText，剩余 $qtyText。';
   }
 }

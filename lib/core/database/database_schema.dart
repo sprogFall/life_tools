@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 9;
+  static const int version = 10;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -46,6 +46,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 9) {
       await _upgradeToVersion9(db);
+    }
+    if (oldVersion < 10) {
+      await _upgradeToVersion10(db);
     }
   }
 
@@ -259,6 +262,8 @@ class DatabaseSchema {
         purchase_date INTEGER NOT NULL,
         expiry_date INTEGER,
         remind_days INTEGER NOT NULL DEFAULT 3,
+        restock_remind_date INTEGER,
+        restock_remind_quantity REAL,
         note TEXT NOT NULL DEFAULT '',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -345,6 +350,8 @@ class DatabaseSchema {
             purchase_date INTEGER NOT NULL,
             expiry_date INTEGER,
             remind_days INTEGER NOT NULL DEFAULT 3,
+            restock_remind_date INTEGER,
+            restock_remind_quantity REAL,
             note TEXT NOT NULL DEFAULT '',
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
@@ -375,5 +382,24 @@ class DatabaseSchema {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_stock_items_name ON stock_items(name COLLATE NOCASE)',
     );
+  }
+
+  static Future<void> _upgradeToVersion10(Database db) async {
+    // v10: stock_items 增加补货提醒字段 restock_remind_date / restock_remind_quantity
+    await _createStockpileTables(db);
+
+    final columns = await db.rawQuery('PRAGMA table_info(stock_items)');
+    final names = columns.map((e) => e['name']).whereType<String>().toSet();
+
+    if (!names.contains('restock_remind_date')) {
+      await db.execute(
+        'ALTER TABLE stock_items ADD COLUMN restock_remind_date INTEGER',
+      );
+    }
+    if (!names.contains('restock_remind_quantity')) {
+      await db.execute(
+        'ALTER TABLE stock_items ADD COLUMN restock_remind_quantity REAL',
+      );
+    }
   }
 }

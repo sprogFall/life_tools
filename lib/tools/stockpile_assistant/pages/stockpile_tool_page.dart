@@ -206,6 +206,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         final items = service.items;
         final now = DateTime.now();
         final expiring = service.expiringSoonItems(now);
+        final restockDue = service.restockDueItems(now);
 
         if (items.isEmpty) {
           return const Center(
@@ -219,6 +220,36 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
           children: [
+            if (_tab == 0 && restockDue.isNotEmpty)
+              GlassContainer(
+                borderRadius: 18,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 12),
+                color: IOS26Theme.toolBlue.withValues(alpha: 0.10),
+                border: Border.all(
+                  color: IOS26Theme.toolBlue.withValues(alpha: 0.25),
+                  width: 1,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      CupertinoIcons.cart_fill,
+                      size: 18,
+                      color: IOS26Theme.toolBlue,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '需要补货：${restockDue.length} 个',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: IOS26Theme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (_tab == 0 && expiring.isNotEmpty)
               GlassContainer(
                 borderRadius: 18,
@@ -264,10 +295,12 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   Widget _buildItemCard(StockItem item, DateTime now, List<Tag> tags) {
     final compact = item.isDepleted;
     final expiryDate = item.expiryDate;
-    final badge = compact ? null : _buildExpiryBadge(item, now);
+    final badge = compact ? null : _buildStatusBadges(item, now);
     final qtyText =
         '${StockpileFormat.num(item.remainingQuantity)}/${StockpileFormat.num(item.totalQuantity)}${item.unit.isEmpty ? '' : item.unit}';
     final tagText = tags.isEmpty ? '无标签' : tags.map((t) => t.name).join('、');
+    final locationText =
+        item.location.trim().isEmpty ? '' : ' · ${item.location.trim()}';
 
     return GlassContainer(
       margin: EdgeInsets.only(bottom: compact ? 8 : 12),
@@ -313,53 +346,35 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                     ],
                   ),
                   SizedBox(height: compact ? 4 : 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tagText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: compact ? 12 : 13,
-                            color: IOS26Theme.textSecondary,
-                          ),
-                        ),
-                      ),
-                      if (item.location.trim().isNotEmpty) ...[
-                        const Text(
-                          ' · ',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: IOS26Theme.textTertiary,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            item.location,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: compact ? 12 : 13,
-                              color: IOS26Theme.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  SizedBox(height: compact ? 2 : 4),
                   Text(
-                    compact
-                        ? '库存：$qtyText'
-                        : expiryDate == null
-                        ? '库存：$qtyText · 无保质期'
-                        : '库存：$qtyText · 到期：${StockpileFormat.date(expiryDate)}',
+                    '$tagText$locationText',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: compact ? 12 : 13,
                       color: IOS26Theme.textSecondary,
                     ),
                   ),
+                  SizedBox(height: compact ? 2 : 4),
+                  Text(
+                    '库存：$qtyText',
+                    style: TextStyle(
+                      fontSize: compact ? 12 : 13,
+                      color: IOS26Theme.textSecondary,
+                    ),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      expiryDate == null
+                          ? '到期：无保质期'
+                          : '到期：${StockpileFormat.date(expiryDate)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: IOS26Theme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -374,12 +389,21 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     );
   }
 
-  Widget? _buildExpiryBadge(StockItem item, DateTime now) {
-    final expiry = item.expiryDate;
-    if (expiry == null) return null;
-    if (item.isExpired(now)) return _badge('已过期', IOS26Theme.toolRed);
-    if (item.isExpiringSoon(now)) return _badge('临期', IOS26Theme.toolOrange);
-    return _badge(StockpileFormat.date(expiry), IOS26Theme.textTertiary);
+  Widget? _buildStatusBadges(StockItem item, DateTime now) {
+    final chips = <Widget>[];
+    if (item.isRestockDue(now)) {
+      chips.add(_badge('补货', IOS26Theme.toolBlue));
+    }
+    if (item.isExpired(now)) {
+      chips.add(_badge('已过期', IOS26Theme.toolRed));
+    } else if (item.isExpiringSoon(now)) {
+      chips.add(_badge('临期', IOS26Theme.toolOrange));
+    }
+
+    if (chips.isEmpty) return null;
+    if (chips.length == 1) return chips.single;
+
+    return Wrap(spacing: 6, children: chips);
   }
 
   Widget _badge(String text, Color color) {

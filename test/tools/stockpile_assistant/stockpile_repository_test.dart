@@ -45,6 +45,8 @@ void main() {
           purchaseDate: DateTime(2026, 1, 1),
           expiryDate: DateTime(2026, 1, 5),
           remindDays: 2,
+          restockRemindDate: null,
+          restockRemindQuantity: null,
           note: '早餐',
           now: now,
         ),
@@ -69,6 +71,8 @@ void main() {
           purchaseDate: DateTime(2026, 1, 1),
           expiryDate: null,
           remindDays: 3,
+          restockRemindDate: null,
+          restockRemindQuantity: null,
           note: '',
           now: now,
         ),
@@ -83,6 +87,8 @@ void main() {
           purchaseDate: DateTime(2026, 1, 1),
           expiryDate: null,
           remindDays: 3,
+          restockRemindDate: null,
+          restockRemindQuantity: null,
           note: '',
           now: now,
         ),
@@ -112,6 +118,8 @@ void main() {
           purchaseDate: DateTime(2026, 1, 1),
           expiryDate: DateTime(2026, 1, 5),
           remindDays: 2,
+          restockRemindDate: null,
+          restockRemindQuantity: null,
           note: '',
           now: DateTime(2026, 1, 1, 8),
         ),
@@ -148,6 +156,8 @@ void main() {
           purchaseDate: DateTime(2026, 1, 1),
           expiryDate: null,
           remindDays: 3,
+          restockRemindDate: null,
+          restockRemindQuantity: null,
           note: '',
           now: DateTime(2026, 1, 1, 8),
         ),
@@ -179,6 +189,8 @@ void main() {
           purchaseDate: DateTime(2026, 1, 1),
           expiryDate: null,
           remindDays: 3,
+          restockRemindDate: null,
+          restockRemindQuantity: null,
           note: '',
           now: DateTime(2026, 1, 1, 8),
         ),
@@ -198,4 +210,3 @@ void main() {
     });
   });
 }
-

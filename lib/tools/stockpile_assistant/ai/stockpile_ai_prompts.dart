@@ -24,6 +24,8 @@ class StockpileAiPrompts {
       "purchase_date": "YYYY-MM-DD（可选，默认今天）",
       "expiry_date": "YYYY-MM-DD 或 null（可选）",
       "remind_days": 3,
+      "restock_remind_date": "YYYY-MM-DD 或 null（可选）",
+      "restock_remind_quantity": 2,
       "note": "可选，默认空字符串",
       "tag_ids": [1, 2]
     }
@@ -52,6 +54,8 @@ class StockpileAiPrompts {
     "purchase_date": "YYYY-MM-DD（可选，默认今天）",
     "expiry_date": "YYYY-MM-DD 或 null（可选）",
     "remind_days": 3,
+    "restock_remind_date": "YYYY-MM-DD 或 null（可选）",
+    "restock_remind_quantity": 2,
     "note": "可选，默认空字符串",
     "tag_ids": [1, 2]
   }
@@ -82,5 +86,11 @@ class StockpileAiPrompts {
  - 对于 create_item.item.remind_days / batch_entry.items[*].remind_days：
    - 若用户明确“不需要提醒”，或用户只提供到期日但未提到提醒：输出 -1（表示不提醒）
    - 若用户要求提醒：输出提前提醒天数（>=0）
+ - 对于 create_item.item.restock_remind_date / batch_entry.items[*].restock_remind_date：
+   - 若用户明确要求“补货提醒日期/到某天提醒补货”，输出对应日期
+   - 否则输出 null
+ - 对于 create_item.item.restock_remind_quantity / batch_entry.items[*].restock_remind_quantity：
+   - 若用户明确要求“库存到 X 提醒补货/剩余 X 提醒补货”，输出对应数值
+   - 否则输出 null
 ''';
 }

@@ -30,10 +30,12 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
   final _totalController = TextEditingController(text: '1');
   final _remainingController = TextEditingController(text: '1');
   final _remindDaysController = TextEditingController();
+  final _restockQuantityController = TextEditingController();
   final _noteController = TextEditingController();
 
   DateTime _purchaseDate = DateTime.now();
   DateTime? _expiryDate;
+  DateTime? _restockRemindDate;
 
   StockItem? _editing;
   Set<int> _selectedTagIds = {};
@@ -73,6 +75,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _totalController.dispose();
     _remainingController.dispose();
     _remindDaysController.dispose();
+    _restockQuantityController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -86,10 +89,15 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _remindDaysController.text = item.expiryDate == null || item.remindDays < 0
         ? ''
         : item.remindDays.toString();
+    _restockQuantityController.text =
+        item.restockRemindQuantity == null
+            ? ''
+            : StockpileFormat.num(item.restockRemindQuantity!);
     _noteController.text = item.note;
 
     _purchaseDate = item.purchaseDate;
     _expiryDate = item.expiryDate;
+    _restockRemindDate = item.restockRemindDate;
   }
 
   void _fillDraft(StockItemDraft draft) {
@@ -102,10 +110,15 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
         draft.expiryDate == null || draft.remindDays < 0
             ? ''
             : draft.remindDays.toString();
+    _restockQuantityController.text =
+        draft.restockRemindQuantity == null
+            ? ''
+            : StockpileFormat.num(draft.restockRemindQuantity!);
     _noteController.text = draft.note;
 
     _purchaseDate = draft.purchaseDate;
     _expiryDate = draft.expiryDate;
+    _restockRemindDate = draft.restockRemindDate;
     _selectedTagIds = draft.tagIds.toSet();
   }
 
@@ -212,6 +225,8 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                   ),
                   const SizedBox(height: 12),
                   _buildExpirySection(),
+                  const SizedBox(height: 12),
+                  _buildRestockSection(),
                   const SizedBox(height: 12),
                   _buildFormCard(
                     title: '备注',
@@ -467,6 +482,107 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     );
   }
 
+  Widget _buildRestockSection() {
+    final dateText = _restockRemindDate == null
+        ? '未设置'
+        : StockpileFormat.date(_restockRemindDate!);
+
+    return GlassContainer(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '补货提醒',
+            style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildInlineLabeledField(
+                  label: '提醒日期',
+                  child: GlassContainer(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: CupertinoButton(
+                      key: const ValueKey('stock_item_restock_date'),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        final initial =
+                            _restockRemindDate ??
+                            DateTime.now().add(const Duration(days: 7));
+                        _pickDate(
+                          initial: initial,
+                          onSelected: (v) =>
+                              setState(() => _restockRemindDate = v),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              dateText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: _restockRemindDate == null
+                                    ? IOS26Theme.textTertiary
+                                    : IOS26Theme.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          if (_restockRemindDate != null)
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () => setState(() {
+                                _restockRemindDate = null;
+                              }),
+                              child: const Icon(
+                                CupertinoIcons.clear_circled_solid,
+                                size: 18,
+                                color: IOS26Theme.textTertiary,
+                              ),
+                            )
+                          else
+                            const Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 16,
+                              color: IOS26Theme.textTertiary,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInlineLabeledField(
+                  label: '提醒库存',
+                  child: _buildTextField(
+                    key: const ValueKey('stock_item_restock_quantity'),
+                    controller: _restockQuantityController,
+                    placeholder: '不提醒',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    textInputAction: TextInputAction.done,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFormCard({
     required String title,
     required Widget child,
@@ -688,6 +804,37 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       }
     }
 
+    final restockQtyText = _restockQuantityController.text.trim();
+    double? restockRemindQuantity;
+    if (restockQtyText.isNotEmpty) {
+      final parsed = double.tryParse(restockQtyText);
+      if (parsed == null) {
+        await StockpileDialogs.showMessage(
+          context,
+          title: '提示',
+          content: '请输入正确的提醒库存（留空表示不提醒）',
+        );
+        return;
+      }
+      if (parsed < 0) {
+        await StockpileDialogs.showMessage(
+          context,
+          title: '提示',
+          content: '提醒库存不能小于 0（留空表示不提醒）',
+        );
+        return;
+      }
+      if (parsed > total) {
+        await StockpileDialogs.showMessage(
+          context,
+          title: '提示',
+          content: '提醒库存不能大于总数量',
+        );
+        return;
+      }
+      restockRemindQuantity = parsed;
+    }
+
     final now = DateTime.now();
     final editing = _editing;
     int? itemId;
@@ -705,6 +852,8 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             purchaseDate: _purchaseDate,
             expiryDate: hasExpiry ? _expiryDate : null,
             remindDays: remindDays,
+            restockRemindDate: _restockRemindDate,
+            restockRemindQuantity: restockRemindQuantity,
             note: _noteController.text,
             now: now,
           ),
@@ -721,6 +870,8 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             purchaseDate: _purchaseDate,
             expiryDate: hasExpiry ? _expiryDate : null,
             remindDays: remindDays,
+            restockRemindDate: _restockRemindDate,
+            restockRemindQuantity: restockRemindQuantity,
             note: _noteController.text.trim(),
             updatedAt: now,
           ),

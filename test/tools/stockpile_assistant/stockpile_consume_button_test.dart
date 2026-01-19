@@ -15,6 +15,8 @@ void main() {
       purchaseDate: DateTime(2026, 1, 1),
       expiryDate: null,
       remindDays: 3,
+      restockRemindDate: null,
+      restockRemindQuantity: null,
       note: '',
       now: DateTime(2026, 1, 1, 8),
     );
@@ -29,4 +31,3 @@ void main() {
     expect(find.text('消耗'), findsOneWidget);
   });
 }
-
