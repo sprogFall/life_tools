@@ -321,7 +321,7 @@ class _TagCard extends StatelessWidget {
             Expanded(
               child: CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 0,
+                minimumSize: Size.zero,
                 pressedOpacity: 0.7,
                 onPressed: () => _openEdit(context),
                 child: Row(
