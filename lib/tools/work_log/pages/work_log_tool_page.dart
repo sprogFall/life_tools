@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -106,7 +105,52 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
             SafeArea(
               child: Column(
                 children: [
-                  _buildAppBar(context),
+                  IOS26AppBar(
+                    title: '工作记录',
+                    leading: CupertinoButton(
+                      padding: const EdgeInsets.all(8),
+                      onPressed: () => _navigateToHome(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.home,
+                            color: IOS26Theme.primaryColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '首页',
+                            style: TextStyle(
+                              fontSize: 17,
+                              color: IOS26Theme.primaryColor,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      CupertinoButton(
+                        padding: const EdgeInsets.all(8),
+                        onPressed: _openOperationLogs,
+                        child: const Icon(
+                          CupertinoIcons.time,
+                          color: IOS26Theme.primaryColor,
+                          size: 22,
+                        ),
+                      ),
+                      CupertinoButton(
+                        padding: const EdgeInsets.all(8),
+                        onPressed: _onPressedAdd,
+                        child: const Icon(
+                          CupertinoIcons.add,
+                          color: IOS26Theme.primaryColor,
+                          size: 24,
+                        ),
+                      ),
+                    ],
+                  ),
                   _buildPageIndicator(),
                   Expanded(
                     child: PageView(
@@ -160,83 +204,6 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: IOS26Theme.glassColor,
-            border: Border(
-              bottom: BorderSide(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: () => _navigateToHome(context),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      CupertinoIcons.home,
-                      color: IOS26Theme.primaryColor,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '首页',
-                      style: TextStyle(
-                        fontSize: 17,
-                        color: IOS26Theme.primaryColor,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Expanded(
-                child: Text(
-                  '工作记录',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.41,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: _openOperationLogs,
-                child: const Icon(
-                  CupertinoIcons.time,
-                  color: IOS26Theme.primaryColor,
-                  size: 22,
-                ),
-              ),
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: _onPressedAdd,
-                child: const Icon(
-                  CupertinoIcons.add,
-                  color: IOS26Theme.primaryColor,
-                  size: 24,
-                ),
-              ),
-            ],
           ),
         ),
       ),

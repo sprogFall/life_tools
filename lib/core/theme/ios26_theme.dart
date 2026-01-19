@@ -264,6 +264,8 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                         letterSpacing: -0.41,
                         color: IOS26Theme.textPrimary,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
                   ),
