@@ -203,7 +203,7 @@ void main() {
       expect(find.byType(TagEditPage), findsOneWidget);
     });
 
-    testWidgets('左滑触发删除确认框并删除标签', (tester) async {
+    testWidgets('点击删除按钮弹确认框并删除标签', (tester) async {
       final deps = await createTagService(tester);
       late int id;
       await tester.runAsync(() async {
@@ -217,22 +217,7 @@ void main() {
       await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
       await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id')));
 
-      await tester.drag(
-        find.byKey(ValueKey('tag-dismiss-$id')),
-        const Offset(-400, 0),
-      );
-      await tester.pump();
-      await pumpUntilFound(tester, find.text('确认删除'));
-
-      await tester.tap(find.widgetWithText(CupertinoDialogAction, '取消'));
-      await tester.pump();
-      await pumpUntilNotFound(tester, find.text('确认删除'));
-      expect(find.byKey(ValueKey('tag-row-$id')), findsOneWidget);
-
-      await tester.drag(
-        find.byKey(ValueKey('tag-dismiss-$id')),
-        const Offset(-400, 0),
-      );
+      await tester.tap(find.byKey(ValueKey('tag-delete-$id')));
       await tester.pump();
       await pumpUntilFound(tester, find.text('确认删除'));
 
