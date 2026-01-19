@@ -46,6 +46,8 @@ void main() {
             purchaseDate: DateTime(2026, 1, 1),
             expiryDate: DateTime(2026, 1, 2),
             remindDays: 3,
+            restockRemindDate: null,
+            restockRemindQuantity: null,
             note: '',
             now: DateTime(2026, 1, 1, 9),
           ),
@@ -115,15 +117,19 @@ void main() {
       expect(actions, findsNWidgets(2));
       await tester.tap(actions.at(1));
       await tester.pump();
-      for (int i = 0; i < 120; i++) {
+      for (int i = 0; i < 160; i++) {
         await tester.runAsync(
           () async => Future<void>.delayed(const Duration(milliseconds: 30)),
         );
         await tester.pump(const Duration(milliseconds: 30));
-        if (messageService.messages.isEmpty) break;
+        if (messageService.messages.isEmpty &&
+            find.byType(StockItemDetailPage).evaluate().isEmpty) {
+          break;
+        }
       }
 
       expect(messageService.messages, isEmpty);
+      expect(find.byType(StockItemDetailPage), findsNothing);
     });
   });
 }

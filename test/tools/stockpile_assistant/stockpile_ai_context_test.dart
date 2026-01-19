@@ -30,6 +30,8 @@ void main() {
             purchaseDate: DateTime(2026, 1, 1),
             expiryDate: DateTime(2026, 1, 5),
             remindDays: 2,
+            restockRemindDate: null,
+            restockRemindQuantity: null,
             note: '',
             createdAt: now,
             updatedAt: now,

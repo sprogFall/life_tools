@@ -145,6 +145,13 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                   '提醒',
                   item.remindDays < 0 ? '不提醒' : '提前 ${item.remindDays} 天',
                 ),
+              if (item.restockRemindDate != null)
+                _kv('补货日期', StockpileFormat.date(item.restockRemindDate!)),
+              if (item.restockRemindQuantity != null)
+                _kv(
+                  '补货库存',
+                  '≤ ${StockpileFormat.num(item.restockRemindQuantity!)}${item.unit.isEmpty ? '' : item.unit}',
+                ),
               if (item.note.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -306,7 +313,10 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
     final item = _item;
     if (item == null) return;
     final messageService = context.read<MessageService>();
-    final dedupeKey = StockpileReminderService.dedupeKeyForItem(
+    final expiryDedupeKey = StockpileReminderService.dedupeKeyForItem(
+      itemId: widget.itemId,
+    );
+    final restockDedupeKey = StockpileReminderService.restockDedupeKeyForItem(
       itemId: widget.itemId,
     );
 
@@ -335,7 +345,8 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
     if (confirmed != true) return;
     if (!mounted) return;
     await _service.deleteItem(widget.itemId);
-    await messageService.deleteMessageByDedupeKey(dedupeKey);
+    await messageService.deleteMessageByDedupeKey(expiryDedupeKey);
+    await messageService.deleteMessageByDedupeKey(restockDedupeKey);
     await StockpileReminderService.cancelScheduledNotificationsForItem(
       messageService: messageService,
       itemId: widget.itemId,

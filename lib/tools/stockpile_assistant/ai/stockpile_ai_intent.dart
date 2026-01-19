@@ -171,6 +171,10 @@ class StockpileAiIntentParser {
     final purchaseDate =
         _parseDateOnly(_asString(item['purchase_date'])) ?? DateTime.now();
     final expiryDate = _parseDateOnly(_asString(item['expiry_date']));
+    final restockRemindDate = _parseDateOnly(
+      _asString(item['restock_remind_date']),
+    );
+    final restockRemindQuantity = _asDouble(item['restock_remind_quantity']);
 
     final tagIds =
         _asList(
@@ -188,6 +192,8 @@ class StockpileAiIntentParser {
         purchaseDate: purchaseDate,
         expiryDate: expiryDate,
         remindDays: _asInt(item['remind_days']) ?? 3,
+        restockRemindDate: restockRemindDate,
+        restockRemindQuantity: restockRemindQuantity,
         note: _asString(item['note'])?.trim() ?? '',
         tagIds: tagIds,
       ),

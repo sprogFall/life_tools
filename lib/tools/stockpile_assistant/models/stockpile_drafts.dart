@@ -7,6 +7,8 @@ class StockItemDraft {
   final DateTime purchaseDate;
   final DateTime? expiryDate;
   final int remindDays;
+  final DateTime? restockRemindDate;
+  final double? restockRemindQuantity;
   final String note;
   final List<int> tagIds;
 
@@ -19,6 +21,8 @@ class StockItemDraft {
     required this.purchaseDate,
     required this.expiryDate,
     required this.remindDays,
+    required this.restockRemindDate,
+    required this.restockRemindQuantity,
     required this.note,
     this.tagIds = const [],
   });
