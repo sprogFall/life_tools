@@ -148,7 +148,7 @@ class StockpileReminderService {
   static String buildBody({required StockItem item, required DateTime now}) {
     final expiry = item.expiryDate;
     if (expiry == null) {
-      return '【囤货助手】${item.name} 已设置提醒，但未填写到期日期';
+      return '【临期提醒】${item.name} 已设置提醒，但未填写到期日期';
     }
 
     final today = DateTime(now.year, now.month, now.day);
@@ -164,14 +164,14 @@ class StockpileReminderService {
     if (daysLeft < 0) {
       final daysAgo = -daysLeft;
       final agoText = daysAgo == 1 ? '已过期 1 天' : '已过期 $daysAgo 天';
-      return '【囤货助手】${item.name}$locationText $agoText（$dateText 到期），剩余 $qtyText。';
+      return '【临期提醒】${item.name}$locationText $agoText（$dateText 到期），剩余 $qtyText。';
     }
 
     if (daysLeft == 0) {
-      return '【囤货助手】${item.name}$locationText 今天到期（$dateText），剩余 $qtyText。';
+      return '【临期提醒】${item.name}$locationText 今天到期（$dateText），剩余 $qtyText。';
     }
 
-    return '【囤货助手】${item.name}$locationText 将在 $daysLeft 天后到期（$dateText），剩余 $qtyText。';
+    return '【临期提醒】${item.name}$locationText 将在 $daysLeft 天后到期（$dateText），剩余 $qtyText。';
   }
 
   static int _notificationIdForItem(int itemId, int index) {
@@ -294,6 +294,6 @@ class StockpileReminderService {
     }
 
     final reasonText = reasons.isEmpty ? '' : '（${reasons.join('，')}）';
-    return '【囤货助手】${item.name}$locationText 需要补货$reasonText，剩余 $qtyText。';
+    return '【补货提醒】${item.name}$locationText 需要补货$reasonText，剩余 $qtyText。';
   }
 }

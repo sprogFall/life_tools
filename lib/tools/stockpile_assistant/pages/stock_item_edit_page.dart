@@ -459,7 +459,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildInlineLabeledField(
-                  label: '提前提醒(天)',
+                  label: '临期提前提醒(天)',
                   child: AbsorbPointer(
                     absorbing: !remindEnabled,
                     child: Opacity(
@@ -502,7 +502,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             children: [
               Expanded(
                 child: _buildInlineLabeledField(
-                  label: '提醒日期',
+                  label: '补货提醒日期',
                   child: GlassContainer(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,

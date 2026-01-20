@@ -688,7 +688,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         ),
       ),
       right: _buildCompactField(
-        title: '提前提醒(天)',
+        title: '临期提前提醒(天)',
         child: AbsorbPointer(
           absorbing: !remindEnabled,
           child: Opacity(
@@ -715,7 +715,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
 
     return _buildTwoColRow(
       left: _buildCompactField(
-        title: '提醒日期',
+        title: '补货提醒日期',
         child: GlassContainer(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: CupertinoButton(
