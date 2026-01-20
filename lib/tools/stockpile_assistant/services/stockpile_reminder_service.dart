@@ -108,6 +108,7 @@ class StockpileReminderService {
       route: 'tool://stockpile_assistant',
       createdAt: time,
       notify: true,
+      refreshDaily: true,
     );
   }
 
@@ -140,6 +141,7 @@ class StockpileReminderService {
       route: 'tool://stockpile_assistant',
       createdAt: time,
       notify: true,
+      refreshDaily: true,
     );
   }
 
