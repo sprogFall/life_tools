@@ -43,6 +43,7 @@ class MessageService extends ChangeNotifier {
     DateTime? expiresAt,
     bool notify = false,
     bool markUnreadOnUpdate = true,
+    bool refreshDaily = false,
   }) async {
     final trimmedBody = body.trim();
     final existing =
@@ -51,6 +52,12 @@ class MessageService extends ChangeNotifier {
             : _messages.where((e) => e.dedupeKey == dedupeKey).isEmpty
             ? null
             : _messages.firstWhere((e) => e.dedupeKey == dedupeKey);
+
+    final effectiveNow = createdAt ?? DateTime.now();
+    final shouldResurfaceDaily =
+        refreshDaily &&
+        existing != null &&
+        _isDifferentDay(existing.createdAt, effectiveNow);
 
     // 关键行为：同一条 dedupeKey 的消息若“内容未变”，则不应写库：
     // - 避免 createdAt 被刷新导致排序跳动
@@ -63,7 +70,7 @@ class MessageService extends ChangeNotifier {
           existing.body == trimmedBody &&
           existing.route == route &&
           existing.expiresAt == expiresAt;
-      if (noOpUpdate) {
+      if (noOpUpdate && !shouldResurfaceDaily) {
         return existing.id;
       }
     }
@@ -75,6 +82,7 @@ class MessageService extends ChangeNotifier {
         existing.body != trimmedBody ||
         existing.route != route ||
         existing.expiresAt != expiresAt ||
+        shouldResurfaceDaily ||
         (markUnreadOnUpdate && existing.isRead);
 
     final id = await _repository.upsertMessage(
@@ -83,7 +91,7 @@ class MessageService extends ChangeNotifier {
       body: trimmedBody,
       dedupeKey: dedupeKey,
       route: route,
-      createdAt: createdAt,
+      createdAt: createdAt ?? effectiveNow,
       expiresAt: expiresAt,
       markUnreadOnUpdate: markUnreadOnUpdate,
     );
@@ -95,6 +103,10 @@ class MessageService extends ChangeNotifier {
       await _notificationService?.showMessage(title: title, body: trimmedBody);
     }
     return id;
+  }
+
+  bool _isDifferentDay(DateTime a, DateTime b) {
+    return a.year != b.year || a.month != b.month || a.day != b.day;
   }
 
   Future<void> markMessageRead(int id, {DateTime? readAt}) async {

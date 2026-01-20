@@ -205,6 +205,52 @@ void main() {
       expect(notificationService.shown.length, 1);
     });
 
+    test('补货提醒：跨天且文案不变时，也应刷新消息时间并重新推送（重置为未读）', () async {
+      final day1 = DateTime(2026, 1, 10, 9);
+      final itemId = await stockpileRepository.createItem(
+        StockItem.create(
+          name: '洗衣液',
+          location: '阳台',
+          unit: '瓶',
+          totalQuantity: 2,
+          remainingQuantity: 1,
+          purchaseDate: DateTime(2026, 1, 1),
+          expiryDate: null,
+          remindDays: -1,
+          restockRemindDate: DateTime(2026, 1, 9),
+          restockRemindQuantity: 1,
+          note: '',
+          now: day1,
+        ),
+      );
+
+      final service = StockpileReminderService(repository: stockpileRepository);
+      await service.pushDueReminders(messageService: messageService, now: day1);
+
+      expect(messageService.messages.length, 1);
+      expect(messageService.messages.single.dedupeKey, isNotNull);
+      expect(
+        messageService.messages.single.dedupeKey,
+        StockpileReminderService.restockDedupeKeyForItem(itemId: itemId),
+      );
+      expect(messageService.messages.single.isRead, isFalse);
+      expect(notificationService.shown.length, 1);
+
+      final messageId = messageService.messages.single.id;
+      expect(messageId, isNotNull);
+      await messageService.markMessageRead(messageId!, readAt: DateTime(2026, 1, 10, 10));
+      expect(messageService.unreadMessages, isEmpty);
+
+      // 次日（文案大概率不变）：应“刷新”为今天的提醒，重置为未读并再次推送系统通知
+      final day2 = DateTime(2026, 1, 11, 9);
+      await service.pushDueReminders(messageService: messageService, now: day2);
+
+      expect(messageService.messages.length, 1);
+      expect(messageService.messages.single.createdAt, day2);
+      expect(messageService.messages.single.isRead, isFalse);
+      expect(notificationService.shown.length, 2);
+    });
+
     test('会为未来的提醒窗口预定系统通知（即使应用不在前台）', () async {
       final now = DateTime(2026, 1, 1, 8);
       final itemId = await stockpileRepository.createItem(
