@@ -7,6 +7,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'app_notification_service.dart';
+import 'notification_id_store.dart';
 
 class LocalNotificationService implements AppNotificationService {
   static const String _channelId = 'app_messages';
@@ -17,11 +18,13 @@ class LocalNotificationService implements AppNotificationService {
       FlutterLocalNotificationsPlugin();
 
   var _initialized = false;
-  var _nextId = 1;
+  NotificationIdStore? _idStore;
 
   @override
   Future<void> init() async {
     if (_initialized) return;
+
+    _idStore = await NotificationIdStore.open();
 
     tzdata.initializeTimeZones();
     try {
@@ -91,7 +94,8 @@ class LocalNotificationService implements AppNotificationService {
     }
 
     try {
-      await _plugin.show(_nextId++, title, body, _details());
+      final id = await _idStore!.reserve();
+      await _plugin.show(id, title, body, _details());
     } catch (e) {
       debugPrint('本地通知发送失败: $e');
     }
