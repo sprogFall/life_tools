@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../ai/ai_config_service.dart';
+import '../../obj_store/obj_store_config_service.dart';
 import '../../services/settings_service.dart';
 import '../../sync/services/backup_restore_service.dart';
 import '../../sync/services/sync_config_service.dart';
@@ -89,6 +90,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       aiConfigService: context.read<AiConfigService>(),
       syncConfigService: context.read<SyncConfigService>(),
       settingsService: context.read<SettingsService>(),
+      objStoreConfigService: context.read<ObjStoreConfigService>(),
     );
   }
 
@@ -125,8 +127,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 6),
           _buildHint('1) AI 配置（含 API Key）'),
           _buildHint('2) 数据同步配置'),
-          _buildHint('3) 默认打开工具/工具排序等应用配置'),
-          _buildHint('4) 各工具数据（通过 ToolSyncProvider 导出）'),
+          _buildHint('3) 资源存储配置（含七牛 AK/SK）'),
+          _buildHint('4) 默认打开工具/工具排序等应用配置'),
+          _buildHint('5) 各工具数据（通过 ToolSyncProvider 导出）'),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

@@ -3,6 +3,10 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
+import 'package:life_tools/core/obj_store/obj_store_config.dart';
+import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
+import 'package:life_tools/core/obj_store/obj_store_secrets.dart';
+import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/interfaces/tool_sync_provider.dart';
@@ -80,6 +84,21 @@ void main() {
       await settingsService.init();
       await settingsService.setDefaultTool('work_log');
 
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+      await objStoreConfigService.save(
+        const ObjStoreConfig.qiniu(
+          bucket: 'bkt',
+          domain: 'https://cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ),
+        secrets: const ObjStoreQiniuSecrets(accessKey: 'ak', secretKey: 'sk'),
+      );
+
       final tool = _FakeToolSyncProvider(
         toolId: 'work_log',
         exportPayload: const {
@@ -92,6 +111,7 @@ void main() {
         aiConfigService: aiConfigService,
         syncConfigService: syncConfigService,
         settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         toolProviders: [tool],
       );
 
@@ -101,6 +121,8 @@ void main() {
       expect(map['version'], isA<int>());
       expect(map['ai_config'], isA<Map>());
       expect(map['sync_config'], isA<Map>());
+      expect(map['obj_store_config'], isA<Map>());
+      expect(map['obj_store_secrets'], isA<Map>());
       expect(map['settings'], isA<Map>());
       expect(map['tools'], isA<Map>());
       expect((map['tools'] as Map).containsKey('work_log'), isTrue);
@@ -116,10 +138,16 @@ void main() {
       final settingsService = SettingsService();
       await settingsService.init();
 
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
       final service = BackupRestoreService(
         aiConfigService: aiConfigService,
         syncConfigService: syncConfigService,
         settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         toolProviders: const [],
       );
 
@@ -141,6 +169,11 @@ void main() {
       final settingsService = SettingsService();
       await settingsService.init();
 
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
       final tool = _FakeToolSyncProvider(
         toolId: 'work_log',
         exportPayload: const {
@@ -153,6 +186,7 @@ void main() {
         aiConfigService: aiConfigService,
         syncConfigService: syncConfigService,
         settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         toolProviders: [tool],
       );
 
@@ -174,6 +208,14 @@ void main() {
           customHeaders: {},
           allowedWifiNames: ['MyWifi'],
         ).toMap(),
+        'obj_store_config': const ObjStoreConfig.qiniu(
+          bucket: 'bkt',
+          domain: 'https://cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ).toJson(),
+        'obj_store_secrets': const {'accessKey': 'ak2', 'secretKey': 'sk2'},
         'settings': {
           'default_tool_id': 'work_log',
           'tool_order': ['work_log', 'review', 'expense', 'income'],
@@ -192,6 +234,11 @@ void main() {
       expect(aiConfigService.config!.model, 'm2');
       expect(syncConfigService.config, isNotNull);
       expect(syncConfigService.config!.userId, 'u2');
+      expect(objStoreConfigService.config, isNotNull);
+      expect(objStoreConfigService.config!.type, ObjStoreType.qiniu);
+      expect(objStoreConfigService.config!.qiniuIsPrivate, isTrue);
+      expect(objStoreConfigService.qiniuSecrets, isNotNull);
+      expect(objStoreConfigService.qiniuSecrets!.accessKey, 'ak2');
       expect(settingsService.defaultToolId, 'work_log');
       expect(tool.lastImported, isNotNull);
       expect(tool.lastImported!['version'], 1);
@@ -206,6 +253,11 @@ void main() {
 
       final settingsService = SettingsService();
       await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
 
       var tagsImported = false;
       final tagProvider = _FakeToolSyncProvider(
@@ -231,6 +283,7 @@ void main() {
         aiConfigService: aiConfigService,
         syncConfigService: syncConfigService,
         settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         toolProviders: [tagProvider, dependentProvider],
       );
 
@@ -260,62 +313,74 @@ void main() {
       expect(dependentProvider.lastImported, isNotNull);
     });
 
-    test('restoreFromJson 应支持 ai_config/sync_config 为 JSON 字符串（避免偶现跳过导入）', () async {
-      final aiConfigService = AiConfigService();
-      await aiConfigService.init();
+    test(
+      'restoreFromJson 应支持 ai_config/sync_config 为 JSON 字符串（避免偶现跳过导入）',
+      () async {
+        final aiConfigService = AiConfigService();
+        await aiConfigService.init();
 
-      final syncConfigService = SyncConfigService();
-      await syncConfigService.init();
+        final syncConfigService = SyncConfigService();
+        await syncConfigService.init();
 
-      final settingsService = SettingsService();
-      await settingsService.init();
+        final settingsService = SettingsService();
+        await settingsService.init();
 
-      final service = BackupRestoreService(
-        aiConfigService: aiConfigService,
-        syncConfigService: syncConfigService,
-        settingsService: settingsService,
-        toolProviders: const [],
-      );
+        final objStoreConfigService = ObjStoreConfigService(
+          secretStore: InMemorySecretStore(),
+        );
+        await objStoreConfigService.init();
 
-      final aiConfigJson = jsonEncode(
-        const AiConfig(
-          baseUrl: 'https://api.openai.com/v1',
-          apiKey: 'k_json_string',
-          model: 'm_json_string',
-          temperature: 0.7,
-          maxOutputTokens: 256,
-        ).toMap(),
-      );
+        final service = BackupRestoreService(
+          aiConfigService: aiConfigService,
+          syncConfigService: syncConfigService,
+          settingsService: settingsService,
+          objStoreConfigService: objStoreConfigService,
+          toolProviders: const [],
+        );
 
-      final syncConfigJson = jsonEncode(
-        const SyncConfig(
-          userId: 'u_json_string',
-          networkType: SyncNetworkType.privateWifi,
-          serverUrl: 'sync.example.com',
-          serverPort: 443,
-          customHeaders: {'X-Test': '1'},
-          allowedWifiNames: ['MyWifi'],
-          autoSyncOnStartup: true,
-        ).toMap(),
-      );
+        final aiConfigJson = jsonEncode(
+          const AiConfig(
+            baseUrl: 'https://api.openai.com/v1',
+            apiKey: 'k_json_string',
+            model: 'm_json_string',
+            temperature: 0.7,
+            maxOutputTokens: 256,
+          ).toMap(),
+        );
 
-      final payload = {
-        'version': 1,
-        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
-        'ai_config': aiConfigJson,
-        'sync_config': syncConfigJson,
-        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
-        'tools': const <String, dynamic>{},
-      };
+        final syncConfigJson = jsonEncode(
+          const SyncConfig(
+            userId: 'u_json_string',
+            networkType: SyncNetworkType.privateWifi,
+            serverUrl: 'sync.example.com',
+            serverPort: 443,
+            customHeaders: {'X-Test': '1'},
+            allowedWifiNames: ['MyWifi'],
+            autoSyncOnStartup: true,
+          ).toMap(),
+        );
 
-      await service.restoreFromJson(jsonEncode(payload));
+        final payload = {
+          'version': 1,
+          'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+          'ai_config': aiConfigJson,
+          'sync_config': syncConfigJson,
+          'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+          'tools': const <String, dynamic>{},
+        };
 
-      expect(aiConfigService.config, isNotNull);
-      expect(aiConfigService.config!.apiKey, 'k_json_string');
-      expect(syncConfigService.config, isNotNull);
-      expect(syncConfigService.config!.userId, 'u_json_string');
-      expect(syncConfigService.config!.networkType, SyncNetworkType.privateWifi);
-    });
+        await service.restoreFromJson(jsonEncode(payload));
+
+        expect(aiConfigService.config, isNotNull);
+        expect(aiConfigService.config!.apiKey, 'k_json_string');
+        expect(syncConfigService.config, isNotNull);
+        expect(syncConfigService.config!.userId, 'u_json_string');
+        expect(
+          syncConfigService.config!.networkType,
+          SyncNetworkType.privateWifi,
+        );
+      },
+    );
 
     test('restoreFromJson 应容错 sync_config 数字字段为小数/字符串', () async {
       final aiConfigService = AiConfigService();
@@ -327,10 +392,16 @@ void main() {
       final settingsService = SettingsService();
       await settingsService.init();
 
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
       final service = BackupRestoreService(
         aiConfigService: aiConfigService,
         syncConfigService: syncConfigService,
         settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         toolProviders: const [],
       );
 
@@ -356,7 +427,10 @@ void main() {
 
       expect(syncConfigService.config, isNotNull);
       expect(syncConfigService.config!.userId, 'u_num_loose');
-      expect(syncConfigService.config!.networkType, SyncNetworkType.privateWifi);
+      expect(
+        syncConfigService.config!.networkType,
+        SyncNetworkType.privateWifi,
+      );
       expect(syncConfigService.config!.serverPort, 443);
       expect(
         syncConfigService.config!.lastSyncTime,

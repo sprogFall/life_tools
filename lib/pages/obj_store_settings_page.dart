@@ -31,9 +31,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   final _qiniuUploadHostController = TextEditingController();
   final _qiniuKeyPrefixController = TextEditingController();
 
-  bool _showAk = false;
-  bool _showSk = false;
-
   PlatformFile? _selectedFile;
   ObjStoreObject? _lastUploaded;
   final _queryKeyController = TextEditingController();
@@ -225,18 +222,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             child: CupertinoTextField(
               controller: _qiniuAccessKeyController,
               placeholder: '如：xxxxx',
-              obscureText: !_showAk,
               autocorrect: false,
+              enableSuggestions: false,
+              keyboardType: TextInputType.text,
               decoration: _fieldDecoration(),
-              suffix: CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                onPressed: () => setState(() => _showAk = !_showAk),
-                child: Icon(
-                  _showAk ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
-                  color: IOS26Theme.textSecondary,
-                  size: 18,
-                ),
-              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -245,18 +234,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             child: CupertinoTextField(
               controller: _qiniuSecretKeyController,
               placeholder: '如：xxxxx',
-              obscureText: !_showSk,
               autocorrect: false,
+              enableSuggestions: false,
+              keyboardType: TextInputType.text,
               decoration: _fieldDecoration(),
-              suffix: CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                onPressed: () => setState(() => _showSk = !_showSk),
-                child: Icon(
-                  _showSk ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
-                  color: IOS26Theme.textSecondary,
-                  size: 18,
-                ),
-              ),
             ),
           ),
           const SizedBox(height: 12),
