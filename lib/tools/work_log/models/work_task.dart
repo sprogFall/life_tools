@@ -23,6 +23,8 @@ class WorkTask {
   final DateTime? endAt;
   final WorkTaskStatus status;
   final int estimatedMinutes;
+  final bool isPinned;
+  final int sortIndex;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -34,6 +36,8 @@ class WorkTask {
     required this.endAt,
     required this.status,
     required this.estimatedMinutes,
+    this.isPinned = false,
+    this.sortIndex = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -69,6 +73,8 @@ class WorkTask {
     DateTime? endAt,
     WorkTaskStatus? status,
     int? estimatedMinutes,
+    bool? isPinned,
+    int? sortIndex,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool clearStartAt = false,
@@ -82,6 +88,8 @@ class WorkTask {
       endAt: clearEndAt ? null : (endAt ?? this.endAt),
       status: status ?? this.status,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      isPinned: isPinned ?? this.isPinned,
+      sortIndex: sortIndex ?? this.sortIndex,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -96,6 +104,8 @@ class WorkTask {
       'end_at': endAt?.millisecondsSinceEpoch,
       'status': status.value,
       'estimated_minutes': estimatedMinutes,
+      'is_pinned': isPinned ? 1 : 0,
+      'sort_index': sortIndex,
       'created_at': createdAt.millisecondsSinceEpoch,
       'updated_at': updatedAt.millisecondsSinceEpoch,
     };
@@ -110,6 +120,8 @@ class WorkTask {
       endAt: _fromEpochNullable(map['end_at']),
       status: WorkTaskStatus.fromValue(map['status'] as int),
       estimatedMinutes: (map['estimated_minutes'] as int?) ?? 0,
+      isPinned: (map['is_pinned'] as int? ?? 0) == 1,
+      sortIndex: (map['sort_index'] as int?) ?? 0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
     );
@@ -119,4 +131,16 @@ class WorkTask {
     if (value == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(value as int);
   }
+}
+
+class WorkTaskSortOrder {
+  final int taskId;
+  final bool isPinned;
+  final int sortIndex;
+
+  const WorkTaskSortOrder({
+    required this.taskId,
+    required this.isPinned,
+    required this.sortIndex,
+  });
 }

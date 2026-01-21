@@ -63,7 +63,14 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
       );
     }
     var list = result.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      ..sort((a, b) {
+        if (a.isPinned != b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        final sortCompare = a.sortIndex.compareTo(b.sortIndex);
+        if (sortCompare != 0) return sortCompare;
+        return b.createdAt.compareTo(a.createdAt);
+      });
     if (offset != null && offset > 0) {
       list = list.skip(offset).toList();
     }
@@ -79,6 +86,18 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
     if (id == null) return;
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index >= 0) _tasks[index] = task;
+  }
+
+  @override
+  Future<void> updateTaskSorting(List<WorkTaskSortOrder> orders) async {
+    for (final order in orders) {
+      final index = _tasks.indexWhere((t) => t.id == order.taskId);
+      if (index < 0) continue;
+      _tasks[index] = _tasks[index].copyWith(
+        isPinned: order.isPinned,
+        sortIndex: order.sortIndex,
+      );
+    }
   }
 
   @override

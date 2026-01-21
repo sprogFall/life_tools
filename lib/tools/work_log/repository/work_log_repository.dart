@@ -84,7 +84,7 @@ class WorkLogRepository implements WorkLogRepositoryBase {
       'work_tasks',
       where: whereParts.isEmpty ? null : whereParts.join(' AND '),
       whereArgs: whereArgs.isEmpty ? null : whereArgs,
-      orderBy: 'created_at DESC',
+      orderBy: 'is_pinned DESC, sort_index ASC, created_at DESC',
       limit: limit,
       offset: offset,
     );
@@ -110,6 +110,27 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   Future<void> deleteTask(int id) async {
     final db = await _database;
     await db.delete('work_tasks', where: 'id = ?', whereArgs: [id]);
+  }
+
+  @override
+  Future<void> updateTaskSorting(List<WorkTaskSortOrder> orders) async {
+    if (orders.isEmpty) return;
+    final db = await _database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final order in orders) {
+        batch.update(
+          'work_tasks',
+          <String, Object?>{
+            'is_pinned': order.isPinned ? 1 : 0,
+            'sort_index': order.sortIndex,
+          },
+          where: 'id = ?',
+          whereArgs: [order.taskId],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
   }
 
   @override
