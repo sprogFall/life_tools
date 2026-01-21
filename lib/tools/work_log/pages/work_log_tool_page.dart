@@ -17,6 +17,7 @@ import 'log/operation_log_list_page.dart';
 import 'task/work_log_voice_input_sheet.dart';
 import 'task/work_task_edit_page.dart';
 import 'task/work_task_list_view.dart';
+import 'task/work_task_sort_page.dart';
 import 'time/work_time_entry_edit_page.dart';
 
 class WorkLogToolPage extends StatefulWidget {
@@ -140,6 +141,29 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                           size: 22,
                         ),
                       ),
+                      if (_tab == 0)
+                        Builder(
+                          builder: (context) => CupertinoButton(
+                            key: const ValueKey('work_log_sort_button'),
+                            padding: const EdgeInsets.all(8),
+                            onPressed: () {
+                              final service = context.read<WorkLogService>();
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (_) => ChangeNotifierProvider.value(
+                                    value: service,
+                                    child: const WorkTaskSortPage(),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Icon(
+                              CupertinoIcons.arrow_up_arrow_down,
+                              color: IOS26Theme.primaryColor,
+                              size: 22,
+                            ),
+                          ),
+                        ),
                       CupertinoButton(
                         padding: const EdgeInsets.all(8),
                         onPressed: _onPressedAdd,

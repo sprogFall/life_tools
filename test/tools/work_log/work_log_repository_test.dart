@@ -52,6 +52,46 @@ void main() {
       expect(task.createdAt, now);
     });
 
+    test('listTasks 应该按置顶优先且支持自定义排序', () async {
+      final now = DateTime(2026, 1, 1, 8);
+      final idA = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: now,
+        ).copyWith(isPinned: false, sortIndex: 2),
+      );
+      final idB = await repository.createTask(
+        WorkTask.create(
+          title: '任务B',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: now.add(const Duration(minutes: 1)),
+        ).copyWith(isPinned: true, sortIndex: 5),
+      );
+      final idC = await repository.createTask(
+        WorkTask.create(
+          title: '任务C',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: now.add(const Duration(minutes: 2)),
+        ).copyWith(isPinned: true, sortIndex: 1),
+      );
+
+      final tasks = await repository.listTasks();
+      expect(tasks.map((t) => t.id), [idC, idB, idA]);
+    });
+
     test('应该可以更新任务状态与预计工时', () async {
       final taskId = await repository.createTask(
         WorkTask.create(
@@ -77,6 +117,52 @@ void main() {
       expect(again.status, WorkTaskStatus.done);
       expect(again.estimatedMinutes, 120);
       expect(again.updatedAt, DateTime(2026, 1, 2));
+    });
+
+    test('updateTaskSorting 应该批量保存置顶与排序', () async {
+      final now = DateTime(2026, 1, 1, 8);
+      final idA = await repository.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      final idB = await repository.createTask(
+        WorkTask.create(
+          title: '任务B',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: now.add(const Duration(minutes: 1)),
+        ),
+      );
+      final idC = await repository.createTask(
+        WorkTask.create(
+          title: '任务C',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: now.add(const Duration(minutes: 2)),
+        ),
+      );
+
+      await repository.updateTaskSorting([
+        WorkTaskSortOrder(taskId: idB, isPinned: true, sortIndex: 0),
+        WorkTaskSortOrder(taskId: idC, isPinned: true, sortIndex: 1),
+        WorkTaskSortOrder(taskId: idA, isPinned: false, sortIndex: 0),
+      ]);
+
+      final tasks = await repository.listTasks();
+      expect(tasks.map((t) => t.id), [idB, idC, idA]);
     });
 
     test('应该可以在任务下添加工时并按日期汇总', () async {

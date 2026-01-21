@@ -11,11 +11,13 @@ import '../repository/work_log_repository_base.dart';
 class WorkLogService extends ChangeNotifier {
   static const String _statusFiltersKey = 'work_log_status_filters';
   static const String _tagFiltersKey = 'work_log_tag_filters';
+  static const String _customSortEnabledKey = 'work_log_task_custom_sort';
 
   final WorkLogRepositoryBase _repository;
   final TagRepository? _tagRepository;
 
   bool _filtersLoaded = false;
+  bool _customSortEnabled = false;
 
   WorkLogService({
     required WorkLogRepositoryBase repository,
@@ -82,6 +84,7 @@ class WorkLogService extends ChangeNotifier {
         if (savedTags != null) {
           _tagFilters = savedTags.map((s) => int.tryParse(s) ?? 0).where((id) => id > 0).toList();
         }
+        _customSortEnabled = prefs.getBool(_customSortEnabledKey) ?? false;
         _filtersLoaded = true;
       }
 
@@ -209,7 +212,10 @@ class WorkLogService extends ChangeNotifier {
   }
 
   Future<int> createTask(WorkTask task, {List<int> tagIds = const []}) async {
-    final id = await _repository.createTask(task);
+    final taskForCreate = _customSortEnabled
+        ? task.copyWith(sortIndex: DateTime.now().millisecondsSinceEpoch)
+        : task;
+    final id = await _repository.createTask(taskForCreate);
 
     final repo = _tagRepository;
     if (repo != null && tagIds.isNotEmpty) {
@@ -285,6 +291,23 @@ class WorkLogService extends ChangeNotifier {
         summary: '删除任务「${oldTask?.title ?? '未知'}」',
       ),
     );
+
+    await loadTasks();
+  }
+
+  Future<List<WorkTask>> listAllFilteredTasksForSorting() async {
+    return _repository.listTasks(
+      statuses: _statusFilters,
+      tagIds: _tagFilters.isEmpty ? null : _tagFilters,
+    );
+  }
+
+  Future<void> saveTaskSorting(List<WorkTaskSortOrder> orders) async {
+    await _repository.updateTaskSorting(orders);
+
+    final prefs = await SharedPreferences.getInstance();
+    _customSortEnabled = true;
+    await prefs.setBool(_customSortEnabledKey, true);
 
     await loadTasks();
   }

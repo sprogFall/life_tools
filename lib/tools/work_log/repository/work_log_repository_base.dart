@@ -19,6 +19,8 @@ abstract class WorkLogRepositoryBase {
   Future<void> deleteTask(int id);
   Future<int> getTotalMinutesForTask(int taskId);
 
+  Future<void> updateTaskSorting(List<WorkTaskSortOrder> orders);
+
   Future<int> createTimeEntry(WorkTimeEntry entry);
   Future<WorkTimeEntry?> getTimeEntry(int id);
   Future<void> updateTimeEntry(WorkTimeEntry entry);

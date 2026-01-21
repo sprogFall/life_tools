@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 10;
+  static const int version = 11;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -49,6 +49,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 10) {
       await _upgradeToVersion10(db);
+    }
+    if (oldVersion < 11) {
+      await _upgradeToVersion11(db);
     }
   }
 
@@ -138,6 +141,8 @@ class DatabaseSchema {
         end_at INTEGER,
         status INTEGER NOT NULL,
         estimated_minutes INTEGER NOT NULL DEFAULT 0,
+        is_pinned INTEGER NOT NULL DEFAULT 0,
+        sort_index INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )
@@ -204,6 +209,25 @@ class DatabaseSchema {
     await db.execute(
       'ALTER TABLE tags ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0',
     );
+  }
+
+  static Future<void> _upgradeToVersion11(Database db) async {
+    // v11: 为 work_tasks 增加 is_pinned / sort_index 用于列表置顶与排序
+    await _createWorkLogTables(db);
+
+    final columns = await db.rawQuery('PRAGMA table_info(work_tasks)');
+    final names = columns.map((e) => e['name']).whereType<String>().toSet();
+
+    if (!names.contains('is_pinned')) {
+      await db.execute(
+        'ALTER TABLE work_tasks ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+    if (!names.contains('sort_index')) {
+      await db.execute(
+        'ALTER TABLE work_tasks ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0',
+      );
+    }
   }
 
   static Future<void> _createTagTables(Database db) async {

@@ -14,6 +14,8 @@ void main() {
         endAt: DateTime(2026, 1, 10, 18),
         status: WorkTaskStatus.doing,
         estimatedMinutes: 8 * 60,
+        isPinned: true,
+        sortIndex: 3,
         createdAt: DateTime(2026, 1, 1, 8),
         updatedAt: DateTime(2026, 1, 1, 8, 30),
       );
@@ -27,6 +29,8 @@ void main() {
       expect(restored.endAt, task.endAt);
       expect(restored.status, task.status);
       expect(restored.estimatedMinutes, task.estimatedMinutes);
+      expect(restored.isPinned, task.isPinned);
+      expect(restored.sortIndex, task.sortIndex);
       expect(restored.createdAt, task.createdAt);
       expect(restored.updatedAt, task.updatedAt);
     });
