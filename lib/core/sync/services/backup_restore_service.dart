@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import '../../ai/ai_config.dart';
 import '../../ai/ai_config_service.dart';
+import '../../obj_store/obj_store_config.dart';
+import '../../obj_store/obj_store_config_service.dart';
+import '../../obj_store/obj_store_secrets.dart';
 import '../../registry/tool_registry.dart';
 import '../../services/settings_service.dart';
 import '../interfaces/tool_sync_provider.dart';
@@ -31,12 +34,14 @@ class BackupRestoreService {
   final AiConfigService aiConfigService;
   final SyncConfigService syncConfigService;
   final SettingsService settingsService;
+  final ObjStoreConfigService objStoreConfigService;
   final List<ToolSyncProvider> toolProviders;
 
   BackupRestoreService({
     required this.aiConfigService,
     required this.syncConfigService,
     required this.settingsService,
+    required this.objStoreConfigService,
     Iterable<ToolSyncProvider>? toolProviders,
   }) : toolProviders = List<ToolSyncProvider>.unmodifiable(
          toolProviders ??
@@ -56,11 +61,21 @@ class BackupRestoreService {
       }
     }
 
+    final objStoreConfig = objStoreConfigService.config;
+    final objStoreSecrets = objStoreConfigService.qiniuSecrets;
+
     final payload = <String, dynamic>{
       'version': backupVersion,
       'exported_at': DateTime.now().millisecondsSinceEpoch,
       'ai_config': aiConfigService.config?.toMap(),
       'sync_config': syncConfigService.config?.toMap(),
+      'obj_store_config': objStoreConfig?.toJson(),
+      'obj_store_secrets': objStoreSecrets == null
+          ? null
+          : {
+              'accessKey': objStoreSecrets.accessKey,
+              'secretKey': objStoreSecrets.secretKey,
+            },
       'settings': {
         'default_tool_id': settingsService.defaultToolId,
         'tool_order': settingsService.toolOrder,
@@ -116,6 +131,36 @@ class BackupRestoreService {
     if (syncConfigMap != null) {
       final config = SyncConfig.fromMap(syncConfigMap);
       await syncConfigService.save(config);
+    }
+
+    final objStoreConfigMap = readJsonMap(decoded['obj_store_config']);
+    if (objStoreConfigMap != null) {
+      final config = ObjStoreConfig.fromJson(objStoreConfigMap);
+      if (config != null) {
+        if (config.type == ObjStoreType.qiniu) {
+          final secretsMap = readJsonMap(decoded['obj_store_secrets']);
+          final accessKey = (secretsMap?['accessKey'] as String?)?.trim();
+          final secretKey = (secretsMap?['secretKey'] as String?)?.trim();
+          if (accessKey != null &&
+              accessKey.isNotEmpty &&
+              secretKey != null &&
+              secretKey.isNotEmpty) {
+            await objStoreConfigService.save(
+              config,
+              secrets: ObjStoreQiniuSecrets(
+                accessKey: accessKey,
+                secretKey: secretKey,
+              ),
+            );
+          } else {
+            await objStoreConfigService.clear();
+          }
+        } else if (config.type == ObjStoreType.local) {
+          await objStoreConfigService.save(config);
+        } else {
+          await objStoreConfigService.clear();
+        }
+      }
     }
 
     final settingsMap = decoded['settings'];

@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'core/ai/ai_config_service.dart';
@@ -9,6 +11,11 @@ import 'core/ai/ai_service.dart';
 import 'core/backup/pages/backup_restore_page.dart';
 import 'core/backup/services/receive_share_service.dart';
 import 'core/messages/message_service.dart';
+import 'core/obj_store/obj_store_config_service.dart';
+import 'core/obj_store/obj_store_service.dart';
+import 'core/obj_store/qiniu/qiniu_client.dart';
+import 'core/obj_store/secret_store/prefs_secret_store.dart';
+import 'core/obj_store/storage/local_obj_store.dart';
 import 'core/notifications/local_notification_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
@@ -37,6 +44,11 @@ void main() async {
 
   final aiConfigService = AiConfigService();
   await aiConfigService.init();
+
+  final objStoreConfigService = ObjStoreConfigService(
+    secretStore: PrefsSecretStore(),
+  );
+  await objStoreConfigService.init();
 
   // 初始化同步服务
   final syncConfigService = SyncConfigService();
@@ -69,6 +81,7 @@ void main() async {
     MyApp(
       settingsService: settingsService,
       aiConfigService: aiConfigService,
+      objStoreConfigService: objStoreConfigService,
       syncConfigService: syncConfigService,
       syncService: syncService,
       messageService: messageService,
@@ -79,6 +92,7 @@ void main() async {
 class MyApp extends StatefulWidget {
   final SettingsService settingsService;
   final AiConfigService aiConfigService;
+  final ObjStoreConfigService objStoreConfigService;
   final SyncConfigService syncConfigService;
   final SyncService syncService;
   final MessageService messageService;
@@ -87,6 +101,7 @@ class MyApp extends StatefulWidget {
     super.key,
     required this.settingsService,
     required this.aiConfigService,
+    required this.objStoreConfigService,
     required this.syncConfigService,
     required this.syncService,
     required this.messageService,
@@ -155,12 +170,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       providers: [
         ChangeNotifierProvider.value(value: widget.settingsService),
         ChangeNotifierProvider.value(value: widget.aiConfigService),
+        ChangeNotifierProvider.value(value: widget.objStoreConfigService),
         ChangeNotifierProvider.value(value: widget.syncConfigService),
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
         ChangeNotifierProvider<TagService>(create: (_) => TagService()),
         Provider<AiService>(
           create: (_) => AiService(configService: widget.aiConfigService),
+        ),
+        Provider<ObjStoreService>(
+          create: (_) => ObjStoreService(
+            configService: widget.objStoreConfigService,
+            localStore: LocalObjStore(baseDirProvider: _defaultObjStoreBaseDir),
+            qiniuClient: QiniuClient(),
+          ),
         ),
       ],
       child: MaterialApp(
@@ -188,4 +211,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
     return const HomePage();
   }
+}
+
+Future<Directory> _defaultObjStoreBaseDir() async {
+  final docs = await getApplicationDocumentsDirectory();
+  final dir = Directory(p.join(docs.path, 'life_tools_obj_store'));
+  if (!dir.existsSync()) dir.createSync(recursive: true);
+  return dir;
 }
