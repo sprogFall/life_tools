@@ -42,7 +42,7 @@ void main() {
       expect(find.text('普通任务'), findsOneWidget);
 
       expect(
-        find.byKey(ValueKey('task-pinned-badge-$pinnedId')),
+        find.byKey(ValueKey('task-pinned-corner-$pinnedId')),
         findsOneWidget,
       );
       expect(
@@ -52,4 +52,3 @@ void main() {
     });
   });
 }
-

@@ -380,67 +380,26 @@ class _TaskCard extends StatelessWidget {
           : () => _openDetail(context, taskId, task.title),
       onLongPress: taskId == null ? null : () => _showDeleteDialog(context),
       child: GlassContainer(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: _statusColor(task.status),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      if (task.isPinned)
-                        Container(
-                          key: ValueKey('task-pinned-badge-$taskId'),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: IOS26Theme.toolOrange.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: IOS26Theme.toolOrange.withValues(
-                                alpha: 0.25,
-                              ),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                CupertinoIcons.pin_fill,
-                                size: 13,
-                                color: IOS26Theme.toolOrange,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '置顶',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: IOS26Theme.toolOrange,
-                                  letterSpacing: -0.1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (task.isPinned) const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _statusColor(task.status),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           task.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -451,53 +410,64 @@ class _TaskCard extends StatelessWidget {
                             letterSpacing: -0.24,
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _statusLabel(task.status),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: IOS26Theme.textSecondary.withValues(
+                              alpha: 0.9,
+                            ),
+                          ),
+                        ),
+                        if (tags.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: tags.take(3).map(_tagChip).toList(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (task.estimatedMinutes > 0 || totalMinutes > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _statusLabel(task.status),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                      decoration: BoxDecoration(
+                        color: IOS26Theme.primaryColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _formatTimeProgress(
+                          totalMinutes,
+                          task.estimatedMinutes,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: IOS26Theme.primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 18,
+                    color: IOS26Theme.textTertiary,
                   ),
-                  if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: tags.take(3).map(_tagChip).toList(),
-                    ),
-                  ],
                 ],
               ),
             ),
-            if (task.estimatedMinutes > 0 || totalMinutes > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: IOS26Theme.primaryColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _formatTimeProgress(totalMinutes, task.estimatedMinutes),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: IOS26Theme.primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            if (task.isPinned)
+              Positioned(
+                left: 0,
+                top: 0,
+                child: _PinnedCornerMark(taskId: taskId),
               ),
-            const SizedBox(width: 6),
-            const Icon(
-              CupertinoIcons.chevron_right,
-              size: 18,
-              color: IOS26Theme.textTertiary,
-            ),
           ],
         ),
       ),
@@ -594,4 +564,59 @@ class _TaskCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PinnedCornerMark extends StatelessWidget {
+  final int? taskId;
+
+  const _PinnedCornerMark({required this.taskId});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: ClipPath(
+        clipper: _CornerTriangleClipper(),
+        child: Container(
+          key: ValueKey('task-pinned-corner-$taskId'),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                IOS26Theme.toolOrange.withValues(alpha: 0.98),
+                IOS26Theme.toolPink.withValues(alpha: 0.88),
+              ],
+            ),
+          ),
+          child: const Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 4, top: 4),
+              child: Icon(
+                CupertinoIcons.pin_fill,
+                size: 11,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CornerTriangleClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    return Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(0, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
