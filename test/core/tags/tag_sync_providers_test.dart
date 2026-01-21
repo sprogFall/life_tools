@@ -87,5 +87,97 @@ void main() {
 
       await targetDb.close();
     });
+
+    test('工作记录导出/导入应包含任务置顶与排序字段', () async {
+      final sourceDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      final sourceTags = TagRepository.withDatabase(sourceDb);
+      final sourceWorkLog = WorkLogRepository.withDatabase(sourceDb);
+
+      final idA = await sourceWorkLog.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 8),
+        ).copyWith(isPinned: true, sortIndex: 1),
+      );
+      final idB = await sourceWorkLog.createTask(
+        WorkTask.create(
+          title: '任务B',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 9),
+        ).copyWith(isPinned: true, sortIndex: 0),
+      );
+      final idC = await sourceWorkLog.createTask(
+        WorkTask.create(
+          title: '任务C',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.todo,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 10),
+        ).copyWith(isPinned: false, sortIndex: 0),
+      );
+
+      final workLogProvider = WorkLogSyncProvider(
+        repository: sourceWorkLog,
+        tagRepository: sourceTags,
+      );
+      final payload = await workLogProvider.exportData();
+      await sourceDb.close();
+
+      final dataMap = payload['data'] as Map<String, dynamic>;
+      final taskList = dataMap['tasks'] as List<dynamic>;
+      final taskMaps = taskList
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+      final byId = <int, Map<String, dynamic>>{
+        for (final t in taskMaps) (t['id'] as int): t,
+      };
+
+      expect(byId[idA]!.containsKey('is_pinned'), isTrue);
+      expect(byId[idA]!.containsKey('sort_index'), isTrue);
+      expect(byId[idB]!['is_pinned'], 1);
+      expect(byId[idB]!['sort_index'], 0);
+      expect(byId[idC]!['is_pinned'], 0);
+
+      final targetDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      final targetTags = TagRepository.withDatabase(targetDb);
+      final targetWorkLog = WorkLogRepository.withDatabase(targetDb);
+      final workLogProvider2 = WorkLogSyncProvider(
+        repository: targetWorkLog,
+        tagRepository: targetTags,
+      );
+
+      await workLogProvider2.importData(payload);
+
+      final tasks = await targetWorkLog.listTasks();
+      expect(tasks.map((t) => t.id), [idB, idA, idC]);
+      expect(tasks.first.isPinned, isTrue);
+      expect(tasks.first.sortIndex, 0);
+
+      await targetDb.close();
+    });
   });
 }
