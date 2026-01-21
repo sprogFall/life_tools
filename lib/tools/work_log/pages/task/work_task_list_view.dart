@@ -396,14 +396,63 @@ class _TaskCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                      letterSpacing: -0.24,
-                    ),
+                  Row(
+                    children: [
+                      if (task.isPinned)
+                        Container(
+                          key: ValueKey('task-pinned-badge-$taskId'),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: IOS26Theme.toolOrange.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: IOS26Theme.toolOrange.withValues(
+                                alpha: 0.25,
+                              ),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                CupertinoIcons.pin_fill,
+                                size: 13,
+                                color: IOS26Theme.toolOrange,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                '置顶',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: IOS26Theme.toolOrange,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (task.isPinned) const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: IOS26Theme.textPrimary,
+                            letterSpacing: -0.24,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(
