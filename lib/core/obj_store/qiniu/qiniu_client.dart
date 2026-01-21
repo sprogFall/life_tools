@@ -6,7 +6,8 @@ import 'package:http/http.dart' as http;
 import '../obj_store_errors.dart';
 import 'qiniu_auth.dart';
 
-typedef QiniuAuthFactory = QiniuAuth Function(String accessKey, String secretKey);
+typedef QiniuAuthFactory =
+    QiniuAuth Function(String accessKey, String secretKey);
 
 class QiniuUploadResult {
   final String key;
@@ -44,14 +45,18 @@ class QiniuClient {
     final request = http.MultipartRequest('POST', uri)
       ..fields['token'] = token
       ..fields['key'] = key
-      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+      ..files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
 
     final response = await _httpClient.send(request);
     final body = await response.stream.bytesToString();
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw ObjStoreUploadException(body.isEmpty ? '七牛上传失败' : body,
-          statusCode: response.statusCode);
+      throw ObjStoreUploadException(
+        body.isEmpty ? '七牛上传失败' : body,
+        statusCode: response.statusCode,
+      );
     }
 
     final map = jsonDecode(body) as Map<String, dynamic>;
@@ -69,14 +74,27 @@ class QiniuClient {
     return '$d/$k';
   }
 
+  String buildPrivateUrl({
+    required String domain,
+    required String key,
+    required String accessKey,
+    required String secretKey,
+    required int deadlineUnixSeconds,
+  }) {
+    final baseUrl = buildPublicUrl(domain: domain, key: key);
+    final auth = _authFactory(accessKey, secretKey);
+    return auth.createPrivateDownloadUrl(
+      baseUrl: baseUrl,
+      deadlineUnixSeconds: deadlineUnixSeconds,
+    );
+  }
+
   Future<bool> probePublicUrl({
     required String url,
     Duration timeout = const Duration(seconds: 8),
   }) async {
     try {
-      final resp = await _httpClient
-          .head(Uri.parse(url))
-          .timeout(timeout);
+      final resp = await _httpClient.head(Uri.parse(url)).timeout(timeout);
       return resp.statusCode >= 200 && resp.statusCode < 400;
     } catch (_) {
       return false;
@@ -98,7 +116,9 @@ class QiniuClient {
   static String _normalizeDomain(String domain) {
     final d = domain.trim();
     if (d.isEmpty) return '';
-    if (d.startsWith('http://') || d.startsWith('https://')) return d.replaceAll(RegExp(r'/$'), '');
+    if (d.startsWith('http://') || d.startsWith('https://')) {
+      return d.replaceAll(RegExp(r'/$'), '');
+    }
     return 'https://${d.replaceAll(RegExp(r'/$'), '')}';
   }
 }

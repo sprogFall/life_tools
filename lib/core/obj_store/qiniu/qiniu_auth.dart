@@ -22,5 +22,23 @@ class QiniuAuth {
 
     return '$accessKey:$encodedSign:$encodedPutPolicy';
   }
-}
 
+  /// 生成私有空间下载链接（在原始 URL 后追加 `e` 和 `token`）。
+  ///
+  /// 规则：token = accessKey + ':' + urlsafe_base64(hmac_sha1(secretKey, urlToSign))
+  /// 其中 urlToSign 为：baseUrl + ('?e=' 或 '&e=') + deadline
+  String createPrivateDownloadUrl({
+    required String baseUrl,
+    required int deadlineUnixSeconds,
+  }) {
+    final separator = baseUrl.contains('?') ? '&' : '?';
+    final urlToSign = '$baseUrl${separator}e=$deadlineUnixSeconds';
+
+    final hmac = Hmac(sha1, utf8.encode(secretKey));
+    final sign = hmac.convert(utf8.encode(urlToSign)).bytes;
+    final encodedSign = base64Url.encode(sign);
+    final token = '$accessKey:$encodedSign';
+
+    return '$urlToSign&token=$token';
+  }
+}

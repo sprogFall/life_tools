@@ -10,6 +10,7 @@ class ObjStoreConfig {
   final String? domain;
   final String? uploadHost;
   final String? keyPrefix;
+  final bool? qiniuIsPrivate;
 
   const ObjStoreConfig._({
     required this.type,
@@ -17,6 +18,7 @@ class ObjStoreConfig {
     this.domain,
     this.uploadHost,
     this.keyPrefix,
+    this.qiniuIsPrivate,
   });
 
   const ObjStoreConfig.local() : this._(type: ObjStoreType.local);
@@ -26,12 +28,14 @@ class ObjStoreConfig {
     required String domain,
     String uploadHost = 'https://upload.qiniup.com',
     String keyPrefix = '',
+    bool isPrivate = false,
   }) : this._(
          type: ObjStoreType.qiniu,
          bucket: bucket,
          domain: domain,
          uploadHost: uploadHost,
          keyPrefix: keyPrefix,
+         qiniuIsPrivate: isPrivate,
        );
 
   bool get isValid {
@@ -53,6 +57,7 @@ class ObjStoreConfig {
     String? domain,
     String? uploadHost,
     String? keyPrefix,
+    bool? qiniuIsPrivate,
   }) {
     return ObjStoreConfig._(
       type: type ?? this.type,
@@ -60,6 +65,7 @@ class ObjStoreConfig {
       domain: domain ?? this.domain,
       uploadHost: uploadHost ?? this.uploadHost,
       keyPrefix: keyPrefix ?? this.keyPrefix,
+      qiniuIsPrivate: qiniuIsPrivate ?? this.qiniuIsPrivate,
     );
   }
 
@@ -70,6 +76,7 @@ class ObjStoreConfig {
       if (domain != null) 'domain': domain,
       if (uploadHost != null) 'uploadHost': uploadHost,
       if (keyPrefix != null) 'keyPrefix': keyPrefix,
+      if (qiniuIsPrivate != null) 'qiniuIsPrivate': qiniuIsPrivate,
     };
   }
 
@@ -89,7 +96,9 @@ class ObjStoreConfig {
     final typeName = (map['type'] as String?)?.trim();
     if (typeName == null || typeName.isEmpty) return null;
 
-    final type = ObjStoreType.values.where((t) => t.name == typeName).firstOrNull;
+    final type = ObjStoreType.values
+        .where((t) => t.name == typeName)
+        .firstOrNull;
     if (type == null) return null;
 
     switch (type) {
@@ -100,14 +109,17 @@ class ObjStoreConfig {
       case ObjStoreType.qiniu:
         final bucket = (map['bucket'] as String?)?.trim() ?? '';
         final domain = (map['domain'] as String?)?.trim() ?? '';
-        final uploadHost = (map['uploadHost'] as String?)?.trim() ??
+        final uploadHost =
+            (map['uploadHost'] as String?)?.trim() ??
             'https://upload.qiniup.com';
         final keyPrefix = (map['keyPrefix'] as String?)?.trim() ?? '';
+        final isPrivate = (map['qiniuIsPrivate'] as bool?) ?? false;
         return ObjStoreConfig.qiniu(
           bucket: bucket,
           domain: domain,
           uploadHost: uploadHost,
           keyPrefix: keyPrefix,
+          isPrivate: isPrivate,
         );
     }
   }
@@ -118,4 +130,3 @@ bool _isNonEmpty(String? v) => v != null && v.trim().isNotEmpty;
 extension _FirstOrNullExt<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
-

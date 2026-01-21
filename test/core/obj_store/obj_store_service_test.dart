@@ -141,5 +141,92 @@ void main() {
       expect(result.key, 'media/abc.png');
       expect(result.uri, 'https://cdn.example.com/media/abc.png');
     });
+
+    test('七牛私有空间：上传后应返回带签名的临时URL', () async {
+      final secretStore = InMemorySecretStore();
+      final configService = ObjStoreConfigService(secretStore: secretStore);
+      await configService.init();
+      await configService.save(
+        const ObjStoreConfig.qiniu(
+          bucket: 'bkt',
+          domain: 'https://cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ),
+        secrets: const ObjStoreQiniuSecrets(
+          accessKey: 'testak',
+          secretKey: 'testsk',
+        ),
+      );
+
+      final client = _RecordingHttpClient((request) async {
+        final resp = jsonEncode({'key': 'media/abc.png', 'hash': 'x'});
+        return http.StreamedResponse(Stream.value(utf8.encode(resp)), 200);
+      });
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          httpClient: client,
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        qiniuPrivateDeadlineUnixSeconds: () => 1234567890,
+      );
+
+      final result = await service.uploadBytes(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        filename: 'abc.png',
+      );
+
+      expect(result.key, 'media/abc.png');
+      expect(
+        result.uri,
+        'https://cdn.example.com/media/abc.png?e=1234567890&token=testak:FMNTFUnuG-wbXiPViZ0RjV026sE=',
+      );
+    });
+
+    test('七牛私有空间：查询时应返回带签名的临时URL', () async {
+      final secretStore = InMemorySecretStore();
+      final configService = ObjStoreConfigService(secretStore: secretStore);
+      await configService.init();
+
+      final cfg = const ObjStoreConfig.qiniu(
+        bucket: 'bkt',
+        domain: 'https://cdn.example.com',
+        uploadHost: 'https://upload.qiniup.com',
+        keyPrefix: 'media/',
+        isPrivate: true,
+      );
+      final secrets = const ObjStoreQiniuSecrets(
+        accessKey: 'testak',
+        secretKey: 'testsk',
+      );
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        qiniuPrivateDeadlineUnixSeconds: () => 1234567890,
+      );
+
+      final uri = await service.resolveUriWithConfig(
+        config: cfg,
+        key: 'media/abc.png',
+        secrets: secrets,
+      );
+
+      expect(
+        uri,
+        'https://cdn.example.com/media/abc.png?e=1234567890&token=testak:FMNTFUnuG-wbXiPViZ0RjV026sE=',
+      );
+    });
   });
 }

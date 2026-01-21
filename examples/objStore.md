@@ -26,7 +26,7 @@ final uploaded = await objStore.uploadBytes(
 );
 
 // uploaded.key：建议业务侧持久化保存（用于后续查询）
-// uploaded.uri：本地存储为 file://...，七牛云为 https://.../key
+// uploaded.uri：本地存储为 file://...；七牛公有空间为 https://.../key；七牛私有空间为“带签名的临时链接”（会过期）
 print(uploaded.key);
 print(uploaded.uri);
 ```
@@ -41,6 +41,8 @@ final objStore = context.read<ObjStoreService>();
 
 final key = 'media/xxxx.png';
 final uri = await objStore.resolveUri(key: key);
+
+// 若配置为七牛私有空间，这里返回带签名的临时下载链接（带 e/token）
 ```
 
 ## 3) 异常处理（未配置提示用户去配置）
@@ -62,4 +64,3 @@ try {
   // TODO: 其他上传/解析错误提示
 }
 ```
-

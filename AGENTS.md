@@ -73,6 +73,8 @@ dart format .
 
 业务侧通过 Provider 获取后调用 `uploadBytes(...)` 或 `resolveUri(...)` 即可；若用户未完成配置，会抛出 `ObjStoreNotConfiguredException`，业务侧应提示用户到「设置 -> 资源存储」完成配置。
 
+说明：若配置为七牛私有空间，`resolveUri(...)` 会返回带签名的临时下载链接（带 `e/token`，会过期）。
+
 示例代码请查看：`examples/objStore.md`
 
 ## 标签调用（公共入口）

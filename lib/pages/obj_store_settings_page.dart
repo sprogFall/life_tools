@@ -22,6 +22,7 @@ class ObjStoreSettingsPage extends StatefulWidget {
 
 class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   ObjStoreType _type = ObjStoreType.none;
+  bool _qiniuIsPrivate = false;
 
   final _qiniuAccessKeyController = TextEditingController();
   final _qiniuSecretKeyController = TextEditingController();
@@ -49,18 +50,20 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     _type = cfg?.type ?? ObjStoreType.none;
 
     if (cfg?.type == ObjStoreType.qiniu) {
+      _qiniuIsPrivate = cfg?.qiniuIsPrivate ?? false;
       _qiniuBucketController.text = cfg?.bucket ?? '';
       _qiniuDomainController.text = cfg?.domain ?? '';
       _qiniuUploadHostController.text =
           (cfg?.uploadHost?.trim().isNotEmpty ?? false)
-              ? cfg!.uploadHost!
-              : 'https://upload.qiniup.com';
+          ? cfg!.uploadHost!
+          : 'https://upload.qiniup.com';
       _qiniuKeyPrefixController.text = cfg?.keyPrefix ?? 'media/';
 
       final secrets = cfgService.qiniuSecrets;
       _qiniuAccessKeyController.text = secrets?.accessKey ?? '';
       _qiniuSecretKeyController.text = secrets?.secretKey ?? '';
     } else {
+      _qiniuIsPrivate = false;
       _qiniuUploadHostController.text = 'https://upload.qiniup.com';
       _qiniuKeyPrefixController.text = 'media/';
     }
@@ -197,6 +200,27 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
+            label: '空间类型',
+            child: CupertinoSlidingSegmentedControl<bool>(
+              groupValue: _qiniuIsPrivate,
+              children: const {
+                false: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('公有'),
+                ),
+                true: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('私有'),
+                ),
+              },
+              onValueChanged: (v) {
+                if (v == null) return;
+                setState(() => _qiniuIsPrivate = v);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
             label: 'AccessKey（AK）',
             child: CupertinoTextField(
               controller: _qiniuAccessKeyController,
@@ -315,7 +339,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               const SizedBox(width: 12),
               CupertinoButton(
                 color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 onPressed: _pickFile,
                 child: const Text(
                   '选择文件',
@@ -406,7 +433,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           Text(
             '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
             '2. 七牛云存储会在本机生成上传 Token 并直接上传到七牛。\n'
-            '3. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。',
+            '3. 七牛私有空间查询会生成带签名的临时下载链接（带 e/token）。\n'
+            '4. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。',
             style: TextStyle(
               fontSize: 13,
               color: IOS26Theme.textSecondary,
@@ -519,6 +547,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ? 'https://upload.qiniup.com'
           : _qiniuUploadHostController.text.trim(),
       keyPrefix: _qiniuKeyPrefixController.text.trim(),
+      isPrivate: _qiniuIsPrivate,
     );
   }
 
@@ -600,13 +629,19 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       final config = _type == ObjStoreType.qiniu
           ? _readQiniuConfig()
           : const ObjStoreConfig.local();
+      final secrets = _type == ObjStoreType.qiniu ? _readQiniuSecrets() : null;
 
-      final uri = await service.resolveUriWithConfig(config: config, key: key);
-      final ok = await service.probeWithConfig(config: config, key: key);
-      await _showInfo(
-        '查询结果',
-        'URI: $uri\n可访问: ${ok ? '是' : '否'}',
+      final uri = await service.resolveUriWithConfig(
+        config: config,
+        key: key,
+        secrets: secrets,
       );
+      final ok = await service.probeWithConfig(
+        config: config,
+        key: key,
+        secrets: secrets,
+      );
+      await _showInfo('查询结果', 'URI: $uri\n可访问: ${ok ? '是' : '否'}');
     } on ObjStoreNotConfiguredException catch (e) {
       await _showInfo('未配置', e.message);
     } catch (e) {

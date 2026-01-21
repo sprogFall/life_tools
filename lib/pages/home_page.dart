@@ -166,16 +166,15 @@ class HomePage extends StatelessWidget {
                     const Spacer(),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      onPressed:
-                          allMessages.isEmpty
-                              ? null
-                              : () {
-                                Navigator.of(context).push(
-                                  CupertinoPageRoute<void>(
-                                    builder: (_) => const AllMessagesPage(),
-                                  ),
-                                );
-                              },
+                      onPressed: allMessages.isEmpty
+                          ? null
+                          : () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute<void>(
+                                  builder: (_) => const AllMessagesPage(),
+                                ),
+                              );
+                            },
                       child: Text(
                         '全部消息',
                         style: TextStyle(
@@ -726,14 +725,16 @@ class _SettingsSheet extends StatelessWidget {
                         ),
                         Consumer<ObjStoreConfigService>(
                           builder: (context, objStore, _) {
+                            final isQiniuPrivate =
+                                objStore.config?.qiniuIsPrivate ?? false;
                             final value = switch (objStore.selectedType) {
                               ObjStoreType.none => '未选择',
-                              ObjStoreType.local => objStore.isConfigured
-                                  ? '本地存储'
-                                  : '未配置',
-                              ObjStoreType.qiniu => objStore.isConfigured
-                                  ? '七牛云'
-                                  : '未配置',
+                              ObjStoreType.local =>
+                                objStore.isConfigured ? '本地存储' : '未配置',
+                              ObjStoreType.qiniu =>
+                                objStore.isConfigured
+                                    ? (isQiniuPrivate ? '七牛云(私有)' : '七牛云(公有)')
+                                    : '未配置',
                             };
                             return _SettingsItem(
                               icon: CupertinoIcons.photo_on_rectangle,
