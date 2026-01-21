@@ -64,6 +64,17 @@ dart format .
 
 示例代码请查看：`examples/ai.md`
 
+## 资源存储（公共入口）
+
+项目在 `lib/main.dart` 已注入：
+
+- `ObjStoreConfigService`：保存/读取「资源存储」配置
+- `ObjStoreService`：提供上传/查询（URI 解析）通用接口
+
+业务侧通过 Provider 获取后调用 `uploadBytes(...)` 或 `resolveUri(...)` 即可；若用户未完成配置，会抛出 `ObjStoreNotConfiguredException`，业务侧应提示用户到「设置 -> 资源存储」完成配置。
+
+示例代码请查看：`examples/objStore.md`
+
 ## 标签调用（公共入口）
 
 项目在 `lib/main.dart` 已注入 `TagService`，业务侧通过 Provider 获取后即可查询「当前工具可用的标签」，并用标签实现各工具内部功能（如：工作记录的任务打标签/按标签筛选）。

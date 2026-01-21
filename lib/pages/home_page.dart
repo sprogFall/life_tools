@@ -10,11 +10,14 @@ import '../core/messages/models/app_message.dart';
 import '../core/backup/pages/backup_restore_page.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
+import '../core/obj_store/obj_store_config.dart';
+import '../core/obj_store/obj_store_config_service.dart';
 import '../core/services/settings_service.dart';
 import '../core/sync/services/sync_config_service.dart';
 import '../core/sync/pages/sync_settings_page.dart';
 import '../core/theme/ios26_theme.dart';
 import 'ai_settings_page.dart';
+import 'obj_store_settings_page.dart';
 
 /// 首页欢迎页面，iOS 26 风格
 class HomePage extends StatelessWidget {
@@ -721,6 +724,32 @@ class _SettingsSheet extends StatelessWidget {
                             alpha: 0.25,
                           ),
                         ),
+                        Consumer<ObjStoreConfigService>(
+                          builder: (context, objStore, _) {
+                            final value = switch (objStore.selectedType) {
+                              ObjStoreType.none => '未选择',
+                              ObjStoreType.local => objStore.isConfigured
+                                  ? '本地存储'
+                                  : '未配置',
+                              ObjStoreType.qiniu => objStore.isConfigured
+                                  ? '七牛云'
+                                  : '未配置',
+                            };
+                            return _SettingsItem(
+                              icon: CupertinoIcons.photo_on_rectangle,
+                              title: '资源存储',
+                              value: value,
+                              onTap: () => _openObjStoreSettings(context),
+                            );
+                          },
+                        ),
+                        Container(
+                          height: 0.5,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          color: IOS26Theme.textTertiary.withValues(
+                            alpha: 0.25,
+                          ),
+                        ),
                         _SettingsItem(
                           icon: CupertinoIcons.archivebox,
                           title: '备份与还原',
@@ -843,6 +872,16 @@ class _SettingsSheet extends StatelessWidget {
     Future<void>.microtask(() {
       navigator.push(
         CupertinoPageRoute<void>(builder: (_) => const BackupRestorePage()),
+      );
+    });
+  }
+
+  void _openObjStoreSettings(BuildContext context) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.pop();
+    Future<void>.microtask(() {
+      navigator.push(
+        CupertinoPageRoute<void>(builder: (_) => const ObjStoreSettingsPage()),
       );
     });
   }

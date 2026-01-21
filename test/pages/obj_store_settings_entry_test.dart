@@ -17,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  group('AI设置入口', () {
+  group('资源存储设置入口', () {
     setUpAll(() {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -29,8 +29,9 @@ void main() {
       ToolRegistry.instance.registerAll();
     });
 
-    testWidgets('设置弹窗中应显示AI配置入口', (tester) async {
+    testWidgets('设置弹窗中应显示资源存储入口', (tester) async {
       final settingsService = SettingsService();
+
       final aiConfigService = AiConfigService();
       await aiConfigService.init();
 
@@ -79,7 +80,8 @@ void main() {
       await tester.tap(find.byIcon(CupertinoIcons.gear));
       await tester.pumpAndSettle();
 
-      expect(find.text('AI配置'), findsOneWidget);
+      expect(find.text('资源存储'), findsOneWidget);
     });
   });
 }
+
