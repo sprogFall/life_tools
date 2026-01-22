@@ -21,6 +21,7 @@ import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
 import 'core/sync/services/sync_service.dart';
+import 'core/tags/built_in_tag_categories.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
@@ -62,8 +63,9 @@ void main() async {
     Future.microtask(() => syncService.sync());
   }
 
-  final notificationService =
-      (Platform.isAndroid || Platform.isIOS) ? LocalNotificationService() : null;
+  final notificationService = (Platform.isAndroid || Platform.isIOS)
+      ? LocalNotificationService()
+      : null;
   await notificationService?.init();
 
   final messageService = MessageService(
@@ -198,7 +200,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.syncConfigService),
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
-        ChangeNotifierProvider<TagService>(create: (_) => TagService()),
+        ChangeNotifierProvider<TagService>(
+          create: (_) {
+            final service = TagService();
+            BuiltInTagCategories.registerAll(service);
+            return service;
+          },
+        ),
         Provider<AiService>(
           create: (_) => AiService(configService: widget.aiConfigService),
         ),

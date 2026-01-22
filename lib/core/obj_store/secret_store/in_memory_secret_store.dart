@@ -18,4 +18,3 @@ class InMemorySecretStore implements SecretStore {
     _values[key] = value;
   }
 }
-

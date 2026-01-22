@@ -17,8 +17,13 @@ import 'overcooked_recipe_edit_page.dart';
 
 class OvercookedRecipeDetailPage extends StatefulWidget {
   final int recipeId;
+  final OvercookedRepository? repository;
 
-  const OvercookedRecipeDetailPage({super.key, required this.recipeId});
+  const OvercookedRecipeDetailPage({
+    super.key,
+    required this.recipeId,
+    this.repository,
+  });
 
   @override
   State<OvercookedRecipeDetailPage> createState() =>
@@ -41,7 +46,7 @@ class _OvercookedRecipeDetailPageState
     if (_loading) return;
     setState(() => _loading = true);
     try {
-      final repo = context.read<OvercookedRepository>();
+      final repo = widget.repository ?? context.read<OvercookedRepository>();
       final tagService = context.read<TagService>();
       final r = await repo.getRecipe(widget.recipeId);
       final typeTags = await tagService.listTagsForToolCategory(
@@ -56,10 +61,22 @@ class _OvercookedRecipeDetailPageState
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.sauce,
       );
-      final tags = <Tag>[...typeTags, ...ingredientTags, ...sauceTags];
+      final flavorTags = await tagService.listTagsForToolCategory(
+        toolId: OvercookedConstants.toolId,
+        categoryId: OvercookedTagCategories.flavor,
+      );
+      final tags = <Tag>[
+        ...typeTags,
+        ...ingredientTags,
+        ...sauceTags,
+        ...flavorTags,
+      ];
       setState(() {
         _recipe = r;
-        _tagsById = {for (final t in tags) if (t.id != null) t.id!: t};
+        _tagsById = {
+          for (final t in tags)
+            if (t.id != null) t.id!: t,
+        };
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -69,6 +86,7 @@ class _OvercookedRecipeDetailPageState
   @override
   Widget build(BuildContext context) {
     final recipe = _recipe;
+    final repo = widget.repository ?? context.read<OvercookedRepository>();
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(
@@ -77,19 +95,20 @@ class _OvercookedRecipeDetailPageState
         actions: [
           IconButton(
             tooltip: '编辑',
-            onPressed:
-                recipe == null
-                    ? null
-                    : () async {
-                      await Navigator.of(context).push(
-                        CupertinoPageRoute<void>(
-                          builder: (_) =>
-                              OvercookedRecipeEditPage(initial: recipe),
+            onPressed: recipe == null
+                ? null
+                : () async {
+                    await Navigator.of(context).push(
+                      CupertinoPageRoute<void>(
+                        builder: (_) => OvercookedRecipeEditPage(
+                          initial: recipe,
+                          repository: repo,
                         ),
-                      );
-                      if (!mounted) return;
-                      await _refresh();
-                    },
+                      ),
+                    );
+                    if (!mounted) return;
+                    await _refresh();
+                  },
             icon: const Icon(
               CupertinoIcons.pencil,
               color: IOS26Theme.primaryColor,
@@ -97,62 +116,58 @@ class _OvercookedRecipeDetailPageState
           ),
           IconButton(
             tooltip: '删除',
-            onPressed:
-                recipe == null
-                    ? null
-                    : () async {
-                      final ok = await OvercookedDialogs.confirm(
-                        context,
-                        title: '删除菜谱？',
-                        content: '将同时移除相关愿望单与三餐记录引用。',
-                        confirmText: '删除',
-                        isDestructive: true,
-                      );
-                      if (!ok) return;
-                      if (!context.mounted) return;
-                      await context
-                          .read<OvercookedRepository>()
-                          .deleteRecipe(recipe.id!);
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
-                    },
-            icon: const Icon(
-              CupertinoIcons.delete,
-              color: IOS26Theme.toolRed,
-            ),
+            onPressed: recipe == null
+                ? null
+                : () async {
+                    final ok = await OvercookedDialogs.confirm(
+                      context,
+                      title: '删除菜谱？',
+                      content: '将同时移除相关愿望单与三餐记录引用。',
+                      confirmText: '删除',
+                      isDestructive: true,
+                    );
+                    if (!ok) return;
+                    if (!context.mounted) return;
+                    await repo.deleteRecipe(recipe.id!);
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                  },
+            icon: const Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
           ),
         ],
       ),
-      body:
-          _loading && recipe == null
-              ? const Center(child: CircularProgressIndicator())
-              : recipe == null
-              ? const Center(
-                  child: Text(
-                    '未找到菜谱',
-                    style: TextStyle(color: IOS26Theme.textSecondary),
-                  ),
-                )
-              : _buildContent(context, recipe),
+      body: _loading && recipe == null
+          ? const Center(child: CircularProgressIndicator())
+          : recipe == null
+          ? const Center(
+              child: Text(
+                '未找到菜谱',
+                style: TextStyle(color: IOS26Theme.textSecondary),
+              ),
+            )
+          : _buildContent(context, recipe),
     );
   }
 
   Widget _buildContent(BuildContext context, OvercookedRecipe recipe) {
     final objStore = context.read<ObjStoreService>();
-    final typeName =
-        recipe.typeTagId == null ? null : _tagsById[recipe.typeTagId!]?.name;
-    final ingredients =
-        recipe.ingredientTagIds
+    final typeName = recipe.typeTagId == null
+        ? null
+        : _tagsById[recipe.typeTagId!]?.name;
+    final ingredients = recipe.ingredientTagIds
+        .map((id) => _tagsById[id]?.name)
+        .whereType<String>()
+        .toList();
+    final sauces = recipe.sauceTagIds
+        .map((id) => _tagsById[id]?.name)
+        .whereType<String>()
+        .toList();
+    final flavors =
+        recipe.flavorTagIds
             .map((id) => _tagsById[id]?.name)
             .whereType<String>()
-            .toList();
-    final sauces =
-        recipe.sauceTagIds
-            .map((id) => _tagsById[id]?.name)
-            .whereType<String>()
-            .toList();
-    final flavors = recipe.flavors.toList()
-      ..sort((a, b) => a.bit.compareTo(b.bit));
+            .toList()
+          ..sort();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -176,31 +191,23 @@ class _OvercookedRecipeDetailPageState
         ),
         if (typeName != null && typeName.trim().isNotEmpty) ...[
           const SizedBox(height: 8),
-          _chipsRow(title: '类型', values: [typeName]),
+          _chipsRow(title: '风格', values: [typeName]),
         ],
         if (flavors.isNotEmpty) ...[
           const SizedBox(height: 8),
-          _chipsRow(
-            title: '口味',
-            values: flavors.map((e) => e.label).toList(),
-            color: IOS26Theme.toolPink,
-          ),
+          _chipsRow(title: '风味', values: flavors, color: IOS26Theme.toolPink),
         ],
         if (ingredients.isNotEmpty) ...[
           const SizedBox(height: 10),
           _chipsRow(
-            title: '食材',
+            title: '主料',
             values: ingredients,
             color: IOS26Theme.toolGreen,
           ),
         ],
         if (sauces.isNotEmpty) ...[
           const SizedBox(height: 10),
-          _chipsRow(
-            title: '酱料',
-            values: sauces,
-            color: IOS26Theme.toolOrange,
-          ),
+          _chipsRow(title: '调味', values: sauces, color: IOS26Theme.toolOrange),
         ],
         if (recipe.intro.trim().isNotEmpty) ...[
           const SizedBox(height: 14),
@@ -223,10 +230,9 @@ class _OvercookedRecipeDetailPageState
           style: TextStyle(
             fontSize: 14,
             height: 1.45,
-            color:
-                recipe.content.trim().isEmpty
-                    ? IOS26Theme.textSecondary
-                    : IOS26Theme.textPrimary,
+            color: recipe.content.trim().isEmpty
+                ? IOS26Theme.textSecondary
+                : IOS26Theme.textPrimary,
           ),
         ),
         if (recipe.detailImageKeys.isNotEmpty) ...[
@@ -284,8 +290,9 @@ class _OvercookedRecipeDetailPageState
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: () {
-                    final tool =
-                        ToolRegistry.instance.getById('tag_manager')?.pageBuilder();
+                    final tool = ToolRegistry.instance
+                        .getById('tag_manager')
+                        ?.pageBuilder();
                     Navigator.of(context).push(
                       CupertinoPageRoute<void>(
                         builder: (_) => tool ?? const TagManagerToolPage(),
@@ -336,7 +343,10 @@ class _OvercookedRecipeDetailPageState
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+              border: Border.all(
+                color: color.withValues(alpha: 0.25),
+                width: 1,
+              ),
             ),
             child: Text(
               v,

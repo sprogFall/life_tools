@@ -88,4 +88,3 @@ class PrefsSecretStore implements SecretStore {
 }
 
 enum _CipherMode { encrypt, decrypt }
-

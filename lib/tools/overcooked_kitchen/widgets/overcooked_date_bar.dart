@@ -21,8 +21,9 @@ class OvercookedDateBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text =
-        title == null ? OvercookedFormat.date(date) : '$title · ${OvercookedFormat.date(date)}';
+    final text = title == null
+        ? OvercookedFormat.date(date)
+        : '$title · ${OvercookedFormat.date(date)}';
     return Row(
       children: [
         _iconButton(

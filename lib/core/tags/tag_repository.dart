@@ -219,15 +219,12 @@ ORDER BY tt.category_id ASC, t.sort_index ASC, t.name COLLATE NOCASE ASC
 
     final placeholders = List.filled(ids.length, '?').join(',');
     final db = await _database;
-    final rows = await db.rawQuery(
-      '''
+    final rows = await db.rawQuery('''
 SELECT *
 FROM tags
 WHERE id IN ($placeholders)
 ORDER BY sort_index ASC, name COLLATE NOCASE ASC
-''',
-      ids,
-    );
+''', ids);
     return rows.map((e) => Tag.fromMap(e)).toList();
   }
 

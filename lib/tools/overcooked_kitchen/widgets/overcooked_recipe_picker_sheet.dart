@@ -32,14 +32,13 @@ class OvercookedRecipePickerSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (_) => SafeArea(
-            child: OvercookedRecipePickerSheet(
-              title: title,
-              recipes: recipes,
-              selectedRecipeIds: selectedRecipeIds,
-            ),
-          ),
+      builder: (_) => SafeArea(
+        child: OvercookedRecipePickerSheet(
+          title: title,
+          recipes: recipes,
+          selectedRecipeIds: selectedRecipeIds,
+        ),
+      ),
     );
   }
 
@@ -48,7 +47,8 @@ class OvercookedRecipePickerSheet extends StatefulWidget {
       _OvercookedRecipePickerSheetState();
 }
 
-class _OvercookedRecipePickerSheetState extends State<OvercookedRecipePickerSheet> {
+class _OvercookedRecipePickerSheetState
+    extends State<OvercookedRecipePickerSheet> {
   late Set<int> _selected;
   String _query = '';
 
@@ -61,10 +61,11 @@ class _OvercookedRecipePickerSheetState extends State<OvercookedRecipePickerShee
   @override
   Widget build(BuildContext context) {
     final q = _query.trim().toLowerCase();
-    final filtered =
-        q.isEmpty
-            ? widget.recipes
-            : widget.recipes.where((r) => r.name.toLowerCase().contains(q)).toList();
+    final filtered = q.isEmpty
+        ? widget.recipes
+        : widget.recipes
+              .where((r) => r.name.toLowerCase().contains(q))
+              .toList();
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.80,
@@ -79,68 +80,65 @@ class _OvercookedRecipePickerSheetState extends State<OvercookedRecipePickerShee
             ),
           ),
           Expanded(
-            child:
-                filtered.isEmpty
-                    ? const Center(
-                        child: Text(
-                          '暂无可选菜谱',
-                          style: TextStyle(color: IOS26Theme.textSecondary),
+            child: filtered.isEmpty
+                ? const Center(
+                    child: Text(
+                      '暂无可选菜谱',
+                      style: TextStyle(color: IOS26Theme.textSecondary),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, index) => Divider(
+                      height: 1,
+                      color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                    ),
+                    itemBuilder: (context, index) {
+                      final r = filtered[index];
+                      final id = r.id;
+                      final checked = id != null && _selected.contains(id);
+                      return ListTile(
+                        leading: SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: OvercookedImageByKey(
+                            objStoreService: context.read<ObjStoreService>(),
+                            objectKey: r.coverImageKey,
+                            borderRadius: 12,
+                          ),
                         ),
-                      )
-                    : ListView.separated(
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, index) => Divider(
-                          height: 1,
-                          color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                        title: Text(
+                          r.name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: IOS26Theme.textPrimary,
+                          ),
                         ),
-                        itemBuilder: (context, index) {
-                          final r = filtered[index];
-                          final id = r.id;
-                          final checked = id != null && _selected.contains(id);
-                          return ListTile(
-                            leading: SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: OvercookedImageByKey(
-                                objStoreService: context.read<ObjStoreService>(),
-                                objectKey: r.coverImageKey,
-                                borderRadius: 12,
-                              ),
-                            ),
-                            title: Text(
-                              r.name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: IOS26Theme.textPrimary,
-                              ),
-                            ),
-                            trailing: CupertinoSwitch(
-                              value: checked,
-                              onChanged:
-                                  id == null
-                                      ? null
-                                      : (value) => setState(() {
-                                        if (value) {
-                                          _selected.add(id);
-                                        } else {
-                                          _selected.remove(id);
-                                        }
-                                      }),
-                            ),
-                            onTap:
-                                id == null
-                                    ? null
-                                    : () => setState(() {
-                                      if (checked) {
-                                        _selected.remove(id);
-                                      } else {
-                                        _selected.add(id);
-                                      }
-                                    }),
-                          );
-                        },
-                      ),
+                        trailing: CupertinoSwitch(
+                          value: checked,
+                          onChanged: id == null
+                              ? null
+                              : (value) => setState(() {
+                                  if (value) {
+                                    _selected.add(id);
+                                  } else {
+                                    _selected.remove(id);
+                                  }
+                                }),
+                        ),
+                        onTap: id == null
+                            ? null
+                            : () => setState(() {
+                                if (checked) {
+                                  _selected.remove(id);
+                                } else {
+                                  _selected.add(id);
+                                }
+                              }),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

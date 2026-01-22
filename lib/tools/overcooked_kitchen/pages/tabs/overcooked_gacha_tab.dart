@@ -34,6 +34,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
   List<Tag> _typeTags = const [];
   Map<int, Tag> _tagsById = const {};
   Set<int> _selectedTypeIds = {};
+  Map<int, int> _typeCountById = {};
   List<OvercookedRecipe> _picked = const [];
 
   @override
@@ -52,7 +53,10 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       );
       setState(() {
         _typeTags = tags;
-        _tagsById = {for (final t in tags) if (t.id != null) t.id!: t};
+        _tagsById = {
+          for (final t in tags)
+            if (t.id != null) t.id!: t,
+        };
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -61,13 +65,25 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedNames =
+    final entries =
         _selectedTypeIds
-            .map((id) => _tagsById[id]?.name)
-            .whereType<String>()
+            .map((id) {
+              final name = _tagsById[id]?.name;
+              final trimmed = name?.trim();
+              if (trimmed == null || trimmed.isEmpty) return null;
+              final count = _typeCountById[id] ?? 1;
+              return (id: id, name: trimmed, count: count);
+            })
+            .whereType<({int id, String name, int count})>()
             .toList()
-          ..sort();
-    final typeText = selectedNames.isEmpty ? '未选择' : selectedNames.join('、');
+          ..sort((a, b) => a.name.compareTo(b.name));
+    final totalCount = entries.fold<int>(
+      0,
+      (sum, e) => sum + (e.count <= 0 ? 0 : e.count),
+    );
+    final typeText = entries.isEmpty
+        ? '未选择'
+        : entries.map((e) => '${e.name}×${e.count}').join('、');
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
@@ -91,13 +107,16 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               onPressed: _loading ? null : _roll,
               child: const Text(
                 '换一批',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        _fieldTitle('菜的类型搭配（来自标签）'),
+        _fieldTitle('菜品风格搭配（来自标签）'),
         const SizedBox(height: 8),
         SizedBox(
           height: 48,
@@ -116,7 +135,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: selectedNames.isEmpty
+                      color: entries.isEmpty
                           ? IOS26Theme.textSecondary
                           : IOS26Theme.textPrimary,
                     ),
@@ -131,6 +150,52 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             ),
           ),
         ),
+        if (entries.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          GlassContainer(
+            borderRadius: 18,
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '每种风格抽取份数',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: IOS26Theme.textSecondary,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '共 $totalCount 道',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ...entries.map(
+                  (e) => _TypeCountRow(
+                    name: e.name,
+                    count: e.count,
+                    onChanged: _loading
+                        ? null
+                        : (next) => setState(() {
+                            _typeCountById = {..._typeCountById, e.id: next};
+                          }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         OvercookedDateBar(
           title: '导入到哪天的愿望单',
@@ -138,8 +203,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
           onPrev: () => widget.onTargetDateChanged(
             widget.targetDate.subtract(const Duration(days: 1)),
           ),
-          onNext: () =>
-              widget.onTargetDateChanged(widget.targetDate.add(const Duration(days: 1))),
+          onNext: () => widget.onTargetDateChanged(
+            widget.targetDate.add(const Duration(days: 1)),
+          ),
           onPick: () => _pickDate(initial: widget.targetDate),
         ),
         const SizedBox(height: 12),
@@ -153,7 +219,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               width: 1,
             ),
             child: const Text(
-              '暂无“菜的类型”标签：请先在“标签管理”创建标签并关联到“胡闹厨房”后再来抽取。',
+              '暂无“菜品风格”标签：请先在“标签管理”创建标签并关联到“胡闹厨房”后再来抽取。',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.3,
@@ -167,7 +233,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             padding: const EdgeInsets.only(top: 18),
             child: Center(
               child: Text(
-                '先选好类型搭配，再点“换一批”开抽',
+                '先选好风格搭配，再点“换一批”开抽',
                 style: TextStyle(
                   fontSize: 15,
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
@@ -176,10 +242,14 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             ),
           )
         else ...[
-          ..._picked.map((r) => _PickedCard(
-            recipe: r,
-            typeName: r.typeTagId == null ? null : _tagsById[r.typeTagId!]?.name,
-          )),
+          ..._picked.map(
+            (r) => _PickedCard(
+              recipe: r,
+              typeName: r.typeTagId == null
+                  ? null
+                  : _tagsById[r.typeTagId!]?.name,
+            ),
+          ),
           const SizedBox(height: 10),
           CupertinoButton(
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -188,7 +258,10 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             onPressed: _loading ? null : _importToWish,
             child: const Text(
               '就要这个（导入愿望单）',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -210,13 +283,21 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
   Future<void> _pickTypes() async {
     final selected = await OvercookedTagPickerSheet.show(
       context,
-      title: '选择类型搭配',
+      title: '选择风格搭配',
       tags: _typeTags,
       selectedIds: _selectedTypeIds,
       multi: true,
     );
     if (selected == null) return;
-    setState(() => _selectedTypeIds = selected);
+    setState(() {
+      _selectedTypeIds = selected;
+      final next = <int, int>{};
+      for (final id in selected) {
+        next[id] = _typeCountById[id] ?? 1;
+      }
+      _typeCountById = next;
+      _picked = const [];
+    });
   }
 
   Future<void> _roll() async {
@@ -224,16 +305,29 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       await OvercookedDialogs.showMessage(
         context,
         title: '提示',
-        content: '请先选择“菜的类型搭配”',
+        content: '请先选择“菜品风格搭配”',
+      );
+      return;
+    }
+    if (_typeCountById.isEmpty || _typeCountById.values.every((c) => c <= 0)) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '提示',
+        content: '请为至少 1 种风格设置抽取数量',
       );
       return;
     }
 
     setState(() => _loading = true);
     try {
-      final service = OvercookedGachaService(repository: context.read<OvercookedRepository>());
+      final service = OvercookedGachaService(
+        repository: context.read<OvercookedRepository>(),
+      );
       final seed = DateTime.now().millisecondsSinceEpoch;
-      final picked = await service.pick(typeTagIds: _selectedTypeIds.toList(), seed: seed);
+      final picked = await service.pickByTypeCounts(
+        typeCounts: _typeCountById,
+        seed: seed,
+      );
       setState(() => _picked = picked);
     } catch (e) {
       if (!mounted) return;
@@ -373,3 +467,76 @@ class _PickedCard extends StatelessWidget {
   }
 }
 
+class _TypeCountRow extends StatelessWidget {
+  final String name;
+  final int count;
+  final ValueChanged<int>? onChanged;
+
+  const _TypeCountRow({
+    required this.name,
+    required this.count,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = count <= 0 ? 0 : count;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: IOS26Theme.textPrimary,
+              ),
+            ),
+          ),
+          _iconButton(
+            icon: CupertinoIcons.minus,
+            enabled: onChanged != null && c > 1,
+            onPressed: () => onChanged?.call(c - 1),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '$c',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: IOS26Theme.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          _iconButton(
+            icon: CupertinoIcons.add,
+            enabled: onChanged != null,
+            onPressed: () => onChanged?.call(c + 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _iconButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onPressed,
+  }) {
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      onPressed: enabled ? onPressed : null,
+      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+      borderRadius: BorderRadius.circular(14),
+      child: Icon(
+        icon,
+        size: 16,
+        color: enabled ? IOS26Theme.primaryColor : IOS26Theme.textTertiary,
+      ),
+    );
+  }
+}

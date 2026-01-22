@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
-import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_flavor.dart';
 import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_recipe.dart';
 import 'package:life_tools/tools/overcooked_kitchen/repository/overcooked_repository.dart';
 import 'package:life_tools/tools/overcooked_kitchen/services/overcooked_gacha_service.dart';
@@ -56,8 +55,8 @@ void main() {
           typeTagId: typeA,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -70,8 +69,8 @@ void main() {
           typeTagId: typeA,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.sweet, OvercookedFlavor.sour},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -84,8 +83,8 @@ void main() {
           typeTagId: typeB,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -93,10 +92,7 @@ void main() {
       );
 
       final service = OvercookedGachaService(repository: repository);
-      final picked = await service.pick(
-        typeTagIds: [typeA, typeB],
-        seed: 42,
-      );
+      final picked = await service.pick(typeTagIds: [typeA, typeB], seed: 42);
 
       expect(picked.length, 2);
       expect(picked.where((e) => e.typeTagId == typeA).length, 1);
@@ -125,8 +121,8 @@ void main() {
           typeTagId: typeA,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -138,6 +134,69 @@ void main() {
       expect(picked.length, 1);
       expect(picked.single.typeTagId, typeA);
     });
+
+    test('支持为每个类型指定抽取数量（同类型尽量不重复）', () async {
+      final typeA = await tagRepository.createTag(
+        name: '主菜',
+        toolIds: const ['overcooked_kitchen'],
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
+      final typeB = await tagRepository.createTag(
+        name: '汤',
+        toolIds: const ['overcooked_kitchen'],
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
+
+      final now = DateTime(2026, 1, 2, 10);
+      final idsA = <int>[];
+      for (final name in ['红烧肉', '鱼香肉丝', '宫保鸡丁']) {
+        final id = await repository.createRecipe(
+          OvercookedRecipe.create(
+            name: name,
+            coverImageKey: null,
+            typeTagId: typeA,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ),
+        );
+        idsA.add(id);
+      }
+      final idB = await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '紫菜蛋花汤',
+          coverImageKey: null,
+          typeTagId: typeB,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+
+      final service = OvercookedGachaService(repository: repository);
+      final picked = await service.pickByTypeCounts(
+        typeCounts: {typeA: 2, typeB: 1},
+        seed: 7,
+      );
+
+      expect(picked.length, 3);
+      final pickedA = picked.where((e) => e.typeTagId == typeA).toList();
+      final pickedB = picked.where((e) => e.typeTagId == typeB).toList();
+      expect(pickedA.length, 2);
+      expect(pickedA.map((e) => e.id).toSet().length, 2);
+      expect(pickedB.single.id, idB);
+      expect(pickedA.map((e) => e.id), everyElement(isNotNull));
+      expect(pickedA.map((e) => e.id), everyElement(isIn(idsA)));
+    });
   });
 }
-

@@ -4,7 +4,6 @@ import 'package:life_tools/core/messages/message_repository.dart';
 import 'package:life_tools/core/messages/message_service.dart';
 import 'package:life_tools/core/notifications/app_notification_service.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
-import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_flavor.dart';
 import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_recipe.dart';
 import 'package:life_tools/tools/overcooked_kitchen/repository/overcooked_repository.dart';
 import 'package:life_tools/tools/overcooked_kitchen/services/overcooked_reminder_service.dart';
@@ -20,7 +19,10 @@ class _FakeNotificationService implements AppNotificationService {
   Future<void> init() async {}
 
   @override
-  Future<void> showMessage({required String title, required String body}) async {
+  Future<void> showMessage({
+    required String title,
+    required String body,
+  }) async {
     shown.add((title: title, body: body));
   }
 
@@ -97,8 +99,8 @@ void main() {
           typeTagId: null,
           ingredientTagIds: [ingredientId],
           sauceTagIds: [sauceId],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -135,8 +137,8 @@ void main() {
           typeTagId: null,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.sour, OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -149,7 +151,10 @@ void main() {
 
       final id = messageService.messages.single.id;
       expect(id, isNotNull);
-      await messageService.markMessageRead(id!, readAt: DateTime(2026, 1, 10, 10));
+      await messageService.markMessageRead(
+        id!,
+        readAt: DateTime(2026, 1, 10, 10),
+      );
       expect(messageService.unreadMessages, isEmpty);
 
       await service.pushDueReminders(
@@ -163,4 +168,3 @@ void main() {
     });
   });
 }
-

@@ -66,21 +66,19 @@ class OvercookedImageByKey extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       alignment: Alignment.center,
-      child:
-          isLoading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(
-                  text ?? '无图片',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: IOS26Theme.textSecondary,
-                  ),
-                ),
+      child: isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(
+              text ?? '无图片',
+              style: const TextStyle(
+                fontSize: 12,
+                color: IOS26Theme.textSecondary,
+              ),
+            ),
     );
   }
 }
-

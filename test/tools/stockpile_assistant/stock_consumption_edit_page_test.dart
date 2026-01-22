@@ -37,7 +37,9 @@ void main() {
         repository: StockpileRepository.withDatabase(db),
         tagRepository: TagRepository.withDatabase(db),
       );
-      messageService = MessageService(repository: MessageRepository.withDatabase(db));
+      messageService = MessageService(
+        repository: MessageRepository.withDatabase(db),
+      );
       await messageService.init();
 
       itemId = await stockpileService.createItem(
@@ -68,7 +70,9 @@ void main() {
         child: MultiProvider(
           providers: [
             ChangeNotifierProvider<MessageService>.value(value: messageService),
-            ChangeNotifierProvider<StockpileService>.value(value: stockpileService),
+            ChangeNotifierProvider<StockpileService>.value(
+              value: stockpileService,
+            ),
           ],
           child: StockConsumptionEditPage(itemId: itemId),
         ),

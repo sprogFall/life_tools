@@ -64,8 +64,10 @@ class OvercookedReminderService {
         '${today.month.toString().padLeft(2, '0')}-'
         '${today.day.toString().padLeft(2, '0')}';
 
-    final recipeNames =
-        recipes.map((e) => e.name.trim()).where((e) => e.isNotEmpty).toList();
+    final recipeNames = recipes
+        .map((e) => e.name.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
 
     final ingredientIds = <int>{};
     final sauceIds = <int>{};
@@ -74,28 +76,30 @@ class OvercookedReminderService {
       sauceIds.addAll(r.sauceTagIds);
     }
 
-    final tagNames = await _listTagNamesByIds(
-      [...ingredientIds, ...sauceIds],
-    );
-    final ingredientNames =
-        ingredientIds
-            .map((id) => tagNames[id])
-            .whereType<String>()
-            .toList();
-    final sauceNames =
-        sauceIds.map((id) => tagNames[id]).whereType<String>().toList();
+    final tagNames = await _listTagNamesByIds([...ingredientIds, ...sauceIds]);
+    final ingredientNames = ingredientIds
+        .map((id) => tagNames[id])
+        .whereType<String>()
+        .toList();
+    final sauceNames = sauceIds
+        .map((id) => tagNames[id])
+        .whereType<String>()
+        .toList();
 
     final lines = <String>[
       '【今日愿望单】$dateText',
       if (recipeNames.isNotEmpty) '想吃：${recipeNames.join('、')}',
-      if (ingredientNames.isNotEmpty) '食材：${ingredientNames.join('、')}',
-      if (sauceNames.isNotEmpty) '酱料：${sauceNames.join('、')}',
+      if (ingredientNames.isNotEmpty) '主料：${ingredientNames.join('、')}',
+      if (sauceNames.isNotEmpty) '调味：${sauceNames.join('、')}',
     ];
     return lines.join('\n');
   }
 
   Future<Map<int, String>> _listTagNamesByIds(List<int> ids) async {
     final list = await _tagRepository.listTagsByIds(ids);
-    return {for (final t in list) if (t.id != null) t.id!: t.name};
+    return {
+      for (final t in list)
+        if (t.id != null) t.id!: t.name,
+    };
   }
 }

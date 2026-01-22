@@ -42,7 +42,9 @@ void main() {
       await tester.pumpWidget(
         MultiProvider(
           providers: [
-            ChangeNotifierProvider<SettingsService>.value(value: settingsService),
+            ChangeNotifierProvider<SettingsService>.value(
+              value: settingsService,
+            ),
             ChangeNotifierProvider<MessageService>.value(value: messageService),
           ],
           child: const MaterialApp(home: HomePage()),

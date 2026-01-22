@@ -51,7 +51,9 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider<MessageService>.value(value: messageService),
-            ChangeNotifierProvider<StockpileService>.value(value: stockpileService),
+            ChangeNotifierProvider<StockpileService>.value(
+              value: stockpileService,
+            ),
           ],
           child: const TestAppWrapper(child: _Host()),
         ),
@@ -102,7 +104,8 @@ void main() {
           () async => Future<void>.delayed(const Duration(milliseconds: 30)),
         );
         await tester.pump(const Duration(milliseconds: 30));
-        if (messageService.messages.isNotEmpty && stockpileService.items.isNotEmpty) {
+        if (messageService.messages.isNotEmpty &&
+            stockpileService.items.isNotEmpty) {
           break;
         }
       }
@@ -130,7 +133,9 @@ class _Host extends StatelessWidget {
           key: const ValueKey('open_edit'),
           onPressed: () {
             Navigator.of(context).push(
-              CupertinoPageRoute<void>(builder: (_) => const StockItemEditPage()),
+              CupertinoPageRoute<void>(
+                builder: (_) => const StockItemEditPage(),
+              ),
             );
           },
           child: const Text('open'),

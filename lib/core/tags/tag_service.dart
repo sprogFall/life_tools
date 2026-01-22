@@ -131,8 +131,9 @@ class TagService extends ChangeNotifier {
     final normalizedToolId = toolId.trim();
     if (normalizedToolId.isEmpty) return const [];
 
-    final normalizedCategoryId =
-        categoryId.trim().isEmpty ? TagRepository.defaultCategoryId : categoryId.trim();
+    final normalizedCategoryId = categoryId.trim().isEmpty
+        ? TagRepository.defaultCategoryId
+        : categoryId.trim();
 
     if (refresh) {
       await refreshToolTags(normalizedToolId);

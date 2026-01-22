@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
-import '../../../core/tags/models/tag_category.dart';
-import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../overcooked_constants.dart';
 import '../repository/overcooked_repository.dart';
@@ -39,16 +37,6 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
   void initState() {
     super.initState();
     _repository = widget.repository ?? OvercookedRepository();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final tagService = context.read<TagService>();
-      tagService.registerToolTagCategories(OvercookedConstants.toolId, const [
-        TagCategory(id: OvercookedTagCategories.dishType, name: '菜的类型'),
-        TagCategory(id: OvercookedTagCategories.ingredient, name: '食材'),
-        TagCategory(id: OvercookedTagCategories.sauce, name: '酱料'),
-      ]);
-      tagService.refreshToolTags(OvercookedConstants.toolId);
-    });
   }
 
   @override
@@ -62,10 +50,9 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
     final d = DateTime(date.year, date.month, date.day);
     if (d != today) return;
     final messageService = context.read<MessageService>();
-    await OvercookedReminderService(repository: _repository).pushDueReminders(
-      messageService: messageService,
-      now: now,
-    );
+    await OvercookedReminderService(
+      repository: _repository,
+    ).pushDueReminders(messageService: messageService, now: now);
   }
 
   @override
@@ -215,14 +202,8 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
       unselectedItemColor: IOS26Theme.textSecondary,
       backgroundColor: IOS26Theme.surfaceColor,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.book),
-          label: '菜谱',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.heart),
-          label: '愿望单',
-        ),
+        BottomNavigationBarItem(icon: Icon(CupertinoIcons.book), label: '菜谱'),
+        BottomNavigationBarItem(icon: Icon(CupertinoIcons.heart), label: '愿望单'),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.square_list),
           label: '记录',
@@ -231,10 +212,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
           icon: Icon(CupertinoIcons.calendar),
           label: '日历',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.casino_rounded),
-          label: '扭蛋',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.casino_rounded), label: '扭蛋'),
       ],
     );
   }

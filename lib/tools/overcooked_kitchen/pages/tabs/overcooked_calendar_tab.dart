@@ -59,7 +59,11 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
   @override
   Widget build(BuildContext context) {
     final monthStart = DateTime(widget.month.year, widget.month.month, 1);
-    final daysInMonth = DateTime(widget.month.year, widget.month.month + 1, 0).day;
+    final daysInMonth = DateTime(
+      widget.month.year,
+      widget.month.month + 1,
+      0,
+    ).day;
     final offset = monthStart.weekday - 1;
 
     final cells = <Widget>[];
@@ -153,44 +157,40 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
   Widget _weekdayHeader() {
     const labels = ['一', '二', '三', '四', '五', '六', '日'];
     return Row(
-      children:
-          labels
-              .map(
-                (e) => Expanded(
-                  child: Text(
-                    e,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
-                    ),
-                  ),
+      children: labels
+          .map(
+            (e) => Expanded(
+              child: Text(
+                e,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
                 ),
-              )
-              .toList(),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
   Widget _dayCell({required DateTime date, required int count}) {
-    final intensity =
-        count <= 0
-            ? 0.0
-            : count == 1
-            ? 0.25
-            : count == 2
-            ? 0.42
-            : count == 3
-            ? 0.58
-            : 0.72;
-    final bg =
-        count <= 0
-            ? IOS26Theme.textTertiary.withValues(alpha: 0.20)
-            : IOS26Theme.toolGreen.withValues(alpha: intensity);
-    final border =
-        count <= 0
-            ? IOS26Theme.textTertiary.withValues(alpha: 0.25)
-            : IOS26Theme.toolGreen.withValues(alpha: 0.35);
+    final intensity = count <= 0
+        ? 0.0
+        : count == 1
+        ? 0.25
+        : count == 2
+        ? 0.42
+        : count == 3
+        ? 0.58
+        : 0.72;
+    final bg = count <= 0
+        ? IOS26Theme.textTertiary.withValues(alpha: 0.20)
+        : IOS26Theme.toolGreen.withValues(alpha: intensity);
+    final border = count <= 0
+        ? IOS26Theme.textTertiary.withValues(alpha: 0.25)
+        : IOS26Theme.toolGreen.withValues(alpha: 0.35);
 
     return GestureDetector(
       onTap: () => widget.onOpenDay(date),
@@ -206,7 +206,9 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: count <= 0 ? IOS26Theme.textSecondary : IOS26Theme.textPrimary,
+            color: count <= 0
+                ? IOS26Theme.textSecondary
+                : IOS26Theme.textPrimary,
           ),
         ),
       ),
@@ -290,4 +292,3 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
     );
   }
 }
-

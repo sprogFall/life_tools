@@ -28,6 +28,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   final _noteController = TextEditingController();
   bool _loading = false;
   bool _saving = false;
+  String _mealSlot = '';
 
   OvercookedMeal? _meal;
   Map<int, OvercookedRecipe> _recipesById = const {};
@@ -66,9 +67,13 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
       setState(() {
         _meal = meal;
-        _recipesById = {for (final r in recipes) if (r.id != null) r.id!: r};
+        _recipesById = {
+          for (final r in recipes)
+            if (r.id != null) r.id!: r,
+        };
         _allRecipes = allRecipes;
         _noteController.text = meal?.note ?? '';
+        _mealSlot = meal?.mealSlot ?? '';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -79,17 +84,16 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   Widget build(BuildContext context) {
     final meal = _meal;
     final recipeIds = meal?.recipeIds ?? const <int>[];
-    final recipes =
-        recipeIds
-            .map((id) => _recipesById[id])
-            .whereType<OvercookedRecipe>()
-            .toList();
+    final slotLabel = _mealSlotLabel(_mealSlot);
+    final recipes = recipeIds
+        .map((id) => _recipesById[id])
+        .whereType<OvercookedRecipe>()
+        .toList();
 
-    final distinctTypeCount =
-        {
-          for (final r in recipes)
-            (r.typeTagId == null ? 'r:${r.id}' : 't:${r.typeTagId}'): true,
-        }.length;
+    final distinctTypeCount = {
+      for (final r in recipes)
+        (r.typeTagId == null ? 'r:${r.id}' : 't:${r.typeTagId}'): true,
+    }.length;
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -109,13 +113,19 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 ),
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 color: IOS26Theme.primaryColor,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _editMealRecipes,
                 child: const Text(
                   '选择菜谱',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -124,9 +134,58 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
           OvercookedDateBar(
             title: '日期',
             date: widget.date,
-            onPrev: () => widget.onDateChanged(widget.date.subtract(const Duration(days: 1))),
-            onNext: () => widget.onDateChanged(widget.date.add(const Duration(days: 1))),
+            onPrev: () => widget.onDateChanged(
+              widget.date.subtract(const Duration(days: 1)),
+            ),
+            onNext: () =>
+                widget.onDateChanged(widget.date.add(const Duration(days: 1))),
             onPick: () => _pickDate(initial: widget.date),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '餐次标记',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: IOS26Theme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          GlassContainer(
+            borderRadius: 18,
+            padding: const EdgeInsets.all(10),
+            child: CupertinoSlidingSegmentedControl<String>(
+              groupValue: _mealSlot,
+              thumbColor: IOS26Theme.primaryColor.withValues(alpha: 0.16),
+              backgroundColor: IOS26Theme.surfaceColor.withValues(alpha: 0.0),
+              children: const {
+                '': Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Text(
+                    '不标记',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                'mid_lunch': Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Text(
+                    '中班午餐',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                'mid_dinner': Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Text(
+                    '中班晚餐',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              },
+              onValueChanged: (v) {
+                if (_saving) return;
+                setState(() => _mealSlot = v ?? '');
+              },
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -155,13 +214,45 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                           color: IOS26Theme.textPrimary,
                         ),
                       ),
+                      if (slotLabel != null) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: IOS26Theme.toolPurple.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: IOS26Theme.toolPurple.withValues(
+                                alpha: 0.25,
+                              ),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            slotLabel,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: IOS26Theme.toolPurple,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _replaceWithWishes,
@@ -199,7 +290,10 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
               final name = _recipesById[id]?.name ?? '（菜谱已删除）';
               return GlassContainer(
                 borderRadius: 18,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 margin: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   name,
@@ -235,7 +329,10 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
             onPressed: _saving ? null : _saveNote,
             child: Text(
               _saving ? '保存中…' : '保存评价',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -272,6 +369,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
     await context.read<OvercookedRepository>().replaceMeal(
       date: widget.date,
       recipeIds: selected.toList(),
+      mealSlot: _mealSlot,
       now: DateTime.now(),
     );
     await _refresh();
@@ -283,6 +381,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       await context.read<OvercookedRepository>().upsertMealNote(
         date: widget.date,
         note: _noteController.text,
+        mealSlot: _mealSlot,
         now: DateTime.now(),
       );
     } catch (e) {
@@ -294,6 +393,19 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       );
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  static String? _mealSlotLabel(String slot) {
+    final s = slot.trim();
+    if (s.isEmpty) return null;
+    switch (s) {
+      case 'mid_lunch':
+        return '中班午餐';
+      case 'mid_dinner':
+        return '中班晚餐';
+      default:
+        return s;
     }
   }
 

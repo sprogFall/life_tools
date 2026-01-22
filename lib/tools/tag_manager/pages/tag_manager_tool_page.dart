@@ -79,16 +79,7 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
                 ),
               ),
               actions: [
-                if (_filterToolId == null)
-                  CupertinoButton(
-                    padding: const EdgeInsets.all(8),
-                    onPressed: () => _openCreate(context),
-                    child: const Icon(
-                      CupertinoIcons.add,
-                      color: IOS26Theme.primaryColor,
-                      size: 24,
-                    ),
-                  ),
+                // 新增标签统一走「按工具 -> 分类」的入口，避免“全部”页继续走旧新增流程
               ],
             ),
             Expanded(
@@ -140,24 +131,6 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _openCreate(BuildContext context) async {
-    final service = context.read<TagService>();
-    final saved = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute(
-        builder: (_) =>
-            TagEditPage(initialToolId: _filterToolId ?? widget.initialToolId),
-      ),
-    );
-    if (saved == true && mounted) {
-      await service.refreshAll();
-      if (!mounted) return;
-      final toolId = _filterToolId;
-      if (toolId != null) {
-        await service.refreshToolTags(toolId);
-      }
-    }
   }
 
   void _navigateToHome(BuildContext context) {
@@ -361,38 +334,29 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                           ),
                         )
                       else
-                        Column(
-                          children: [
-                            for (final item in categoryItems)
-                              if (item.tag.id != null) ...[
-                                _TagCompactRow(
-                                  key: ValueKey('tag-item-${item.tag.id!}'),
-                                  name: item.tag.name,
-                                  onTap: () => _openRename(
-                                    context,
-                                    toolId: widget.toolId,
-                                    tagId: item.tag.id!,
-                                    initialName: item.tag.name,
-                                  ),
-                                  showRemove: managing,
-                                  onRemove: managing
-                                      ? () => _confirmDelete(
-                                          context,
-                                          toolId: widget.toolId,
-                                          tagId: item.tag.id!,
-                                          tagName: item.tag.name,
-                                          tools: byTagId[item.tag.id!],
-                                        )
-                                      : null,
-                                  removeKey: managing
-                                      ? ValueKey(
-                                          'tag-remove-${widget.toolId}-$categoryId-${item.tag.id!}',
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                          ],
+                        _TagChipsWrap(
+                          items: categoryItems,
+                          managing: managing,
+                          onTap: (tagId, tagName) => _openRename(
+                            context,
+                            toolId: widget.toolId,
+                            tagId: tagId,
+                            initialName: tagName,
+                          ),
+                          onRemove: managing
+                              ? (tagId, tagName) => _confirmDelete(
+                                  context,
+                                  toolId: widget.toolId,
+                                  tagId: tagId,
+                                  tagName: tagName,
+                                  tools: byTagId[tagId],
+                                )
+                              : null,
+                          removeKeyOf: managing
+                              ? (tagId) => ValueKey(
+                                  'tag-remove-${widget.toolId}-$categoryId-$tagId',
+                                )
+                              : null,
                         ),
                     ],
                   ],
@@ -679,14 +643,55 @@ class _CategoryHeader extends StatelessWidget {
   }
 }
 
-class _TagCompactRow extends StatelessWidget {
+class _TagChipsWrap extends StatelessWidget {
+  final List<TagInToolCategory> items;
+  final bool managing;
+  final void Function(int tagId, String tagName) onTap;
+  final void Function(int tagId, String tagName)? onRemove;
+  final Key? Function(int tagId)? removeKeyOf;
+
+  const _TagChipsWrap({
+    required this.items,
+    required this.managing,
+    required this.onTap,
+    required this.onRemove,
+    required this.removeKeyOf,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final item in items)
+            if (item.tag.id != null)
+              _TagChip(
+                key: ValueKey('tag-item-${item.tag.id!}'),
+                name: item.tag.name,
+                onTap: () => onTap(item.tag.id!, item.tag.name),
+                showRemove: managing,
+                onRemove: managing && onRemove != null
+                    ? () => onRemove!(item.tag.id!, item.tag.name)
+                    : null,
+                removeKey: managing ? removeKeyOf?.call(item.tag.id!) : null,
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
   final String name;
   final VoidCallback onTap;
   final bool showRemove;
   final VoidCallback? onRemove;
   final Key? removeKey;
 
-  const _TagCompactRow({
+  const _TagChip({
     super.key,
     required this.name,
     required this.onTap,
@@ -697,47 +702,62 @@ class _TagCompactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(44, 44),
-              pressedOpacity: 0.7,
-              onPressed: onTap,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: IOS26Theme.textPrimary,
-                  ),
+    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
+    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        minimumSize: const Size(44, 44),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        onPressed: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: IOS26Theme.textPrimary,
                 ),
               ),
             ),
-          ),
-          if (showRemove) ...[
-            const SizedBox(width: 10),
-            CupertinoButton(
-              key: removeKey,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              onPressed: onRemove,
-              color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(14),
-              child: const Icon(
-                CupertinoIcons.xmark,
-                size: 16,
-                color: IOS26Theme.toolRed,
+            if (showRemove) ...[
+              const SizedBox(width: 8),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: IOS26Theme.textTertiary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: border, width: 1),
+                ),
+                child: CupertinoButton(
+                  key: removeKey,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  minimumSize: Size.zero,
+                  onPressed: onRemove,
+                  child: const Icon(
+                    CupertinoIcons.xmark,
+                    size: 14,
+                    color: IOS26Theme.toolRed,
+                  ),
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -766,7 +786,7 @@ class _TagList extends StatelessWidget {
     if (allItems.isEmpty) {
       return Center(
         child: Text(
-          '暂无标签，点击右上角「+」新增',
+          '暂无标签，请先选择工具后在对应分类中新增',
           style: TextStyle(
             fontSize: 15,
             color: IOS26Theme.textSecondary.withValues(alpha: 0.9),

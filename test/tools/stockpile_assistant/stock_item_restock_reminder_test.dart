@@ -43,18 +43,9 @@ void main() {
         now: now,
       );
 
-      expect(
-        base.copyWith(remainingQuantity: 2).isRestockDue(now),
-        isTrue,
-      );
-      expect(
-        base.copyWith(remainingQuantity: 2.01).isRestockDue(now),
-        isFalse,
-      );
-      expect(
-        base.copyWith(remainingQuantity: 1).isRestockDue(now),
-        isTrue,
-      );
+      expect(base.copyWith(remainingQuantity: 2).isRestockDue(now), isTrue);
+      expect(base.copyWith(remainingQuantity: 2.01).isRestockDue(now), isFalse);
+      expect(base.copyWith(remainingQuantity: 1).isRestockDue(now), isTrue);
     });
 
     test('补货提醒：字段序列化/反序列化', () {

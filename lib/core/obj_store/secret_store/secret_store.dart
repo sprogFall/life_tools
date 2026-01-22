@@ -3,4 +3,3 @@ abstract interface class SecretStore {
   Future<String?> read({required String key});
   Future<void> delete({required String key});
 }
-

@@ -7,15 +7,18 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class _FakeNotificationService implements AppNotificationService {
   final List<({String title, String body})> shown = [];
-  final List<({int id, String title, String body, DateTime scheduledAt})> scheduled =
-      [];
+  final List<({int id, String title, String body, DateTime scheduledAt})>
+  scheduled = [];
   final List<int> canceled = [];
 
   @override
   Future<void> init() async {}
 
   @override
-  Future<void> showMessage({required String title, required String body}) async {
+  Future<void> showMessage({
+    required String title,
+    required String body,
+  }) async {
     shown.add((title: title, body: body));
   }
 
@@ -199,60 +202,63 @@ void main() {
       expect(loaded.single.readAt, isNotNull);
     });
 
-    test('refreshDaily=true 时：跨天但内容未变，也应刷新 createdAt、重置未读并再次推送系统通知（同一天不重复）', () async {
-      final day1 = DateTime(2026, 1, 1, 9, 0);
-      await service.upsertMessage(
-        toolId: 'stockpile_assistant',
-        title: '囤货助手',
-        body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
-        dedupeKey: 'stockpile:restock:1',
-        createdAt: day1,
-        notify: true,
-        refreshDaily: true,
-      );
-      expect(notificationService.shown.length, 1);
+    test(
+      'refreshDaily=true 时：跨天但内容未变，也应刷新 createdAt、重置未读并再次推送系统通知（同一天不重复）',
+      () async {
+        final day1 = DateTime(2026, 1, 1, 9, 0);
+        await service.upsertMessage(
+          toolId: 'stockpile_assistant',
+          title: '囤货助手',
+          body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
+          dedupeKey: 'stockpile:restock:1',
+          createdAt: day1,
+          notify: true,
+          refreshDaily: true,
+        );
+        expect(notificationService.shown.length, 1);
 
-      final id = service.messages.single.id;
-      expect(id, isNotNull);
-      await service.markMessageRead(id!, readAt: DateTime(2026, 1, 1, 10, 0));
+        final id = service.messages.single.id;
+        expect(id, isNotNull);
+        await service.markMessageRead(id!, readAt: DateTime(2026, 1, 1, 10, 0));
 
-      await service.upsertMessage(
-        toolId: 'stockpile_assistant',
-        title: '囤货助手',
-        body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
-        dedupeKey: 'stockpile:restock:1',
-        createdAt: DateTime(2026, 1, 1, 18, 0),
-        notify: true,
-        refreshDaily: true,
-      );
-      expect(service.messages.single.isRead, isTrue);
-      expect(notificationService.shown.length, 1);
+        await service.upsertMessage(
+          toolId: 'stockpile_assistant',
+          title: '囤货助手',
+          body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
+          dedupeKey: 'stockpile:restock:1',
+          createdAt: DateTime(2026, 1, 1, 18, 0),
+          notify: true,
+          refreshDaily: true,
+        );
+        expect(service.messages.single.isRead, isTrue);
+        expect(notificationService.shown.length, 1);
 
-      final day2 = DateTime(2026, 1, 2, 9, 0);
-      await service.upsertMessage(
-        toolId: 'stockpile_assistant',
-        title: '囤货助手',
-        body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
-        dedupeKey: 'stockpile:restock:1',
-        createdAt: day2,
-        notify: true,
-        refreshDaily: true,
-      );
+        final day2 = DateTime(2026, 1, 2, 9, 0);
+        await service.upsertMessage(
+          toolId: 'stockpile_assistant',
+          title: '囤货助手',
+          body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
+          dedupeKey: 'stockpile:restock:1',
+          createdAt: day2,
+          notify: true,
+          refreshDaily: true,
+        );
 
-      expect(service.messages.single.isRead, isFalse);
-      expect(service.messages.single.createdAt, day2);
-      expect(notificationService.shown.length, 2);
+        expect(service.messages.single.isRead, isFalse);
+        expect(service.messages.single.createdAt, day2);
+        expect(notificationService.shown.length, 2);
 
-      await service.upsertMessage(
-        toolId: 'stockpile_assistant',
-        title: '囤货助手',
-        body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
-        dedupeKey: 'stockpile:restock:1',
-        createdAt: DateTime(2026, 1, 2, 18, 0),
-        notify: true,
-        refreshDaily: true,
-      );
-      expect(notificationService.shown.length, 2);
-    });
+        await service.upsertMessage(
+          toolId: 'stockpile_assistant',
+          title: '囤货助手',
+          body: '【囤货助手】洗衣液 需要补货，剩余 1 瓶。',
+          dedupeKey: 'stockpile:restock:1',
+          createdAt: DateTime(2026, 1, 2, 18, 0),
+          notify: true,
+          refreshDaily: true,
+        );
+        expect(notificationService.shown.length, 2);
+      },
+    );
   });
 }

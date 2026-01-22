@@ -50,7 +50,9 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(MaterialApp(home: WorkLogToolPage(repository: repo)));
+      await tester.pumpWidget(
+        MaterialApp(home: WorkLogToolPage(repository: repo)),
+      );
       await tester.pump(const Duration(milliseconds: 600));
 
       await tester.tap(find.byKey(const ValueKey('work_log_sort_button')));
@@ -73,7 +75,9 @@ void main() {
       expect(posBInSort, lessThan(posAInSort));
 
       // 保存并返回列表
-      await tester.tap(find.byKey(const ValueKey('work_task_sort_save_button')));
+      await tester.tap(
+        find.byKey(const ValueKey('work_task_sort_save_button')),
+      );
       await tester.pump();
       await pumpUntilNotFound(tester, find.text('排序任务'));
 

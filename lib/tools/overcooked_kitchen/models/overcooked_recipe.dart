@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'overcooked_flavor.dart';
-
 class OvercookedRecipe {
   final int? id;
   final String name;
@@ -9,8 +7,8 @@ class OvercookedRecipe {
   final int? typeTagId;
   final List<int> ingredientTagIds;
   final List<int> sauceTagIds;
+  final List<int> flavorTagIds;
   final String intro;
-  final Set<OvercookedFlavor> flavors;
   final String content;
   final List<String> detailImageKeys;
   final DateTime createdAt;
@@ -23,8 +21,8 @@ class OvercookedRecipe {
     required this.typeTagId,
     required this.ingredientTagIds,
     required this.sauceTagIds,
+    required this.flavorTagIds,
     required this.intro,
-    required this.flavors,
     required this.content,
     required this.detailImageKeys,
     required this.createdAt,
@@ -37,8 +35,8 @@ class OvercookedRecipe {
     required int? typeTagId,
     required List<int> ingredientTagIds,
     required List<int> sauceTagIds,
+    required List<int> flavorTagIds,
     required String intro,
-    required Set<OvercookedFlavor> flavors,
     required String content,
     required List<String> detailImageKeys,
     required DateTime now,
@@ -56,8 +54,8 @@ class OvercookedRecipe {
       typeTagId: typeTagId,
       ingredientTagIds: List<int>.unmodifiable(ingredientTagIds),
       sauceTagIds: List<int>.unmodifiable(sauceTagIds),
+      flavorTagIds: List<int>.unmodifiable(flavorTagIds),
       intro: intro.trim(),
-      flavors: Set<OvercookedFlavor>.unmodifiable(flavors),
       content: content.trim(),
       detailImageKeys: List<String>.unmodifiable(detailImageKeys),
       createdAt: now,
@@ -72,8 +70,8 @@ class OvercookedRecipe {
     int? typeTagId,
     List<int>? ingredientTagIds,
     List<int>? sauceTagIds,
+    List<int>? flavorTagIds,
     String? intro,
-    Set<OvercookedFlavor>? flavors,
     String? content,
     List<String>? detailImageKeys,
     DateTime? createdAt,
@@ -87,8 +85,8 @@ class OvercookedRecipe {
       ingredientTagIds:
           ingredientTagIds ?? List<int>.unmodifiable(this.ingredientTagIds),
       sauceTagIds: sauceTagIds ?? List<int>.unmodifiable(this.sauceTagIds),
+      flavorTagIds: flavorTagIds ?? List<int>.unmodifiable(this.flavorTagIds),
       intro: intro ?? this.intro,
-      flavors: flavors ?? Set<OvercookedFlavor>.unmodifiable(this.flavors),
       content: content ?? this.content,
       detailImageKeys:
           detailImageKeys ?? List<String>.unmodifiable(this.detailImageKeys),
@@ -101,15 +99,15 @@ class OvercookedRecipe {
     Map<String, Object?> row, {
     required List<int> ingredientTagIds,
     required List<int> sauceTagIds,
+    required List<int> flavorTagIds,
   }) {
     final rawKeys = row['detail_image_keys'] as String? ?? '[]';
     List<String> keys;
     try {
       final decoded = jsonDecode(rawKeys);
-      keys =
-          decoded is List
-              ? decoded.whereType<String>().toList()
-              : const <String>[];
+      keys = decoded is List
+          ? decoded.whereType<String>().toList()
+          : const <String>[];
     } catch (_) {
       keys = const <String>[];
     }
@@ -120,10 +118,8 @@ class OvercookedRecipe {
       typeTagId: row['type_tag_id'] as int?,
       ingredientTagIds: List<int>.unmodifiable(ingredientTagIds),
       sauceTagIds: List<int>.unmodifiable(sauceTagIds),
+      flavorTagIds: List<int>.unmodifiable(flavorTagIds),
       intro: row['intro'] as String? ?? '',
-      flavors: OvercookedFlavor.fromMask(
-        (row['flavors_mask'] as int?) ?? 0,
-      ),
       content: row['content'] as String? ?? '',
       detailImageKeys: List<String>.unmodifiable(keys),
       createdAt: DateTime.fromMillisecondsSinceEpoch(
@@ -142,7 +138,6 @@ class OvercookedRecipe {
       'cover_image_key': coverImageKey,
       'type_tag_id': typeTagId,
       'intro': intro.trim(),
-      'flavors_mask': OvercookedFlavor.toMask(flavors),
       'content': content.trim(),
       'detail_image_keys': jsonEncode(detailImageKeys),
       'created_at': createdAt.millisecondsSinceEpoch,
@@ -150,4 +145,3 @@ class OvercookedRecipe {
     };
   }
 }
-

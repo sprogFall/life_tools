@@ -40,7 +40,10 @@ class ObjStoreConfigService extends ChangeNotifier {
     await _loadSecrets();
   }
 
-  Future<void> save(ObjStoreConfig config, {ObjStoreQiniuSecrets? secrets}) async {
+  Future<void> save(
+    ObjStoreConfig config, {
+    ObjStoreQiniuSecrets? secrets,
+  }) async {
     _config = config;
     await _prefs?.setString(_storageKey, config.toJsonString());
 
@@ -83,4 +86,3 @@ class ObjStoreConfigService extends ChangeNotifier {
     _qiniuSecrets = ObjStoreQiniuSecrets(accessKey: ak, secretKey: sk);
   }
 }
-

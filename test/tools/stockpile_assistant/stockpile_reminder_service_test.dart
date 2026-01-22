@@ -238,7 +238,10 @@ void main() {
 
       final messageId = messageService.messages.single.id;
       expect(messageId, isNotNull);
-      await messageService.markMessageRead(messageId!, readAt: DateTime(2026, 1, 10, 10));
+      await messageService.markMessageRead(
+        messageId!,
+        readAt: DateTime(2026, 1, 10, 10),
+      );
       expect(messageService.unreadMessages, isEmpty);
 
       // 次日（文案大概率不变）：应“刷新”为今天的提醒，重置为未读并再次推送系统通知

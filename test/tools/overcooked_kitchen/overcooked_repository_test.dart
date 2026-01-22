@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
-import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_flavor.dart';
 import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_recipe.dart';
 import 'package:life_tools/tools/overcooked_kitchen/repository/overcooked_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -52,6 +51,20 @@ void main() {
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
+      final spicyId = await tagRepository.createTagForToolCategory(
+        name: '辣',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'flavor',
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
+      final sweetId = await tagRepository.createTagForToolCategory(
+        name: '甜',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'flavor',
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
 
       final now = DateTime(2026, 1, 2, 10);
       final id = await repository.createRecipe(
@@ -61,8 +74,8 @@ void main() {
           typeTagId: typeId,
           ingredientTagIds: [ingredientId],
           sauceTagIds: [sauceId],
+          flavorTagIds: [spicyId, sweetId],
           intro: '下饭神器',
-          flavors: const {OvercookedFlavor.spicy, OvercookedFlavor.sweet},
           content: '步骤略',
           detailImageKeys: const ['media/detail1.jpg', 'media/detail2.jpg'],
           now: now,
@@ -75,8 +88,7 @@ void main() {
       expect(recipe.typeTagId, typeId);
       expect(recipe.ingredientTagIds, [ingredientId]);
       expect(recipe.sauceTagIds, [sauceId]);
-      expect(recipe.flavors, contains(OvercookedFlavor.spicy));
-      expect(recipe.flavors, contains(OvercookedFlavor.sweet));
+      expect(recipe.flavorTagIds.toSet(), {spicyId, sweetId});
       expect(recipe.detailImageKeys.length, 2);
       expect(recipe.createdAt, now);
     });
@@ -90,8 +102,8 @@ void main() {
           typeTagId: null,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -116,8 +128,8 @@ void main() {
           typeTagId: null,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.spicy, OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -130,8 +142,8 @@ void main() {
           typeTagId: null,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.sweet, OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -143,12 +155,18 @@ void main() {
       await repository.addWish(date: day, recipeId: b, now: now);
 
       await repository.replaceMealWithWishes(date: day, now: now);
-      await repository.upsertMealNote(date: day, note: '好吃！', now: now);
+      await repository.upsertMealNote(
+        date: day,
+        note: '好吃！',
+        mealSlot: 'mid_lunch',
+        now: now,
+      );
 
       final meal = await repository.getMealForDate(day);
       expect(meal, isNotNull);
       expect(meal!.recipeIds, containsAll([a, b]));
       expect(meal.note, '好吃！');
+      expect(meal.mealSlot, 'mid_lunch');
     });
 
     test('厨房日历：按“类型去重”的每日做菜量统计', () async {
@@ -173,8 +191,8 @@ void main() {
           typeTagId: t1,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -187,8 +205,8 @@ void main() {
           typeTagId: t1,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -201,8 +219,8 @@ void main() {
           typeTagId: t2,
           ingredientTagIds: const [],
           sauceTagIds: const [],
+          flavorTagIds: const [],
           intro: '',
-          flavors: const {OvercookedFlavor.salty},
           content: '',
           detailImageKeys: const [],
           now: now,
@@ -222,4 +240,3 @@ void main() {
     });
   });
 }
-

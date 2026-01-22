@@ -25,4 +25,3 @@ enum OvercookedFlavor {
     return result;
   }
 }
-

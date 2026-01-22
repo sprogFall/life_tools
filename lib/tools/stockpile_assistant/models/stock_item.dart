@@ -81,8 +81,9 @@ class StockItem {
       purchaseDate: _startOfDay(purchaseDate),
       expiryDate: expiryDate == null ? null : _startOfDay(expiryDate),
       remindDays: remindDays,
-      restockRemindDate:
-          restockRemindDate == null ? null : _startOfDay(restockRemindDate),
+      restockRemindDate: restockRemindDate == null
+          ? null
+          : _startOfDay(restockRemindDate),
       restockRemindQuantity: restockRemindQuantity,
       note: note.trim(),
       createdAt: now,
@@ -153,7 +154,8 @@ class StockItem {
       expiryDate: expiryDate ?? this.expiryDate,
       remindDays: remindDays ?? this.remindDays,
       restockRemindDate: restockRemindDate ?? this.restockRemindDate,
-      restockRemindQuantity: restockRemindQuantity ?? this.restockRemindQuantity,
+      restockRemindQuantity:
+          restockRemindQuantity ?? this.restockRemindQuantity,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -201,7 +203,9 @@ class StockItem {
       remindDays: (map['remind_days'] as int?) ?? 3,
       restockRemindDate: map['restock_remind_date'] == null
           ? null
-          : DateTime.fromMillisecondsSinceEpoch(map['restock_remind_date'] as int),
+          : DateTime.fromMillisecondsSinceEpoch(
+              map['restock_remind_date'] as int,
+            ),
       restockRemindQuantity: map['restock_remind_quantity'] == null
           ? null
           : _asDouble(map['restock_remind_quantity']),

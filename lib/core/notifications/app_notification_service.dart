@@ -12,4 +12,3 @@ abstract class AppNotificationService {
 
   Future<void> cancel(int id);
 }
-

@@ -47,7 +47,10 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
       );
       setState(() {
         _recipes = recipes;
-        _tagsById = {for (final t in tags) if (t.id != null) t.id!: t};
+        _tagsById = {
+          for (final t in tags)
+            if (t.id != null) t.id!: t,
+        };
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -57,10 +60,9 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
   @override
   Widget build(BuildContext context) {
     final q = _query.trim().toLowerCase();
-    final filtered =
-        q.isEmpty
-            ? _recipes
-            : _recipes.where((r) => r.name.toLowerCase().contains(q)).toList();
+    final filtered = q.isEmpty
+        ? _recipes
+        : _recipes.where((r) => r.name.toLowerCase().contains(q)).toList();
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -93,19 +95,25 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
               ),
             )
           else
-            ...filtered.map((r) => _RecipeCard(
-              recipe: r,
-              typeTagName: _tagsById[r.typeTagId]?.name,
-              onTap: () async {
-                await Navigator.of(context).push(
-                  CupertinoPageRoute<void>(
-                    builder: (_) => OvercookedRecipeDetailPage(recipeId: r.id!),
-                  ),
-                );
-                if (!mounted) return;
-                await _refresh();
-              },
-            )),
+            ...filtered.map(
+              (r) => _RecipeCard(
+                recipe: r,
+                typeTagName: _tagsById[r.typeTagId]?.name,
+                onTap: () async {
+                  final repo = context.read<OvercookedRepository>();
+                  await Navigator.of(context).push(
+                    CupertinoPageRoute<void>(
+                      builder: (_) => OvercookedRecipeDetailPage(
+                        recipeId: r.id!,
+                        repository: repo,
+                      ),
+                    ),
+                  );
+                  if (!mounted) return;
+                  await _refresh();
+                },
+              ),
+            ),
           const SizedBox(height: 8),
           if (widget.onJumpToGacha != null)
             Padding(
@@ -168,9 +176,10 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
           color: IOS26Theme.primaryColor,
           borderRadius: BorderRadius.circular(14),
           onPressed: () async {
+            final repo = context.read<OvercookedRepository>();
             await Navigator.of(context).push(
               CupertinoPageRoute<void>(
-                builder: (_) => const OvercookedRecipeEditPage(),
+                builder: (_) => OvercookedRecipeEditPage(repository: repo),
               ),
             );
             if (!mounted) return;

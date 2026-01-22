@@ -48,7 +48,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       // 日历页面不展示语音录入按钮，用于确认当前已切换到日历 tab
-      expect(find.byKey(const ValueKey('work_log_ai_input_button')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('work_log_ai_input_button')),
+        findsNothing,
+      );
 
       await tester.tap(find.byIcon(CupertinoIcons.add));
       await tester.pump();

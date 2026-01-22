@@ -74,9 +74,15 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
 
       setState(() {
         _wishes = wishes;
-        _recipesById = {for (final r in selectedRecipes) if (r.id != null) r.id!: r};
+        _recipesById = {
+          for (final r in selectedRecipes)
+            if (r.id != null) r.id!: r,
+        };
         _allRecipes = allRecipes;
-        _tagsById = {for (final t in tags) if (t.id != null) t.id!: t};
+        _tagsById = {
+          for (final t in tags)
+            if (t.id != null) t.id!: t,
+        };
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -95,18 +101,24 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
     for (final r in wishRecipes) {
       for (final id in r.ingredientTagIds) {
         final name = _tagsById[id]?.name;
-        if (name != null && name.trim().isNotEmpty) ingredientNames.add(name.trim());
+        if (name != null && name.trim().isNotEmpty) {
+          ingredientNames.add(name.trim());
+        }
       }
       for (final id in r.sauceTagIds) {
         final name = _tagsById[id]?.name;
-        if (name != null && name.trim().isNotEmpty) sauceNames.add(name.trim());
+        if (name != null && name.trim().isNotEmpty) {
+          sauceNames.add(name.trim());
+        }
       }
     }
 
-    final ingredientText =
-        ingredientNames.isEmpty ? '（暂无）' : (ingredientNames.toList()..sort()).join('、');
-    final sauceText =
-        sauceNames.isEmpty ? '（暂无）' : (sauceNames.toList()..sort()).join('、');
+    final ingredientText = ingredientNames.isEmpty
+        ? '（暂无）'
+        : (ingredientNames.toList()..sort()).join('、');
+    final sauceText = sauceNames.isEmpty
+        ? '（暂无）'
+        : (sauceNames.toList()..sort()).join('、');
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -126,13 +138,19 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 ),
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 color: IOS26Theme.primaryColor,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _editWishes,
                 child: const Text(
                   '选择菜谱',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -141,8 +159,11 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
           OvercookedDateBar(
             title: '日期',
             date: widget.date,
-            onPrev: () => widget.onDateChanged(widget.date.subtract(const Duration(days: 1))),
-            onNext: () => widget.onDateChanged(widget.date.add(const Duration(days: 1))),
+            onPrev: () => widget.onDateChanged(
+              widget.date.subtract(const Duration(days: 1)),
+            ),
+            onNext: () =>
+                widget.onDateChanged(widget.date.add(const Duration(days: 1))),
             onPick: () => _pickDate(initial: widget.date),
           ),
           const SizedBox(height: 12),
@@ -162,7 +183,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '食材：$ingredientText',
+                  '主料：$ingredientText',
                   style: const TextStyle(
                     fontSize: 13,
                     height: 1.35,
@@ -171,7 +192,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '酱料：$sauceText',
+                  '调味：$sauceText',
                   style: const TextStyle(
                     fontSize: 13,
                     height: 1.35,
@@ -205,17 +226,16 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
               final recipe = _recipesById[w.recipeId];
               return _WishRow(
                 title: recipe?.name ?? '（菜谱已删除）',
-                onRemove:
-                    _loading
-                        ? null
-                        : () async {
-                          await context.read<OvercookedRepository>().removeWish(
-                            date: widget.date,
-                            recipeId: w.recipeId,
-                          );
-                          await _refresh();
-                          widget.onWishesChanged();
-                        },
+                onRemove: _loading
+                    ? null
+                    : () async {
+                        await context.read<OvercookedRepository>().removeWish(
+                          date: widget.date,
+                          recipeId: w.recipeId,
+                        );
+                        await _refresh();
+                        widget.onWishesChanged();
+                      },
               );
             }),
         ],

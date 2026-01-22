@@ -14,7 +14,6 @@ import '../../../../core/theme/ios26_theme.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../overcooked_constants.dart';
-import '../../models/overcooked_flavor.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
@@ -23,11 +22,13 @@ import '../../widgets/overcooked_tag_picker_sheet.dart';
 
 class OvercookedRecipeEditPage extends StatefulWidget {
   final OvercookedRecipe? initial;
+  final OvercookedRepository? repository;
 
-  const OvercookedRecipeEditPage({super.key, this.initial});
+  const OvercookedRecipeEditPage({super.key, this.initial, this.repository});
 
   @override
-  State<OvercookedRecipeEditPage> createState() => _OvercookedRecipeEditPageState();
+  State<OvercookedRecipeEditPage> createState() =>
+      _OvercookedRecipeEditPageState();
 }
 
 class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
@@ -44,11 +45,12 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   int? _typeTagId;
   Set<int> _ingredientTagIds = {};
   Set<int> _sauceTagIds = {};
-  Set<OvercookedFlavor> _flavors = {};
+  Set<int> _flavorTagIds = {};
 
   List<Tag> _typeTags = const [];
   List<Tag> _ingredientTags = const [];
   List<Tag> _sauceTags = const [];
+  List<Tag> _flavorTags = const [];
   Map<int, Tag> _tagsById = const {};
 
   @override
@@ -64,7 +66,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       _typeTagId = initial.typeTagId;
       _ingredientTagIds = initial.ingredientTagIds.toSet();
       _sauceTagIds = initial.sauceTagIds.toSet();
-      _flavors = {...initial.flavors};
+      _flavorTagIds = initial.flavorTagIds.toSet();
     }
     _loadTags();
   }
@@ -94,12 +96,25 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.sauce,
       );
-      final all = <Tag>[...typeTags, ...ingredientTags, ...sauceTags];
+      final flavorTags = await tagService.listTagsForToolCategory(
+        toolId: OvercookedConstants.toolId,
+        categoryId: OvercookedTagCategories.flavor,
+      );
+      final all = <Tag>[
+        ...typeTags,
+        ...ingredientTags,
+        ...sauceTags,
+        ...flavorTags,
+      ];
       setState(() {
         _typeTags = typeTags;
         _ingredientTags = ingredientTags;
         _sauceTags = sauceTags;
-        _tagsById = {for (final t in all) if (t.id != null) t.id!: t};
+        _flavorTags = flavorTags;
+        _tagsById = {
+          for (final t in all)
+            if (t.id != null) t.id!: t,
+        };
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -119,7 +134,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             child: Text(
               _saving ? '保存中…' : '保存',
               style: TextStyle(
-                color: _saving ? IOS26Theme.textTertiary : IOS26Theme.primaryColor,
+                color: _saving
+                    ? IOS26Theme.textTertiary
+                    : IOS26Theme.primaryColor,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -185,10 +202,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                       ),
                       color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(14),
-                      onPressed:
-                          _coverKey == null || _saving
-                              ? null
-                              : () => setState(() => _coverKey = null),
+                      onPressed: _coverKey == null || _saving
+                          ? null
+                          : () => setState(() => _coverKey = null),
                       child: const Icon(
                         CupertinoIcons.trash,
                         color: IOS26Theme.textSecondary,
@@ -202,73 +218,69 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           ),
         ),
         const SizedBox(height: 14),
-        _fieldTitle('菜的类型（来自标签）'),
+        _fieldTitle('菜品风格（来自标签）'),
         const SizedBox(height: 8),
         _tagSingleField(
-          label:
-              _typeTagId == null
-                  ? '未选择'
-                  : (_tagsById[_typeTagId!]?.name ?? '未选择'),
-          onPressed:
-              _saving
-                  ? null
-                  : () async {
-                    final selected = await OvercookedTagPickerSheet.show(
-                      context,
-                      title: '选择菜的类型',
-                      tags: _typeTags,
-                      selectedIds: _typeTagId == null ? {} : {_typeTagId!},
-                      multi: false,
-                    );
-                    if (selected == null) return;
-                    setState(
-                      () => _typeTagId = selected.isEmpty ? null : selected.first,
-                    );
-                  },
+          label: _typeTagId == null
+              ? '未选择'
+              : (_tagsById[_typeTagId!]?.name ?? '未选择'),
+          onPressed: _saving
+              ? null
+              : () async {
+                  final selected = await OvercookedTagPickerSheet.show(
+                    context,
+                    title: '选择菜品风格',
+                    tags: _typeTags,
+                    selectedIds: _typeTagId == null ? {} : {_typeTagId!},
+                    multi: false,
+                  );
+                  if (selected == null) return;
+                  setState(
+                    () => _typeTagId = selected.isEmpty ? null : selected.first,
+                  );
+                },
         ),
         const SizedBox(height: 14),
-        _fieldTitle('食材（来自标签）'),
+        _fieldTitle('主料（来自标签）'),
         const SizedBox(height: 8),
         _tagMultiField(
           selectedIds: _ingredientTagIds,
           tagsById: _tagsById,
           emptyText: '未选择',
-          onPressed:
-              _saving
-                  ? null
-                  : () async {
-                    final selected = await OvercookedTagPickerSheet.show(
-                      context,
-                      title: '选择食材',
-                      tags: _ingredientTags,
-                      selectedIds: _ingredientTagIds,
-                      multi: true,
-                    );
-                    if (selected == null) return;
-                    setState(() => _ingredientTagIds = selected);
-                  },
+          onPressed: _saving
+              ? null
+              : () async {
+                  final selected = await OvercookedTagPickerSheet.show(
+                    context,
+                    title: '选择主料',
+                    tags: _ingredientTags,
+                    selectedIds: _ingredientTagIds,
+                    multi: true,
+                  );
+                  if (selected == null) return;
+                  setState(() => _ingredientTagIds = selected);
+                },
         ),
         const SizedBox(height: 14),
-        _fieldTitle('酱料（来自标签）'),
+        _fieldTitle('调味（来自标签）'),
         const SizedBox(height: 8),
         _tagMultiField(
           selectedIds: _sauceTagIds,
           tagsById: _tagsById,
           emptyText: '未选择',
-          onPressed:
-              _saving
-                  ? null
-                  : () async {
-                    final selected = await OvercookedTagPickerSheet.show(
-                      context,
-                      title: '选择酱料',
-                      tags: _sauceTags,
-                      selectedIds: _sauceTagIds,
-                      multi: true,
-                    );
-                    if (selected == null) return;
-                    setState(() => _sauceTagIds = selected);
-                  },
+          onPressed: _saving
+              ? null
+              : () async {
+                  final selected = await OvercookedTagPickerSheet.show(
+                    context,
+                    title: '选择调味',
+                    tags: _sauceTags,
+                    selectedIds: _sauceTagIds,
+                    multi: true,
+                  );
+                  if (selected == null) return;
+                  setState(() => _sauceTagIds = selected);
+                },
         ),
         const SizedBox(height: 14),
         _fieldTitle('简介'),
@@ -280,30 +292,25 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           maxLines: 2,
         ),
         const SizedBox(height: 14),
-        _fieldTitle('口味（可多选）'),
+        _fieldTitle('风味（来自标签，可多选）'),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children:
-              OvercookedFlavor.values.map((f) {
-                final selected = _flavors.contains(f);
-                return _chip(
-                  label: f.label,
-                  selected: selected,
-                  color: IOS26Theme.toolPink,
-                  onTap:
-                      _saving
-                          ? null
-                          : () => setState(() {
-                            if (selected) {
-                              _flavors.remove(f);
-                            } else {
-                              _flavors.add(f);
-                            }
-                          }),
-                );
-              }).toList(),
+        _tagMultiField(
+          selectedIds: _flavorTagIds,
+          tagsById: _tagsById,
+          emptyText: '未选择',
+          onPressed: _saving || _flavorTags.isEmpty
+              ? null
+              : () async {
+                  final selected = await OvercookedTagPickerSheet.show(
+                    context,
+                    title: '选择风味',
+                    tags: _flavorTags,
+                    selectedIds: _flavorTagIds,
+                    multi: true,
+                  );
+                  if (selected == null) return;
+                  setState(() => _flavorTagIds = selected);
+                },
         ),
         const SizedBox(height: 14),
         _fieldTitle('详细内容'),
@@ -353,12 +360,11 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                       top: 6,
                       right: 6,
                       child: GestureDetector(
-                        onTap:
-                            _saving
-                                ? null
-                                : () => setState(() {
-                                  _detailKeys.removeAt(index);
-                                }),
+                        onTap: _saving
+                            ? null
+                            : () => setState(() {
+                                _detailKeys.removeAt(index);
+                              }),
                         child: Container(
                           width: 28,
                           height: 28,
@@ -399,7 +405,10 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               child: CircularProgressIndicator(),
             ),
           ),
-        if (_typeTags.isEmpty && _ingredientTags.isEmpty && _sauceTags.isEmpty)
+        if (_typeTags.isEmpty &&
+            _ingredientTags.isEmpty &&
+            _sauceTags.isEmpty &&
+            _flavorTags.isEmpty)
           GlassContainer(
             borderRadius: 18,
             padding: const EdgeInsets.all(14),
@@ -429,8 +438,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: () {
-                    final tool =
-                        ToolRegistry.instance.getById('tag_manager')?.pageBuilder();
+                    final tool = ToolRegistry.instance
+                        .getById('tag_manager')
+                        ?.pageBuilder();
                     Navigator.of(context).push(
                       CupertinoPageRoute<void>(
                         builder: (_) => tool ?? const TagManagerToolPage(),
@@ -502,10 +512,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     required VoidCallback? onPressed,
   }) {
     final names =
-        selectedIds
-            .map((id) => tagsById[id]?.name)
-            .whereType<String>()
-            .toList()
+        selectedIds.map((id) => tagsById[id]?.name).whereType<String>().toList()
           ..sort();
     final text = names.isEmpty ? emptyText : names.join('、');
     return SizedBox(
@@ -537,36 +544,6 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               color: IOS26Theme.textSecondary,
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _chip({
-    required String label,
-    required bool selected,
-    required Color color,
-    required VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? color : color.withValues(alpha: 0.25),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : color,
-          ),
         ),
       ),
     );
@@ -698,7 +675,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
     setState(() => _saving = true);
     try {
-      final repo = context.read<OvercookedRepository>();
+      final repo = widget.repository ?? context.read<OvercookedRepository>();
       final now = DateTime.now();
 
       final base = widget.initial;
@@ -711,7 +688,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             ingredientTagIds: _ingredientTagIds.toList(),
             sauceTagIds: _sauceTagIds.toList(),
             intro: _introController.text,
-            flavors: _flavors,
+            flavorTagIds: _flavorTagIds.toList(),
             content: _contentController.text,
             detailImageKeys: _detailKeys,
             now: now,
@@ -730,7 +707,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           ingredientTagIds: _ingredientTagIds.toList(),
           sauceTagIds: _sauceTagIds.toList(),
           intro: _introController.text,
-          flavors: _flavors,
+          flavorTagIds: _flavorTagIds.toList(),
           content: _contentController.text,
           detailImageKeys: _detailKeys,
         ),

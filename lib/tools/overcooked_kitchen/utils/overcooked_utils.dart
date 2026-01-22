@@ -23,20 +23,19 @@ class OvercookedDialogs {
   }) async {
     await showCupertinoDialog<void>(
       context: context,
-      builder:
-          (context) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(content),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('知道了'),
-              ),
-            ],
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(content),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
           ),
+        ],
+      ),
     );
   }
 
@@ -50,27 +49,25 @@ class OvercookedDialogs {
   }) async {
     final result = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (context) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(content),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(cancelText),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: isDestructive,
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(confirmText),
-              ),
-            ],
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(content),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(cancelText),
           ),
+          CupertinoDialogAction(
+            isDestructiveAction: isDestructive,
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(confirmText),
+          ),
+        ],
+      ),
     );
     return result ?? false;
   }
 }
-

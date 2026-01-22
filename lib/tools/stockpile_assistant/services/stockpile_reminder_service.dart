@@ -249,12 +249,19 @@ class StockpileReminderService {
     final id = item.id;
     if (id == null) return;
 
-    await messageService.cancelSystemNotification(_restockNotificationIdForItem(id));
+    await messageService.cancelSystemNotification(
+      _restockNotificationIdForItem(id),
+    );
 
     final d = item.restockRemindDate;
     if (d == null) return;
 
-    final scheduledAt = DateTime(d.year, d.month, d.day, _defaultNotificationHour);
+    final scheduledAt = DateTime(
+      d.year,
+      d.month,
+      d.day,
+      _defaultNotificationHour,
+    );
     if (!scheduledAt.isAfter(now)) return;
 
     await messageService.scheduleSystemNotification(
@@ -265,10 +272,14 @@ class StockpileReminderService {
     );
   }
 
-  static String buildRestockBody({required StockItem item, required DateTime now}) {
+  static String buildRestockBody({
+    required StockItem item,
+    required DateTime now,
+  }) {
     final location = item.location.trim();
     final locationText = location.isEmpty ? '' : '（$location）';
-    final qtyText = '${StockpileFormat.num(item.remainingQuantity)}${item.unit}';
+    final qtyText =
+        '${StockpileFormat.num(item.remainingQuantity)}${item.unit}';
 
     final reasons = <String>[];
     final d = item.restockRemindDate;

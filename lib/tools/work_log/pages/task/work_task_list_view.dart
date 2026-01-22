@@ -148,8 +148,12 @@ class _StatusFilterBar extends StatelessWidget {
                   _FilterChip(
                     label: '已取消',
                     status: WorkTaskStatus.canceled,
-                    count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
-                    isSelected: currentFilters.contains(WorkTaskStatus.canceled),
+                    count: service.getTaskCountByStatus(
+                      WorkTaskStatus.canceled,
+                    ),
+                    isSelected: currentFilters.contains(
+                      WorkTaskStatus.canceled,
+                    ),
                     onTap: () => _toggleStatus(WorkTaskStatus.canceled),
                   ),
                 ],

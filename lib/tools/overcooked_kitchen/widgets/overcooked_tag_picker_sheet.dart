@@ -32,20 +32,20 @@ class OvercookedTagPickerSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (_) => SafeArea(
-            child: OvercookedTagPickerSheet(
-              title: title,
-              tags: tags,
-              selectedIds: selectedIds,
-              multi: multi,
-            ),
-          ),
+      builder: (_) => SafeArea(
+        child: OvercookedTagPickerSheet(
+          title: title,
+          tags: tags,
+          selectedIds: selectedIds,
+          multi: multi,
+        ),
+      ),
     );
   }
 
   @override
-  State<OvercookedTagPickerSheet> createState() => _OvercookedTagPickerSheetState();
+  State<OvercookedTagPickerSheet> createState() =>
+      _OvercookedTagPickerSheetState();
 }
 
 class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
@@ -60,12 +60,11 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered =
-        widget.tags.where((t) {
-          final q = _query.trim().toLowerCase();
-          if (q.isEmpty) return true;
-          return t.name.toLowerCase().contains(q);
-        }).toList();
+    final filtered = widget.tags.where((t) {
+      final q = _query.trim().toLowerCase();
+      if (q.isEmpty) return true;
+      return t.name.toLowerCase().contains(q);
+    }).toList();
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -80,76 +79,72 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
             ),
           ),
           Expanded(
-            child:
-                filtered.isEmpty
-                    ? const Center(
-                        child: Text(
-                          '暂无可选标签',
-                          style: TextStyle(color: IOS26Theme.textSecondary),
+            child: filtered.isEmpty
+                ? const Center(
+                    child: Text(
+                      '暂无可选标签',
+                      style: TextStyle(color: IOS26Theme.textSecondary),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, index) => Divider(
+                      height: 1,
+                      color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                    ),
+                    itemBuilder: (context, index) {
+                      final tag = filtered[index];
+                      final id = tag.id;
+                      final checked = id != null && _selected.contains(id);
+                      return ListTile(
+                        title: Text(
+                          tag.name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: IOS26Theme.textPrimary,
+                          ),
                         ),
-                      )
-                    : ListView.separated(
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, index) => Divider(
-                          height: 1,
-                          color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-                        ),
-                        itemBuilder: (context, index) {
-                          final tag = filtered[index];
-                          final id = tag.id;
-                          final checked = id != null && _selected.contains(id);
-                          return ListTile(
-                            title: Text(
-                              tag.name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: IOS26Theme.textPrimary,
-                              ),
-                            ),
-                            trailing:
-                                widget.multi
-                                    ? CupertinoSwitch(
-                                        value: checked,
-                                        onChanged:
-                                            id == null
-                                                ? null
-                                                : (value) => setState(() {
-                                                  if (value) {
-                                                    _selected.add(id);
-                                                  } else {
-                                                    _selected.remove(id);
-                                                  }
-                                                }),
-                                      )
-                                    : checked
-                                    ? const Icon(
-                                        CupertinoIcons.check_mark_circled_solid,
-                                        color: IOS26Theme.primaryColor,
-                                      )
-                                    : const SizedBox.shrink(),
-                            onTap:
-                                id == null
+                        trailing: widget.multi
+                            ? CupertinoSwitch(
+                                value: checked,
+                                onChanged: id == null
                                     ? null
-                                    : () {
-                                      setState(() {
-                                        if (widget.multi) {
-                                          if (checked) {
-                                            _selected.remove(id);
-                                          } else {
-                                            _selected.add(id);
-                                          }
+                                    : (value) => setState(() {
+                                        if (value) {
+                                          _selected.add(id);
                                         } else {
-                                          _selected = {id};
+                                          _selected.remove(id);
                                         }
-                                      });
-                                      if (!widget.multi) {
-                                        Navigator.pop(context, _selected);
-                                      }
-                                    },
-                          );
-                        },
-                      ),
+                                      }),
+                              )
+                            : checked
+                            ? const Icon(
+                                CupertinoIcons.check_mark_circled_solid,
+                                color: IOS26Theme.primaryColor,
+                              )
+                            : const SizedBox.shrink(),
+                        onTap: id == null
+                            ? null
+                            : () {
+                                setState(() {
+                                  if (widget.multi) {
+                                    if (checked) {
+                                      _selected.remove(id);
+                                    } else {
+                                      _selected.add(id);
+                                    }
+                                  } else {
+                                    _selected = {id};
+                                  }
+                                });
+                                if (!widget.multi) {
+                                  Navigator.pop(context, _selected);
+                                }
+                              },
+                      );
+                    },
+                  ),
           ),
         ],
       ),

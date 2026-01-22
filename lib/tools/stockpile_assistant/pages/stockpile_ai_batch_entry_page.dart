@@ -97,10 +97,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
 
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
-      appBar: IOS26AppBar(
-        title: 'AI 批量录入',
-        showBackButton: true,
-      ),
+      appBar: IOS26AppBar(title: 'AI 批量录入', showBackButton: true),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -188,25 +185,25 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         onPressed: _saving
             ? null
             : () => setState(() {
-                  _items.add(
-                    _createItemEntry(
-                      StockItemDraft(
-                        name: '',
-                        location: '',
-                        totalQuantity: 1,
-                        remainingQuantity: 1,
-                        unit: '',
-                        purchaseDate: DateTime.now(),
-                        expiryDate: null,
-                        remindDays: -1,
-                        restockRemindDate: null,
-                        restockRemindQuantity: null,
-                        note: '',
-                        tagIds: const [],
-                      ),
+                _items.add(
+                  _createItemEntry(
+                    StockItemDraft(
+                      name: '',
+                      location: '',
+                      totalQuantity: 1,
+                      remainingQuantity: 1,
+                      unit: '',
+                      purchaseDate: DateTime.now(),
+                      expiryDate: null,
+                      remindDays: -1,
+                      restockRemindDate: null,
+                      restockRemindQuantity: null,
+                      note: '',
+                      tagIds: const [],
                     ),
-                  );
-                }),
+                  ),
+                );
+              }),
       ),
     );
 
@@ -369,20 +366,20 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         onPressed: _saving
             ? null
             : () => setState(() {
-                  _consumptions.add(
-                    _createConsumptionEntry(
-                      StockpileAiConsumptionEntry(
-                        itemRef: const StockpileAiItemRef(),
-                        draft: StockConsumptionDraft(
-                          quantity: 1,
-                          method: '',
-                          consumedAt: DateTime.now(),
-                          note: '',
-                        ),
+                _consumptions.add(
+                  _createConsumptionEntry(
+                    StockpileAiConsumptionEntry(
+                      itemRef: const StockpileAiItemRef(),
+                      draft: StockConsumptionDraft(
+                        quantity: 1,
+                        method: '',
+                        consumedAt: DateTime.now(),
+                        note: '',
                       ),
                     ),
-                  );
-                }),
+                  ),
+                );
+              }),
       ),
     );
 
@@ -1413,12 +1410,11 @@ class _ItemEntry {
     e.remainingController.text = StockpileFormat.num(draft.remainingQuantity);
     e.remindDaysController.text =
         draft.expiryDate == null || draft.remindDays < 0
-            ? ''
-            : draft.remindDays.toString();
-    e.restockQuantityController.text =
-        draft.restockRemindQuantity == null
-            ? ''
-            : StockpileFormat.num(draft.restockRemindQuantity!);
+        ? ''
+        : draft.remindDays.toString();
+    e.restockQuantityController.text = draft.restockRemindQuantity == null
+        ? ''
+        : StockpileFormat.num(draft.restockRemindQuantity!);
     e.noteController.text = draft.note;
     e.purchaseDate = draft.purchaseDate;
     e.expiryDate = draft.expiryDate;
