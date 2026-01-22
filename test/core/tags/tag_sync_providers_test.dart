@@ -88,6 +88,71 @@ void main() {
       await targetDb.close();
     });
 
+    test('标签导出/导入应保留 tool_tags.category_id；缺失时默认填充', () async {
+      final sourceDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      final sourceTags = TagRepository.withDatabase(sourceDb);
+
+      final priorityId = await sourceTags.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'priority',
+      );
+
+      final tagProvider = TagSyncProvider(repository: sourceTags);
+      final payload = await tagProvider.exportData();
+      await sourceDb.close();
+
+      final data = payload['data'] as Map<String, dynamic>;
+      final toolTags = (data['tool_tags'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      final priorityLink = toolTags.singleWhere(
+        (e) => e['tag_id'] == priorityId && e['tool_id'] == 'work_log',
+      );
+      expect(priorityLink['category_id'], 'priority');
+
+      // 兼容：模拟旧备份，去掉 category_id
+      final legacyPayload = <String, dynamic>{
+        'version': 1,
+        'data': <String, dynamic>{
+          'tags': (data['tags'] as List)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList(),
+          'tool_tags': toolTags.map((e) {
+            final next = Map<String, dynamic>.from(e);
+            next.remove('category_id');
+            return next;
+          }).toList(),
+        },
+      };
+
+      final targetDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      final targetTags = TagRepository.withDatabase(targetDb);
+      final provider2 = TagSyncProvider(repository: targetTags);
+
+      await provider2.importData(legacyPayload);
+
+      final restored = await targetTags.listTagsForToolWithCategory('work_log');
+      final restoredById = {
+        for (final it in restored) it.tag.id!: it.categoryId,
+      };
+      expect(restoredById[priorityId], TagRepository.defaultCategoryId);
+
+      await targetDb.close();
+    });
+
     test('工作记录导出/导入应包含任务置顶与排序字段', () async {
       final sourceDb = await openDatabase(
         inMemoryDatabasePath,

@@ -2,10 +2,20 @@ import 'package:sqflite/sqflite.dart';
 
 import '../database/database_helper.dart';
 import 'models/tag.dart';
+import 'models/tag_in_tool_category.dart';
 import 'models/tag_with_tools.dart';
+
+class _ToolTagLink {
+  final String toolId;
+  final String categoryId;
+
+  const _ToolTagLink({required this.toolId, required this.categoryId});
+}
 
 class TagRepository {
   final Future<Database> _database;
+
+  static const String defaultCategoryId = 'default';
 
   TagRepository({DatabaseHelper? dbHelper})
     : _database = (dbHelper ?? DatabaseHelper.instance).database;
@@ -19,40 +29,43 @@ class TagRepository {
     int? color,
     DateTime? now,
   }) async {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) {
-      throw ArgumentError('createTag 需要 name');
+    return _createTagInternal(
+      name: name,
+      toolLinks: [
+        for (final toolId in _dedupeToolIds(toolIds))
+          _ToolTagLink(toolId: toolId, categoryId: defaultCategoryId),
+      ],
+      color: color,
+      now: now,
+    );
+  }
+
+  Future<int> createTagForToolCategory({
+    required String name,
+    required String toolId,
+    required String categoryId,
+    int? color,
+    DateTime? now,
+  }) async {
+    final normalizedToolId = toolId.trim();
+    if (normalizedToolId.isEmpty) {
+      throw ArgumentError('createTagForToolCategory 需要 toolId');
     }
-    if (toolIds.isEmpty) {
-      throw ArgumentError('createTag 需要至少选择 1 个工具');
-    }
+    final normalizedCategoryId = categoryId.trim().isEmpty
+        ? defaultCategoryId
+        : categoryId.trim();
 
-    final time = now ?? DateTime.now();
-    final db = await _database;
-    return db.transaction((txn) async {
-      final maxSortIndexRows = await txn.rawQuery(
-        'SELECT MAX(sort_index) AS max_sort_index FROM tags',
-      );
-      final maxSortIndex =
-          (maxSortIndexRows.first['max_sort_index'] as int?) ?? -1;
-
-      final tagId = await txn.insert('tags', {
-        'name': trimmed,
-        'color': color,
-        'sort_index': maxSortIndex + 1,
-        'created_at': time.millisecondsSinceEpoch,
-        'updated_at': time.millisecondsSinceEpoch,
-      });
-
-      for (final toolId in _dedupeToolIds(toolIds)) {
-        await txn.insert('tool_tags', {
-          'tool_id': toolId,
-          'tag_id': tagId,
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
-      }
-
-      return tagId;
-    });
+    return _createTagInternal(
+      name: name,
+      toolLinks: [
+        _ToolTagLink(
+          toolId: normalizedToolId,
+          categoryId: normalizedCategoryId,
+        ),
+      ],
+      color: color,
+      now: now,
+    );
   }
 
   Future<void> updateTag({
@@ -73,6 +86,22 @@ class TagRepository {
     final time = now ?? DateTime.now();
     final db = await _database;
     await db.transaction((txn) async {
+      final existingLinks = await txn.query(
+        'tool_tags',
+        columns: const ['tool_id', 'category_id'],
+        where: 'tag_id = ?',
+        whereArgs: [tagId],
+      );
+      final categoryByTool = <String, String>{};
+      for (final row in existingLinks) {
+        final toolId = row['tool_id'] as String;
+        final raw = row['category_id'] as String?;
+        final normalized = raw?.trim();
+        categoryByTool[toolId] = (normalized == null || normalized.isEmpty)
+            ? defaultCategoryId
+            : normalized;
+      }
+
       final updated = await txn.update(
         'tags',
         {
@@ -89,12 +118,37 @@ class TagRepository {
 
       await txn.delete('tool_tags', where: 'tag_id = ?', whereArgs: [tagId]);
       for (final toolId in _dedupeToolIds(toolIds)) {
+        final categoryId = categoryByTool[toolId] ?? defaultCategoryId;
         await txn.insert('tool_tags', {
           'tool_id': toolId,
           'tag_id': tagId,
+          'category_id': categoryId,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
+  }
+
+  Future<void> renameTag({
+    required int tagId,
+    required String name,
+    DateTime? now,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('renameTag 需要 name');
+    }
+
+    final time = now ?? DateTime.now();
+    final db = await _database;
+    final updated = await db.update(
+      'tags',
+      {'name': trimmed, 'updated_at': time.millisecondsSinceEpoch},
+      where: 'id = ?',
+      whereArgs: [tagId],
+    );
+    if (updated <= 0) {
+      throw StateError('未找到要更新的标签: id=$tagId');
+    }
   }
 
   Future<void> deleteTag(int tagId) async {
@@ -109,10 +163,7 @@ class TagRepository {
       for (int i = 0; i < tagIds.length; i++) {
         await txn.update(
           'tags',
-          {
-            'sort_index': i,
-            'updated_at': time.millisecondsSinceEpoch,
-          },
+          {'sort_index': i, 'updated_at': time.millisecondsSinceEpoch},
           where: 'id = ?',
           whereArgs: [tagIds[i]],
         );
@@ -133,6 +184,33 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
       [toolId],
     );
     return results.map((e) => Tag.fromMap(e)).toList();
+  }
+
+  Future<List<TagInToolCategory>> listTagsForToolWithCategory(
+    String toolId,
+  ) async {
+    final normalized = toolId.trim();
+    if (normalized.isEmpty) return const [];
+
+    final db = await _database;
+    final results = await db.rawQuery(
+      '''
+SELECT t.*, tt.category_id AS category_id
+FROM tags t
+INNER JOIN tool_tags tt ON tt.tag_id = t.id
+WHERE tt.tool_id = ?
+ORDER BY tt.category_id ASC, t.sort_index ASC, t.name COLLATE NOCASE ASC
+''',
+      [normalized],
+    );
+
+    return results.map((row) {
+      final raw = row['category_id'] as String?;
+      final categoryId = (raw == null || raw.trim().isEmpty)
+          ? defaultCategoryId
+          : raw.trim();
+      return TagInToolCategory(tag: Tag.fromMap(row), categoryId: categoryId);
+    }).toList();
   }
 
   Future<List<TagWithTools>> listAllTagsWithTools() async {
@@ -227,12 +305,57 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
         await txn.insert('tags', tag);
       }
       for (final link in toolTags) {
+        final normalized = Map<String, dynamic>.from(link);
+        normalized['category_id'] ??= defaultCategoryId;
         await txn.insert(
           'tool_tags',
-          link,
+          normalized,
           conflictAlgorithm: ConflictAlgorithm.ignore,
         );
       }
+    });
+  }
+
+  Future<int> _createTagInternal({
+    required String name,
+    required List<_ToolTagLink> toolLinks,
+    int? color,
+    DateTime? now,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('createTag 需要 name');
+    }
+    if (toolLinks.isEmpty) {
+      throw ArgumentError('createTag 需要至少选择 1 个工具');
+    }
+
+    final time = now ?? DateTime.now();
+    final db = await _database;
+    return db.transaction((txn) async {
+      final maxSortIndexRows = await txn.rawQuery(
+        'SELECT MAX(sort_index) AS max_sort_index FROM tags',
+      );
+      final maxSortIndex =
+          (maxSortIndexRows.first['max_sort_index'] as int?) ?? -1;
+
+      final tagId = await txn.insert('tags', {
+        'name': trimmed,
+        'color': color,
+        'sort_index': maxSortIndex + 1,
+        'created_at': time.millisecondsSinceEpoch,
+        'updated_at': time.millisecondsSinceEpoch,
+      });
+
+      for (final link in toolLinks) {
+        await txn.insert('tool_tags', {
+          'tool_id': link.toolId,
+          'tag_id': tagId,
+          'category_id': link.categoryId,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+
+      return tagId;
     });
   }
 
@@ -321,11 +444,10 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
       );
 
       for (final tagId in _dedupeInts(tagIds)) {
-        await txn.insert(
-          table,
-          {entityIdColumn: entityId, 'tag_id': tagId},
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        await txn.insert(table, {
+          entityIdColumn: entityId,
+          'tag_id': tagId,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
   }

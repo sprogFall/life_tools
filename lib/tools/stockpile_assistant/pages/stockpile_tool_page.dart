@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/ai/ai_service.dart';
 import '../../../core/messages/message_service.dart';
+import '../../../core/tags/models/tag_category.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
@@ -50,6 +51,19 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         _pushDueReminders();
       });
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        context
+            .read<TagService>()
+            .registerToolTagCategories('stockpile_assistant', const [
+              TagCategory(id: 'place', name: '位置'),
+              TagCategory(id: 'purpose', name: '用途'),
+              TagCategory(id: 'status', name: '状态'),
+            ]);
+      } catch (_) {}
+    });
   }
 
   @override
@@ -299,8 +313,9 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     final qtyText =
         '${StockpileFormat.num(item.remainingQuantity)}/${StockpileFormat.num(item.totalQuantity)}${item.unit.isEmpty ? '' : item.unit}';
     final tagText = tags.isEmpty ? '无标签' : tags.map((t) => t.name).join('、');
-    final locationText =
-        item.location.trim().isEmpty ? '' : ' · ${item.location.trim()}';
+    final locationText = item.location.trim().isEmpty
+        ? ''
+        : ' · ${item.location.trim()}';
 
     return GlassContainer(
       margin: EdgeInsets.only(bottom: compact ? 8 : 12),

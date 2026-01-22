@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
+import '../../../core/tags/models/tag_category.dart';
 import '../../../core/tags/tag_repository.dart';
+import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
@@ -52,6 +54,17 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
           (widget.repository == null ? TagRepository() : null),
     );
     _service.loadTasks();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        context.read<TagService>().registerToolTagCategories('work_log', const [
+          TagCategory(id: 'priority', name: '优先级'),
+          TagCategory(id: 'project', name: '项目'),
+          TagCategory(id: 'scene', name: '场景'),
+        ]);
+      } catch (_) {}
+    });
   }
 
   @override
