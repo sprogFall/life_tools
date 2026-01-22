@@ -27,6 +27,7 @@ void main() {
       expect(tools.isNotEmpty, true);
       expect(tools.any((t) => t.id == 'work_log'), true);
       expect(tools.any((t) => t.id == 'stockpile_assistant'), true);
+      expect(tools.any((t) => t.id == 'overcooked_kitchen'), true);
       expect(tools.any((t) => t.id == 'tag_manager'), true);
     });
 
@@ -62,12 +63,15 @@ void main() {
       final ids = ToolRegistry.instance.tools.map((t) => t.id).toList();
       final workIndex = ids.indexOf('work_log');
       final stockIndex = ids.indexOf('stockpile_assistant');
+      final overcookedIndex = ids.indexOf('overcooked_kitchen');
       final tagIndex = ids.indexOf('tag_manager');
 
       expect(workIndex, isNonNegative);
       expect(stockIndex, workIndex + 1);
+      expect(overcookedIndex, stockIndex + 1);
       expect(tagIndex, ids.length - 1);
       expect(stockIndex, lessThan(tagIndex));
+      expect(overcookedIndex, lessThan(tagIndex));
     });
   });
 }

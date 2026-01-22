@@ -85,9 +85,7 @@ class _WorkTaskSortPageState extends State<WorkTaskSortPage> {
                 ),
               ],
             ),
-            Expanded(
-              child: _loading ? _buildLoading() : _buildContent(),
-            ),
+            Expanded(child: _loading ? _buildLoading() : _buildContent()),
           ],
         ),
       ),
@@ -294,7 +292,9 @@ class _TaskSortRow extends StatelessWidget {
     final taskId = task.id;
     final isPinned = task.isPinned;
     final pinIcon = isPinned ? CupertinoIcons.pin_fill : CupertinoIcons.pin;
-    final pinColor = isPinned ? IOS26Theme.toolOrange : IOS26Theme.textSecondary;
+    final pinColor = isPinned
+        ? IOS26Theme.toolOrange
+        : IOS26Theme.textSecondary;
 
     return GlassContainer(
       key: ValueKey('work-task-sort-row-${task.id ?? task.title}'),

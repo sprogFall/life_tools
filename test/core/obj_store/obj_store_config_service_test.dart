@@ -13,9 +13,7 @@ void main() {
     });
 
     test('默认应为未选择', () async {
-      final service = ObjStoreConfigService(
-        secretStore: InMemorySecretStore(),
-      );
+      final service = ObjStoreConfigService(secretStore: InMemorySecretStore());
       await service.init();
 
       expect(service.config, isNull);
@@ -24,9 +22,7 @@ void main() {
     });
 
     test('保存本地存储后应为已配置', () async {
-      final service = ObjStoreConfigService(
-        secretStore: InMemorySecretStore(),
-      );
+      final service = ObjStoreConfigService(secretStore: InMemorySecretStore());
       await service.init();
 
       await service.save(const ObjStoreConfig.local());
@@ -63,9 +59,7 @@ void main() {
     });
 
     test('清除后应恢复为未选择', () async {
-      final service = ObjStoreConfigService(
-        secretStore: InMemorySecretStore(),
-      );
+      final service = ObjStoreConfigService(secretStore: InMemorySecretStore());
       await service.init();
 
       await service.save(const ObjStoreConfig.local());
@@ -78,4 +72,3 @@ void main() {
     });
   });
 }
-

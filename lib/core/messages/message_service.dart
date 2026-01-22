@@ -15,9 +15,9 @@ class MessageService extends ChangeNotifier {
     MessageRepository? repository,
     AppNotificationService? notificationService,
     int maxMessages = 200,
-  })  : _repository = repository ?? MessageRepository(),
-        _notificationService = notificationService,
-        _maxMessages = maxMessages;
+  }) : _repository = repository ?? MessageRepository(),
+       _notificationService = notificationService,
+       _maxMessages = maxMessages;
 
   List<AppMessage> get messages => List.unmodifiable(_messages);
   List<AppMessage> get unreadMessages =>
@@ -46,12 +46,11 @@ class MessageService extends ChangeNotifier {
     bool refreshDaily = false,
   }) async {
     final trimmedBody = body.trim();
-    final existing =
-        dedupeKey == null
-            ? null
-            : _messages.where((e) => e.dedupeKey == dedupeKey).isEmpty
-            ? null
-            : _messages.firstWhere((e) => e.dedupeKey == dedupeKey);
+    final existing = dedupeKey == null
+        ? null
+        : _messages.where((e) => e.dedupeKey == dedupeKey).isEmpty
+        ? null
+        : _messages.firstWhere((e) => e.dedupeKey == dedupeKey);
 
     final effectiveNow = createdAt ?? DateTime.now();
     final shouldResurfaceDaily =

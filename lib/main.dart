@@ -21,9 +21,11 @@ import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
 import 'core/sync/services/sync_service.dart';
+import 'core/tags/built_in_tag_categories.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
+import 'tools/overcooked_kitchen/services/overcooked_reminder_service.dart';
 import 'tools/stockpile_assistant/services/stockpile_reminder_service.dart';
 
 void main() async {
@@ -61,8 +63,9 @@ void main() async {
     Future.microtask(() => syncService.sync());
   }
 
-  final notificationService =
-      (Platform.isAndroid || Platform.isIOS) ? LocalNotificationService() : null;
+  final notificationService = (Platform.isAndroid || Platform.isIOS)
+      ? LocalNotificationService()
+      : null;
   await notificationService?.init();
 
   final messageService = MessageService(
@@ -73,6 +76,12 @@ void main() async {
   // 启动时检查囤货临期/过期提醒（写入首页消息并推送系统通知）
   Future.microtask(
     () => StockpileReminderService().pushDueReminders(
+      messageService: messageService,
+    ),
+  );
+
+  Future.microtask(
+    () => OvercookedReminderService().pushDueReminders(
       messageService: messageService,
     ),
   );
@@ -115,6 +124,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _receiveShareService = ReceiveShareService();
   DateTime _lastStockpileReminderCheckDay = DateTime.now();
+  DateTime _lastOvercookedReminderCheckDay = DateTime.now();
 
   @override
   void initState() {
@@ -144,14 +154,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _lastStockpileReminderCheckDay.month,
       _lastStockpileReminderCheckDay.day,
     );
-    if (!today.isAfter(lastDay)) return;
-    _lastStockpileReminderCheckDay = today;
+    final shouldCheckStockpile = today.isAfter(lastDay);
+    if (shouldCheckStockpile) {
+      _lastStockpileReminderCheckDay = today;
+      Future.microtask(
+        () => StockpileReminderService().pushDueReminders(
+          messageService: widget.messageService,
+        ),
+      );
+    }
 
-    Future.microtask(
-      () => StockpileReminderService().pushDueReminders(
-        messageService: widget.messageService,
-      ),
+    final lastOvercookedDay = DateTime(
+      _lastOvercookedReminderCheckDay.year,
+      _lastOvercookedReminderCheckDay.month,
+      _lastOvercookedReminderCheckDay.day,
     );
+    final shouldCheckOvercooked = today.isAfter(lastOvercookedDay);
+    if (shouldCheckOvercooked) {
+      _lastOvercookedReminderCheckDay = today;
+      Future.microtask(
+        () => OvercookedReminderService().pushDueReminders(
+          messageService: widget.messageService,
+        ),
+      );
+    }
   }
 
   void _handleReceivedShare(String jsonText) {
@@ -174,7 +200,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.syncConfigService),
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
-        ChangeNotifierProvider<TagService>(create: (_) => TagService()),
+        ChangeNotifierProvider<TagService>(
+          create: (_) {
+            final service = TagService();
+            BuiltInTagCategories.registerAll(service);
+            return service;
+          },
+        ),
         Provider<AiService>(
           create: (_) => AiService(configService: widget.aiConfigService),
         ),

@@ -58,7 +58,9 @@ class StockConsumption {
     return StockConsumption(
       id: map['id'] as int?,
       itemId: map['item_id'] as int,
-      consumedAt: DateTime.fromMillisecondsSinceEpoch(map['consumed_at'] as int),
+      consumedAt: DateTime.fromMillisecondsSinceEpoch(
+        map['consumed_at'] as int,
+      ),
       quantity: _asDouble(map['quantity']),
       method: (map['method'] as String?) ?? '',
       note: (map['note'] as String?) ?? '',
@@ -71,4 +73,3 @@ class StockConsumption {
     return (v as num).toDouble();
   }
 }
-

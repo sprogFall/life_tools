@@ -74,15 +74,20 @@ class WorkLogService extends ChangeNotifier {
         final savedStatuses = prefs.getStringList(_statusFiltersKey);
         if (savedStatuses != null && savedStatuses.isNotEmpty) {
           _statusFilters = savedStatuses
-              .map((s) => WorkTaskStatus.values.firstWhere(
-                    (e) => e.name == s,
-                    orElse: () => WorkTaskStatus.todo,
-                  ))
+              .map(
+                (s) => WorkTaskStatus.values.firstWhere(
+                  (e) => e.name == s,
+                  orElse: () => WorkTaskStatus.todo,
+                ),
+              )
               .toList();
         }
         final savedTags = prefs.getStringList(_tagFiltersKey);
         if (savedTags != null) {
-          _tagFilters = savedTags.map((s) => int.tryParse(s) ?? 0).where((id) => id > 0).toList();
+          _tagFilters = savedTags
+              .map((s) => int.tryParse(s) ?? 0)
+              .where((id) => id > 0)
+              .toList();
         }
         _customSortEnabled = prefs.getBool(_customSortEnabledKey) ?? false;
         _filtersLoaded = true;
@@ -95,8 +100,10 @@ class WorkLogService extends ChangeNotifier {
       }
 
       if (_tagRepository != null && _tagFilters.isNotEmpty) {
-        final availableIds =
-            _availableTags.map((t) => t.id).whereType<int>().toSet();
+        final availableIds = _availableTags
+            .map((t) => t.id)
+            .whereType<int>()
+            .toSet();
         final next = _tagFilters.where(availableIds.contains).toList();
         if (!listEquals(next, _tagFilters)) {
           _tagFilters = next;

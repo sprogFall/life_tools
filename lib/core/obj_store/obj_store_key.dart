@@ -21,4 +21,3 @@ class ObjStoreKey {
     return raw.endsWith('/') ? raw : '$raw/';
   }
 }
-

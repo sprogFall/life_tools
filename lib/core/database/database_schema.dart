@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 12;
+  static const int version = 14;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -16,6 +16,7 @@ class DatabaseSchema {
     await _createTagTables(db);
     await _createOperationLogTables(db);
     await _createStockpileTables(db);
+    await _createOvercookedTables(db);
   }
 
   static Future<void> onUpgrade(
@@ -55,6 +56,12 @@ class DatabaseSchema {
     }
     if (oldVersion < 12) {
       await _upgradeToVersion12(db);
+    }
+    if (oldVersion < 13) {
+      await _createOvercookedTables(db);
+    }
+    if (oldVersion < 14) {
+      await _upgradeToVersion14(db);
     }
   }
 
@@ -455,6 +462,212 @@ class DatabaseSchema {
       await db.execute(
         'ALTER TABLE stock_items ADD COLUMN restock_remind_quantity REAL',
       );
+    }
+  }
+
+  static Future<void> _createOvercookedTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        cover_image_key TEXT,
+        type_tag_id INTEGER,
+        intro TEXT NOT NULL DEFAULT '',
+        flavors_mask INTEGER NOT NULL DEFAULT 0,
+        content TEXT NOT NULL DEFAULT '',
+        detail_image_keys TEXT NOT NULL DEFAULT '[]',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (type_tag_id) REFERENCES tags(id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_recipe_ingredient_tags (
+        recipe_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (recipe_id, tag_id),
+        FOREIGN KEY (recipe_id) REFERENCES overcooked_recipes(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_recipe_sauce_tags (
+        recipe_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (recipe_id, tag_id),
+        FOREIGN KEY (recipe_id) REFERENCES overcooked_recipes(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_wish_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        day_key INTEGER NOT NULL,
+        recipe_id INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(day_key, recipe_id),
+        FOREIGN KEY (recipe_id) REFERENCES overcooked_recipes(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_meal_days (
+        day_key INTEGER PRIMARY KEY,
+        note TEXT NOT NULL DEFAULT '',
+        meal_slot TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_meal_items (
+        day_key INTEGER NOT NULL,
+        recipe_id INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (day_key, recipe_id),
+        FOREIGN KEY (day_key) REFERENCES overcooked_meal_days(day_key) ON DELETE CASCADE,
+        FOREIGN KEY (recipe_id) REFERENCES overcooked_recipes(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_recipes_updated_at ON overcooked_recipes(updated_at DESC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_recipes_type_tag_id ON overcooked_recipes(type_tag_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_wish_items_day_key ON overcooked_wish_items(day_key)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_wish_items_recipe_id ON overcooked_wish_items(recipe_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_meal_items_day_key ON overcooked_meal_items(day_key)',
+    );
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_recipe_flavor_tags (
+        recipe_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (recipe_id, tag_id),
+        FOREIGN KEY (recipe_id) REFERENCES overcooked_recipes(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_recipe_flavor_tags_recipe_id ON overcooked_recipe_flavor_tags(recipe_id)',
+    );
+  }
+
+  static Future<void> _upgradeToVersion14(Database db) async {
+    // v14:
+    // 1) overcooked_meal_days 增加 meal_slot（中班午餐/中班晚餐等标记）
+    // 2) overcooked_recipe_flavor_tags：菜谱口味改为标签维度（兼容旧 flavors_mask）
+    await _createOvercookedTables(db);
+
+    final mealDayColumns = await db.rawQuery(
+      'PRAGMA table_info(overcooked_meal_days)',
+    );
+    final mealDayNames = mealDayColumns
+        .map((e) => e['name'])
+        .whereType<String>()
+        .toSet();
+    if (!mealDayNames.contains('meal_slot')) {
+      await db.execute(
+        "ALTER TABLE overcooked_meal_days ADD COLUMN meal_slot TEXT NOT NULL DEFAULT ''",
+      );
+    }
+
+    // 将旧的 flavors_mask 迁移到 flavor 标签表（最多 5 个标签），避免历史数据丢失。
+    final recipeColumns = await db.rawQuery(
+      'PRAGMA table_info(overcooked_recipes)',
+    );
+    final recipeNames = recipeColumns
+        .map((e) => e['name'])
+        .whereType<String>()
+        .toSet();
+    if (!recipeNames.contains('flavors_mask')) return;
+
+    final rows = await db.rawQuery(
+      'SELECT id, flavors_mask FROM overcooked_recipes WHERE flavors_mask != 0',
+    );
+    if (rows.isEmpty) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    const toolId = 'overcooked_kitchen';
+    const categoryId = 'flavor';
+    const flavorBits = <({int bit, String name})>[
+      (bit: 1 << 0, name: '酸'),
+      (bit: 1 << 1, name: '甜'),
+      (bit: 1 << 2, name: '辣'),
+      (bit: 1 << 3, name: '咸'),
+      (bit: 1 << 4, name: '苦'),
+    ];
+
+    final flavorTagIdByName = <String, int>{};
+
+    Future<int> ensureFlavorTag(String name) async {
+      final existing = await db.rawQuery(
+        '''
+SELECT t.id AS id
+FROM tags t
+INNER JOIN tool_tags tt ON tt.tag_id = t.id
+WHERE tt.tool_id = ? AND tt.category_id = ? AND t.name = ?
+LIMIT 1
+''',
+        [toolId, categoryId, name],
+      );
+      if (existing.isNotEmpty) {
+        final id = existing.single['id'] as int;
+        flavorTagIdByName[name] = id;
+        return id;
+      }
+
+      final maxSortIndexRows = await db.rawQuery(
+        'SELECT MAX(sort_index) AS max_sort_index FROM tags',
+      );
+      final maxSortIndex =
+          (maxSortIndexRows.first['max_sort_index'] as int?) ?? -1;
+
+      final tagId = await db.insert('tags', {
+        'name': name,
+        'color': null,
+        'sort_index': maxSortIndex + 1,
+        'created_at': now,
+        'updated_at': now,
+      });
+      await db.insert('tool_tags', {
+        'tool_id': toolId,
+        'tag_id': tagId,
+        'category_id': categoryId,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      flavorTagIdByName[name] = tagId;
+      return tagId;
+    }
+
+    for (final f in flavorBits) {
+      await ensureFlavorTag(f.name);
+    }
+
+    for (final row in rows) {
+      final recipeId = row['id'] as int?;
+      final mask = row['flavors_mask'] as int?;
+      if (recipeId == null || mask == null || mask == 0) continue;
+      for (final f in flavorBits) {
+        if ((mask & f.bit) == 0) continue;
+        final tagId = await ensureFlavorTag(f.name);
+        await db.insert(
+          'overcooked_recipe_flavor_tags',
+          {'recipe_id': recipeId, 'tag_id': tagId},
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
     }
   }
 }

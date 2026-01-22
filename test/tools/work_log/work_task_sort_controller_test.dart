@@ -89,16 +89,12 @@ void main() {
       ]);
 
       final orders = controller.buildSortOrders();
-      expect(
-        orders.map((o) => (o.taskId, o.isPinned, o.sortIndex)),
-        [
-          (1, true, 0),
-          (3, true, 1),
-          (2, false, 0),
-          (4, false, 1),
-        ],
-      );
+      expect(orders.map((o) => (o.taskId, o.isPinned, o.sortIndex)), [
+        (1, true, 0),
+        (3, true, 1),
+        (2, false, 0),
+        (4, false, 1),
+      ]);
     });
   });
 }
-

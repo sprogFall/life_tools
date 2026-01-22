@@ -49,8 +49,9 @@ class StockpileSyncProvider implements ToolSyncProvider {
 
     await _repository.importFromServer(
       items: items.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
-      consumptions:
-          consumptions.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      consumptions: consumptions
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
     );
 
     if (version == 2 && itemTags.isNotEmpty) {

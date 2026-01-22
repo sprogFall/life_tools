@@ -77,12 +77,16 @@ void main() {
     Widget wrap(Widget child, MessageService messageService) {
       return MultiProvider(
         providers: [
-          ChangeNotifierProvider<SettingsService>.value(value: mockSettingsService),
+          ChangeNotifierProvider<SettingsService>.value(
+            value: mockSettingsService,
+          ),
           ChangeNotifierProvider<AiConfigService>.value(value: aiConfigService),
           ChangeNotifierProvider<ObjStoreConfigService>.value(
             value: objStoreConfigService,
           ),
-          ChangeNotifierProvider<SyncConfigService>.value(value: syncConfigService),
+          ChangeNotifierProvider<SyncConfigService>.value(
+            value: syncConfigService,
+          ),
           ChangeNotifierProvider<SyncService>.value(value: syncService),
           ChangeNotifierProvider<MessageService>.value(value: messageService),
         ],

@@ -7,10 +7,10 @@ class MessageRepository {
   final Future<Database> _database;
 
   MessageRepository({DatabaseHelper? dbHelper})
-      : _database = (dbHelper ?? DatabaseHelper.instance).database;
+    : _database = (dbHelper ?? DatabaseHelper.instance).database;
 
   MessageRepository.withDatabase(Database database)
-      : _database = Future.value(database);
+    : _database = Future.value(database);
 
   Future<int?> upsertMessage({
     required String toolId,
@@ -147,4 +147,3 @@ class MessageRepository {
     );
   }
 }
-

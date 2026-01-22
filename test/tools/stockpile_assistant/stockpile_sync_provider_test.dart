@@ -86,7 +86,9 @@ void main() {
       );
       await targetProvider.importData(exported);
 
-      final items = await targetRepo.listItems(stockStatus: StockItemStockStatus.all);
+      final items = await targetRepo.listItems(
+        stockStatus: StockItemStockStatus.all,
+      );
       expect(items.length, 1);
       expect(items.first.id, itemId);
       expect(items.first.remainingQuantity, 1);

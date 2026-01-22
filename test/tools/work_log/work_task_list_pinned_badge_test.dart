@@ -35,7 +35,9 @@ void main() {
         ).copyWith(isPinned: false, sortIndex: 0),
       );
 
-      await tester.pumpWidget(MaterialApp(home: WorkLogToolPage(repository: repo)));
+      await tester.pumpWidget(
+        MaterialApp(home: WorkLogToolPage(repository: repo)),
+      );
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.text('置顶任务'), findsOneWidget);
@@ -45,10 +47,7 @@ void main() {
         find.byKey(ValueKey('task-pinned-corner-$pinnedId')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(ValueKey('task-pinned-badge-$normalId')),
-        findsNothing,
-      );
+      expect(find.byKey(ValueKey('task-pinned-badge-$normalId')), findsNothing);
     });
   });
 }

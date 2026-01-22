@@ -79,11 +79,11 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider<MessageService>.value(value: messageService),
-            ChangeNotifierProvider<StockpileService>.value(value: stockpileService),
+            ChangeNotifierProvider<StockpileService>.value(
+              value: stockpileService,
+            ),
           ],
-          child: MaterialApp(
-            home: _Host(itemId: itemId),
-          ),
+          child: MaterialApp(home: _Host(itemId: itemId)),
         ),
       );
       await tester.pumpAndSettle();

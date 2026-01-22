@@ -33,4 +33,3 @@ class ObjStoreQueryException implements Exception {
   @override
   String toString() => 'ObjStoreQueryException($statusCode): $message';
 }
-

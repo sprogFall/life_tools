@@ -25,8 +25,9 @@ class NotificationIdStore {
   }) async {
     final p = prefs ?? await SharedPreferences.getInstance();
     final stored = p.getInt(_keyNextId);
-    final normalized =
-        stored == null || stored < minId || stored > maxId ? minId : stored;
+    final normalized = stored == null || stored < minId || stored > maxId
+        ? minId
+        : stored;
     if (stored != normalized) {
       await p.setInt(_keyNextId, normalized);
     }
@@ -48,4 +49,3 @@ class NotificationIdStore {
 
   int peekNextId() => _nextId;
 }
-

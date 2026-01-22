@@ -28,9 +28,8 @@ class MessageNavigation {
     final tool = ToolRegistry.instance.getById(toolId);
     if (tool == null) return;
 
-    Navigator.of(context).push(
-      CupertinoPageRoute<void>(builder: (_) => tool.pageBuilder()),
-    );
+    Navigator.of(
+      context,
+    ).push(CupertinoPageRoute<void>(builder: (_) => tool.pageBuilder()));
   }
 }
-

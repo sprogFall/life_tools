@@ -89,10 +89,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _remindDaysController.text = item.expiryDate == null || item.remindDays < 0
         ? ''
         : item.remindDays.toString();
-    _restockQuantityController.text =
-        item.restockRemindQuantity == null
-            ? ''
-            : StockpileFormat.num(item.restockRemindQuantity!);
+    _restockQuantityController.text = item.restockRemindQuantity == null
+        ? ''
+        : StockpileFormat.num(item.restockRemindQuantity!);
     _noteController.text = item.note;
 
     _purchaseDate = item.purchaseDate;
@@ -108,12 +107,11 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     _remainingController.text = StockpileFormat.num(draft.remainingQuantity);
     _remindDaysController.text =
         draft.expiryDate == null || draft.remindDays < 0
-            ? ''
-            : draft.remindDays.toString();
-    _restockQuantityController.text =
-        draft.restockRemindQuantity == null
-            ? ''
-            : StockpileFormat.num(draft.restockRemindQuantity!);
+        ? ''
+        : draft.remindDays.toString();
+    _restockQuantityController.text = draft.restockRemindQuantity == null
+        ? ''
+        : StockpileFormat.num(draft.restockRemindQuantity!);
     _noteController.text = draft.note;
 
     _purchaseDate = draft.purchaseDate;

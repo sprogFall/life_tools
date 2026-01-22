@@ -25,11 +25,12 @@ void main() {
     });
 
     test('到达上限后会回绕到 minId', () async {
-      SharedPreferences.setMockInitialValues({'local_notification_next_id': 10});
+      SharedPreferences.setMockInitialValues({
+        'local_notification_next_id': 10,
+      });
       final store = await NotificationIdStore.open(minId: 1, maxId: 10);
       expect(await store.reserve(), 10);
       expect(await store.reserve(), 1);
     });
   });
 }
-

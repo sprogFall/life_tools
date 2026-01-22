@@ -2,8 +2,11 @@ class ObjStoreQiniuSecrets {
   final String accessKey;
   final String secretKey;
 
-  const ObjStoreQiniuSecrets({required this.accessKey, required this.secretKey});
+  const ObjStoreQiniuSecrets({
+    required this.accessKey,
+    required this.secretKey,
+  });
 
-  bool get isValid => accessKey.trim().isNotEmpty && secretKey.trim().isNotEmpty;
+  bool get isValid =>
+      accessKey.trim().isNotEmpty && secretKey.trim().isNotEmpty;
 }
-
