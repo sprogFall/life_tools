@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/obj_store/obj_store_config.dart';
@@ -23,6 +23,7 @@ class ObjStoreSettingsPage extends StatefulWidget {
 class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   ObjStoreType _type = ObjStoreType.none;
   bool _qiniuIsPrivate = false;
+  bool _qiniuUseHttps = true;
 
   final _qiniuAccessKeyController = TextEditingController();
   final _qiniuSecretKeyController = TextEditingController();
@@ -48,8 +49,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
     if (cfg?.type == ObjStoreType.qiniu) {
       _qiniuIsPrivate = cfg?.qiniuIsPrivate ?? false;
+      _qiniuUseHttps = cfg?.qiniuUseHttps ?? _guessUseHttps(cfg?.domain);
       _qiniuBucketController.text = cfg?.bucket ?? '';
-      _qiniuDomainController.text = cfg?.domain ?? '';
+      _qiniuDomainController.text = _stripDomainScheme(cfg?.domain ?? '');
       _qiniuUploadHostController.text =
           (cfg?.uploadHost?.trim().isNotEmpty ?? false)
           ? cfg!.uploadHost!
@@ -61,6 +63,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _qiniuSecretKeyController.text = secrets?.secretKey ?? '';
     } else {
       _qiniuIsPrivate = false;
+      _qiniuUseHttps = true;
       _qiniuUploadHostController.text = 'https://upload.qiniup.com';
       _qiniuKeyPrefixController.text = 'media/';
     }
@@ -218,6 +221,27 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
+            label: '访问协议',
+            child: CupertinoSlidingSegmentedControl<bool>(
+              groupValue: _qiniuUseHttps,
+              children: const {
+                true: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('https'),
+                ),
+                false: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('http'),
+                ),
+              },
+              onValueChanged: (v) {
+                if (v == null) return;
+                setState(() => _qiniuUseHttps = v);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
             label: 'AccessKey（AK）',
             child: CupertinoTextField(
               controller: _qiniuAccessKeyController,
@@ -255,7 +279,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             label: '访问域名（用于拼接图片URL）',
             child: CupertinoTextField(
               controller: _qiniuDomainController,
-              placeholder: '如：https://cdn.example.com',
+              placeholder: '如：cdn.example.com',
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: _fieldDecoration(),
@@ -523,12 +547,13 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   ObjStoreConfig _readQiniuConfig() {
     return ObjStoreConfig.qiniu(
       bucket: _qiniuBucketController.text.trim(),
-      domain: _qiniuDomainController.text.trim(),
+      domain: _normalizeDomainInput(_qiniuDomainController.text),
       uploadHost: _qiniuUploadHostController.text.trim().isEmpty
           ? 'https://upload.qiniup.com'
           : _qiniuUploadHostController.text.trim(),
       keyPrefix: _qiniuKeyPrefixController.text.trim(),
       isPrivate: _qiniuIsPrivate,
+      useHttps: _qiniuUseHttps,
     );
   }
 
@@ -671,8 +696,15 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: Text(title),
-        content: Text(content),
+        content: SelectableText(content),
         actions: [
+          if (content.trim().isNotEmpty)
+            CupertinoDialogAction(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: content));
+              },
+              child: const Text('复制内容'),
+            ),
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
             child: const Text('知道了'),
@@ -680,5 +712,32 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         ],
       ),
     );
+  }
+
+  static bool _guessUseHttps(String? domain) {
+    final d = (domain ?? '').trim();
+    if (d.startsWith('http://')) return false;
+    return true;
+  }
+
+  static String _stripDomainScheme(String domain) {
+    final d = domain.trim();
+    if (d.startsWith('http://')) return d.substring('http://'.length);
+    if (d.startsWith('https://')) return d.substring('https://'.length);
+    return d;
+  }
+
+  String _normalizeDomainInput(String input) {
+    final text = input.trim();
+    if (text.isEmpty) return '';
+
+    if (text.startsWith('http://') || text.startsWith('https://')) {
+      final uri = Uri.tryParse(text);
+      if (uri == null || uri.authority.isEmpty) return text;
+      final base = '${uri.authority}${uri.path}';
+      return base.replaceAll(RegExp(r'/$'), '');
+    }
+
+    return text.replaceAll(RegExp(r'/$'), '');
   }
 }

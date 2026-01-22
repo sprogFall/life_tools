@@ -68,8 +68,12 @@ class QiniuClient {
     return QiniuUploadResult(key: respKey, hash: hash);
   }
 
-  String buildPublicUrl({required String domain, required String key}) {
-    final d = _normalizeDomain(domain);
+  String buildPublicUrl({
+    required String domain,
+    required String key,
+    bool useHttps = true,
+  }) {
+    final d = _normalizeDomain(domain, useHttps: useHttps);
     final k = key.startsWith('/') ? key.substring(1) : key;
     return '$d/$k';
   }
@@ -80,8 +84,13 @@ class QiniuClient {
     required String accessKey,
     required String secretKey,
     required int deadlineUnixSeconds,
+    bool useHttps = true,
   }) {
-    final baseUrl = buildPublicUrl(domain: domain, key: key);
+    final baseUrl = buildPublicUrl(
+      domain: domain,
+      key: key,
+      useHttps: useHttps,
+    );
     final auth = _authFactory(accessKey, secretKey);
     return auth.createPrivateDownloadUrl(
       baseUrl: baseUrl,
@@ -113,12 +122,13 @@ class QiniuClient {
     return 'https://$h';
   }
 
-  static String _normalizeDomain(String domain) {
+  static String _normalizeDomain(String domain, {required bool useHttps}) {
     final d = domain.trim();
     if (d.isEmpty) return '';
     if (d.startsWith('http://') || d.startsWith('https://')) {
       return d.replaceAll(RegExp(r'/$'), '');
     }
-    return 'https://${d.replaceAll(RegExp(r'/$'), '')}';
+    final scheme = useHttps ? 'https' : 'http';
+    return '$scheme://${d.replaceAll(RegExp(r'/$'), '')}';
   }
 }

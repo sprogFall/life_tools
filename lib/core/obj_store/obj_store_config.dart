@@ -11,6 +11,7 @@ class ObjStoreConfig {
   final String? uploadHost;
   final String? keyPrefix;
   final bool? qiniuIsPrivate;
+  final bool? qiniuUseHttps;
 
   const ObjStoreConfig._({
     required this.type,
@@ -19,6 +20,7 @@ class ObjStoreConfig {
     this.uploadHost,
     this.keyPrefix,
     this.qiniuIsPrivate,
+    this.qiniuUseHttps,
   });
 
   const ObjStoreConfig.local() : this._(type: ObjStoreType.local);
@@ -29,6 +31,7 @@ class ObjStoreConfig {
     String uploadHost = 'https://upload.qiniup.com',
     String keyPrefix = '',
     bool isPrivate = false,
+    bool useHttps = true,
   }) : this._(
          type: ObjStoreType.qiniu,
          bucket: bucket,
@@ -36,6 +39,7 @@ class ObjStoreConfig {
          uploadHost: uploadHost,
          keyPrefix: keyPrefix,
          qiniuIsPrivate: isPrivate,
+         qiniuUseHttps: useHttps,
        );
 
   bool get isValid {
@@ -58,6 +62,7 @@ class ObjStoreConfig {
     String? uploadHost,
     String? keyPrefix,
     bool? qiniuIsPrivate,
+    bool? qiniuUseHttps,
   }) {
     return ObjStoreConfig._(
       type: type ?? this.type,
@@ -66,6 +71,7 @@ class ObjStoreConfig {
       uploadHost: uploadHost ?? this.uploadHost,
       keyPrefix: keyPrefix ?? this.keyPrefix,
       qiniuIsPrivate: qiniuIsPrivate ?? this.qiniuIsPrivate,
+      qiniuUseHttps: qiniuUseHttps ?? this.qiniuUseHttps,
     );
   }
 
@@ -77,6 +83,7 @@ class ObjStoreConfig {
       if (uploadHost != null) 'uploadHost': uploadHost,
       if (keyPrefix != null) 'keyPrefix': keyPrefix,
       if (qiniuIsPrivate != null) 'qiniuIsPrivate': qiniuIsPrivate,
+      if (qiniuUseHttps != null) 'qiniuUseHttps': qiniuUseHttps,
     };
   }
 
@@ -114,12 +121,15 @@ class ObjStoreConfig {
             'https://upload.qiniup.com';
         final keyPrefix = (map['keyPrefix'] as String?)?.trim() ?? '';
         final isPrivate = (map['qiniuIsPrivate'] as bool?) ?? false;
+        final useHttps =
+            (map['qiniuUseHttps'] as bool?) ?? (!domain.startsWith('http://'));
         return ObjStoreConfig.qiniu(
           bucket: bucket,
           domain: domain,
           uploadHost: uploadHost,
           keyPrefix: keyPrefix,
           isPrivate: isPrivate,
+          useHttps: useHttps,
         );
     }
   }
