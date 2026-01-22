@@ -6,6 +6,8 @@ import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/messages/message_repository.dart';
 import 'package:life_tools/core/messages/message_service.dart';
+import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
+import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
@@ -19,6 +21,7 @@ void main() {
   group('HomePage', () {
     late SettingsService mockSettingsService;
     late AiConfigService aiConfigService;
+    late ObjStoreConfigService objStoreConfigService;
     late SyncConfigService syncConfigService;
     late SyncService syncService;
 
@@ -36,6 +39,11 @@ void main() {
 
       aiConfigService = AiConfigService();
       await aiConfigService.init();
+
+      objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
 
       syncConfigService = SyncConfigService();
       await syncConfigService.init();
@@ -71,6 +79,9 @@ void main() {
         providers: [
           ChangeNotifierProvider<SettingsService>.value(value: mockSettingsService),
           ChangeNotifierProvider<AiConfigService>.value(value: aiConfigService),
+          ChangeNotifierProvider<ObjStoreConfigService>.value(
+            value: objStoreConfigService,
+          ),
           ChangeNotifierProvider<SyncConfigService>.value(value: syncConfigService),
           ChangeNotifierProvider<SyncService>.value(value: syncService),
           ChangeNotifierProvider<MessageService>.value(value: messageService),
@@ -160,4 +171,3 @@ void main() {
     });
   });
 }
-
