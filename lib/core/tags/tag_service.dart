@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import 'models/tag.dart';
+import 'models/tag_category.dart';
+import 'models/tag_in_tool_category.dart';
 import 'models/tag_with_tools.dart';
 import 'tag_repository.dart';
 
@@ -17,6 +19,57 @@ class TagService extends ChangeNotifier {
   List<TagWithTools> _all = const [];
   List<TagWithTools> get allTags => List.unmodifiable(_all);
 
+  final Map<String, List<TagCategory>> _categoriesByToolId = {};
+
+  final Map<String, List<TagInToolCategory>> _tagsByToolId = {};
+  final Set<String> _loadingToolIds = {};
+
+  bool toolLoading(String toolId) => _loadingToolIds.contains(toolId);
+
+  List<TagCategory> categoriesForTool(String toolId) {
+    final normalized = toolId.trim();
+    if (normalized.isEmpty) {
+      return const [
+        TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
+      ];
+    }
+    final registered = _categoriesByToolId[normalized];
+    if (registered == null || registered.isEmpty) {
+      return const [
+        TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
+      ];
+    }
+    final hasDefault = registered.any(
+      (e) => e.id == TagRepository.defaultCategoryId,
+    );
+    return hasDefault
+        ? List.unmodifiable(registered)
+        : List.unmodifiable([
+            const TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
+            ...registered,
+          ]);
+  }
+
+  void registerToolTagCategories(String toolId, List<TagCategory> categories) {
+    final normalized = toolId.trim();
+    if (normalized.isEmpty) return;
+
+    final next = <TagCategory>[];
+    final seen = <String>{};
+    for (final c in categories) {
+      final id = c.id.trim();
+      final name = c.name.trim();
+      if (id.isEmpty || name.isEmpty) continue;
+      if (seen.add(id)) next.add(TagCategory(id: id, name: name));
+    }
+    _categoriesByToolId[normalized] = next;
+    notifyListeners();
+  }
+
+  List<TagInToolCategory> tagsForToolWithCategory(String toolId) {
+    return List.unmodifiable(_tagsByToolId[toolId] ?? const []);
+  }
+
   Future<void> refreshAll() async {
     _loading = true;
     notifyListeners();
@@ -28,8 +81,46 @@ class TagService extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshToolTags(String toolId) async {
+    final normalized = toolId.trim();
+    if (normalized.isEmpty) return;
+
+    _loadingToolIds.add(normalized);
+    notifyListeners();
+    try {
+      _tagsByToolId[normalized] = await _repository.listTagsForToolWithCategory(
+        normalized,
+      );
+    } finally {
+      _loadingToolIds.remove(normalized);
+      notifyListeners();
+    }
+  }
+
   Future<List<Tag>> listTagsForTool(String toolId) {
     return _repository.listTagsForTool(toolId);
+  }
+
+  Future<int> createTagForToolCategory({
+    required String toolId,
+    required String categoryId,
+    required String name,
+    int? color,
+  }) async {
+    final id = await _repository.createTagForToolCategory(
+      name: name,
+      toolId: toolId,
+      categoryId: categoryId,
+      color: color,
+    );
+    await refreshAll();
+    await refreshToolTags(toolId);
+    return id;
+  }
+
+  Future<void> renameTag({required int tagId, required String name}) async {
+    await _repository.renameTag(tagId: tagId, name: name);
+    await refreshAll();
   }
 
   Future<int> createTag({

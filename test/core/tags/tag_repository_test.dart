@@ -45,6 +45,24 @@ void main() {
       expect(incomeTags, isEmpty);
     });
 
+    test('按工具查询可包含分类信息（默认分类/自定义分类）', () async {
+      final priorityId = await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'priority',
+      );
+      final defaultId = await tagRepository.createTag(
+        name: '例行',
+        toolIds: const ['work_log'],
+      );
+
+      final items = await tagRepository.listTagsForToolWithCategory('work_log');
+      final byId = {for (final it in items) it.tag.id!: it.categoryId};
+
+      expect(byId[priorityId], 'priority');
+      expect(byId[defaultId], TagRepository.defaultCategoryId);
+    });
+
     test('标签可关联多个工具并可更新', () async {
       final id = await tagRepository.createTag(
         name: '复盘',
@@ -65,6 +83,34 @@ void main() {
       final after = tags.singleWhere((t) => t.tag.id == id);
       expect(after.tag.name, '复盘&总结');
       expect(after.toolIds.toSet(), {'review'});
+    });
+
+    test('updateTag 更新关联工具时应保留已有分类', () async {
+      final id = await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'priority',
+      );
+
+      await tagRepository.updateTag(
+        tagId: id,
+        name: '紧急',
+        toolIds: const ['work_log', 'review'],
+      );
+
+      final links = await db.query(
+        'tool_tags',
+        where: 'tag_id = ?',
+        whereArgs: [id],
+        orderBy: 'tool_id ASC',
+      );
+      final byTool = {
+        for (final row in links)
+          row['tool_id'] as String: row['category_id'] as String?,
+      };
+
+      expect(byTool['work_log'], 'priority');
+      expect(byTool['review'], TagRepository.defaultCategoryId);
     });
 
     test('任务可设置标签并可查询', () async {
@@ -132,10 +178,7 @@ void main() {
       );
 
       // 先手动设置排序（模拟用户拖拽过）
-      await tagRepository.reorderTags(
-        [firstId],
-        now: DateTime(2026, 1, 1, 12),
-      );
+      await tagRepository.reorderTags([firstId], now: DateTime(2026, 1, 1, 12));
 
       final newId = await tagRepository.createTag(
         name: 'C',

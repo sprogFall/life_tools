@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/registry/tool_registry.dart';
+import '../../../core/tags/models/tag_in_tool_category.dart';
 import '../../../core/tags/models/tag_with_tools.dart';
+import '../../../core/tags/tag_repository.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
 import 'tag_edit_page.dart';
+import 'tag_rename_page.dart';
 
 class TagManagerToolPage extends StatefulWidget {
   final String? initialToolId;
@@ -29,7 +32,17 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
         : widget.initialToolId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<TagService>().refreshAll();
+      final service = context.read<TagService>();
+      if (!service.loading && service.allTags.isEmpty) {
+        service.refreshAll();
+      }
+      final toolId = _filterToolId;
+      if (toolId != null) {
+        if (!service.toolLoading(toolId) &&
+            service.tagsForToolWithCategory(toolId).isEmpty) {
+          service.refreshToolTags(toolId);
+        }
+      }
     });
   }
 
@@ -66,15 +79,16 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
                 ),
               ),
               actions: [
-                CupertinoButton(
-                  padding: const EdgeInsets.all(8),
-                  onPressed: () => _openCreate(context),
-                  child: const Icon(
-                    CupertinoIcons.add,
-                    color: IOS26Theme.primaryColor,
-                    size: 24,
+                if (_filterToolId == null)
+                  CupertinoButton(
+                    padding: const EdgeInsets.all(8),
+                    onPressed: () => _openCreate(context),
+                    child: const Icon(
+                      CupertinoIcons.add,
+                      color: IOS26Theme.primaryColor,
+                      size: 24,
+                    ),
                   ),
-                ),
               ],
             ),
             Expanded(
@@ -91,18 +105,31 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
                     children: [
                       _FilterBar(
                         selectedToolId: _filterToolId,
-                        onChanged: (toolId) => setState(() {
-                          _filterToolId = toolId;
-                        }),
+                        onChanged: (toolId) {
+                          setState(() => _filterToolId = toolId);
+                          if (toolId != null) {
+                            if (!service.toolLoading(toolId) &&
+                                service
+                                    .tagsForToolWithCategory(toolId)
+                                    .isEmpty) {
+                              service.refreshToolTags(toolId);
+                            }
+                          }
+                        },
                       ),
                       Expanded(
-                        child: _TagList(
-                          loading: service.loading,
-                          allItems: allItems,
-                          items: items,
-                          enableReorder: _filterToolId == null,
-                          onReorder: service.reorderTags,
-                        ),
+                        child: _filterToolId == null
+                            ? _TagList(
+                                loading: service.loading,
+                                allItems: allItems,
+                                items: items,
+                                enableReorder: true,
+                                onReorder: service.reorderTags,
+                              )
+                            : _ToolCategoryList(
+                                toolId: _filterToolId!,
+                                allItems: allItems,
+                              ),
                       ),
                     ],
                   );
@@ -116,14 +143,20 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
   }
 
   Future<void> _openCreate(BuildContext context) async {
+    final service = context.read<TagService>();
     final saved = await Navigator.of(context).push<bool>(
       CupertinoPageRoute(
         builder: (_) =>
             TagEditPage(initialToolId: _filterToolId ?? widget.initialToolId),
       ),
     );
-    if (saved == true && context.mounted) {
-      await context.read<TagService>().refreshAll();
+    if (saved == true && mounted) {
+      await service.refreshAll();
+      if (!mounted) return;
+      final toolId = _filterToolId;
+      if (toolId != null) {
+        await service.refreshToolTags(toolId);
+      }
     }
   }
 
@@ -206,6 +239,505 @@ class _FilterChip extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: fg),
+      ),
+    );
+  }
+}
+
+class _ToolCategoryList extends StatefulWidget {
+  final String toolId;
+  final List<TagWithTools> allItems;
+
+  const _ToolCategoryList({required this.toolId, required this.allItems});
+
+  @override
+  State<_ToolCategoryList> createState() => _ToolCategoryListState();
+}
+
+class _ToolCategoryListState extends State<_ToolCategoryList> {
+  final Map<String, bool> _expandedByCategoryId = {};
+  final Set<String> _managingCategoryIds = {};
+
+  @override
+  void didUpdateWidget(covariant _ToolCategoryList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.toolId != widget.toolId) {
+      _expandedByCategoryId.clear();
+      _managingCategoryIds.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.watch<TagService>();
+    final loading = service.toolLoading(widget.toolId);
+    final items = service.tagsForToolWithCategory(widget.toolId);
+
+    final byTagId = <int, TagWithTools>{
+      for (final item in widget.allItems)
+        if (item.tag.id != null) item.tag.id!: item,
+    };
+
+    final registered = service.categoriesForTool(widget.toolId);
+    final classificationEnabled = registered.length > 1;
+    final categories = _buildCategories(service, items);
+    final tagsByCategory = <String, List<TagInToolCategory>>{};
+    for (final item in items) {
+      final key = classificationEnabled
+          ? item.categoryId
+          : TagRepository.defaultCategoryId;
+      tagsByCategory.putIfAbsent(key, () => []).add(item);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: Column(
+        children: [
+          if (loading) ...[
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: CupertinoActivityIndicator(radius: 12),
+            ),
+          ],
+          Expanded(
+            child: ListView.separated(
+              physics: const BouncingScrollPhysics(),
+              itemCount: categories.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final category = categories[index];
+                final categoryId = category.id;
+                final categoryItems =
+                    tagsByCategory[categoryId] ?? const <TagInToolCategory>[];
+                final expanded = _expandedByCategoryId[categoryId] ?? true;
+                final managing = _managingCategoryIds.contains(categoryId);
+
+                return Column(
+                  children: [
+                    _CategoryHeader(
+                      title: category.name,
+                      count: categoryItems.length,
+                      expanded: expanded,
+                      onToggleExpanded: () => setState(() {
+                        _expandedByCategoryId[categoryId] = !expanded;
+                        if (expanded) _managingCategoryIds.remove(categoryId);
+                      }),
+                      onAdd: () => _openCreateTag(
+                        context,
+                        toolId: widget.toolId,
+                        categoryId: categoryId,
+                        categoryName: category.name,
+                      ),
+                      onManage: () => setState(() {
+                        if (managing) {
+                          _managingCategoryIds.remove(categoryId);
+                        } else {
+                          _managingCategoryIds.add(categoryId);
+                          _expandedByCategoryId[categoryId] = true;
+                        }
+                      }),
+                      addKey: ValueKey(
+                        'tag-category-add-${widget.toolId}-$categoryId',
+                      ),
+                      manageKey: ValueKey(
+                        'tag-category-manage-${widget.toolId}-$categoryId',
+                      ),
+                      managing: managing,
+                    ),
+                    if (expanded) ...[
+                      const SizedBox(height: 10),
+                      if (categoryItems.isEmpty)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '暂无标签',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: IOS26Theme.textSecondary.withValues(
+                                alpha: 0.95,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Column(
+                          children: [
+                            for (final item in categoryItems)
+                              if (item.tag.id != null) ...[
+                                _TagCompactRow(
+                                  key: ValueKey('tag-item-${item.tag.id!}'),
+                                  name: item.tag.name,
+                                  onTap: () => _openRename(
+                                    context,
+                                    toolId: widget.toolId,
+                                    tagId: item.tag.id!,
+                                    initialName: item.tag.name,
+                                  ),
+                                  showRemove: managing,
+                                  onRemove: managing
+                                      ? () => _confirmDelete(
+                                          context,
+                                          toolId: widget.toolId,
+                                          tagId: item.tag.id!,
+                                          tagName: item.tag.name,
+                                          tools: byTagId[item.tag.id!],
+                                        )
+                                      : null,
+                                  removeKey: managing
+                                      ? ValueKey(
+                                          'tag-remove-${widget.toolId}-$categoryId-${item.tag.id!}',
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                          ],
+                        ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<_CategoryView> _buildCategories(
+    TagService service,
+    List<TagInToolCategory> items,
+  ) {
+    final registered = service.categoriesForTool(widget.toolId);
+    if (registered.length == 1 &&
+        registered.first.id == TagRepository.defaultCategoryId) {
+      return const [
+        _CategoryView(id: TagRepository.defaultCategoryId, name: '默认'),
+      ];
+    }
+
+    final seen = <String>{for (final c in registered) c.id};
+
+    final extra = <_CategoryView>[];
+    for (final item in items) {
+      final id = item.categoryId.trim();
+      if (id.isEmpty || seen.contains(id)) continue;
+      seen.add(id);
+      extra.add(_CategoryView(id: id, name: id));
+    }
+
+    return [
+      for (final c in registered) _CategoryView(id: c.id, name: c.name),
+      ...extra,
+    ];
+  }
+
+  Future<void> _openCreateTag(
+    BuildContext context, {
+    required String toolId,
+    required String categoryId,
+    required String categoryName,
+  }) async {
+    final controller = TextEditingController();
+    String? error;
+
+    final ok = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => CupertinoAlertDialog(
+          title: Text('添加到「$categoryName」'),
+          content: Column(
+            children: [
+              const SizedBox(height: 12),
+              const Align(alignment: Alignment.centerLeft, child: Text('标签名')),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: controller,
+                placeholder: '如：紧急',
+                autofocus: true,
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    error!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: IOS26Theme.toolRed,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isEmpty) {
+                  setState(() => error = '请填写标签名');
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (ok != true || !context.mounted) return;
+
+    await context.read<TagService>().createTagForToolCategory(
+      toolId: toolId,
+      categoryId: categoryId,
+      name: controller.text.trim(),
+    );
+  }
+
+  Future<void> _openRename(
+    BuildContext context, {
+    required String toolId,
+    required int tagId,
+    required String initialName,
+  }) async {
+    final service = context.read<TagService>();
+    final saved = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute(
+        builder: (_) => TagRenamePage(tagId: tagId, initialName: initialName),
+      ),
+    );
+    if (saved == true && mounted) {
+      await service.refreshAll();
+      if (!mounted) return;
+      await service.refreshToolTags(toolId);
+    }
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context, {
+    required String toolId,
+    required int tagId,
+    required String tagName,
+    required TagWithTools? tools,
+  }) async {
+    final service = context.read<TagService>();
+    final toolNames = tools?.toolIds
+        .map((id) => ToolRegistry.instance.getById(id)?.name ?? id)
+        .toList(growable: false);
+    final related = (toolNames == null || toolNames.isEmpty)
+        ? ''
+        : '\n同时关联到：${toolNames.join('、')}';
+
+    final ok = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确认删除标签「$tagName」？$related\n已在任务中使用的该标签会自动移除。'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true && mounted) {
+      await service.deleteTag(tagId);
+      if (!mounted) return;
+      await service.refreshToolTags(toolId);
+    }
+  }
+}
+
+class _CategoryView {
+  final String id;
+  final String name;
+
+  const _CategoryView({required this.id, required this.name});
+}
+
+class _CategoryHeader extends StatelessWidget {
+  final String title;
+  final int count;
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
+  final VoidCallback onAdd;
+  final VoidCallback onManage;
+  final bool managing;
+  final Key addKey;
+  final Key manageKey;
+
+  const _CategoryHeader({
+    required this.title,
+    required this.count,
+    required this.expanded,
+    required this.onToggleExpanded,
+    required this.onAdd,
+    required this.onManage,
+    required this.managing,
+    required this.addKey,
+    required this.manageKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(44, 44),
+              pressedOpacity: 0.7,
+              onPressed: onToggleExpanded,
+              child: Row(
+                children: [
+                  Icon(
+                    expanded
+                        ? CupertinoIcons.chevron_down
+                        : CupertinoIcons.chevron_right,
+                    size: 18,
+                    color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: IOS26Theme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          _iconButton(
+            key: addKey,
+            icon: CupertinoIcons.add,
+            color: IOS26Theme.primaryColor,
+            onPressed: onAdd,
+          ),
+          const SizedBox(width: 8),
+          _iconButton(
+            key: manageKey,
+            icon: managing
+                ? CupertinoIcons.checkmark
+                : CupertinoIcons.slider_horizontal_3,
+            color: managing ? IOS26Theme.toolGreen : IOS26Theme.textSecondary,
+            onPressed: onManage,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _iconButton({
+    Key? key,
+    required IconData icon,
+    required VoidCallback onPressed,
+    required Color color,
+  }) {
+    return CupertinoButton(
+      key: key,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      onPressed: onPressed,
+      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+      borderRadius: BorderRadius.circular(14),
+      child: Icon(icon, size: 18, color: color),
+    );
+  }
+}
+
+class _TagCompactRow extends StatelessWidget {
+  final String name;
+  final VoidCallback onTap;
+  final bool showRemove;
+  final VoidCallback? onRemove;
+  final Key? removeKey;
+
+  const _TagCompactRow({
+    super.key,
+    required this.name,
+    required this.onTap,
+    required this.showRemove,
+    required this.onRemove,
+    required this.removeKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(44, 44),
+              pressedOpacity: 0.7,
+              onPressed: onTap,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: IOS26Theme.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (showRemove) ...[
+            const SizedBox(width: 10),
+            CupertinoButton(
+              key: removeKey,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              onPressed: onRemove,
+              color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(14),
+              child: const Icon(
+                CupertinoIcons.xmark,
+                size: 16,
+                color: IOS26Theme.toolRed,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

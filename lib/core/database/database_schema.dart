@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 11;
+  static const int version = 12;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -52,6 +52,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 11) {
       await _upgradeToVersion11(db);
+    }
+    if (oldVersion < 12) {
+      await _upgradeToVersion12(db);
     }
   }
 
@@ -230,6 +233,23 @@ class DatabaseSchema {
     }
   }
 
+  static Future<void> _upgradeToVersion12(Database db) async {
+    // v12: 为 tool_tags 增加 category_id（工具内标签分类）
+    await _createTagTables(db);
+
+    final columns = await db.rawQuery('PRAGMA table_info(tool_tags)');
+    final names = columns.map((e) => e['name']).whereType<String>().toSet();
+    if (!names.contains('category_id')) {
+      await db.execute(
+        "ALTER TABLE tool_tags ADD COLUMN category_id TEXT NOT NULL DEFAULT 'default'",
+      );
+    }
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_id ON tool_tags(tool_id, category_id)',
+    );
+  }
+
   static Future<void> _createTagTables(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS tags (
@@ -247,6 +267,7 @@ class DatabaseSchema {
       CREATE TABLE IF NOT EXISTS tool_tags (
         tool_id TEXT NOT NULL,
         tag_id INTEGER NOT NULL,
+        category_id TEXT NOT NULL DEFAULT 'default',
         PRIMARY KEY (tool_id, tag_id),
         FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
       )
@@ -255,6 +276,16 @@ class DatabaseSchema {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id ON tool_tags(tool_id)',
     );
+    final toolTagColumns = await db.rawQuery('PRAGMA table_info(tool_tags)');
+    final toolTagNames = toolTagColumns
+        .map((e) => e['name'])
+        .whereType<String>()
+        .toSet();
+    if (toolTagNames.contains('category_id')) {
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_id ON tool_tags(tool_id, category_id)',
+      );
+    }
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS work_task_tags (

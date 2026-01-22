@@ -5,8 +5,8 @@ import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
-import 'package:life_tools/tools/tag_manager/pages/tag_edit_page.dart';
 import 'package:life_tools/tools/tag_manager/pages/tag_manager_tool_page.dart';
+import 'package:life_tools/tools/tag_manager/pages/tag_rename_page.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -83,6 +83,8 @@ void main() {
           toolIds: const ['work_log', 'stockpile_assistant'],
         );
         await deps.service.refreshAll();
+        await deps.service.refreshToolTags('work_log');
+        await deps.service.refreshToolTags('stockpile_assistant');
       });
 
       await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
@@ -95,6 +97,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tag-filter-work_log')));
       await tester.pump();
 
+      // 工具视图应切换为“类别列表”，默认至少包含“默认”类别
+      expect(find.text('默认'), findsOneWidget);
       expect(find.text('紧急'), findsOneWidget);
       expect(find.text('复盘'), findsOneWidget);
       expect(find.text('采购'), findsNothing);
@@ -104,6 +108,7 @@ void main() {
       );
       await tester.pump();
 
+      expect(find.text('默认'), findsOneWidget);
       expect(find.text('采购'), findsOneWidget);
       expect(find.text('复盘'), findsOneWidget);
       expect(find.text('紧急'), findsNothing);
@@ -121,6 +126,7 @@ void main() {
           toolIds: const ['stockpile_assistant'],
         );
         await deps.service.refreshAll();
+        await deps.service.refreshToolTags('work_log');
       });
 
       await tester.pumpWidget(
@@ -128,54 +134,12 @@ void main() {
       );
       await pumpUntilFound(tester, find.text('紧急'));
 
+      expect(find.text('默认'), findsOneWidget);
       expect(find.text('紧急'), findsOneWidget);
       expect(find.text('采购'), findsNothing);
     });
 
-    testWidgets('标签名最多展示 6 个字，超出显示省略号', (tester) async {
-      final deps = await createTagService(tester);
-      await tester.runAsync(() async {
-        await deps.repository.createTag(
-          name: '一二三四五六七八',
-          toolIds: const ['work_log'],
-        );
-        await deps.repository.createTag(
-          name: '短名字',
-          toolIds: const ['work_log'],
-        );
-        await deps.service.refreshAll();
-      });
-
-      await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
-      await pumpUntilFound(tester, find.text('短名字'));
-
-      expect(find.text('短名字'), findsOneWidget);
-      expect(find.text('一二三四五六…'), findsOneWidget);
-      expect(find.text('一二三四五六七八'), findsNothing);
-    });
-
-    testWidgets('点击标签行进入编辑页（全部）', (tester) async {
-      final deps = await createTagService(tester);
-      late int id;
-      await tester.runAsync(() async {
-        id = await deps.repository.createTag(
-          name: '紧急',
-          toolIds: const ['work_log', 'stockpile_assistant'],
-        );
-        await deps.service.refreshAll();
-      });
-
-      await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
-      await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id')));
-
-      await tester.tap(find.byKey(ValueKey('tag-row-$id')));
-      await tester.pump();
-
-      await pumpUntilFound(tester, find.byType(TagEditPage));
-      expect(find.byType(TagEditPage), findsOneWidget);
-    });
-
-    testWidgets('点击标签行进入编辑页（筛选后）', (tester) async {
+    testWidgets('点击标签行进入编辑页（筛选后：仅允许改名）', (tester) async {
       final deps = await createTagService(tester);
       late int id1;
       await tester.runAsync(() async {
@@ -188,22 +152,23 @@ void main() {
           toolIds: const ['stockpile_assistant'],
         );
         await deps.service.refreshAll();
+        await deps.service.refreshToolTags('work_log');
       });
 
       await tester.pumpWidget(
         wrap(deps.service, const TagManagerToolPage(initialToolId: 'work_log')),
       );
-      await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id1')));
+      await pumpUntilFound(tester, find.byKey(ValueKey('tag-item-$id1')));
       expect(find.text('采购'), findsNothing);
 
-      await tester.tap(find.byKey(ValueKey('tag-row-$id1')));
+      await tester.tap(find.byKey(ValueKey('tag-item-$id1')));
       await tester.pump();
 
-      await pumpUntilFound(tester, find.byType(TagEditPage));
-      expect(find.byType(TagEditPage), findsOneWidget);
+      await pumpUntilFound(tester, find.byType(TagRenamePage));
+      expect(find.byType(TagRenamePage), findsOneWidget);
     });
 
-    testWidgets('点击删除按钮弹确认框并删除标签', (tester) async {
+    testWidgets('在类别内点击管理后可删除标签（需确认）', (tester) async {
       final deps = await createTagService(tester);
       late int id;
       await tester.runAsync(() async {
@@ -212,12 +177,24 @@ void main() {
           toolIds: const ['work_log'],
         );
         await deps.service.refreshAll();
+        await deps.service.refreshToolTags('work_log');
       });
 
-      await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
-      await pumpUntilFound(tester, find.byKey(ValueKey('tag-row-$id')));
+      await tester.pumpWidget(
+        wrap(deps.service, const TagManagerToolPage(initialToolId: 'work_log')),
+      );
+      await pumpUntilFound(tester, find.byKey(ValueKey('tag-item-$id')));
 
-      await tester.tap(find.byKey(ValueKey('tag-delete-$id')));
+      await tester.tap(
+        find.byKey(const ValueKey('tag-category-manage-work_log-default')),
+      );
+      await tester.pump();
+      await pumpUntilFound(
+        tester,
+        find.byKey(ValueKey('tag-remove-work_log-default-$id')),
+      );
+
+      await tester.tap(find.byKey(ValueKey('tag-remove-work_log-default-$id')));
       await tester.pump();
       await pumpUntilFound(tester, find.text('确认删除'));
 
@@ -232,7 +209,7 @@ void main() {
         }
         fail('等待删除完成超时: tagId=$id');
       });
-      await pumpUntilNotFound(tester, find.byKey(ValueKey('tag-row-$id')));
+      await pumpUntilNotFound(tester, find.byKey(ValueKey('tag-item-$id')));
     });
   });
 }
