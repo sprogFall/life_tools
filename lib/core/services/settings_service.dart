@@ -14,6 +14,7 @@ class SettingsService extends ChangeNotifier {
   static const String _tagManagerToolId = 'tag_manager';
   static const String _workLogToolId = 'work_log';
   static const String _stockpileToolId = 'stockpile_assistant';
+  static const String _overcookedToolId = 'overcooked_kitchen';
 
   final DatabaseProvider _databaseProvider;
 
@@ -132,6 +133,19 @@ class SettingsService extends ChangeNotifier {
     final tagIndex = order.indexOf(_tagManagerToolId);
 
     if (toolId == _stockpileToolId) {
+      final workIndex = order.indexOf(_workLogToolId);
+      if (workIndex >= 0) {
+        order.insert(workIndex + 1, toolId);
+        return;
+      }
+    }
+
+    if (toolId == _overcookedToolId) {
+      final stockIndex = order.indexOf(_stockpileToolId);
+      if (stockIndex >= 0) {
+        order.insert(stockIndex + 1, toolId);
+        return;
+      }
       final workIndex = order.indexOf(_workLogToolId);
       if (workIndex >= 0) {
         order.insert(workIndex + 1, toolId);

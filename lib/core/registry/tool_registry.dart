@@ -3,6 +3,9 @@ import '../models/tool_info.dart';
 import '../tags/tag_repository.dart';
 import '../tags/tag_sync_provider.dart';
 import '../theme/ios26_theme.dart';
+import '../../tools/overcooked_kitchen/pages/overcooked_tool_page.dart';
+import '../../tools/overcooked_kitchen/repository/overcooked_repository.dart';
+import '../../tools/overcooked_kitchen/sync/overcooked_sync_provider.dart';
 import '../../tools/stockpile_assistant/pages/stockpile_tool_page.dart';
 import '../../tools/stockpile_assistant/repository/stockpile_repository.dart';
 import '../../tools/stockpile_assistant/sync/stockpile_sync_provider.dart';
@@ -41,6 +44,11 @@ class ToolRegistry {
       tagRepository: tagRepository,
     );
 
+    final overcookedRepository = OvercookedRepository();
+    final overcookedSyncProvider = OvercookedSyncProvider(
+      repository: overcookedRepository,
+    );
+
     // 注册工作记录工具（支持同步）
     register(
       ToolInfo(
@@ -64,6 +72,18 @@ class ToolRegistry {
         color: IOS26Theme.toolGreen,
         pageBuilder: () => const StockpileToolPage(),
         syncProvider: stockpileSyncProvider,
+      ),
+    );
+
+    register(
+      ToolInfo(
+        id: 'overcooked_kitchen',
+        name: '胡闹厨房',
+        description: '菜谱、愿望单、三餐记录与扭蛋机',
+        icon: CupertinoIcons.flame,
+        color: IOS26Theme.toolOrange,
+        pageBuilder: () => OvercookedToolPage(repository: overcookedRepository),
+        syncProvider: overcookedSyncProvider,
       ),
     );
 

@@ -47,6 +47,7 @@ void main() {
       expect(service.toolOrder, [
         'work_log',
         'stockpile_assistant',
+        'overcooked_kitchen',
         'tag_manager',
       ]);
     });

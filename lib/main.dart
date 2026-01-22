@@ -24,6 +24,7 @@ import 'core/sync/services/sync_service.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
+import 'tools/overcooked_kitchen/services/overcooked_reminder_service.dart';
 import 'tools/stockpile_assistant/services/stockpile_reminder_service.dart';
 
 void main() async {
@@ -77,6 +78,12 @@ void main() async {
     ),
   );
 
+  Future.microtask(
+    () => OvercookedReminderService().pushDueReminders(
+      messageService: messageService,
+    ),
+  );
+
   runApp(
     MyApp(
       settingsService: settingsService,
@@ -115,6 +122,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _receiveShareService = ReceiveShareService();
   DateTime _lastStockpileReminderCheckDay = DateTime.now();
+  DateTime _lastOvercookedReminderCheckDay = DateTime.now();
 
   @override
   void initState() {
@@ -144,14 +152,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _lastStockpileReminderCheckDay.month,
       _lastStockpileReminderCheckDay.day,
     );
-    if (!today.isAfter(lastDay)) return;
-    _lastStockpileReminderCheckDay = today;
+    final shouldCheckStockpile = today.isAfter(lastDay);
+    if (shouldCheckStockpile) {
+      _lastStockpileReminderCheckDay = today;
+      Future.microtask(
+        () => StockpileReminderService().pushDueReminders(
+          messageService: widget.messageService,
+        ),
+      );
+    }
 
-    Future.microtask(
-      () => StockpileReminderService().pushDueReminders(
-        messageService: widget.messageService,
-      ),
+    final lastOvercookedDay = DateTime(
+      _lastOvercookedReminderCheckDay.year,
+      _lastOvercookedReminderCheckDay.month,
+      _lastOvercookedReminderCheckDay.day,
     );
+    final shouldCheckOvercooked = today.isAfter(lastOvercookedDay);
+    if (shouldCheckOvercooked) {
+      _lastOvercookedReminderCheckDay = today;
+      Future.microtask(
+        () => OvercookedReminderService().pushDueReminders(
+          messageService: widget.messageService,
+        ),
+      );
+    }
   }
 
   void _handleReceivedShare(String jsonText) {

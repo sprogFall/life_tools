@@ -123,6 +123,30 @@ class TagService extends ChangeNotifier {
     await refreshAll();
   }
 
+  Future<List<Tag>> listTagsForToolCategory({
+    required String toolId,
+    required String categoryId,
+    bool refresh = true,
+  }) async {
+    final normalizedToolId = toolId.trim();
+    if (normalizedToolId.isEmpty) return const [];
+
+    final normalizedCategoryId =
+        categoryId.trim().isEmpty ? TagRepository.defaultCategoryId : categoryId.trim();
+
+    if (refresh) {
+      await refreshToolTags(normalizedToolId);
+    } else if (!_tagsByToolId.containsKey(normalizedToolId)) {
+      await refreshToolTags(normalizedToolId);
+    }
+
+    final tags = _tagsByToolId[normalizedToolId] ?? const <TagInToolCategory>[];
+    return tags
+        .where((e) => e.categoryId == normalizedCategoryId)
+        .map((e) => e.tag)
+        .toList(growable: false);
+  }
+
   Future<int> createTag({
     required String name,
     required List<String> toolIds,

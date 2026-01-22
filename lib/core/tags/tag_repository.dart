@@ -213,6 +213,24 @@ ORDER BY tt.category_id ASC, t.sort_index ASC, t.name COLLATE NOCASE ASC
     }).toList();
   }
 
+  Future<List<Tag>> listTagsByIds(List<int> tagIds) async {
+    final ids = _dedupeInts(tagIds).toList();
+    if (ids.isEmpty) return const [];
+
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final db = await _database;
+    final rows = await db.rawQuery(
+      '''
+SELECT *
+FROM tags
+WHERE id IN ($placeholders)
+ORDER BY sort_index ASC, name COLLATE NOCASE ASC
+''',
+      ids,
+    );
+    return rows.map((e) => Tag.fromMap(e)).toList();
+  }
+
   Future<List<TagWithTools>> listAllTagsWithTools() async {
     final db = await _database;
     final rows = await db.rawQuery('''
