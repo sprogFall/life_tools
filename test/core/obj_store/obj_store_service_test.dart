@@ -142,6 +142,46 @@ void main() {
       expect(result.uri, 'https://cdn.example.com/media/abc.png');
     });
 
+    test('七牛存储：http 协议时应返回 http 链接', () async {
+      final secretStore = InMemorySecretStore();
+      final configService = ObjStoreConfigService(secretStore: secretStore);
+      await configService.init();
+      await configService.save(
+        const ObjStoreConfig.qiniu(
+          bucket: 'bkt',
+          domain: 'cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          useHttps: false,
+        ),
+        secrets: const ObjStoreQiniuSecrets(accessKey: 'ak', secretKey: 'sk'),
+      );
+
+      final client = _RecordingHttpClient((request) async {
+        final resp = jsonEncode({'key': 'media/abc.png', 'hash': 'x'});
+        return http.StreamedResponse(Stream.value(utf8.encode(resp)), 200);
+      });
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          httpClient: client,
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+      );
+
+      final result = await service.uploadBytes(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        filename: 'abc.png',
+      );
+
+      expect(result.key, 'media/abc.png');
+      expect(result.uri, 'http://cdn.example.com/media/abc.png');
+    });
+
     test('七牛私有空间：上传后应返回带签名的临时URL', () async {
       final secretStore = InMemorySecretStore();
       final configService = ObjStoreConfigService(secretStore: secretStore);

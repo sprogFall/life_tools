@@ -109,6 +109,7 @@ class ObjStoreService {
           filename: filename,
         );
         final isPrivate = config.qiniuIsPrivate ?? false;
+        final useHttps = config.qiniuUseHttps ?? true;
         final url = isPrivate
             ? _qiniuClient.buildPrivateUrl(
                 domain: config.domain!.trim(),
@@ -116,10 +117,12 @@ class ObjStoreService {
                 accessKey: secrets.accessKey,
                 secretKey: secrets.secretKey,
                 deadlineUnixSeconds: _qiniuPrivateDeadlineUnixSeconds(),
+                useHttps: useHttps,
               )
             : _qiniuClient.buildPublicUrl(
                 domain: config.domain!.trim(),
                 key: result.key,
+                useHttps: useHttps,
               );
         return ObjStoreObject(
           storageType: ObjStoreType.qiniu,
@@ -148,10 +151,12 @@ class ObjStoreService {
           throw const ObjStoreConfigInvalidException('七牛云配置不完整，请检查访问域名');
         }
         final isPrivate = config.qiniuIsPrivate ?? false;
+        final useHttps = config.qiniuUseHttps ?? true;
         if (!isPrivate) {
           return _qiniuClient.buildPublicUrl(
             domain: config.domain!.trim(),
             key: key,
+            useHttps: useHttps,
           );
         }
         if (secrets == null || !secrets.isValid) {
@@ -163,6 +168,7 @@ class ObjStoreService {
           accessKey: secrets.accessKey,
           secretKey: secrets.secretKey,
           deadlineUnixSeconds: _qiniuPrivateDeadlineUnixSeconds(),
+          useHttps: useHttps,
         );
     }
   }

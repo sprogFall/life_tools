@@ -16,5 +16,19 @@ void main() {
         'https://cdn.example.com/media/abc.png?e=1234567890&token=testak:FMNTFUnuG-wbXiPViZ0RjV026sE=',
       );
     });
+
+    test('http 协议也应正确参与签名', () {
+      final auth = QiniuAuth(accessKey: 'testak', secretKey: 'testsk');
+
+      final url = auth.createPrivateDownloadUrl(
+        baseUrl: 'http://cdn.example.com/media/abc.png',
+        deadlineUnixSeconds: 1234567890,
+      );
+
+      expect(
+        url,
+        'http://cdn.example.com/media/abc.png?e=1234567890&token=testak:KEgiWwyKhJjXJNHpXlJP1VMVj7A=',
+      );
+    });
   });
 }
