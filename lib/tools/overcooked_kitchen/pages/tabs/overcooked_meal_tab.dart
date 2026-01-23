@@ -35,7 +35,6 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   List<OvercookedMeal> _meals = const [];
   Map<int, OvercookedRecipe> _recipesById = const {};
 
-  List<OvercookedRecipe> _allRecipes = const [];
   List<Tag> _mealSlotTags = const [];
   Map<int, Tag> _mealSlotTagsById = const {};
 
@@ -251,10 +250,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
   Future<List<OvercookedRecipe>> _loadLatestRecipes() async {
     final repo = context.read<OvercookedRepository>();
-    final latest = await repo.listRecipes();
-    if (!mounted) return latest;
-    setState(() => _allRecipes = latest);
-    return latest;
+    return repo.listRecipes();
   }
 
   Future<void> _addMealFlow() async {
