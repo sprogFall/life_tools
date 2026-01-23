@@ -10,6 +10,7 @@ import '../../models/overcooked_meal.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../overcooked_constants.dart';
 import '../../repository/overcooked_repository.dart';
+import '../../utils/overcooked_meal_stats.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_date_bar.dart';
 import '../../widgets/overcooked_recipe_picker_sheet.dart';
@@ -92,15 +93,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
   @override
   Widget build(BuildContext context) {
-    final cookedRecipes = _meals
-        .expand((m) => m.recipeIds)
-        .map((id) => _recipesById[id])
-        .whereType<OvercookedRecipe>()
-        .toList();
-    final distinctTypeCount = {
-      for (final r in cookedRecipes)
-        (r.typeTagId == null ? 'r:${r.id}' : 't:${r.typeTagId}'): true,
-    }.length;
+    final distinctTypeCount = distinctRecipeCount(_meals);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -159,7 +152,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '今日做菜量（类型去重）',
+                        '今日做菜量（菜谱去重）',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
@@ -231,8 +224,9 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                     .map((id) => _recipesById[id])
                     .whereType<OvercookedRecipe>()
                     .toList(),
-                missingRecipeCount:
-                    meal.recipeIds.where((id) => !_recipesById.containsKey(id)).length,
+                missingRecipeCount: meal.recipeIds
+                    .where((id) => !_recipesById.containsKey(id))
+                    .length,
                 onPickMealTag: _loading
                     ? null
                     : () => _pickMealTagForMeal(meal),
@@ -280,8 +274,9 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       if (go == true && mounted) {
         await Navigator.of(context).push(
           CupertinoPageRoute<void>(
-            builder: (_) =>
-                const TagManagerToolPage(initialToolId: OvercookedConstants.toolId),
+            builder: (_) => const TagManagerToolPage(
+              initialToolId: OvercookedConstants.toolId,
+            ),
           ),
         );
         if (!mounted) return;
@@ -645,9 +640,7 @@ class _MealCard extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: [
-                  for (final name in recipeNames) _recipeChip(name),
-                ],
+                children: [for (final name in recipeNames) _recipeChip(name)],
               ),
             const SizedBox(height: 12),
             Row(
@@ -684,8 +677,9 @@ class _MealCard extends StatelessWidget {
                 color: meal.note.trim().isEmpty
                     ? IOS26Theme.textSecondary.withValues(alpha: 0.85)
                     : IOS26Theme.textPrimary,
-                fontWeight:
-                    meal.note.trim().isEmpty ? FontWeight.w600 : FontWeight.w700,
+                fontWeight: meal.note.trim().isEmpty
+                    ? FontWeight.w600
+                    : FontWeight.w700,
               ),
             ),
           ],

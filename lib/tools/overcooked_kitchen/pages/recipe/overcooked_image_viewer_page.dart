@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/obj_store/obj_store_errors.dart';
 import '../../../../core/obj_store/obj_store_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../services/overcooked_image_cache_service.dart';
 
 class OvercookedImageViewerPage extends StatelessWidget {
   final String objectKey;
@@ -22,6 +23,12 @@ class OvercookedImageViewerPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final key = objectKey.trim();
     final objStore = context.read<ObjStoreService>();
+    OvercookedImageCacheService? cacheService;
+    try {
+      cacheService = context.read<OvercookedImageCacheService>();
+    } catch (_) {
+      cacheService = null;
+    }
 
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
@@ -58,6 +65,50 @@ class OvercookedImageViewerPage extends StatelessWidget {
             );
           }
 
+          if (!kIsWeb && cacheService != null) {
+            return FutureBuilder<File?>(
+              future: cacheService.ensureCached(
+                key: key,
+                resolveUri: () async => uriText,
+              ),
+              builder: (context, fileSnapshot) {
+                if (fileSnapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (fileSnapshot.hasError) {
+                  if (fileSnapshot.error is ObjStoreNotConfiguredException) {
+                    return const Center(
+                      child: Text(
+                        '未配置资源存储',
+                        style: TextStyle(color: IOS26Theme.textSecondary),
+                      ),
+                    );
+                  }
+                  return const Center(
+                    child: Text(
+                      '鍥剧墖鍔犺浇澶辫触',
+                      style: TextStyle(color: IOS26Theme.textSecondary),
+                    ),
+                  );
+                }
+                final f = fileSnapshot.data;
+                if (f == null || !f.existsSync()) {
+                  return const Center(
+                    child: Text(
+                      '图片不存在',
+                      style: TextStyle(color: IOS26Theme.textSecondary),
+                    ),
+                  );
+                }
+                return InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 6,
+                  child: Center(child: Image.file(f, fit: BoxFit.contain)),
+                );
+              },
+            );
+          }
+
           final uri = Uri.tryParse(uriText);
           final image = !kIsWeb && uri != null && uri.scheme == 'file'
               ? Image.file(File.fromUri(uri), fit: BoxFit.contain)
@@ -69,7 +120,7 @@ class OvercookedImageViewerPage extends StatelessWidget {
                     final value = progress.expectedTotalBytes == null
                         ? null
                         : progress.cumulativeBytesLoaded /
-                            progress.expectedTotalBytes!;
+                              progress.expectedTotalBytes!;
                     return Center(
                       child: SizedBox(
                         width: 24,

@@ -12,6 +12,7 @@ import '../../overcooked_constants.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
+import '../../services/overcooked_image_cache_service.dart';
 import '../../widgets/overcooked_image.dart';
 import 'overcooked_recipe_edit_page.dart';
 import 'overcooked_image_viewer_page.dart';
@@ -165,6 +166,7 @@ class _OvercookedRecipeDetailPageState
 
   Widget _buildContent(BuildContext context, OvercookedRecipe recipe) {
     final objStore = context.read<ObjStoreService>();
+    final cache = context.read<OvercookedImageCacheService>();
     final typeName = recipe.typeTagId == null
         ? null
         : _tagsById[recipe.typeTagId!]?.name;
@@ -193,8 +195,9 @@ class _OvercookedRecipeDetailPageState
               objectKey: recipe.coverImageKey,
               title: recipe.name,
             ),
-            child: OvercookedImageByKey(
+            child: OvercookedCachedImageByKey(
               objStoreService: objStore,
+              cacheService: cache,
               objectKey: recipe.coverImageKey,
               borderRadius: 20,
             ),
@@ -270,9 +273,11 @@ class _OvercookedRecipeDetailPageState
                 return SizedBox(
                   width: 140,
                   child: GestureDetector(
-                    onTap: () => _openImageViewer(objectKey: key, title: '详细图片'),
-                    child: OvercookedImageByKey(
+                    onTap: () =>
+                        _openImageViewer(objectKey: key, title: '详细图片'),
+                    child: OvercookedCachedImageByKey(
                       objStoreService: objStore,
+                      cacheService: cache,
                       objectKey: key,
                       borderRadius: 18,
                     ),

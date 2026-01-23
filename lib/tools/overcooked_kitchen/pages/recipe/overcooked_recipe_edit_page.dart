@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -13,6 +14,7 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/utils/pending_upload_file.dart';
 import '../../../../core/utils/picked_file_cleanup.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
@@ -22,6 +24,14 @@ import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_image.dart';
 import '../../widgets/overcooked_tag_picker_sheet.dart';
+
+class _PendingImage {
+  final String filename;
+  final String? path;
+  final Uint8List? bytes;
+
+  const _PendingImage({required this.filename, this.path, this.bytes});
+}
 
 class OvercookedRecipeEditPage extends StatefulWidget {
   final OvercookedRecipe? initial;
@@ -44,6 +54,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   String? _coverKey;
   List<String> _detailKeys = [];
+
+  _PendingImage? _pendingCover;
+  final List<_PendingImage> _pendingDetailImages = [];
 
   int? _typeTagId;
   Set<int> _ingredientTagIds = {};
@@ -76,10 +89,29 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   @override
   void dispose() {
+    unawaited(_cleanupAllPendingFiles());
     _nameController.dispose();
     _introController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cleanupAllPendingFiles() async {
+    final cover = _pendingCover;
+    if (cover != null) await _cleanupStagedFile(cover);
+    final list = List<_PendingImage>.from(_pendingDetailImages);
+    for (final img in list) {
+      await _cleanupStagedFile(img);
+    }
+  }
+
+  Future<void> _cleanupStagedFile(_PendingImage img) async {
+    final path = img.path;
+    if (path == null || path.trim().isEmpty) return;
+    try {
+      final f = File(path);
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
   }
 
   Future<void> _loadTags() async {
@@ -146,7 +178,23 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           ),
         ],
       ),
-      body: _buildBody(context),
+      body: Stack(
+        children: [
+          _buildBody(context),
+          if (_saving)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.15),
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -170,11 +218,13 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: OvercookedImageByKey(
-                  objStoreService: objStore,
-                  objectKey: _coverKey,
-                  borderRadius: 20,
-                ),
+                child: _pendingCover == null
+                    ? OvercookedImageByKey(
+                        objStoreService: objStore,
+                        objectKey: _coverKey,
+                        borderRadius: 20,
+                      )
+                    : _buildPendingImage(_pendingCover!, borderRadius: 20),
               ),
               Positioned(
                 right: 10,
@@ -205,9 +255,20 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                       ),
                       color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(14),
-                      onPressed: _coverKey == null || _saving
+                      onPressed:
+                          _saving ||
+                              (_coverKey == null && _pendingCover == null)
                           ? null
-                          : () => setState(() => _coverKey = null),
+                          : () async {
+                              final pending = _pendingCover;
+                              if (pending != null) {
+                                await _cleanupStagedFile(pending);
+                                if (!mounted) return;
+                                setState(() => _pendingCover = null);
+                              } else {
+                                setState(() => _coverKey = null);
+                              }
+                            },
                       child: const Icon(
                         CupertinoIcons.trash,
                         color: IOS26Theme.textSecondary,
@@ -327,7 +388,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         const SizedBox(height: 14),
         _fieldTitle('详细图片（可多选）'),
         const SizedBox(height: 8),
-        if (_detailKeys.isEmpty)
+        if (_detailKeys.isEmpty && _pendingDetailImages.isEmpty)
           Container(
             height: 88,
             alignment: Alignment.center,
@@ -345,19 +406,24 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             height: 100,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _detailKeys.length,
+              itemCount: _detailKeys.length + _pendingDetailImages.length,
               separatorBuilder: (_, index) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
-                final key = _detailKeys[index];
+                final isUploaded = index < _detailKeys.length;
                 return Stack(
                   children: [
                     SizedBox(
                       width: 140,
-                      child: OvercookedImageByKey(
-                        objStoreService: objStore,
-                        objectKey: key,
-                        borderRadius: 18,
-                      ),
+                      child: isUploaded
+                          ? OvercookedImageByKey(
+                              objStoreService: objStore,
+                              objectKey: _detailKeys[index],
+                              borderRadius: 18,
+                            )
+                          : _buildPendingImage(
+                              _pendingDetailImages[index - _detailKeys.length],
+                              borderRadius: 18,
+                            ),
                     ),
                     Positioned(
                       top: 6,
@@ -366,7 +432,16 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                         onTap: _saving
                             ? null
                             : () => setState(() {
-                                _detailKeys.removeAt(index);
+                                if (isUploaded) {
+                                  _detailKeys.removeAt(index);
+                                } else {
+                                  final pendingIndex =
+                                      index - _detailKeys.length;
+                                  final img = _pendingDetailImages.removeAt(
+                                    pendingIndex,
+                                  );
+                                  unawaited(_cleanupStagedFile(img));
+                                }
                               }),
                         child: Container(
                           width: 28,
@@ -470,6 +545,43 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     );
   }
 
+  Widget _buildPendingImage(
+    _PendingImage img, {
+    required double borderRadius,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    final bytes = img.bytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Image.memory(bytes, fit: fit),
+      );
+    }
+
+    final path = img.path;
+    if (path != null && path.trim().isNotEmpty) {
+      final f = File(path);
+      if (f.existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: Image.file(f, fit: fit),
+        );
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      alignment: Alignment.center,
+      child: const Text(
+        '暂无图片',
+        style: TextStyle(fontSize: 12, color: IOS26Theme.textSecondary),
+      ),
+    );
+  }
+
   Widget _tagSingleField({
     required String label,
     required VoidCallback? onPressed,
@@ -553,90 +665,91 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Future<void> _pickCover() async {
-    final key = await _pickAndUploadOneImage();
-    if (key == null) return;
-    setState(() => _coverKey = key);
-  }
-
-  Future<void> _pickDetailImages() async {
-    final keys = await _pickAndUploadManyImages();
-    if (keys.isEmpty) return;
-    setState(() => _detailKeys.addAll(keys));
-  }
-
-  Future<String?> _pickAndUploadOneImage() async {
     final result = await FilePicker.platform.pickFiles(
       withData: kIsWeb,
       type: FileType.image,
     );
-    if (result == null || result.files.isEmpty) return null;
+    if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
+
+    _PendingImage? staged;
     try {
-      if (!mounted) return null;
-      final bytes = await _readPickedFileBytes(file);
-      if (bytes == null) {
-        if (!mounted) return null;
-        await OvercookedDialogs.showMessage(
-          context,
-          title: '提示',
-          content: '无法读取图片内容，请重新选择',
-        );
-        return null;
-      }
-      final uploadedKey = await _uploadBytes(bytes: bytes, filename: file.name);
-      return uploadedKey;
+      staged = await _stagePickedImage(
+        file,
+        nowMicros: DateTime.now().microsecondsSinceEpoch,
+      );
     } finally {
       await _cleanupPickedTempFile(file);
     }
+
+    if (!mounted) return;
+    if (staged == null) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '鎻愮ず',
+        content: '鏃犳硶璇诲彇鍥剧墖鍐呭锛岃閲嶆柊閫夋嫨',
+      );
+      return;
+    }
+
+    final old = _pendingCover;
+    setState(() => _pendingCover = staged);
+    if (old != null) unawaited(_cleanupStagedFile(old));
   }
 
-  Future<List<String>> _pickAndUploadManyImages() async {
+  Future<void> _pickDetailImages() async {
     final result = await FilePicker.platform.pickFiles(
       withData: kIsWeb,
       allowMultiple: true,
       type: FileType.image,
     );
-    if (result == null || result.files.isEmpty) return const [];
-    if (!mounted) {
-      for (final f in result.files) {
+    if (result == null || result.files.isEmpty) return;
+
+    final baseMicros = DateTime.now().microsecondsSinceEpoch;
+    final staged = <_PendingImage>[];
+    for (int i = 0; i < result.files.length; i++) {
+      final f = result.files[i];
+      _PendingImage? img;
+      try {
+        img = await _stagePickedImage(f, nowMicros: baseMicros + i);
+      } finally {
         await _cleanupPickedTempFile(f);
       }
-      return const [];
+      if (img != null) staged.add(img);
     }
-    final objStore = context.read<ObjStoreService>();
 
-    setState(() => _saving = true);
-    try {
-      final keys = <String>[];
-      for (final f in result.files) {
-        try {
-          final bytes = await _readPickedFileBytes(f);
-          if (bytes == null) continue;
-          final uploaded = await objStore.uploadBytes(
-            bytes: bytes,
-            filename: f.name,
-          );
-          keys.add(uploaded.key);
-        } finally {
-          await _cleanupPickedTempFile(f);
-        }
-      }
-      return keys;
-    } on ObjStoreNotConfiguredException catch (_) {
-      if (!mounted) return const [];
-      await _openObjStoreSettings();
-      return const [];
-    } catch (e) {
-      if (!mounted) return const [];
+    if (!mounted) return;
+    if (staged.isEmpty) {
       await OvercookedDialogs.showMessage(
         context,
-        title: '上传失败',
-        content: e.toString(),
+        title: '鎻愮ず',
+        content: '鏃犳硶璇诲彇鍥剧墖鍐呭锛岃閲嶆柊閫夋嫨',
       );
-      return const [];
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      return;
     }
+    setState(() => _pendingDetailImages.addAll(staged));
+  }
+
+  Future<_PendingImage?> _stagePickedImage(
+    PlatformFile file, {
+    required int nowMicros,
+  }) async {
+    if (kIsWeb) {
+      final bytes = await _readPickedFileBytes(file);
+      if (bytes == null || bytes.isEmpty) return null;
+      return _PendingImage(filename: file.name, bytes: bytes);
+    }
+
+    final sourcePath = file.path;
+    if (sourcePath == null || sourcePath.trim().isEmpty) return null;
+    final tmp = await getTemporaryDirectory();
+    final staged = await stageFileToPendingUploadDir(
+      sourcePath: sourcePath,
+      filename: file.name,
+      temporaryDirPath: tmp.path,
+      nowMicros: nowMicros,
+    );
+    return _PendingImage(filename: file.name, path: staged.path);
   }
 
   Future<Uint8List?> _readPickedFileBytes(PlatformFile file) async {
@@ -685,36 +798,6 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     } catch (_) {}
   }
 
-  Future<String?> _uploadBytes({
-    required Uint8List bytes,
-    required String filename,
-  }) async {
-    if (!mounted) return null;
-    final objStore = context.read<ObjStoreService>();
-    setState(() => _saving = true);
-    try {
-      final uploaded = await objStore.uploadBytes(
-        bytes: bytes,
-        filename: filename,
-      );
-      return uploaded.key;
-    } on ObjStoreNotConfiguredException catch (_) {
-      if (!mounted) return null;
-      await _openObjStoreSettings();
-      return null;
-    } catch (e) {
-      if (!mounted) return null;
-      await OvercookedDialogs.showMessage(
-        context,
-        title: '上传失败',
-        content: e.toString(),
-      );
-      return null;
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   Future<void> _openObjStoreSettings() async {
     await OvercookedDialogs.showMessage(
       context,
@@ -725,6 +808,79 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     await Navigator.of(context).push(
       CupertinoPageRoute<void>(builder: (_) => const ObjStoreSettingsPage()),
     );
+  }
+
+  Future<bool> _commitPendingUploads() async {
+    final objStore = context.read<ObjStoreService>();
+
+    try {
+      final cover = _pendingCover;
+      if (cover != null) {
+        final uploadedKey = await _uploadPendingImage(
+          objStore: objStore,
+          img: cover,
+        );
+        if (!mounted) return false;
+        setState(() {
+          _coverKey = uploadedKey;
+          _pendingCover = null;
+        });
+        await _cleanupStagedFile(cover);
+      }
+
+      while (_pendingDetailImages.isNotEmpty) {
+        final img = _pendingDetailImages.first;
+        final uploadedKey = await _uploadPendingImage(
+          objStore: objStore,
+          img: img,
+        );
+        if (!mounted) return false;
+        setState(() {
+          _detailKeys.add(uploadedKey);
+          _pendingDetailImages.removeAt(0);
+        });
+        await _cleanupStagedFile(img);
+      }
+
+      return true;
+    } on ObjStoreNotConfiguredException catch (_) {
+      if (!mounted) return false;
+      await _openObjStoreSettings();
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '上传失败',
+        content: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  Future<String> _uploadPendingImage({
+    required ObjStoreService objStore,
+    required _PendingImage img,
+  }) async {
+    final bytes = img.bytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      final uploaded = await objStore.uploadBytes(
+        bytes: bytes,
+        filename: img.filename,
+      );
+      return uploaded.key;
+    }
+
+    final path = img.path;
+    if (path == null || path.trim().isEmpty) {
+      throw StateError('pending image has no bytes/path');
+    }
+    final fileBytes = await File(path).readAsBytes();
+    final uploaded = await objStore.uploadBytes(
+      bytes: fileBytes,
+      filename: img.filename,
+    );
+    return uploaded.key;
   }
 
   Future<void> _save() async {
@@ -742,6 +898,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     try {
       final repo = widget.repository ?? context.read<OvercookedRepository>();
       final now = DateTime.now();
+
+      final ok = await _commitPendingUploads();
+      if (!ok) return;
 
       final base = widget.initial;
       if (base == null) {
