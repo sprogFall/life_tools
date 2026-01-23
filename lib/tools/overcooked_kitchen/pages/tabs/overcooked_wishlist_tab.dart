@@ -33,7 +33,6 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
   bool _loading = false;
   List<OvercookedWishItem> _wishes = const [];
   Map<int, OvercookedRecipe> _recipesById = const {};
-  List<OvercookedRecipe> _allRecipes = const [];
   Map<int, Tag> _tagsById = const {};
 
   @override
@@ -60,7 +59,6 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
       final wishes = await repo.listWishesForDate(widget.date);
       final recipeIds = wishes.map((e) => e.recipeId).toList();
       final selectedRecipes = await repo.listRecipesByIds(recipeIds);
-      final allRecipes = await repo.listRecipes();
 
       final ingredientTags = await tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
@@ -78,7 +76,6 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
           for (final r in selectedRecipes)
             if (r.id != null) r.id!: r,
         };
-        _allRecipes = allRecipes;
         _tagsById = {
           for (final t in tags)
             if (t.id != null) t.id!: t,
@@ -248,7 +245,6 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
     final repo = context.read<OvercookedRepository>();
     final latestRecipes = await repo.listRecipes();
     if (!mounted) return;
-    setState(() => _allRecipes = latestRecipes);
 
     if (latestRecipes.isEmpty) {
       await OvercookedDialogs.showMessage(
