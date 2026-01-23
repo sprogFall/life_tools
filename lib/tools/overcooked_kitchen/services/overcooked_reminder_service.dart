@@ -27,6 +27,7 @@ class OvercookedReminderService {
   }) async {
     final time = now ?? DateTime.now();
     final today = DateTime(time.year, time.month, time.day);
+    final expiresAt = today.add(const Duration(days: 1));
     final key = OvercookedRepository.dayKey(today);
     final wishes = await _repository.listWishesForDate(today);
     final dedupeKey = dedupeKeyForDayKey(key);
@@ -50,6 +51,7 @@ class OvercookedReminderService {
       dedupeKey: dedupeKey,
       route: 'tool://overcooked_kitchen',
       createdAt: time,
+      expiresAt: expiresAt,
       notify: true,
       markUnreadOnUpdate: false,
     );

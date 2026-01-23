@@ -166,7 +166,12 @@ class _OvercookedRecipeDetailPageState
 
   Widget _buildContent(BuildContext context, OvercookedRecipe recipe) {
     final objStore = context.read<ObjStoreService>();
-    final cache = context.read<OvercookedImageCacheService>();
+    OvercookedImageCacheService? cache;
+    try {
+      cache = context.read<OvercookedImageCacheService>();
+    } catch (_) {
+      cache = null;
+    }
     final typeName = recipe.typeTagId == null
         ? null
         : _tagsById[recipe.typeTagId!]?.name;
@@ -195,12 +200,18 @@ class _OvercookedRecipeDetailPageState
               objectKey: recipe.coverImageKey,
               title: recipe.name,
             ),
-            child: OvercookedCachedImageByKey(
-              objStoreService: objStore,
-              cacheService: cache,
-              objectKey: recipe.coverImageKey,
-              borderRadius: 20,
-            ),
+            child: cache == null
+                ? OvercookedImageByKey(
+                    objStoreService: objStore,
+                    objectKey: recipe.coverImageKey,
+                    borderRadius: 20,
+                  )
+                : OvercookedCachedImageByKey(
+                    objStoreService: objStore,
+                    cacheService: cache,
+                    objectKey: recipe.coverImageKey,
+                    borderRadius: 20,
+                  ),
           ),
         ),
         const SizedBox(height: 14),
@@ -275,12 +286,18 @@ class _OvercookedRecipeDetailPageState
                   child: GestureDetector(
                     onTap: () =>
                         _openImageViewer(objectKey: key, title: '详细图片'),
-                    child: OvercookedCachedImageByKey(
-                      objStoreService: objStore,
-                      cacheService: cache,
-                      objectKey: key,
-                      borderRadius: 18,
-                    ),
+                    child: cache == null
+                        ? OvercookedImageByKey(
+                            objStoreService: objStore,
+                            objectKey: key,
+                            borderRadius: 18,
+                          )
+                        : OvercookedCachedImageByKey(
+                            objStoreService: objStore,
+                            cacheService: cache,
+                            objectKey: key,
+                            borderRadius: 18,
+                          ),
                   ),
                 );
               },

@@ -166,5 +166,34 @@ void main() {
       expect(messageService.unreadMessages, isEmpty);
       expect(notificationService.shown.length, 1);
     });
+
+    test('愿望单提醒需要日清：写入过期时间并在次日清理', () async {
+      final now = DateTime(2026, 1, 10, 9);
+      final recipeId = await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '蛋炒饭',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+      await repository.addWish(date: now, recipeId: recipeId, now: now);
+
+      final service = OvercookedReminderService(repository: repository);
+      await service.pushDueReminders(messageService: messageService, now: now);
+
+      expect(messageService.messages.length, 1);
+      final msg = messageService.messages.single;
+      expect(msg.expiresAt, DateTime(2026, 1, 11));
+
+      await messageService.purgeExpired(now: DateTime(2026, 1, 11));
+      expect(messageService.messages, isEmpty);
+    });
   });
 }

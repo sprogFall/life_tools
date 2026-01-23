@@ -680,6 +680,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       );
     } finally {
       await _cleanupPickedTempFile(file);
+      await _cleanupFilePickerTemps();
     }
 
     if (!mounted) return;
@@ -717,6 +718,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       }
       if (img != null) staged.add(img);
     }
+    await _cleanupFilePickerTemps();
 
     if (!mounted) return;
     if (staged.isEmpty) {
@@ -795,6 +797,13 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       if (await f.exists()) {
         await f.delete();
       }
+    } catch (_) {}
+  }
+
+  Future<void> _cleanupFilePickerTemps() async {
+    if (kIsWeb) return;
+    try {
+      await FilePicker.platform.clearTemporaryFiles();
     } catch (_) {}
   }
 

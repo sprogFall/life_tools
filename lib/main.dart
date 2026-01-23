@@ -147,6 +147,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
 
+    // 日常清理：把已过期的消息（例如“愿望单提醒”）从消息中心移除
+    Future.microtask(
+      () => widget.messageService.purgeExpired(now: DateTime.now()),
+    );
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final lastDay = DateTime(

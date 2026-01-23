@@ -84,6 +84,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
     final typeText = entries.isEmpty
         ? '未选择'
         : entries.map((e) => '${e.name}×${e.count}').join('、');
+    final canRoll = !_loading && _selectedTypeIds.isNotEmpty;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
@@ -101,12 +102,15 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               ),
             ),
             CupertinoButton(
+              key: const ValueKey('overcooked_gacha_roll_button'),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              color: IOS26Theme.primaryColor,
+              color: canRoll
+                  ? IOS26Theme.primaryColor
+                  : IOS26Theme.textTertiary.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(14),
-              onPressed: _loading ? null : _roll,
+              onPressed: canRoll ? _roll : null,
               child: const Text(
-                '换一批',
+                '扭蛋',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -121,6 +125,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         SizedBox(
           height: 48,
           child: CupertinoButton(
+            key: const ValueKey('overcooked_gacha_pick_types_button'),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(14),
@@ -233,7 +238,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             padding: const EdgeInsets.only(top: 18),
             child: Center(
               child: Text(
-                '先选好风格搭配，再点“换一批”开抽',
+                '先选好风格搭配，再点“扭蛋”开抽',
                 style: TextStyle(
                   fontSize: 15,
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
@@ -252,12 +257,13 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
           ),
           const SizedBox(height: 10),
           CupertinoButton(
+            key: const ValueKey('overcooked_gacha_import_button'),
             padding: const EdgeInsets.symmetric(vertical: 14),
             color: IOS26Theme.primaryColor,
             borderRadius: BorderRadius.circular(14),
             onPressed: _loading ? null : _importToWish,
             child: const Text(
-              '就要这个（导入愿望单）',
+              '就你了',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
