@@ -18,6 +18,16 @@
 
 所有命令均兼容 Windows 系统（PowerShell/CMD）。
 
+### Linux 中 Flutter 的常见调用方式
+
+在 Linux 下若 `flutter` 不在 `PATH`，可使用以下几种方式调用（任选其一）：
+
+- 已加入 `PATH`：直接使用 `flutter ...`
+- 发行版/镜像预装在 `/opt`：使用 `/opt/flutter/bin/flutter ...`
+- 手动解压在用户目录：使用 `~/flutter/bin/flutter ...`
+- 安装在 `/usr/local`：使用 `/usr/local/flutter/bin/flutter ...`
+- 临时加入 `PATH`（当前终端有效）：`export PATH="$PATH:/opt/flutter/bin"`
+
 ```bash
 # 安装依赖
 flutter pub get
