@@ -224,5 +224,41 @@ void main() {
       expect(tags.map((t) => t.tag.sortIndex), [0, 1, 2]);
       expect(tags.map((t) => t.tag.updatedAt), [t2, t2, t2]);
     });
+
+    test('reorderToolCategoryTags 应仅影响该工具分类下的展示顺序', () async {
+      final t = DateTime(2026, 1, 1, 10);
+      final a = await tagRepository.createTagForToolCategory(
+        name: 'A',
+        toolId: 'work_log',
+        categoryId: 'priority',
+        now: t,
+      );
+      final b = await tagRepository.createTagForToolCategory(
+        name: 'B',
+        toolId: 'work_log',
+        categoryId: 'priority',
+        now: t,
+      );
+      final c = await tagRepository.createTagForToolCategory(
+        name: 'C',
+        toolId: 'work_log',
+        categoryId: 'priority',
+        now: t,
+      );
+
+      await tagRepository.reorderToolCategoryTags(
+        toolId: 'work_log',
+        categoryId: 'priority',
+        tagIds: [c, a, b],
+        now: DateTime(2026, 1, 2, 10),
+      );
+
+      final items = await tagRepository.listTagsForToolWithCategory('work_log');
+      final ordered = items
+          .where((e) => e.categoryId == 'priority')
+          .map((e) => e.tag.id)
+          .toList();
+      expect(ordered, [c, a, b]);
+    });
   });
 }

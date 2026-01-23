@@ -13,10 +13,31 @@ class BuiltInTagCategories {
   static void registerAll(TagService tagService) {
     // 胡闹厨房：菜谱/扭蛋机需要分类筛选
     tagService.registerToolTagCategories(OvercookedConstants.toolId, const [
-      TagCategory(id: OvercookedTagCategories.dishType, name: '菜品风格'),
-      TagCategory(id: OvercookedTagCategories.ingredient, name: '主料'),
-      TagCategory(id: OvercookedTagCategories.sauce, name: '调味'),
-      TagCategory(id: OvercookedTagCategories.flavor, name: '风味'),
+      TagCategory(
+        id: OvercookedTagCategories.dishType,
+        name: '菜品风格',
+        createHint: '下饭/快手/宴客/减脂',
+      ),
+      TagCategory(
+        id: OvercookedTagCategories.ingredient,
+        name: '主料',
+        createHint: '鸡腿肉/虾仁/土豆',
+      ),
+      TagCategory(
+        id: OvercookedTagCategories.sauce,
+        name: '调味',
+        createHint: '生抽/老抽/蚝油',
+      ),
+      TagCategory(
+        id: OvercookedTagCategories.flavor,
+        name: '风味',
+        createHint: '酸/甜/辣/咸',
+      ),
+      TagCategory(
+        id: OvercookedTagCategories.mealSlot,
+        name: '餐次',
+        createHint: '早餐/午餐/晚餐/加餐/中班午餐',
+      ),
     ]);
   }
 }

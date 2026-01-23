@@ -36,6 +36,8 @@ void main() {
 
     Future<TagService> createTagService(WidgetTester tester) async {
       late Database db;
+      late TagRepository repository;
+      late TagService service;
       await tester.runAsync(() async {
         db = await openDatabase(
           inMemoryDatabasePath,
@@ -44,11 +46,18 @@ void main() {
           onCreate: DatabaseSchema.onCreate,
           onUpgrade: DatabaseSchema.onUpgrade,
         );
+
+        // 预置一条标签并提前刷新缓存，避免 TagManagerToolPage 在测试结束后仍发起异步查询。
+        repository = TagRepository.withDatabase(db);
+        await repository.createTag(name: '测试', toolIds: const ['work_log']);
+        service = TagService(repository: repository);
+        await service.refreshAll();
+        await service.refreshToolTags('work_log');
       });
       addTearDown(() async {
         await tester.runAsync(() async => db.close());
       });
-      return TagService(repository: TagRepository.withDatabase(db));
+      return service;
     }
 
     testWidgets('AiSettingsPage uses IOS26AppBar', (tester) async {

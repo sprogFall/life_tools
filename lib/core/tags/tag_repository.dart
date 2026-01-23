@@ -88,18 +88,20 @@ class TagRepository {
     await db.transaction((txn) async {
       final existingLinks = await txn.query(
         'tool_tags',
-        columns: const ['tool_id', 'category_id'],
+        columns: const ['tool_id', 'category_id', 'sort_index'],
         where: 'tag_id = ?',
         whereArgs: [tagId],
       );
-      final categoryByTool = <String, String>{};
+      final linkByTool = <String, ({String categoryId, int sortIndex})>{};
       for (final row in existingLinks) {
         final toolId = row['tool_id'] as String;
         final raw = row['category_id'] as String?;
         final normalized = raw?.trim();
-        categoryByTool[toolId] = (normalized == null || normalized.isEmpty)
+        final categoryId = (normalized == null || normalized.isEmpty)
             ? defaultCategoryId
             : normalized;
+        final sortIndex = (row['sort_index'] as int?) ?? 0;
+        linkByTool[toolId] = (categoryId: categoryId, sortIndex: sortIndex);
       }
 
       final updated = await txn.update(
@@ -118,11 +120,20 @@ class TagRepository {
 
       await txn.delete('tool_tags', where: 'tag_id = ?', whereArgs: [tagId]);
       for (final toolId in _dedupeToolIds(toolIds)) {
-        final categoryId = categoryByTool[toolId] ?? defaultCategoryId;
+        final existing = linkByTool[toolId];
+        final categoryId = existing?.categoryId ?? defaultCategoryId;
+        final sortIndex =
+            existing?.sortIndex ??
+            await _nextToolTagSortIndex(
+              txn,
+              toolId: toolId,
+              categoryId: categoryId,
+            );
         await txn.insert('tool_tags', {
           'tool_id': toolId,
           'tag_id': tagId,
           'category_id': categoryId,
+          'sort_index': sortIndex,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
@@ -171,6 +182,48 @@ class TagRepository {
     });
   }
 
+  Future<void> reorderToolCategoryTags({
+    required String toolId,
+    required String categoryId,
+    required List<int> tagIds,
+    DateTime? now,
+  }) async {
+    final normalizedToolId = toolId.trim();
+    if (normalizedToolId.isEmpty) {
+      throw ArgumentError('reorderToolCategoryTags 需要 toolId');
+    }
+    final normalizedCategoryId = categoryId.trim().isEmpty
+        ? defaultCategoryId
+        : categoryId.trim();
+
+    final ids = _dedupeInts(tagIds).toList();
+    if (ids.isEmpty) return;
+
+    final time = now ?? DateTime.now();
+    final db = await _database;
+    await db.transaction((txn) async {
+      for (int i = 0; i < ids.length; i++) {
+        await txn.update(
+          'tool_tags',
+          {'sort_index': i},
+          where: 'tool_id = ? AND category_id = ? AND tag_id = ?',
+          whereArgs: [normalizedToolId, normalizedCategoryId, ids[i]],
+        );
+      }
+
+      // 作为“变更标记”：同步更新关联 tags 的 updated_at，方便后续排查与备份一致性
+      final updatedAt = time.millisecondsSinceEpoch;
+      for (final id in ids) {
+        await txn.update(
+          'tags',
+          {'updated_at': updatedAt},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+    });
+  }
+
   Future<List<Tag>> listTagsForTool(String toolId) async {
     final db = await _database;
     final results = await db.rawQuery(
@@ -179,7 +232,7 @@ SELECT t.*
 FROM tags t
 INNER JOIN tool_tags tt ON tt.tag_id = t.id
 WHERE tt.tool_id = ?
-ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
+ORDER BY tt.category_id ASC, tt.sort_index ASC, t.name COLLATE NOCASE ASC
 ''',
       [toolId],
     );
@@ -199,7 +252,7 @@ SELECT t.*, tt.category_id AS category_id
 FROM tags t
 INNER JOIN tool_tags tt ON tt.tag_id = t.id
 WHERE tt.tool_id = ?
-ORDER BY tt.category_id ASC, t.sort_index ASC, t.name COLLATE NOCASE ASC
+ORDER BY tt.category_id ASC, tt.sort_index ASC, t.name COLLATE NOCASE ASC
 ''',
       [normalized],
     );
@@ -322,6 +375,7 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
       for (final link in toolTags) {
         final normalized = Map<String, dynamic>.from(link);
         normalized['category_id'] ??= defaultCategoryId;
+        normalized['sort_index'] ??= 0;
         await txn.insert(
           'tool_tags',
           normalized,
@@ -363,15 +417,38 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
       });
 
       for (final link in toolLinks) {
+        final sortIndex = await _nextToolTagSortIndex(
+          txn,
+          toolId: link.toolId,
+          categoryId: link.categoryId,
+        );
         await txn.insert('tool_tags', {
           'tool_id': link.toolId,
           'tag_id': tagId,
           'category_id': link.categoryId,
+          'sort_index': sortIndex,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
 
       return tagId;
     });
+  }
+
+  static Future<int> _nextToolTagSortIndex(
+    DatabaseExecutor txn, {
+    required String toolId,
+    required String categoryId,
+  }) async {
+    final rows = await txn.rawQuery(
+      '''
+SELECT MAX(sort_index) AS max_sort_index
+FROM tool_tags
+WHERE tool_id = ? AND category_id = ?
+''',
+      [toolId, categoryId],
+    );
+    final maxSortIndex = (rows.first['max_sort_index'] as int?) ?? -1;
+    return maxSortIndex + 1;
   }
 
   Future<void> importWorkTaskTagsFromServer(

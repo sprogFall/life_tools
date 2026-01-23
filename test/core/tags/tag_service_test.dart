@@ -49,8 +49,8 @@ void main() {
     test('注册分类会去重/trim，并自动补默认分类', () {
       final service = TagService(repository: tagRepository);
       service.registerToolTagCategories('tool', const [
-        TagCategory(id: ' a ', name: ' A '),
-        TagCategory(id: 'a', name: '重复'),
+        TagCategory(id: ' a ', name: ' A ', createHint: ' 例子 '),
+        TagCategory(id: 'a', name: '重复', createHint: '应忽略'),
         TagCategory(id: '', name: '忽略'),
         TagCategory(id: 'b', name: ''),
       ]);
@@ -62,13 +62,14 @@ void main() {
         'a',
       ]);
       expect(categories.last.name, 'A');
+      expect(categories.last.createHint, '例子');
     });
 
     test('已包含默认分类时不重复插入', () {
       final service = TagService(repository: tagRepository);
       service.registerToolTagCategories('tool', const [
         TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
-        TagCategory(id: 'x', name: 'X'),
+        TagCategory(id: 'x', name: 'X', createHint: '示例'),
       ]);
 
       final categories = service.categoriesForTool('tool');

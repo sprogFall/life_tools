@@ -10,13 +10,14 @@ import 'package:life_tools/core/tags/models/tag_category.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
 
 context.read<TagService>().registerToolTagCategories('work_log', const [
-  TagCategory(id: 'priority', name: '优先级'),
-  TagCategory(id: 'project', name: '项目'),
-  TagCategory(id: 'scene', name: '场景'),
+  TagCategory(id: 'priority', name: '优先级', createHint: '紧急/重要'),
+  TagCategory(id: 'project', name: '项目', createHint: '小蜜/家庭/工作'),
+  TagCategory(id: 'scene', name: '场景', createHint: '会议/开发/复盘'),
 ]);
 ```
 
 - 如果工具不调用注册：该工具在标签管理中只会显示 1 个默认分类（`default` / “默认”），并兼容旧数据。
+- `createHint` 会用于「标签管理 -> 该工具 -> 该分类 -> 添加标签」时输入框的灰色提示；不传时默认用 `${分类名}标签`（显示为 `如：${分类名}标签`）。
 
 ## 1) 查询某个工具当前可用的标签
 ```dart
@@ -50,4 +51,4 @@ final tasks = await repository.listTasks(tagIds: [1, 2]);
 ## 4) 导入/导出（备份/还原）说明
 - `tag_manager`：导出/导入 `tags` 与 `tool_tags`
 - `work_log`：额外导出/导入 `task_tags`（任务-标签关联）
-  - `tool_tags` 里包含 `category_id`；旧备份若缺失会在导入时自动补为默认分类（`default`）。
+  - `tool_tags` 里包含 `category_id` 与 `sort_index`；旧备份若缺失会在导入时自动补默认值（`default` / `0`）。

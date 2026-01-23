@@ -144,7 +144,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 ),
                 color: IOS26Theme.primaryColor,
                 borderRadius: BorderRadius.circular(14),
-                onPressed: _loading ? null : _editWishes,
+                onPressed: _editWishes,
                 child: const Text(
                   '选择菜谱',
                   style: TextStyle(
@@ -244,7 +244,13 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
   }
 
   Future<void> _editWishes() async {
-    if (_allRecipes.isEmpty) {
+    // IndexedStack 下 tab 不会重建：这里每次打开都从库里取最新菜谱，确保新建后立即可选
+    final repo = context.read<OvercookedRepository>();
+    final latestRecipes = await repo.listRecipes();
+    if (!mounted) return;
+    setState(() => _allRecipes = latestRecipes);
+
+    if (latestRecipes.isEmpty) {
       await OvercookedDialogs.showMessage(
         context,
         title: '提示',
@@ -257,7 +263,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
     final selected = await OvercookedRecipePickerSheet.show(
       context,
       title: '选择愿望单菜谱',
-      recipes: _allRecipes,
+      recipes: latestRecipes,
       selectedRecipeIds: current,
     );
     if (selected == null) return;

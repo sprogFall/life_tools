@@ -12,4 +12,5 @@ class OvercookedTagCategories {
   static const ingredient = 'ingredient';
   static const sauce = 'sauce';
   static const flavor = 'flavor';
+  static const mealSlot = 'meal_slot';
 }
