@@ -13,7 +13,7 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
-import '../../../../core/utils/temp_file_cleanup.dart';
+import '../../../../core/utils/picked_file_cleanup.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../overcooked_constants.dart';
@@ -569,22 +569,25 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       withData: kIsWeb,
       type: FileType.image,
     );
-    if (!mounted) return null;
     if (result == null || result.files.isEmpty) return null;
     final file = result.files.first;
-    final bytes = await _readPickedFileBytes(file);
-    if (bytes == null) {
+    try {
       if (!mounted) return null;
-      await OvercookedDialogs.showMessage(
-        context,
-        title: '提示',
-        content: '无法读取图片内容，请重新选择',
-      );
-      return null;
+      final bytes = await _readPickedFileBytes(file);
+      if (bytes == null) {
+        if (!mounted) return null;
+        await OvercookedDialogs.showMessage(
+          context,
+          title: '提示',
+          content: '无法读取图片内容，请重新选择',
+        );
+        return null;
+      }
+      final uploadedKey = await _uploadBytes(bytes: bytes, filename: file.name);
+      return uploadedKey;
+    } finally {
+      await _cleanupPickedTempFile(file);
     }
-    final uploadedKey = await _uploadBytes(bytes: bytes, filename: file.name);
-    await _cleanupPickedTempFile(file);
-    return uploadedKey;
   }
 
   Future<List<String>> _pickAndUploadManyImages() async {
@@ -593,22 +596,30 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       allowMultiple: true,
       type: FileType.image,
     );
-    if (!mounted) return const [];
     if (result == null || result.files.isEmpty) return const [];
+    if (!mounted) {
+      for (final f in result.files) {
+        await _cleanupPickedTempFile(f);
+      }
+      return const [];
+    }
     final objStore = context.read<ObjStoreService>();
 
     setState(() => _saving = true);
     try {
       final keys = <String>[];
       for (final f in result.files) {
-        final bytes = await _readPickedFileBytes(f);
-        if (bytes == null) continue;
-        final uploaded = await objStore.uploadBytes(
-          bytes: bytes,
-          filename: f.name,
-        );
-        keys.add(uploaded.key);
-        await _cleanupPickedTempFile(f);
+        try {
+          final bytes = await _readPickedFileBytes(f);
+          if (bytes == null) continue;
+          final uploaded = await objStore.uploadBytes(
+            bytes: bytes,
+            filename: f.name,
+          );
+          keys.add(uploaded.key);
+        } finally {
+          await _cleanupPickedTempFile(f);
+        }
       }
       return keys;
     } on ObjStoreNotConfiguredException catch (_) {
@@ -641,7 +652,30 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     if (path == null || path.trim().isEmpty) return;
 
     final tmp = await getTemporaryDirectory();
-    if (!isPathWithinAnyDir(filePath: path, dirPaths: [tmp.path])) return;
+    final extraDirPaths = <String>[];
+    try {
+      final appCache = await getApplicationCacheDirectory();
+      extraDirPaths.add(appCache.path);
+    } catch (_) {}
+    try {
+      final externalCaches = await getExternalCacheDirectories();
+      if (externalCaches != null) {
+        extraDirPaths.addAll(externalCaches.map((d) => d.path));
+      }
+    } catch (_) {}
+
+    Directory? externalStorage;
+    try {
+      externalStorage = await getExternalStorageDirectory();
+    } catch (_) {}
+
+    final shouldCleanup = shouldCleanupPickedFilePath(
+      filePath: path,
+      temporaryDirPath: tmp.path,
+      externalCacheDirPaths: extraDirPaths,
+      externalStorageDirPath: externalStorage?.path,
+    );
+    if (!shouldCleanup) return;
 
     try {
       final f = File(path);
@@ -655,6 +689,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     required Uint8List bytes,
     required String filename,
   }) async {
+    if (!mounted) return null;
     final objStore = context.read<ObjStoreService>();
     setState(() => _saving = true);
     try {
