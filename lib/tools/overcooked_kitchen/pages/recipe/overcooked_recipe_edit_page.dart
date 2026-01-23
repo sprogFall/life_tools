@@ -1,8 +1,10 @@
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/obj_store/obj_store_errors.dart';
@@ -11,6 +13,7 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/utils/temp_file_cleanup.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../overcooked_constants.dart';
@@ -563,14 +566,15 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   Future<String?> _pickAndUploadOneImage() async {
     final result = await FilePicker.platform.pickFiles(
-      withData: true,
+      withData: kIsWeb,
       type: FileType.image,
     );
     if (!mounted) return null;
     if (result == null || result.files.isEmpty) return null;
     final file = result.files.first;
-    final bytes = file.bytes;
+    final bytes = await _readPickedFileBytes(file);
     if (bytes == null) {
+      if (!mounted) return null;
       await OvercookedDialogs.showMessage(
         context,
         title: '提示',
@@ -578,12 +582,14 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       );
       return null;
     }
-    return _uploadBytes(bytes: bytes, filename: file.name);
+    final uploadedKey = await _uploadBytes(bytes: bytes, filename: file.name);
+    await _cleanupPickedTempFile(file);
+    return uploadedKey;
   }
 
   Future<List<String>> _pickAndUploadManyImages() async {
     final result = await FilePicker.platform.pickFiles(
-      withData: true,
+      withData: kIsWeb,
       allowMultiple: true,
       type: FileType.image,
     );
@@ -595,13 +601,14 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     try {
       final keys = <String>[];
       for (final f in result.files) {
-        final bytes = f.bytes;
+        final bytes = await _readPickedFileBytes(f);
         if (bytes == null) continue;
         final uploaded = await objStore.uploadBytes(
           bytes: bytes,
           filename: f.name,
         );
         keys.add(uploaded.key);
+        await _cleanupPickedTempFile(f);
       }
       return keys;
     } on ObjStoreNotConfiguredException catch (_) {
@@ -619,6 +626,29 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<Uint8List?> _readPickedFileBytes(PlatformFile file) async {
+    if (file.bytes != null) return file.bytes!;
+    final path = file.path;
+    if (path == null || path.trim().isEmpty) return null;
+    return File(path).readAsBytes();
+  }
+
+  Future<void> _cleanupPickedTempFile(PlatformFile file) async {
+    if (kIsWeb) return;
+    final path = file.path;
+    if (path == null || path.trim().isEmpty) return;
+
+    final tmp = await getTemporaryDirectory();
+    if (!isPathWithinAnyDir(filePath: path, dirPaths: [tmp.path])) return;
+
+    try {
+      final f = File(path);
+      if (await f.exists()) {
+        await f.delete();
+      }
+    } catch (_) {}
   }
 
   Future<String?> _uploadBytes({

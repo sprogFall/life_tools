@@ -14,6 +14,7 @@ import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_image.dart';
 import 'overcooked_recipe_edit_page.dart';
+import 'overcooked_image_viewer_page.dart';
 
 class OvercookedRecipeDetailPage extends StatefulWidget {
   final int recipeId;
@@ -81,6 +82,19 @@ class _OvercookedRecipeDetailPageState
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _openImageViewer({
+    required String? objectKey,
+    String title = '查看图片',
+  }) async {
+    final key = objectKey?.trim();
+    if (key == null || key.isEmpty) return;
+    await Navigator.of(context).push(
+      CupertinoPageRoute<void>(
+        builder: (_) => OvercookedImageViewerPage(objectKey: key, title: title),
+      ),
+    );
   }
 
   @override
@@ -174,10 +188,16 @@ class _OvercookedRecipeDetailPageState
       children: [
         SizedBox(
           height: 220,
-          child: OvercookedImageByKey(
-            objStoreService: objStore,
-            objectKey: recipe.coverImageKey,
-            borderRadius: 20,
+          child: GestureDetector(
+            onTap: () => _openImageViewer(
+              objectKey: recipe.coverImageKey,
+              title: recipe.name,
+            ),
+            child: OvercookedImageByKey(
+              objStoreService: objStore,
+              objectKey: recipe.coverImageKey,
+              borderRadius: 20,
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -249,10 +269,13 @@ class _OvercookedRecipeDetailPageState
                 final key = recipe.detailImageKeys[index];
                 return SizedBox(
                   width: 140,
-                  child: OvercookedImageByKey(
-                    objStoreService: objStore,
-                    objectKey: key,
-                    borderRadius: 18,
+                  child: GestureDetector(
+                    onTap: () => _openImageViewer(objectKey: key, title: '详细图片'),
+                    child: OvercookedImageByKey(
+                      objStoreService: objStore,
+                      objectKey: key,
+                      borderRadius: 18,
+                    ),
                   ),
                 );
               },

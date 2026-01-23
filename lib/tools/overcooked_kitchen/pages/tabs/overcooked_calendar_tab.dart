@@ -10,12 +10,14 @@ class OvercookedCalendarTab extends StatefulWidget {
   final DateTime month;
   final ValueChanged<DateTime> onMonthChanged;
   final ValueChanged<DateTime> onOpenDay;
+  final int refreshToken;
 
   const OvercookedCalendarTab({
     super.key,
     required this.month,
     required this.onMonthChanged,
     required this.onOpenDay,
+    this.refreshToken = 0,
   });
 
   @override
@@ -37,6 +39,10 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.month.year != widget.month.year ||
         oldWidget.month.month != widget.month.month) {
+      _load();
+      return;
+    }
+    if (oldWidget.refreshToken != widget.refreshToken) {
       _load();
     }
   }
@@ -195,6 +201,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
     return GestureDetector(
       onTap: () => widget.onOpenDay(date),
       child: Container(
+        key: ValueKey('overcooked_calendar_day_${OvercookedRepository.dayKey(date)}'),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(10),

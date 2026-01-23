@@ -9,6 +9,7 @@ import '../../../../core/theme/ios26_theme.dart';
 import '../../overcooked_constants.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
+import '../../services/overcooked_image_cache_service.dart';
 import '../recipe/overcooked_recipe_detail_page.dart';
 import '../recipe/overcooked_recipe_edit_page.dart';
 import '../../widgets/overcooked_image.dart';
@@ -209,6 +210,7 @@ class _RecipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final objStore = context.read<ObjStoreService>();
+    final cache = context.read<OvercookedImageCacheService>();
     final typeText = typeTagName?.trim();
     return GlassContainer(
       borderRadius: 18,
@@ -222,8 +224,9 @@ class _RecipeCard extends StatelessWidget {
             SizedBox(
               width: 72,
               height: 72,
-              child: OvercookedImageByKey(
+              child: OvercookedCachedImageByKey(
                 objStoreService: objStore,
+                cacheService: cache,
                 objectKey: recipe.coverImageKey,
                 borderRadius: 16,
               ),
