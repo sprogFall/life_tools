@@ -18,11 +18,13 @@ import '../../widgets/overcooked_tag_picker_sheet.dart';
 class OvercookedMealTab extends StatefulWidget {
   final DateTime date;
   final ValueChanged<DateTime> onDateChanged;
+  final VoidCallback? onMealsChanged;
 
   const OvercookedMealTab({
     super.key,
     required this.date,
     required this.onDateChanged,
+    this.onMealsChanged,
   });
 
   @override
@@ -333,6 +335,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       recipeIds: selected.toList(),
       now: DateTime.now(),
     );
+    widget.onMealsChanged?.call();
     await _refresh();
   }
 
@@ -373,6 +376,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
         mealTagId: tagId,
         now: DateTime.now(),
       );
+      widget.onMealsChanged?.call();
       await _refresh();
     } catch (e) {
       if (!mounted) return;
@@ -409,6 +413,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       recipeIds: selected.toList(),
       now: DateTime.now(),
     );
+    widget.onMealsChanged?.call();
     await _refresh();
   }
 
@@ -429,6 +434,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       recipeIds: wishes.map((e) => e.recipeId).toList(),
       now: DateTime.now(),
     );
+    widget.onMealsChanged?.call();
     await _refresh();
   }
 
@@ -471,6 +477,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       note: controller.text,
       now: DateTime.now(),
     );
+    widget.onMealsChanged?.call();
     await _refresh();
   }
 
@@ -485,6 +492,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
     if (!ok || !mounted) return;
 
     await context.read<OvercookedRepository>().deleteMeal(meal.id);
+    widget.onMealsChanged?.call();
     await _refresh();
   }
 

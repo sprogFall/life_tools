@@ -1,13 +1,17 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../overcooked_constants.dart';
 import '../repository/overcooked_repository.dart';
+import '../services/overcooked_image_cache_service.dart';
 import '../services/overcooked_reminder_service.dart';
 import 'tabs/overcooked_calendar_tab.dart';
 import 'tabs/overcooked_gacha_tab.dart';
@@ -31,6 +35,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
   DateTime _wishDate = DateTime.now();
   DateTime _mealDate = DateTime.now();
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  int _calendarRefreshToken = 0;
   DateTime _gachaTargetDate = DateTime.now();
 
   @override
@@ -57,8 +62,15 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Provider<OvercookedRepository>.value(
-      value: _repository,
+    return MultiProvider(
+      providers: [
+        Provider<OvercookedRepository>.value(value: _repository),
+        Provider<OvercookedImageCacheService>(
+          create: (_) => OvercookedImageCacheService(
+            baseDirProvider: _defaultOvercookedImageCacheBaseDir,
+          ),
+        ),
+      ],
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
         body: Stack(
@@ -170,9 +182,11 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
         OvercookedMealTab(
           date: _mealDate,
           onDateChanged: (d) => setState(() => _mealDate = d),
+          onMealsChanged: () => setState(() => _calendarRefreshToken++),
         ),
         OvercookedCalendarTab(
           month: _calendarMonth,
+          refreshToken: _calendarRefreshToken,
           onMonthChanged: (m) => setState(() => _calendarMonth = m),
           onOpenDay: (d) {
             setState(() {
@@ -216,4 +230,11 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
       ],
     );
   }
+}
+
+Future<Directory> _defaultOvercookedImageCacheBaseDir() async {
+  final base = await getTemporaryDirectory();
+  final dir = Directory(p.join(base.path, 'life_tools_cache'));
+  if (!dir.existsSync()) dir.createSync(recursive: true);
+  return dir;
 }
