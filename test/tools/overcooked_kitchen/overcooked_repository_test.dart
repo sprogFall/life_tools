@@ -119,7 +119,7 @@ void main() {
       expect(wishes.single.recipeId, recipeId);
     });
 
-    test('三餐记录：可用愿望单覆盖，并支持当天评价', () async {
+    test('三餐记录：餐次用标签区分，评价跟随餐次，并可用愿望单导入', () async {
       final now = DateTime(2026, 1, 2, 10);
       final a = await repository.createRecipe(
         OvercookedRecipe.create(
@@ -150,23 +150,70 @@ void main() {
         ),
       );
 
+      final c = await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '番茄炒蛋',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+
       final day = DateTime(2026, 1, 10, 12);
       await repository.addWish(date: day, recipeId: a, now: now);
       await repository.addWish(date: day, recipeId: b, now: now);
 
-      await repository.replaceMealWithWishes(date: day, now: now);
-      await repository.upsertMealNote(
-        date: day,
-        note: '好吃！',
-        mealSlot: 'mid_lunch',
+      final breakfastTagId = await tagRepository.createTagForToolCategory(
+        name: '早餐',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'meal_slot',
+        now: now,
+      );
+      final dinnerTagId = await tagRepository.createTagForToolCategory(
+        name: '晚餐',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'meal_slot',
         now: now,
       );
 
-      final meal = await repository.getMealForDate(day);
-      expect(meal, isNotNull);
-      expect(meal!.recipeIds, containsAll([a, b]));
-      expect(meal.note, '好吃！');
-      expect(meal.mealSlot, 'mid_lunch');
+      await repository.replaceMealWithWishes(
+        date: day,
+        mealTagId: dinnerTagId,
+        now: now,
+      );
+      await repository.upsertMealNote(
+        date: day,
+        mealTagId: dinnerTagId,
+        note: '晚餐好吃！',
+        now: now,
+      );
+
+      await repository.replaceMeal(
+        date: day,
+        mealTagId: breakfastTagId,
+        recipeIds: [c],
+        now: now,
+      );
+      await repository.upsertMealNote(
+        date: day,
+        mealTagId: breakfastTagId,
+        note: '早餐一般',
+        now: now,
+      );
+
+      final meals = await repository.listMealsForDate(day);
+      expect(meals.length, 2);
+      final byTag = {for (final m in meals) m.mealTagId: m};
+      expect(byTag[breakfastTagId]!.note, '早餐一般');
+      expect(byTag[breakfastTagId]!.recipeIds, [c]);
+      expect(byTag[dinnerTagId]!.note, '晚餐好吃！');
+      expect(byTag[dinnerTagId]!.recipeIds.toSet(), {a, b});
     });
 
     test('厨房日历：按“类型去重”的每日做菜量统计', () async {
@@ -228,7 +275,30 @@ void main() {
       );
 
       final day = DateTime(2026, 1, 10, 12);
-      await repository.replaceMeal(date: day, recipeIds: [a, b, c], now: now);
+      final breakfast = await tagRepository.createTagForToolCategory(
+        name: '早餐',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'meal_slot',
+        now: now,
+      );
+      final dinner = await tagRepository.createTagForToolCategory(
+        name: '晚餐',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'meal_slot',
+        now: now,
+      );
+      await repository.replaceMeal(
+        date: day,
+        mealTagId: breakfast,
+        recipeIds: [a, b],
+        now: now,
+      );
+      await repository.replaceMeal(
+        date: day,
+        mealTagId: dinner,
+        recipeIds: [c],
+        now: now,
+      );
 
       final stats = await repository.getMonthlyCookCountsByTypeDistinct(
         year: 2026,

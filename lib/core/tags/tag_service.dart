@@ -60,7 +60,11 @@ class TagService extends ChangeNotifier {
       final id = c.id.trim();
       final name = c.name.trim();
       if (id.isEmpty || name.isEmpty) continue;
-      if (seen.add(id)) next.add(TagCategory(id: id, name: name));
+      final rawHint = c.createHint?.trim();
+      final hint = (rawHint == null || rawHint.isEmpty) ? null : rawHint;
+      if (seen.add(id)) {
+        next.add(TagCategory(id: id, name: name, createHint: hint));
+      }
     }
     _categoriesByToolId[normalized] = next;
     notifyListeners();
@@ -220,6 +224,80 @@ class TagService extends ChangeNotifier {
     } catch (_) {
       // 保存失败时回滚到数据库状态，避免 UI 与数据不一致
       await refreshAll();
+    }
+  }
+
+  Future<void> reorderToolCategoryTags({
+    required String toolId,
+    required String categoryId,
+    required List<int> tagIds,
+  }) async {
+    final normalizedToolId = toolId.trim();
+    if (normalizedToolId.isEmpty) return;
+
+    final normalizedCategoryId = categoryId.trim().isEmpty
+        ? TagRepository.defaultCategoryId
+        : categoryId.trim();
+
+    final current = _tagsByToolId[normalizedToolId];
+    if (current == null || current.isEmpty) {
+      await _repository.reorderToolCategoryTags(
+        toolId: normalizedToolId,
+        categoryId: normalizedCategoryId,
+        tagIds: tagIds,
+      );
+      await refreshToolTags(normalizedToolId);
+      return;
+    }
+
+    final categoryItems = <int, TagInToolCategory>{};
+    final currentCategoryOrder = <int>[];
+    for (final item in current) {
+      if (item.categoryId != normalizedCategoryId) continue;
+      final id = item.tag.id;
+      if (id == null) continue;
+      categoryItems[id] = item;
+      currentCategoryOrder.add(id);
+    }
+
+    if (categoryItems.isEmpty) return;
+
+    final used = <int>{};
+    final normalizedIds = <int>[];
+    for (final id in tagIds) {
+      if (categoryItems.containsKey(id) && used.add(id)) {
+        normalizedIds.add(id);
+      }
+    }
+    for (final id in currentCategoryOrder) {
+      if (used.add(id)) normalizedIds.add(id);
+    }
+
+    final reordered = [for (final id in normalizedIds) categoryItems[id]!];
+
+    final iterator = reordered.iterator;
+    final next = <TagInToolCategory>[];
+    for (final item in current) {
+      if (item.categoryId == normalizedCategoryId && item.tag.id != null) {
+        if (iterator.moveNext()) {
+          next.add(iterator.current);
+        }
+      } else {
+        next.add(item);
+      }
+    }
+
+    _tagsByToolId[normalizedToolId] = next;
+    notifyListeners();
+
+    try {
+      await _repository.reorderToolCategoryTags(
+        toolId: normalizedToolId,
+        categoryId: normalizedCategoryId,
+        tagIds: normalizedIds,
+      );
+    } catch (_) {
+      await refreshToolTags(normalizedToolId);
     }
   }
 }

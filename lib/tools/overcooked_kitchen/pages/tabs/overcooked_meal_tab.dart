@@ -2,13 +2,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/tags/models/tag.dart';
+import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../models/overcooked_meal.dart';
 import '../../models/overcooked_recipe.dart';
+import '../../overcooked_constants.dart';
 import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_date_bar.dart';
 import '../../widgets/overcooked_recipe_picker_sheet.dart';
+import '../../widgets/overcooked_tag_picker_sheet.dart';
 
 class OvercookedMealTab extends StatefulWidget {
   final DateTime date;
@@ -25,14 +30,14 @@ class OvercookedMealTab extends StatefulWidget {
 }
 
 class _OvercookedMealTabState extends State<OvercookedMealTab> {
-  final _noteController = TextEditingController();
   bool _loading = false;
-  bool _saving = false;
-  String _mealSlot = '';
 
-  OvercookedMeal? _meal;
+  List<OvercookedMeal> _meals = const [];
   Map<int, OvercookedRecipe> _recipesById = const {};
+
   List<OvercookedRecipe> _allRecipes = const [];
+  List<Tag> _mealSlotTags = const [];
+  Map<int, Tag> _mealSlotTagsById = const {};
 
   @override
   void initState() {
@@ -49,31 +54,35 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
     }
   }
 
-  @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
   Future<void> _refresh() async {
     if (_loading) return;
     setState(() => _loading = true);
     try {
       final repo = context.read<OvercookedRepository>();
-      final meal = await repo.getMealForDate(widget.date);
-      final ids = meal?.recipeIds ?? const <int>[];
-      final recipes = await repo.listRecipesByIds(ids);
-      final allRecipes = await repo.listRecipes();
+      final tagService = context.read<TagService>();
+
+      final meals = await repo.listMealsForDate(widget.date);
+      final recipeIds = <int>{
+        for (final m in meals) ...m.recipeIds,
+      }.toList(growable: false);
+      final recipes = await repo.listRecipesByIds(recipeIds);
+
+      final mealSlotTags = await tagService.listTagsForToolCategory(
+        toolId: OvercookedConstants.toolId,
+        categoryId: OvercookedTagCategories.mealSlot,
+      );
 
       setState(() {
-        _meal = meal;
+        _meals = meals;
         _recipesById = {
           for (final r in recipes)
             if (r.id != null) r.id!: r,
         };
-        _allRecipes = allRecipes;
-        _noteController.text = meal?.note ?? '';
-        _mealSlot = meal?.mealSlot ?? '';
+        _mealSlotTags = mealSlotTags;
+        _mealSlotTagsById = {
+          for (final t in mealSlotTags)
+            if (t.id != null) t.id!: t,
+        };
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -82,16 +91,13 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
   @override
   Widget build(BuildContext context) {
-    final meal = _meal;
-    final recipeIds = meal?.recipeIds ?? const <int>[];
-    final slotLabel = _mealSlotLabel(_mealSlot);
-    final recipes = recipeIds
+    final cookedRecipes = _meals
+        .expand((m) => m.recipeIds)
         .map((id) => _recipesById[id])
         .whereType<OvercookedRecipe>()
         .toList();
-
     final distinctTypeCount = {
-      for (final r in recipes)
+      for (final r in cookedRecipes)
         (r.typeTagId == null ? 'r:${r.id}' : 't:${r.typeTagId}'): true,
     }.length;
 
@@ -119,9 +125,9 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 ),
                 color: IOS26Theme.primaryColor,
                 borderRadius: BorderRadius.circular(14),
-                onPressed: _loading ? null : _editMealRecipes,
+                onPressed: _loading ? null : _addMealFlow,
                 child: const Text(
-                  '选择菜谱',
+                  '新增餐次',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -142,58 +148,12 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
             onPick: () => _pickDate(initial: widget.date),
           ),
           const SizedBox(height: 12),
-          const Text(
-            '餐次标记',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: IOS26Theme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
           GlassContainer(
             borderRadius: 18,
-            padding: const EdgeInsets.all(10),
-            child: CupertinoSlidingSegmentedControl<String>(
-              groupValue: _mealSlot,
-              thumbColor: IOS26Theme.primaryColor.withValues(alpha: 0.16),
-              backgroundColor: IOS26Theme.surfaceColor.withValues(alpha: 0.0),
-              children: const {
-                '': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Text(
-                    '不标记',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                'mid_lunch': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Text(
-                    '中班午餐',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                'mid_dinner': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Text(
-                    '中班晚餐',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              },
-              onValueChanged: (v) {
-                if (_saving) return;
-                setState(() => _mealSlot = v ?? '');
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: GlassContainer(
-                  borderRadius: 18,
-                  padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -214,70 +174,46 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                           color: IOS26Theme.textPrimary,
                         ),
                       ),
-                      if (slotLabel != null) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: IOS26Theme.toolPurple.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: IOS26Theme.toolPurple.withValues(
-                                alpha: 0.25,
-                              ),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            slotLabel,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: IOS26Theme.toolPurple,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(14),
-                onPressed: _loading ? null : _replaceWithWishes,
-                child: const Text(
-                  '用愿望单覆盖',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: IOS26Theme.textPrimary,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '餐次 ${_meals.length}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: IOS26Theme.toolPurple,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 14),
-          if (_loading && meal == null)
+          if (_loading && _meals.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 36),
               child: Center(child: CircularProgressIndicator()),
             )
-          else if (recipeIds.isEmpty)
+          else if (_meals.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 24),
+              padding: const EdgeInsets.only(top: 28),
               child: Center(
                 child: Text(
-                  '今天还没记录做了什么，点“选择菜谱”添加',
+                  '今天还没记录，点右上角「新增餐次」开始',
                   style: TextStyle(
                     fontSize: 15,
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
@@ -286,68 +222,99 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
               ),
             )
           else
-            ...recipeIds.map((id) {
-              final name = _recipesById[id]?.name ?? '（菜谱已删除）';
-              return GlassContainer(
-                borderRadius: 18,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                margin: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                ),
-              );
-            }),
-          const SizedBox(height: 14),
-          const Text(
-            '当天评价',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: IOS26Theme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          CupertinoTextField(
-            controller: _noteController,
-            placeholder: '如：超下饭 / 太咸了下次少放盐…',
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 10),
-          CupertinoButton(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            color: IOS26Theme.primaryColor,
-            borderRadius: BorderRadius.circular(14),
-            onPressed: _saving ? null : _saveNote,
-            child: Text(
-              _saving ? '保存中…' : '保存评价',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
+            for (final meal in _meals)
+              _MealCard(
+                meal: meal,
+                tagName: _mealSlotTagsById[meal.mealTagId]?.name,
+                recipes: meal.recipeIds
+                    .map((id) => _recipesById[id])
+                    .whereType<OvercookedRecipe>()
+                    .toList(),
+                missingRecipeCount:
+                    meal.recipeIds.where((id) => !_recipesById.containsKey(id)).length,
+                onPickMealTag: _loading
+                    ? null
+                    : () => _pickMealTagForMeal(meal),
+                onPickRecipes: _loading
+                    ? null
+                    : () => _pickRecipesForMeal(meal),
+                onImportWishes: _loading
+                    ? null
+                    : () => _importWishesToMeal(meal),
+                onEditNote: _loading ? null : () => _editNoteForMeal(meal),
+                onDelete: _loading ? null : () => _deleteMeal(meal),
               ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Future<void> _replaceWithWishes() async {
+  Future<List<OvercookedRecipe>> _loadLatestRecipes() async {
     final repo = context.read<OvercookedRepository>();
-    await repo.replaceMealWithWishes(date: widget.date, now: DateTime.now());
-    await _refresh();
+    final latest = await repo.listRecipes();
+    if (!mounted) return latest;
+    setState(() => _allRecipes = latest);
+    return latest;
   }
 
-  Future<void> _editMealRecipes() async {
-    if (_allRecipes.isEmpty) {
+  Future<void> _addMealFlow() async {
+    if (_mealSlotTags.isEmpty) {
+      final go = await showCupertinoDialog<bool>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('还没有“餐次”标签'),
+          content: const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('请先到「标签管理 -> 胡闹厨房 -> 餐次」创建，例如：早餐/午餐/晚餐。'),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('去创建'),
+            ),
+          ],
+        ),
+      );
+      if (go == true && mounted) {
+        await Navigator.of(context).push(
+          CupertinoPageRoute<void>(
+            builder: (_) =>
+                const TagManagerToolPage(initialToolId: OvercookedConstants.toolId),
+          ),
+        );
+        if (!mounted) return;
+        await _refresh();
+      }
+      return;
+    }
+
+    final picked = await OvercookedTagPickerSheet.show(
+      context,
+      title: '选择餐次',
+      tags: _mealSlotTags,
+      selectedIds: const {},
+      multi: false,
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final tagId = picked.first;
+
+    final existed = _meals.any((m) => m.mealTagId == tagId);
+    if (existed) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '已存在',
+        content: '该餐次今天已创建，可在下方直接编辑。',
+      );
+      return;
+    }
+
+    final latest = await _loadLatestRecipes();
+    if (!mounted) return;
+    if (latest.isEmpty) {
       await OvercookedDialogs.showMessage(
         context,
         title: '提示',
@@ -356,57 +323,173 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       return;
     }
 
-    final current = (_meal?.recipeIds ?? const <int>[]).toSet();
     final selected = await OvercookedRecipePickerSheet.show(
       context,
-      title: '选择今日做了什么菜',
-      recipes: _allRecipes,
-      selectedRecipeIds: current,
+      title: '选择该餐次做了什么菜',
+      recipes: latest,
+      selectedRecipeIds: const {},
     );
-    if (selected == null) return;
-    if (!mounted) return;
+    if (selected == null || !mounted) return;
 
     await context.read<OvercookedRepository>().replaceMeal(
       date: widget.date,
+      mealTagId: tagId,
       recipeIds: selected.toList(),
-      mealSlot: _mealSlot,
       now: DateTime.now(),
     );
     await _refresh();
   }
 
-  Future<void> _saveNote() async {
-    setState(() => _saving = true);
+  Future<void> _pickMealTagForMeal(OvercookedMeal meal) async {
+    if (_mealSlotTags.isEmpty) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '暂无可用餐次标签',
+        content: '请先到「标签管理 -> 胡闹厨房 -> 餐次」创建标签。',
+      );
+      return;
+    }
+
+    final current = meal.mealTagId == null ? const <int>{} : {meal.mealTagId!};
+    final picked = await OvercookedTagPickerSheet.show(
+      context,
+      title: '修改餐次',
+      tags: _mealSlotTags,
+      selectedIds: current,
+      multi: false,
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    final tagId = picked.first;
+
+    final existed = _meals.any((m) => m.id != meal.id && m.mealTagId == tagId);
+    if (existed) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '已存在',
+        content: '该餐次今天已创建，请选择其它标签。',
+      );
+      return;
+    }
+
     try {
-      await context.read<OvercookedRepository>().upsertMealNote(
-        date: widget.date,
-        note: _noteController.text,
-        mealSlot: _mealSlot,
+      await context.read<OvercookedRepository>().updateMealTag(
+        mealId: meal.id,
+        mealTagId: tagId,
         now: DateTime.now(),
       );
+      await _refresh();
     } catch (e) {
       if (!mounted) return;
       await OvercookedDialogs.showMessage(
         context,
-        title: '保存失败',
+        title: '修改失败',
         content: e.toString(),
       );
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 
-  static String? _mealSlotLabel(String slot) {
-    final s = slot.trim();
-    if (s.isEmpty) return null;
-    switch (s) {
-      case 'mid_lunch':
-        return '中班午餐';
-      case 'mid_dinner':
-        return '中班晚餐';
-      default:
-        return s;
+  Future<void> _pickRecipesForMeal(OvercookedMeal meal) async {
+    final latest = await _loadLatestRecipes();
+    if (!mounted) return;
+    if (latest.isEmpty) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '提示',
+        content: '暂无菜谱，请先去“菜谱”创建。',
+      );
+      return;
     }
+
+    final selected = await OvercookedRecipePickerSheet.show(
+      context,
+      title: '选择该餐次做了什么菜',
+      recipes: latest,
+      selectedRecipeIds: meal.recipeIds.toSet(),
+    );
+    if (selected == null || !mounted) return;
+
+    await context.read<OvercookedRepository>().replaceMealItems(
+      mealId: meal.id,
+      recipeIds: selected.toList(),
+      now: DateTime.now(),
+    );
+    await _refresh();
+  }
+
+  Future<void> _importWishesToMeal(OvercookedMeal meal) async {
+    final ok = await OvercookedDialogs.confirm(
+      context,
+      title: '确认覆盖',
+      content: '将用愿望单覆盖该餐次的菜谱选择，当前餐次已选菜谱会被清空。',
+      confirmText: '覆盖',
+      isDestructive: true,
+    );
+    if (!ok || !mounted) return;
+
+    final repo = context.read<OvercookedRepository>();
+    final wishes = await repo.listWishesForDate(widget.date);
+    await repo.replaceMealItems(
+      mealId: meal.id,
+      recipeIds: wishes.map((e) => e.recipeId).toList(),
+      now: DateTime.now(),
+    );
+    await _refresh();
+  }
+
+  Future<void> _editNoteForMeal(OvercookedMeal meal) async {
+    final controller = TextEditingController(text: meal.note);
+
+    final ok = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('餐次评价'),
+        content: Column(
+          children: [
+            const SizedBox(height: 12),
+            const Align(alignment: Alignment.centerLeft, child: Text('评价内容')),
+            const SizedBox(height: 8),
+            CupertinoTextField(
+              controller: controller,
+              placeholder: '如：超下饭 / 太咸了下次少放盐…',
+              maxLines: 3,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    await context.read<OvercookedRepository>().updateMealNote(
+      mealId: meal.id,
+      note: controller.text,
+      now: DateTime.now(),
+    );
+    await _refresh();
+  }
+
+  Future<void> _deleteMeal(OvercookedMeal meal) async {
+    final ok = await OvercookedDialogs.confirm(
+      context,
+      title: '确认删除',
+      content: '确认删除该餐次记录？该餐次下的菜谱选择与评价会同时删除。',
+      confirmText: '删除',
+      isDestructive: true,
+    );
+    if (!ok || !mounted) return;
+
+    await context.read<OvercookedRepository>().deleteMeal(meal.id);
+    await _refresh();
   }
 
   Future<void> _pickDate({required DateTime initial}) async {
@@ -449,6 +532,203 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
           ),
         );
       },
+    );
+  }
+}
+
+class _MealCard extends StatelessWidget {
+  final OvercookedMeal meal;
+  final String? tagName;
+  final List<OvercookedRecipe> recipes;
+  final int missingRecipeCount;
+
+  final VoidCallback? onPickMealTag;
+  final VoidCallback? onPickRecipes;
+  final VoidCallback? onImportWishes;
+  final VoidCallback? onEditNote;
+  final VoidCallback? onDelete;
+
+  const _MealCard({
+    required this.meal,
+    required this.tagName,
+    required this.recipes,
+    required this.missingRecipeCount,
+    required this.onPickMealTag,
+    required this.onPickRecipes,
+    required this.onImportWishes,
+    required this.onEditNote,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = tagName?.trim().isNotEmpty == true
+        ? tagName!.trim()
+        : (meal.mealTagId == null ? '未标记' : '（标签已删除）');
+
+    final recipeNames = [
+      for (final r in recipes) r.name,
+      for (int i = 0; i < missingRecipeCount; i++) '（菜谱已删除）',
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassContainer(
+        borderRadius: 18,
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  color: IOS26Theme.primaryColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                  onPressed: onPickMealTag,
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: IOS26Theme.primaryColor,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                _iconButton(
+                  label: '选择菜谱',
+                  icon: CupertinoIcons.list_bullet,
+                  onPressed: onPickRecipes,
+                ),
+                const SizedBox(width: 8),
+                _iconButton(
+                  label: '用愿望单覆盖',
+                  icon: CupertinoIcons.heart,
+                  onPressed: onImportWishes,
+                ),
+                const SizedBox(width: 8),
+                _iconButton(
+                  label: '删除餐次',
+                  icon: CupertinoIcons.trash,
+                  iconColor: IOS26Theme.toolRed,
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '做了什么菜',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: IOS26Theme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (recipeNames.isEmpty)
+              Text(
+                '还没选择菜谱，点右上角「选择菜谱」添加',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                ),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final name in recipeNames) _recipeChip(name),
+                ],
+              ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text(
+                  '评价',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: IOS26Theme.textSecondary,
+                  ),
+                ),
+                const Spacer(),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: onEditNote,
+                  child: const Text(
+                    '编辑',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: IOS26Theme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              meal.note.trim().isEmpty ? '（暂无评价）' : meal.note.trim(),
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.35,
+                color: meal.note.trim().isEmpty
+                    ? IOS26Theme.textSecondary.withValues(alpha: 0.85)
+                    : IOS26Theme.textPrimary,
+                fontWeight:
+                    meal.note.trim().isEmpty ? FontWeight.w600 : FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _recipeChip(String text) {
+    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
+    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: IOS26Theme.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _iconButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    Color iconColor = IOS26Theme.textSecondary,
+  }) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        onPressed: onPressed,
+        color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(14),
+        child: Icon(icon, size: 18, color: iconColor),
+      ),
     );
   }
 }

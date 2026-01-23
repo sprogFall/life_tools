@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:life_tools/core/tags/models/tag_category.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/tools/tag_manager/pages/tag_manager_tool_page.dart';
@@ -67,7 +68,7 @@ void main() {
       fail('等待组件消失超时: $finder');
     }
 
-    testWidgets('支持按关联工具筛选标签', (tester) async {
+    testWidgets('支持按工具分类查看标签（不再提供“全部”入口）', (tester) async {
       final deps = await createTagService(tester);
       await tester.runAsync(() async {
         await deps.repository.createTag(
@@ -90,12 +91,8 @@ void main() {
       await tester.pumpWidget(wrap(deps.service, const TagManagerToolPage()));
       await pumpUntilFound(tester, find.text('紧急'));
 
-      expect(find.text('紧急'), findsOneWidget);
-      expect(find.text('采购'), findsOneWidget);
-      expect(find.text('复盘'), findsOneWidget);
-
-      await tester.tap(find.byKey(const ValueKey('tag-filter-work_log')));
-      await tester.pump();
+      // 默认应选中首个工具（work_log），且不应再出现“全部”
+      expect(find.text('全部'), findsNothing);
 
       // 工具视图应切换为“类别列表”，默认至少包含“默认”类别
       expect(find.text('默认'), findsOneWidget);
@@ -210,6 +207,34 @@ void main() {
         fail('等待删除完成超时: tagId=$id');
       });
       await pumpUntilNotFound(tester, find.byKey(ValueKey('tag-item-$id')));
+    });
+
+    testWidgets('新增标签弹窗的 placeholder 可由分类注册方提供', (tester) async {
+      final deps = await createTagService(tester);
+      deps.service.registerToolTagCategories('work_log', const [
+        TagCategory(id: 'priority', name: '优先级', createHint: '紧急/重要'),
+      ]);
+      await tester.runAsync(() async {
+        // 预置一条标签并提前刷新缓存，避免 TagManagerToolPage 在测试结束后仍发起异步查询。
+        await deps.repository.createTag(name: '占位', toolIds: const ['work_log']);
+        await deps.service.refreshAll();
+        await deps.service.refreshToolTags('work_log');
+      });
+
+      await tester.pumpWidget(
+        wrap(deps.service, const TagManagerToolPage(initialToolId: 'work_log')),
+      );
+      await pumpUntilFound(tester, find.text('优先级'));
+
+      await tester.tap(
+        find.byKey(const ValueKey('tag-category-add-work_log-priority')),
+      );
+      await tester.pump();
+
+      final field = tester.widget<CupertinoTextField>(
+        find.byType(CupertinoTextField),
+      );
+      expect(field.placeholder, '如：紧急/重要');
     });
   });
 }

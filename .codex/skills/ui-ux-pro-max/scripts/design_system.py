@@ -419,7 +419,8 @@ def format_markdown(design_system: dict) -> str:
     # Anti-patterns section
     if anti_patterns:
         lines.append("### Avoid (Anti-patterns)")
-        lines.append(f"- {anti_patterns.replace(' + ', '\n- ')}")
+        bullet_prefix = "\n- "
+        lines.append(f"- {anti_patterns.replace(' + ', bullet_prefix)}")
         lines.append("")
 
     return "\n".join(lines)
