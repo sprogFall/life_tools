@@ -43,6 +43,8 @@ final String key = uploaded.key;
 - 能读到本地文件就直接返回 `File`
 - 否则自动去拿下载 URL 并下载到缓存目录，再返回 `File`
 
+注意：当「资源存储」未配置、资源已被清理、或网络下载失败时，`ensureCachedFile(...)` / `resolveUri(...)` 可能抛异常。UI 层建议用 `catchError` 做兜底，避免 `FutureBuilder` 进入 error 状态导致空白。
+
 ```dart
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -54,7 +56,7 @@ final String key = 'media/xxxx.png';
 
 Widget buildImage() {
   return FutureBuilder<File?>(
-    future: objStore.ensureCachedFile(key: key),
+    future: objStore.ensureCachedFile(key: key).catchError((_) => null),
     builder: (context, snapshot) {
       final file = snapshot.data;
       if (file != null && file.existsSync()) {
@@ -62,7 +64,7 @@ Widget buildImage() {
       }
       // 磁盘缓存不可用/下载失败时，兜底用 URL（调用方无需判断本地/七牛）
       return FutureBuilder<String>(
-        future: objStore.resolveUri(key: key),
+        future: objStore.resolveUri(key: key).catchError((_) => ''),
         builder: (context, snap) {
           final url = snap.data;
           if (url == null || url.trim().isEmpty) return const SizedBox();
@@ -73,6 +75,8 @@ Widget buildImage() {
   );
 }
 ```
+
+## 2.1) 只需要一个可用 URI（key -> file:// 或 http(s)://）
 
 ```dart
 import 'package:provider/provider.dart';
@@ -133,7 +137,7 @@ try {
    - 若只是“选图上传”，移动端优先使用 `image_picker`（系统照片选择器）读取 bytes 再上传，避免产生可被相册扫描的临时落盘文件
    - 规范做法：
      - 选择完成并读取后调用 `FilePicker.platform.clearTemporaryFiles()`
-     - 若需要“暂存到本地以便预览/稍后上传”，优先使用 `stageFileToPendingUploadDir(...)`（见 `lib/core/utils/pending_upload_file.dart`），它会把文件复制到应用临时目录并写入 `.nomedia`，上传完成后再删除暂存文件
+     - 若需要“暂存到本地以便预览/稍后上传”，优先使用 `stageFileToPendingUploadDir(...)`（见 `lib/core/utils/pending_upload_file.dart`），它会把文件复制到应用临时目录并写入 `.nomedia`；上传完成后**请自行删除**暂存文件
      - 若你需要自定义清理逻辑，请复用：
        - `shouldCleanupPickedFilePath(...)`（`lib/core/utils/picked_file_cleanup.dart`）：判断该路径是否属于可安全删除的临时复制文件
        - `ensureNoMediaFileInDir(...)`（`lib/core/utils/no_media.dart`）：在目录内写入 `.nomedia`，阻止媒体库扫描

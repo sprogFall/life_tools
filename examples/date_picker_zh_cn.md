@@ -146,7 +146,11 @@ void _showDateTimePicker(BuildContext context) {
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import '../test_helpers/test_app_wrapper.dart';
+
+// TestAppWrapper 位于 test/test_helpers/test_app_wrapper.dart，请按需调整相对路径：
+// - test/widget_test.dart: import 'test_helpers/test_app_wrapper.dart';
+// - test/core/**: import '../../test_helpers/test_app_wrapper.dart';
+import 'test_helpers/test_app_wrapper.dart';
 
 testWidgets('日期选择器应显示中文', (tester) async {
   await tester.pumpWidget(

@@ -23,6 +23,8 @@ await messageService.upsertMessage(
 );
 ```
 
+说明：`notify: true` 仅在 Android/iOS（`LocalNotificationService` 已注入且已申请通知权限）时生效；桌面/Web 平台会自动忽略，不会报错。
+
 ## 2) 工具主动消除消息（例如：物品已消耗完）
 
 ```dart
@@ -58,4 +60,3 @@ await messageService.markMessageRead(1); // 通过消息 id 标记已读
 - `route: null`：默认使用 `toolId` 跳转
 
 后续如需支持“跳到工具内更深的页面”，可以在此基础上扩展路由格式。
-

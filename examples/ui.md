@@ -21,6 +21,33 @@
 - `IOS26Theme.toolPurple` - 工具紫（#5856D6）
 - `IOS26Theme.toolPink` - 工具粉（#FF2D55）
 
+## 可复用组件（优先复用，避免重复造轮子）
+
+- `IOS26AppBar`：iOS 26 毛玻璃导航栏（支持返回按钮 / actions）
+- `GlassContainer`：毛玻璃卡片容器
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:life_tools/core/theme/ios26_theme.dart';
+
+class DemoPage extends StatelessWidget {
+  const DemoPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Column(
+        children: [
+          IOS26AppBar(title: '标题', showBackButton: true),
+          SizedBox(height: 12),
+          GlassContainer(child: Text('内容')),
+        ],
+      ),
+    );
+  }
+}
+```
+
 ## 按钮颜色使用规范
 
 **主要操作按钮（Primary）：**
