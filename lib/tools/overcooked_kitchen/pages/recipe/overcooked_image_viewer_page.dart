@@ -29,6 +29,7 @@ class OvercookedImageViewerPage extends StatefulWidget {
 class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
   late PageController _pageController;
   late int _currentIndex;
+  bool _isZoomed = false;
 
   @override
   void initState() {
@@ -41,6 +42,12 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _onZoomChanged(bool zoomed) {
+    if (_isZoomed != zoomed) {
+      setState(() => _isZoomed = zoomed);
+    }
   }
 
   @override
@@ -65,6 +72,7 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
       ),
       body: PageView.builder(
         controller: _pageController,
+        physics: _isZoomed ? const NeverScrollableScrollPhysics() : null,
         itemCount: widget.objectKeys.length,
         onPageChanged: (index) => setState(() => _currentIndex = index),
         itemBuilder: (context, index) {
@@ -74,8 +82,13 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
                   objectKey: key,
                   objStore: objStore,
                   cacheService: cacheService,
+                  onZoomChanged: _onZoomChanged,
                 )
-              : _NetworkImageView(objectKey: key, objStore: objStore);
+              : _NetworkImageView(
+                  objectKey: key,
+                  objStore: objStore,
+                  onZoomChanged: _onZoomChanged,
+                );
         },
       ),
     );
@@ -86,11 +99,13 @@ class _CachedImageView extends StatelessWidget {
   final String objectKey;
   final ObjStoreService objStore;
   final OvercookedImageCacheService cacheService;
+  final ValueChanged<bool> onZoomChanged;
 
   const _CachedImageView({
     required this.objectKey,
     required this.objStore,
     required this.cacheService,
+    required this.onZoomChanged,
   });
 
   @override
@@ -120,10 +135,9 @@ class _CachedImageView extends StatelessWidget {
                 Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
           );
         }
-        return InteractiveViewer(
-          minScale: 1,
-          maxScale: 6,
-          child: Center(child: Image.file(f, fit: BoxFit.contain)),
+        return _ZoomableImage(
+          onZoomChanged: onZoomChanged,
+          child: Image.file(f, fit: BoxFit.contain),
         );
       },
     );
@@ -133,10 +147,12 @@ class _CachedImageView extends StatelessWidget {
 class _NetworkImageView extends StatelessWidget {
   final String objectKey;
   final ObjStoreService objStore;
+  final ValueChanged<bool> onZoomChanged;
 
   const _NetworkImageView({
     required this.objectKey,
     required this.objStore,
+    required this.onZoomChanged,
   });
 
   @override
@@ -192,12 +208,50 @@ class _NetworkImageView extends StatelessWidget {
                 },
               );
 
-        return InteractiveViewer(
-          minScale: 1,
-          maxScale: 6,
-          child: Center(child: image),
-        );
+        return _ZoomableImage(onZoomChanged: onZoomChanged, child: image);
       },
+    );
+  }
+}
+
+class _ZoomableImage extends StatefulWidget {
+  final Widget child;
+  final ValueChanged<bool> onZoomChanged;
+
+  const _ZoomableImage({required this.child, required this.onZoomChanged});
+
+  @override
+  State<_ZoomableImage> createState() => _ZoomableImageState();
+}
+
+class _ZoomableImageState extends State<_ZoomableImage> {
+  final _controller = TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onTransformChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTransformChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTransformChanged() {
+    final scale = _controller.value.getMaxScaleOnAxis();
+    widget.onZoomChanged(scale > 1.01);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InteractiveViewer(
+      transformationController: _controller,
+      minScale: 1,
+      maxScale: 6,
+      child: Center(child: widget.child),
     );
   }
 }
