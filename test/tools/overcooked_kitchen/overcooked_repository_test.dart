@@ -306,7 +306,7 @@ void main() {
       );
 
       final key = OvercookedRepository.dayKey(day);
-      expect(stats[key], 2);
+      expect(stats[key], 3); // a, b, c 三个菜谱
     });
   });
 }

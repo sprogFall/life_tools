@@ -125,7 +125,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '热力图（按“类型去重”的每日做菜量）',
+                '热力图（按"菜谱去重"的每日做菜量）',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,

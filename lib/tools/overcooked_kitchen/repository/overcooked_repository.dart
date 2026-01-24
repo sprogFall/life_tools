@@ -554,23 +554,20 @@ ORDER BY m.sort_index ASC, m.created_at ASC, m.id ASC,
     final db = await _database;
     final rows = await db.rawQuery(
       '''
-SELECT m.day_key AS day_key, mi.recipe_id AS recipe_id, r.type_tag_id AS type_tag_id
+SELECT m.day_key AS day_key, mi.recipe_id AS recipe_id
 FROM overcooked_meal_items mi
 INNER JOIN overcooked_meals m ON m.id = mi.meal_id
-INNER JOIN overcooked_recipes r ON r.id = mi.recipe_id
 WHERE m.day_key >= ? AND m.day_key <= ?
 ORDER BY m.day_key ASC
 ''',
       [startKey, endKey],
     );
 
-    final byDay = <int, Set<String>>{};
+    final byDay = <int, Set<int>>{};
     for (final row in rows) {
       final key = row['day_key'] as int;
-      final typeTagId = row['type_tag_id'] as int?;
       final recipeId = row['recipe_id'] as int;
-      final dedupeKey = typeTagId == null ? 'r:$recipeId' : 't:$typeTagId';
-      (byDay[key] ??= <String>{}).add(dedupeKey);
+      (byDay[key] ??= <int>{}).add(recipeId);
     }
 
     final result = <int, int>{};
