@@ -33,119 +33,103 @@ class OvercookedImageViewerPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(title: title, showBackButton: true),
-      body: FutureBuilder<String>(
-        future: objStore.resolveUri(key: key),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            if (snapshot.error is ObjStoreNotConfiguredException) {
-              return const Center(
-                child: Text(
-                  '未配置资源存储',
-                  style: TextStyle(color: IOS26Theme.textSecondary),
-                ),
-              );
-            }
-            return const Center(
-              child: Text(
-                '图片加载失败',
-                style: TextStyle(color: IOS26Theme.textSecondary),
-              ),
-            );
-          }
-          final uriText = snapshot.data?.trim();
-          if (uriText == null || uriText.isEmpty) {
-            return const Center(
-              child: Text(
-                '图片不存在',
-                style: TextStyle(color: IOS26Theme.textSecondary),
-              ),
-            );
-          }
+      body: !kIsWeb && cacheService != null
+          ? _buildCachedImage(key, objStore, cacheService)
+          : _buildNetworkImage(key, objStore),
+    );
+  }
 
-          if (!kIsWeb && cacheService != null) {
-            return FutureBuilder<File?>(
-              future: cacheService.ensureCached(
-                key: key,
-                resolveUri: () async => uriText,
-              ),
-              builder: (context, fileSnapshot) {
-                if (fileSnapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (fileSnapshot.hasError) {
-                  if (fileSnapshot.error is ObjStoreNotConfiguredException) {
-                    return const Center(
-                      child: Text(
-                        '未配置资源存储',
-                        style: TextStyle(color: IOS26Theme.textSecondary),
-                      ),
-                    );
-                  }
-                  return const Center(
-                    child: Text(
-                      '鍥剧墖鍔犺浇澶辫触',
-                      style: TextStyle(color: IOS26Theme.textSecondary),
-                    ),
-                  );
-                }
-                final f = fileSnapshot.data;
-                if (f == null || !f.existsSync()) {
-                  return const Center(
-                    child: Text(
-                      '图片不存在',
-                      style: TextStyle(color: IOS26Theme.textSecondary),
-                    ),
-                  );
-                }
-                return InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 6,
-                  child: Center(child: Image.file(f, fit: BoxFit.contain)),
-                );
-              },
-            );
-          }
-
-          final uri = Uri.tryParse(uriText);
-          final image = !kIsWeb && uri != null && uri.scheme == 'file'
-              ? Image.file(File.fromUri(uri), fit: BoxFit.contain)
-              : Image.network(
-                  uriText,
-                  fit: BoxFit.contain,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    final value = progress.expectedTotalBytes == null
-                        ? null
-                        : progress.cumulativeBytesLoaded /
-                              progress.expectedTotalBytes!;
-                    return Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(value: value),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Text(
-                        '图片加载失败',
-                        style: TextStyle(color: IOS26Theme.textSecondary),
-                      ),
-                    );
-                  },
-                );
-
-          return InteractiveViewer(
-            minScale: 1,
-            maxScale: 6,
-            child: Center(child: image),
-          );
-        },
+  Widget _buildCachedImage(
+    String key,
+    ObjStoreService objStore,
+    OvercookedImageCacheService cacheService,
+  ) {
+    return FutureBuilder<File?>(
+      future: cacheService.ensureCached(
+        key: key,
+        resolveUri: () => objStore.resolveUri(key: key),
       ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          final errMsg = snapshot.error is ObjStoreNotConfiguredException
+              ? '未配置资源存储'
+              : '图片加载失败';
+          return Center(
+            child: Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
+          );
+        }
+        final f = snapshot.data;
+        if (f == null || !f.existsSync()) {
+          return const Center(
+            child: Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
+          );
+        }
+        return InteractiveViewer(
+          minScale: 1,
+          maxScale: 6,
+          child: Center(child: Image.file(f, fit: BoxFit.contain)),
+        );
+      },
+    );
+  }
+
+  Widget _buildNetworkImage(String key, ObjStoreService objStore) {
+    return FutureBuilder<String>(
+      future: objStore.resolveUri(key: key),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          final errMsg = snapshot.error is ObjStoreNotConfiguredException
+              ? '未配置资源存储'
+              : '图片加载失败';
+          return Center(
+            child: Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
+          );
+        }
+        final uriText = snapshot.data?.trim();
+        if (uriText == null || uriText.isEmpty) {
+          return const Center(
+            child: Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
+          );
+        }
+
+        final uri = Uri.tryParse(uriText);
+        final image = !kIsWeb && uri != null && uri.scheme == 'file'
+            ? Image.file(File.fromUri(uri), fit: BoxFit.contain)
+            : Image.network(
+                uriText,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  final value = progress.expectedTotalBytes == null
+                      ? null
+                      : progress.cumulativeBytesLoaded / progress.expectedTotalBytes!;
+                  return Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(value: value),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Text('图片加载失败', style: TextStyle(color: IOS26Theme.textSecondary)),
+                  );
+                },
+              );
+
+        return InteractiveViewer(
+          minScale: 1,
+          maxScale: 6,
+          child: Center(child: image),
+        );
+      },
     );
   }
 }
