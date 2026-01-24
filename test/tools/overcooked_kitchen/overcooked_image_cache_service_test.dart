@@ -44,6 +44,10 @@ void main() {
         resolveUri: () async => 'https://example.com/a.png',
       );
       expect(f1, isNotNull);
+      expect(
+        File('${tmp.path}/overcooked_image_cache/.nomedia').existsSync(),
+        isTrue,
+      );
       expect(client.count, 1);
 
       final f2 = await cache.ensureCached(

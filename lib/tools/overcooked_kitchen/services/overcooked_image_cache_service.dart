@@ -5,6 +5,8 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
+import '../../../core/utils/no_media.dart';
+
 typedef OvercookedCacheBaseDirProvider = Future<Directory> Function();
 
 class OvercookedImageCacheService {
@@ -85,6 +87,7 @@ class OvercookedImageCacheService {
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
+    await ensureNoMediaFileInDir(dir.path);
 
     final ext = _normalizeExt(p.extension(key));
     final digest = sha1.convert(utf8.encode(key)).toString();
@@ -98,4 +101,3 @@ class OvercookedImageCacheService {
     return '.$ext';
   }
 }
-

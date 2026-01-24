@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 
 import '../obj_store_key.dart';
+import '../../utils/no_media.dart';
 
 typedef BaseDirProvider = Future<Directory> Function();
 
@@ -22,6 +23,7 @@ class LocalObjStore {
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
+    await ensureNoMediaFileInDir(dir.path);
 
     final fileName = ObjStoreKey.generate(filename: filename);
     final file = File(p.join(dir.path, fileName));

@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/obj_store/obj_store_errors.dart';
@@ -14,9 +15,6 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
-import '../../../../core/utils/no_media.dart';
-import '../../../../core/utils/pending_upload_file.dart';
-import '../../../../core/utils/picked_file_cleanup.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../overcooked_constants.dart';
@@ -28,10 +26,9 @@ import '../../widgets/overcooked_tag_picker_sheet.dart';
 
 class _PendingImage {
   final String filename;
-  final String? path;
-  final Uint8List? bytes;
+  final Uint8List bytes;
 
-  const _PendingImage({required this.filename, this.path, this.bytes});
+  const _PendingImage({required this.filename, required this.bytes});
 }
 
 class OvercookedRecipeEditPage extends StatefulWidget {
@@ -49,9 +46,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   final _nameController = TextEditingController();
   final _introController = TextEditingController();
   final _contentController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   bool _saving = false;
-  bool _androidNoMediaPrepared = false;
   bool _loading = false;
 
   String? _coverKey;
@@ -91,29 +88,10 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   @override
   void dispose() {
-    unawaited(_cleanupAllPendingFiles());
     _nameController.dispose();
     _introController.dispose();
     _contentController.dispose();
     super.dispose();
-  }
-
-  Future<void> _cleanupAllPendingFiles() async {
-    final cover = _pendingCover;
-    if (cover != null) await _cleanupStagedFile(cover);
-    final list = List<_PendingImage>.from(_pendingDetailImages);
-    for (final img in list) {
-      await _cleanupStagedFile(img);
-    }
-  }
-
-  Future<void> _cleanupStagedFile(_PendingImage img) async {
-    final path = img.path;
-    if (path == null || path.trim().isEmpty) return;
-    try {
-      final f = File(path);
-      if (await f.exists()) await f.delete();
-    } catch (_) {}
   }
 
   Future<void> _loadTags() async {
@@ -264,7 +242,6 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                           : () async {
                               final pending = _pendingCover;
                               if (pending != null) {
-                                await _cleanupStagedFile(pending);
                                 if (!mounted) return;
                                 setState(() => _pendingCover = null);
                               } else {
@@ -439,10 +416,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                                 } else {
                                   final pendingIndex =
                                       index - _detailKeys.length;
-                                  final img = _pendingDetailImages.removeAt(
-                                    pendingIndex,
-                                  );
-                                  unawaited(_cleanupStagedFile(img));
+                                  _pendingDetailImages.removeAt(pendingIndex);
                                 }
                               }),
                         child: Container(
@@ -552,23 +526,11 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     required double borderRadius,
     BoxFit fit = BoxFit.cover,
   }) {
-    final bytes = img.bytes;
-    if (bytes != null && bytes.isNotEmpty) {
+    if (img.bytes.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: Image.memory(bytes, fit: fit),
+        child: Image.memory(img.bytes, fit: fit),
       );
-    }
-
-    final path = img.path;
-    if (path != null && path.trim().isNotEmpty) {
-      final f = File(path);
-      if (f.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: Image.file(f, fit: fit),
-        );
-      }
     }
 
     return Container(
@@ -667,174 +629,126 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Future<void> _pickCover() async {
-    await _prepareAndroidNoMediaIfNeeded();
-    final result = await FilePicker.platform.pickFiles(
-      withData: kIsWeb,
-      type: FileType.image,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-
-    _PendingImage? staged;
-    try {
-      staged = await _stagePickedImage(
-        file,
-        nowMicros: DateTime.now().microsecondsSinceEpoch,
-      );
-    } finally {
-      await _cleanupPickedTempFile(file);
-      await _cleanupFilePickerTemps();
-    }
-
+    final picked = await _pickSingleImage();
     if (!mounted) return;
-    if (staged == null) {
-      await OvercookedDialogs.showMessage(
-        context,
-        title: '鎻愮ず',
-        content: '鏃犳硶璇诲彇鍥剧墖鍐呭锛岃閲嶆柊閫夋嫨',
-      );
-      return;
-    }
-
-    final old = _pendingCover;
-    setState(() => _pendingCover = staged);
-    if (old != null) unawaited(_cleanupStagedFile(old));
+    if (picked == null) return;
+    setState(() => _pendingCover = picked);
   }
 
   Future<void> _pickDetailImages() async {
-    await _prepareAndroidNoMediaIfNeeded();
-    final result = await FilePicker.platform.pickFiles(
-      withData: kIsWeb,
-      allowMultiple: true,
-      type: FileType.image,
-    );
-    if (result == null || result.files.isEmpty) return;
-
-    final baseMicros = DateTime.now().microsecondsSinceEpoch;
-    final staged = <_PendingImage>[];
-    for (int i = 0; i < result.files.length; i++) {
-      final f = result.files[i];
-      _PendingImage? img;
-      try {
-        img = await _stagePickedImage(f, nowMicros: baseMicros + i);
-      } finally {
-        await _cleanupPickedTempFile(f);
-      }
-      if (img != null) staged.add(img);
-    }
-    await _cleanupFilePickerTemps();
-
+    final picked = await _pickMultipleImages();
     if (!mounted) return;
-    if (staged.isEmpty) {
-      await OvercookedDialogs.showMessage(
-        context,
-        title: '鎻愮ず',
-        content: '鏃犳硶璇诲彇鍥剧墖鍐呭锛岃閲嶆柊閫夋嫨',
-      );
-      return;
-    }
-    setState(() => _pendingDetailImages.addAll(staged));
+    if (picked.isEmpty) return;
+    setState(() => _pendingDetailImages.addAll(picked));
   }
 
-  Future<_PendingImage?> _stagePickedImage(
-    PlatformFile file, {
-    required int nowMicros,
-  }) async {
-    if (kIsWeb) {
-      final bytes = await _readPickedFileBytes(file);
-      if (bytes == null || bytes.isEmpty) return null;
-      return _PendingImage(filename: file.name, bytes: bytes);
-    }
+  bool get _useImagePickerForImages {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
 
-    final sourcePath = file.path;
-    if (sourcePath == null || sourcePath.trim().isEmpty) return null;
-    final tmp = await getTemporaryDirectory();
-    final staged = await stageFileToPendingUploadDir(
-      sourcePath: sourcePath,
-      filename: file.name,
-      temporaryDirPath: tmp.path,
-      nowMicros: nowMicros,
-    );
-    return _PendingImage(filename: file.name, path: staged.path);
+  Future<_PendingImage?> _pickSingleImage() async {
+    final img = _useImagePickerForImages
+        ? await _pickSingleImageByImagePicker()
+        : await _pickSingleImageByFilePicker();
+    if (img == null) return null;
+    if (img.bytes.isEmpty) return null;
+    return img;
+  }
+
+  Future<List<_PendingImage>> _pickMultipleImages() async {
+    final images = _useImagePickerForImages
+        ? await _pickMultipleImagesByImagePicker()
+        : await _pickMultipleImagesByFilePicker();
+    return images.where((e) => e.bytes.isNotEmpty).toList(growable: false);
+  }
+
+  Future<_PendingImage?> _pickSingleImageByImagePicker() async {
+    final x = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (x == null) return null;
+    final bytes = await x.readAsBytes();
+    if (bytes.isEmpty) return null;
+    return _PendingImage(filename: x.name, bytes: bytes);
+  }
+
+  Future<List<_PendingImage>> _pickMultipleImagesByImagePicker() async {
+    final list = await _imagePicker.pickMultiImage();
+    if (list.isEmpty) return const [];
+
+    final out = <_PendingImage>[];
+    for (final x in list) {
+      final bytes = await x.readAsBytes();
+      if (bytes.isEmpty) continue;
+      out.add(_PendingImage(filename: x.name, bytes: bytes));
+    }
+    return out;
+  }
+
+  Future<_PendingImage?> _pickSingleImageByFilePicker() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        withData: true,
+        type: FileType.image,
+      );
+      if (result == null || result.files.isEmpty) return null;
+
+      final file = result.files.first;
+      final bytes = await _readPickedFileBytes(file);
+      if (bytes == null || bytes.isEmpty) {
+        if (mounted) {
+          await OvercookedDialogs.showMessage(
+            context,
+            title: '提示',
+            content: '无法读取图片内容，请重新选择',
+          );
+        }
+        return null;
+      }
+      return _PendingImage(filename: file.name, bytes: bytes);
+    } finally {
+      await _cleanupFilePickerTemps();
+    }
+  }
+
+  Future<List<_PendingImage>> _pickMultipleImagesByFilePicker() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        withData: true,
+        allowMultiple: true,
+        type: FileType.image,
+      );
+      if (result == null || result.files.isEmpty) return const [];
+
+      final out = <_PendingImage>[];
+      for (final f in result.files) {
+        final bytes = await _readPickedFileBytes(f);
+        if (bytes == null || bytes.isEmpty) continue;
+        out.add(_PendingImage(filename: f.name, bytes: bytes));
+      }
+      if (out.isEmpty && mounted) {
+        await OvercookedDialogs.showMessage(
+          context,
+          title: '提示',
+          content: '无法读取图片内容，请重新选择',
+        );
+      }
+      return out;
+    } finally {
+      await _cleanupFilePickerTemps();
+    }
   }
 
   Future<Uint8List?> _readPickedFileBytes(PlatformFile file) async {
-    if (file.bytes != null) return file.bytes!;
+    final bytes = file.bytes;
+    if (bytes != null) return bytes;
     final path = file.path;
     if (path == null || path.trim().isEmpty) return null;
-    return File(path).readAsBytes();
-  }
-
-  Future<void> _cleanupPickedTempFile(PlatformFile file) async {
-    if (kIsWeb) return;
-    final path = file.path;
-    if (path == null || path.trim().isEmpty) return;
-
-    final dirs = await _collectPickedFileCleanupDirs();
-
-    final shouldCleanup = shouldCleanupPickedFilePath(
-      filePath: path,
-      temporaryDirPath: dirs.temporaryDirPath,
-      externalCacheDirPaths: dirs.externalCacheDirPaths,
-      externalStorageDirPath: dirs.externalStorageDirPath,
-    );
-    if (!shouldCleanup) return;
-
     try {
-      await ensureNoMediaFileInDir(File(path).parent.path);
-      final f = File(path);
-      if (await f.exists()) {
-        await f.delete();
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _prepareAndroidNoMediaIfNeeded() async {
-    if (_androidNoMediaPrepared) return;
-    if (kIsWeb) return;
-    if (!Platform.isAndroid) return;
-
-    final dirs = await _collectPickedFileCleanupDirs();
-    final dirPaths = buildPickedFileCleanupDirPaths(
-      temporaryDirPath: dirs.temporaryDirPath,
-      externalCacheDirPaths: dirs.externalCacheDirPaths,
-      externalStorageDirPath: dirs.externalStorageDirPath,
-    );
-    await ensureNoMediaFilesInDirs(dirPaths);
-    _androidNoMediaPrepared = true;
-  }
-
-  Future<
-    ({
-      String temporaryDirPath,
-      List<String> externalCacheDirPaths,
-      String? externalStorageDirPath,
-    })
-  >
-  _collectPickedFileCleanupDirs() async {
-    final tmp = await getTemporaryDirectory();
-    final extraDirPaths = <String>[];
-    try {
-      final appCache = await getApplicationCacheDirectory();
-      extraDirPaths.add(appCache.path);
-    } catch (_) {}
-    try {
-      final externalCaches = await getExternalCacheDirectories();
-      if (externalCaches != null) {
-        extraDirPaths.addAll(externalCaches.map((d) => d.path));
-      }
-    } catch (_) {}
-
-    Directory? externalStorage;
-    try {
-      externalStorage = await getExternalStorageDirectory();
-    } catch (_) {}
-
-    return (
-      temporaryDirPath: tmp.path,
-      externalCacheDirPaths: extraDirPaths,
-      externalStorageDirPath: externalStorage?.path,
-    );
+      return XFile(path).readAsBytes();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _cleanupFilePickerTemps() async {
@@ -871,7 +785,6 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           _coverKey = uploadedKey;
           _pendingCover = null;
         });
-        await _cleanupStagedFile(cover);
       }
 
       while (_pendingDetailImages.isNotEmpty) {
@@ -885,7 +798,6 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           _detailKeys.add(uploadedKey);
           _pendingDetailImages.removeAt(0);
         });
-        await _cleanupStagedFile(img);
       }
 
       return true;
@@ -908,22 +820,8 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     required ObjStoreService objStore,
     required _PendingImage img,
   }) async {
-    final bytes = img.bytes;
-    if (bytes != null && bytes.isNotEmpty) {
-      final uploaded = await objStore.uploadBytes(
-        bytes: bytes,
-        filename: img.filename,
-      );
-      return uploaded.key;
-    }
-
-    final path = img.path;
-    if (path == null || path.trim().isEmpty) {
-      throw StateError('pending image has no bytes/path');
-    }
-    final fileBytes = await File(path).readAsBytes();
     final uploaded = await objStore.uploadBytes(
-      bytes: fileBytes,
+      bytes: img.bytes,
       filename: img.filename,
     );
     return uploaded.key;
