@@ -9,19 +9,42 @@ import '../../../../core/obj_store/obj_store_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
 import '../../services/overcooked_image_cache_service.dart';
 
-class OvercookedImageViewerPage extends StatelessWidget {
-  final String objectKey;
+class OvercookedImageViewerPage extends StatefulWidget {
+  final List<String> objectKeys;
+  final int initialIndex;
   final String title;
 
   const OvercookedImageViewerPage({
     super.key,
-    required this.objectKey,
+    required this.objectKeys,
+    this.initialIndex = 0,
     this.title = '查看图片',
   });
 
   @override
+  State<OvercookedImageViewerPage> createState() =>
+      _OvercookedImageViewerPageState();
+}
+
+class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final key = objectKey.trim();
     final objStore = context.read<ObjStoreService>();
     OvercookedImageCacheService? cacheService;
     try {
@@ -30,24 +53,52 @@ class OvercookedImageViewerPage extends StatelessWidget {
       cacheService = null;
     }
 
+    final showIndicator = widget.objectKeys.length > 1;
+
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
-      appBar: IOS26AppBar(title: title, showBackButton: true),
-      body: !kIsWeb && cacheService != null
-          ? _buildCachedImage(key, objStore, cacheService)
-          : _buildNetworkImage(key, objStore),
+      appBar: IOS26AppBar(
+        title: showIndicator
+            ? '${widget.title} (${_currentIndex + 1}/${widget.objectKeys.length})'
+            : widget.title,
+        showBackButton: true,
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.objectKeys.length,
+        onPageChanged: (index) => setState(() => _currentIndex = index),
+        itemBuilder: (context, index) {
+          final key = widget.objectKeys[index].trim();
+          return !kIsWeb && cacheService != null
+              ? _CachedImageView(
+                  objectKey: key,
+                  objStore: objStore,
+                  cacheService: cacheService,
+                )
+              : _NetworkImageView(objectKey: key, objStore: objStore);
+        },
+      ),
     );
   }
+}
 
-  Widget _buildCachedImage(
-    String key,
-    ObjStoreService objStore,
-    OvercookedImageCacheService cacheService,
-  ) {
+class _CachedImageView extends StatelessWidget {
+  final String objectKey;
+  final ObjStoreService objStore;
+  final OvercookedImageCacheService cacheService;
+
+  const _CachedImageView({
+    required this.objectKey,
+    required this.objStore,
+    required this.cacheService,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<File?>(
       future: cacheService.ensureCached(
-        key: key,
-        resolveUri: () => objStore.resolveUri(key: key),
+        key: objectKey,
+        resolveUri: () => objStore.resolveUri(key: objectKey),
       ),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -58,13 +109,15 @@ class OvercookedImageViewerPage extends StatelessWidget {
               ? '未配置资源存储'
               : '图片加载失败';
           return Center(
-            child: Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
+            child:
+                Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
           );
         }
         final f = snapshot.data;
         if (f == null || !f.existsSync()) {
           return const Center(
-            child: Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
+            child:
+                Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
           );
         }
         return InteractiveViewer(
@@ -75,10 +128,21 @@ class OvercookedImageViewerPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildNetworkImage(String key, ObjStoreService objStore) {
+class _NetworkImageView extends StatelessWidget {
+  final String objectKey;
+  final ObjStoreService objStore;
+
+  const _NetworkImageView({
+    required this.objectKey,
+    required this.objStore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<String>(
-      future: objStore.resolveUri(key: key),
+      future: objStore.resolveUri(key: objectKey),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -88,13 +152,15 @@ class OvercookedImageViewerPage extends StatelessWidget {
               ? '未配置资源存储'
               : '图片加载失败';
           return Center(
-            child: Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
+            child:
+                Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
           );
         }
         final uriText = snapshot.data?.trim();
         if (uriText == null || uriText.isEmpty) {
           return const Center(
-            child: Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
+            child:
+                Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
           );
         }
 
@@ -108,7 +174,8 @@ class OvercookedImageViewerPage extends StatelessWidget {
                   if (progress == null) return child;
                   final value = progress.expectedTotalBytes == null
                       ? null
-                      : progress.cumulativeBytesLoaded / progress.expectedTotalBytes!;
+                      : progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!;
                   return Center(
                     child: SizedBox(
                       width: 24,
@@ -119,7 +186,8 @@ class OvercookedImageViewerPage extends StatelessWidget {
                 },
                 errorBuilder: (context, error, stackTrace) {
                   return const Center(
-                    child: Text('图片加载失败', style: TextStyle(color: IOS26Theme.textSecondary)),
+                    child: Text('图片加载失败',
+                        style: TextStyle(color: IOS26Theme.textSecondary)),
                   );
                 },
               );

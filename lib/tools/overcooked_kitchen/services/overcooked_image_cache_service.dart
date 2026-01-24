@@ -14,6 +14,7 @@ class OvercookedImageCacheService {
   final http.Client _httpClient;
 
   final Map<String, Future<File?>> _inflight = {};
+  final Map<String, File> _memoryCache = {};
 
   OvercookedImageCacheService({
     required OvercookedCacheBaseDirProvider baseDirProvider,
@@ -21,9 +22,18 @@ class OvercookedImageCacheService {
   }) : _baseDirProvider = baseDirProvider,
        _httpClient = httpClient ?? http.Client();
 
+  File? getCachedFileSync({required String key}) {
+    final trimmed = key.trim();
+    if (trimmed.isEmpty) return null;
+    return _memoryCache[trimmed];
+  }
+
   Future<File?> getCachedFile({required String key}) async {
     final file = await _fileForKey(key: key);
-    if (file.existsSync()) return file;
+    if (file.existsSync()) {
+      _memoryCache[key.trim()] = file;
+      return file;
+    }
     return null;
   }
 
@@ -34,6 +44,12 @@ class OvercookedImageCacheService {
   }) {
     final trimmed = key.trim();
     if (trimmed.isEmpty) return Future.value(null);
+
+    // 先检查内存缓存
+    final memoryCached = _memoryCache[trimmed];
+    if (memoryCached != null && memoryCached.existsSync()) {
+      return Future.value(memoryCached);
+    }
 
     final existingFuture = _inflight[trimmed];
     if (existingFuture != null) return existingFuture;
@@ -62,7 +78,11 @@ class OvercookedImageCacheService {
     final uri = Uri.tryParse(uriText);
     if (uri != null && uri.scheme == 'file') {
       final f = File.fromUri(uri);
-      return f.existsSync() ? f : null;
+      if (f.existsSync()) {
+        _memoryCache[key] = f;
+        return f;
+      }
+      return null;
     }
 
     final resp = await _httpClient.get(Uri.parse(uriText)).timeout(timeout);
@@ -78,6 +98,7 @@ class OvercookedImageCacheService {
     }
     await tmp.writeAsBytes(resp.bodyBytes, flush: true);
     await tmp.rename(file.path);
+    _memoryCache[key] = file;
     return file;
   }
 

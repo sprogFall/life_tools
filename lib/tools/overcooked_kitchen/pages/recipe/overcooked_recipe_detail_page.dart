@@ -86,14 +86,19 @@ class _OvercookedRecipeDetailPageState
   }
 
   Future<void> _openImageViewer({
-    required String? objectKey,
+    required List<String> objectKeys,
+    int initialIndex = 0,
     String title = '查看图片',
   }) async {
-    final key = objectKey?.trim();
-    if (key == null || key.isEmpty) return;
+    final keys = objectKeys.where((k) => k.trim().isNotEmpty).toList();
+    if (keys.isEmpty) return;
     await Navigator.of(context).push(
       CupertinoPageRoute<void>(
-        builder: (_) => OvercookedImageViewerPage(objectKey: key, title: title),
+        builder: (_) => OvercookedImageViewerPage(
+          objectKeys: keys,
+          initialIndex: initialIndex,
+          title: title,
+        ),
       ),
     );
   }
@@ -197,7 +202,7 @@ class _OvercookedRecipeDetailPageState
           height: 220,
           child: GestureDetector(
             onTap: () => _openImageViewer(
-              objectKey: recipe.coverImageKey,
+              objectKeys: [if (recipe.coverImageKey != null) recipe.coverImageKey!],
               title: recipe.name,
             ),
             child: cache == null
@@ -284,8 +289,11 @@ class _OvercookedRecipeDetailPageState
                 return SizedBox(
                   width: 140,
                   child: GestureDetector(
-                    onTap: () =>
-                        _openImageViewer(objectKey: key, title: '详细图片'),
+                    onTap: () => _openImageViewer(
+                      objectKeys: recipe.detailImageKeys,
+                      initialIndex: index,
+                      title: '详细图片',
+                    ),
                     child: cache == null
                         ? OvercookedImageByKey(
                             objStoreService: objStore,
