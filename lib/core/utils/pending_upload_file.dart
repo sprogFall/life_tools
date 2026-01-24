@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'no_media.dart';
+
 class PendingUploadFile {
   final String path;
   final String filename;
@@ -18,6 +20,7 @@ Future<PendingUploadFile> stageFileToPendingUploadDir({
   final normalizedTemp = p.normalize(temporaryDirPath);
   final dir = Directory(p.join(normalizedTemp, 'life_tools_pending_uploads'));
   if (!dir.existsSync()) dir.createSync(recursive: true);
+  await ensureNoMediaFileInDir(dir.path);
 
   final ext = p.extension(filename.trim().isEmpty ? sourcePath : filename);
   final safeExt = ext.trim().isEmpty ? '.bin' : ext;

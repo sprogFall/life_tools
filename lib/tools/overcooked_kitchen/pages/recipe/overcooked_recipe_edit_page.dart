@@ -14,6 +14,7 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/utils/no_media.dart';
 import '../../../../core/utils/pending_upload_file.dart';
 import '../../../../core/utils/picked_file_cleanup.dart';
 import '../../../../pages/obj_store_settings_page.dart';
@@ -50,6 +51,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   final _contentController = TextEditingController();
 
   bool _saving = false;
+  bool _androidNoMediaPrepared = false;
   bool _loading = false;
 
   String? _coverKey;
@@ -665,6 +667,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Future<void> _pickCover() async {
+    await _prepareAndroidNoMediaIfNeeded();
     final result = await FilePicker.platform.pickFiles(
       withData: kIsWeb,
       type: FileType.image,
@@ -699,6 +702,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Future<void> _pickDetailImages() async {
+    await _prepareAndroidNoMediaIfNeeded();
     final result = await FilePicker.platform.pickFiles(
       withData: kIsWeb,
       allowMultiple: true,
@@ -766,6 +770,48 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     final path = file.path;
     if (path == null || path.trim().isEmpty) return;
 
+    final dirs = await _collectPickedFileCleanupDirs();
+
+    final shouldCleanup = shouldCleanupPickedFilePath(
+      filePath: path,
+      temporaryDirPath: dirs.temporaryDirPath,
+      externalCacheDirPaths: dirs.externalCacheDirPaths,
+      externalStorageDirPath: dirs.externalStorageDirPath,
+    );
+    if (!shouldCleanup) return;
+
+    try {
+      await ensureNoMediaFileInDir(File(path).parent.path);
+      final f = File(path);
+      if (await f.exists()) {
+        await f.delete();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _prepareAndroidNoMediaIfNeeded() async {
+    if (_androidNoMediaPrepared) return;
+    if (kIsWeb) return;
+    if (!Platform.isAndroid) return;
+
+    final dirs = await _collectPickedFileCleanupDirs();
+    final dirPaths = buildPickedFileCleanupDirPaths(
+      temporaryDirPath: dirs.temporaryDirPath,
+      externalCacheDirPaths: dirs.externalCacheDirPaths,
+      externalStorageDirPath: dirs.externalStorageDirPath,
+    );
+    await ensureNoMediaFilesInDirs(dirPaths);
+    _androidNoMediaPrepared = true;
+  }
+
+  Future<
+    ({
+      String temporaryDirPath,
+      List<String> externalCacheDirPaths,
+      String? externalStorageDirPath,
+    })
+  >
+  _collectPickedFileCleanupDirs() async {
     final tmp = await getTemporaryDirectory();
     final extraDirPaths = <String>[];
     try {
@@ -784,20 +830,11 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       externalStorage = await getExternalStorageDirectory();
     } catch (_) {}
 
-    final shouldCleanup = shouldCleanupPickedFilePath(
-      filePath: path,
+    return (
       temporaryDirPath: tmp.path,
       externalCacheDirPaths: extraDirPaths,
       externalStorageDirPath: externalStorage?.path,
     );
-    if (!shouldCleanup) return;
-
-    try {
-      final f = File(path);
-      if (await f.exists()) {
-        await f.delete();
-      }
-    } catch (_) {}
   }
 
   Future<void> _cleanupFilePickerTemps() async {

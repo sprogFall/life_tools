@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/utils/pending_upload_file.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   group('PendingUploadFile', () {
@@ -28,6 +29,10 @@ void main() {
       expect(staged.filename, 'cover.png');
       expect(await File(staged.path).readAsBytes(), [1, 2, 3]);
       expect(staged.path.contains('life_tools_pending_uploads'), isTrue);
+      expect(
+        File(p.join(p.dirname(staged.path), '.nomedia')).existsSync(),
+        isTrue,
+      );
     });
   });
 }
