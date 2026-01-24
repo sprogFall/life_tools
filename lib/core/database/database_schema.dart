@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 15;
+  static const int version = 16;
 
   static Future<void> onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
@@ -17,6 +17,7 @@ class DatabaseSchema {
     await _createOperationLogTables(db);
     await _createStockpileTables(db);
     await _createOvercookedTablesV15(db);
+    await _createOvercookedRatingTable(db);
   }
 
   static Future<void> onUpgrade(
@@ -65,6 +66,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 15) {
       await _upgradeToVersion15(db);
+    }
+    if (oldVersion < 16) {
+      await _upgradeToVersion16(db);
     }
   }
 
@@ -928,5 +932,29 @@ WHERE tool_id = ? AND category_id = ?
       await txn.execute('DROP TABLE IF EXISTS overcooked_meal_items_v14');
       await txn.execute('DROP TABLE IF EXISTS overcooked_meal_days_v14');
     });
+  }
+
+  static Future<void> _upgradeToVersion16(Database db) async {
+    // v16: 添加菜谱打分表
+    await _createOvercookedRatingTable(db);
+  }
+
+  static Future<void> _createOvercookedRatingTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS overcooked_meal_item_ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        meal_id INTEGER NOT NULL,
+        recipe_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(meal_id, recipe_id),
+        FOREIGN KEY (meal_id) REFERENCES overcooked_meals(id) ON DELETE CASCADE,
+        FOREIGN KEY (recipe_id) REFERENCES overcooked_recipes(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_overcooked_meal_item_ratings_recipe_id ON overcooked_meal_item_ratings(recipe_id)',
+    );
   }
 }

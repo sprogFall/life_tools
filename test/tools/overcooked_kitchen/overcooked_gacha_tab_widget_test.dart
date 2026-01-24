@@ -57,6 +57,12 @@ class _FakeOvercookedRepository extends OvercookedRepository {
       recipeId: recipeId,
     ));
   }
+
+  @override
+  Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
+      getRecipeStats() async {
+    return const {};
+  }
 }
 
 void main() {

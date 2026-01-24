@@ -27,6 +27,8 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
   String _query = '';
   List<OvercookedRecipe> _recipes = const [];
   Map<int, Tag> _tagsById = const {};
+  Map<int, ({int cookCount, double avgRating, int ratingCount})> _statsById =
+      const {};
 
   @override
   void initState() {
@@ -45,12 +47,14 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.dishType,
       );
+      final stats = await repo.getRecipeStats();
       setState(() {
         _recipes = recipes;
         _tagsById = {
           for (final t in tags)
             if (t.id != null) t.id!: t,
         };
+        _statsById = stats;
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -99,6 +103,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
               (r) => _RecipeCard(
                 recipe: r,
                 typeTagName: _tagsById[r.typeTagId]?.name,
+                stats: r.id != null ? _statsById[r.id!] : null,
                 onTap: () async {
                   final repo = context.read<OvercookedRepository>();
                   await Navigator.of(context).push(
@@ -198,11 +203,13 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
 class _RecipeCard extends StatelessWidget {
   final OvercookedRecipe recipe;
   final String? typeTagName;
+  final ({int cookCount, double avgRating, int ratingCount})? stats;
   final VoidCallback onTap;
 
   const _RecipeCard({
     required this.recipe,
     required this.typeTagName,
+    required this.stats,
     required this.onTap,
   });
 
@@ -210,6 +217,10 @@ class _RecipeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final objStore = context.read<ObjStoreService>();
     final typeText = typeTagName?.trim();
+    final cookCount = stats?.cookCount ?? 0;
+    final avgRating = stats?.avgRating ?? 0.0;
+    final ratingCount = stats?.ratingCount ?? 0;
+
     return GlassContainer(
       borderRadius: 18,
       padding: const EdgeInsets.all(12),
@@ -243,36 +254,67 @@ class _RecipeCard extends StatelessWidget {
                       color: IOS26Theme.textPrimary,
                     ),
                   ),
-                  if (typeText != null && typeText.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
-                          width: 1,
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (typeText != null && typeText.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            typeText,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: IOS26Theme.toolPurple,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        typeText,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: IOS26Theme.toolPurple,
+                        const SizedBox(width: 8),
+                      ],
+                      if (cookCount > 0)
+                        Text(
+                          '做过$cookCount次',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      if (ratingCount > 0) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          CupertinoIcons.star_fill,
+                          size: 14,
+                          color: IOS26Theme.toolOrange,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          avgRating.toStringAsFixed(1),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: IOS26Theme.toolOrange,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   if (recipe.intro.trim().isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       recipe.intro.trim(),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,

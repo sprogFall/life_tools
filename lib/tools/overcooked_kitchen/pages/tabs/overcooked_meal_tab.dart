@@ -37,6 +37,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
   List<OvercookedMeal> _meals = const [];
   Map<int, OvercookedRecipe> _recipesById = const {};
+  Map<int, Map<int, int>> _ratingsByMealId = const {}; // mealId -> {recipeId -> rating}
 
   List<Tag> _mealSlotTags = const [];
   Map<int, Tag> _mealSlotTagsById = const {};
@@ -74,12 +75,19 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
         categoryId: OvercookedTagCategories.mealSlot,
       );
 
+      // 加载每个餐次的评分
+      final ratingsByMealId = <int, Map<int, int>>{};
+      for (final meal in meals) {
+        ratingsByMealId[meal.id] = await repo.getRatingsForMeal(meal.id);
+      }
+
       setState(() {
         _meals = meals;
         _recipesById = {
           for (final r in recipes)
             if (r.id != null) r.id!: r,
         };
+        _ratingsByMealId = ratingsByMealId;
         _mealSlotTags = mealSlotTags;
         _mealSlotTagsById = {
           for (final t in mealSlotTags)
@@ -216,7 +224,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
               ),
             )
           else
-            for (final meal in _meals)
+          for (final meal in _meals)
               _MealCard(
                 meal: meal,
                 tagName: _mealSlotTagsById[meal.mealTagId]?.name,
@@ -227,6 +235,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 missingRecipeCount: meal.recipeIds
                     .where((id) => !_recipesById.containsKey(id))
                     .length,
+                ratings: _ratingsByMealId[meal.id] ?? const {},
                 onPickMealTag: _loading
                     ? null
                     : () => _pickMealTagForMeal(meal),
@@ -238,6 +247,10 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                     : () => _importWishesToMeal(meal),
                 onEditNote: _loading ? null : () => _editNoteForMeal(meal),
                 onDelete: _loading ? null : () => _deleteMeal(meal),
+                onRatingChanged: _loading
+                    ? null
+                    : (recipeId, rating) =>
+                        _updateRating(meal.id, recipeId, rating),
               ),
         ],
       ),
@@ -491,6 +504,29 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
     await _refresh();
   }
 
+  Future<void> _updateRating(int mealId, int recipeId, int? rating) async {
+    final repo = context.read<OvercookedRepository>();
+    if (rating == null) {
+      await repo.deleteRating(mealId: mealId, recipeId: recipeId);
+    } else {
+      await repo.upsertRating(
+        mealId: mealId,
+        recipeId: recipeId,
+        rating: rating,
+      );
+    }
+    // 更新本地状态
+    setState(() {
+      final mealRatings = Map<int, int>.from(_ratingsByMealId[mealId] ?? {});
+      if (rating == null) {
+        mealRatings.remove(recipeId);
+      } else {
+        mealRatings[recipeId] = rating;
+      }
+      _ratingsByMealId = {..._ratingsByMealId, mealId: mealRatings};
+    });
+  }
+
   Future<void> _pickDate({required DateTime initial}) async {
     await showCupertinoModalPopup<void>(
       context: context,
@@ -540,23 +576,27 @@ class _MealCard extends StatelessWidget {
   final String? tagName;
   final List<OvercookedRecipe> recipes;
   final int missingRecipeCount;
+  final Map<int, int> ratings; // recipeId -> rating
 
   final VoidCallback? onPickMealTag;
   final VoidCallback? onPickRecipes;
   final VoidCallback? onImportWishes;
   final VoidCallback? onEditNote;
   final VoidCallback? onDelete;
+  final void Function(int recipeId, int? rating)? onRatingChanged;
 
   const _MealCard({
     required this.meal,
     required this.tagName,
     required this.recipes,
     required this.missingRecipeCount,
+    required this.ratings,
     required this.onPickMealTag,
     required this.onPickRecipes,
     required this.onImportWishes,
     required this.onEditNote,
     required this.onDelete,
+    required this.onRatingChanged,
   });
 
   @override
@@ -564,11 +604,6 @@ class _MealCard extends StatelessWidget {
     final title = tagName?.trim().isNotEmpty == true
         ? tagName!.trim()
         : (meal.mealTagId == null ? '未标记' : '（标签已删除）');
-
-    final recipeNames = [
-      for (final r in recipes) r.name,
-      for (int i = 0; i < missingRecipeCount; i++) '（菜谱已删除）',
-    ];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -620,7 +655,7 @@ class _MealCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              '做了什么菜',
+              '做了什么菜（点击打分）',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
@@ -628,7 +663,7 @@ class _MealCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            if (recipeNames.isEmpty)
+            if (recipes.isEmpty && missingRecipeCount == 0)
               Text(
                 '还没选择菜谱，点右上角「选择菜谱」添加',
                 style: TextStyle(
@@ -637,10 +672,23 @@ class _MealCard extends StatelessWidget {
                 ),
               )
             else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final name in recipeNames) _recipeChip(name)],
+              Column(
+                children: [
+                  for (final r in recipes)
+                    _RecipeRatingRow(
+                      recipeName: r.name,
+                      rating: ratings[r.id],
+                      onRatingChanged: onRatingChanged == null || r.id == null
+                          ? null
+                          : (rating) => onRatingChanged!(r.id!, rating),
+                    ),
+                  for (int i = 0; i < missingRecipeCount; i++)
+                    _RecipeRatingRow(
+                      recipeName: '（菜谱已删除）',
+                      rating: null,
+                      onRatingChanged: null,
+                    ),
+                ],
               ),
             const SizedBox(height: 12),
             Row(
@@ -688,29 +736,6 @@ class _MealCard extends StatelessWidget {
     );
   }
 
-  static Widget _recipeChip(String text) {
-    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
-    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: IOS26Theme.textPrimary,
-          ),
-        ),
-      ),
-    );
-  }
-
   static Widget _iconButton({
     required String label,
     required IconData icon,
@@ -727,6 +752,87 @@ class _MealCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Icon(icon, size: 18, color: iconColor),
       ),
+    );
+  }
+}
+
+class _RecipeRatingRow extends StatelessWidget {
+  final String recipeName;
+  final int? rating;
+  final void Function(int? rating)? onRatingChanged;
+
+  const _RecipeRatingRow({
+    required this.recipeName,
+    required this.rating,
+    required this.onRatingChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              recipeName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: IOS26Theme.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _StarRating(
+            rating: rating,
+            onChanged: onRatingChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StarRating extends StatelessWidget {
+  final int? rating;
+  final void Function(int? rating)? onChanged;
+
+  const _StarRating({required this.rating, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 1; i <= 5; i++)
+          GestureDetector(
+            onTap: onChanged == null
+                ? null
+                : () {
+                    // 点击已选中的星星则取消评分
+                    if (rating == i) {
+                      onChanged!(null);
+                    } else {
+                      onChanged!(i);
+                    }
+                  },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Icon(
+                rating != null && i <= rating!
+                    ? CupertinoIcons.star_fill
+                    : CupertinoIcons.star,
+                size: 20,
+                color: rating != null && i <= rating!
+                    ? IOS26Theme.toolOrange
+                    : IOS26Theme.textTertiary,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

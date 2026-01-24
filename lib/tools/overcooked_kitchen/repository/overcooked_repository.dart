@@ -977,4 +977,132 @@ ORDER BY recipe_id ASC, tag_id ASC
       if (seen.add(v)) yield v;
     }
   }
+
+  // ==================== 打分相关 ====================
+
+  Future<void> upsertRating({
+    required int mealId,
+    required int recipeId,
+    required int rating,
+    DateTime? now,
+  }) async {
+    final db = await _database;
+    await db.insert(
+      'overcooked_meal_item_ratings',
+      {
+        'meal_id': mealId,
+        'recipe_id': recipeId,
+        'rating': rating,
+        'created_at': (now ?? DateTime.now()).millisecondsSinceEpoch,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> deleteRating({
+    required int mealId,
+    required int recipeId,
+  }) async {
+    final db = await _database;
+    await db.delete(
+      'overcooked_meal_item_ratings',
+      where: 'meal_id = ? AND recipe_id = ?',
+      whereArgs: [mealId, recipeId],
+    );
+  }
+
+  Future<Map<int, int>> getRatingsForMeal(int mealId) async {
+    final db = await _database;
+    final rows = await db.query(
+      'overcooked_meal_item_ratings',
+      columns: const ['recipe_id', 'rating'],
+      where: 'meal_id = ?',
+      whereArgs: [mealId],
+    );
+    return {
+      for (final row in rows)
+        row['recipe_id'] as int: row['rating'] as int,
+    };
+  }
+
+  /// 获取所有菜谱的统计数据：做菜次数和平均分
+  Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
+      getRecipeStats() async {
+    final db = await _database;
+
+    // 统计每个菜谱的做菜次数
+    final cookCountRows = await db.rawQuery('''
+SELECT recipe_id, COUNT(*) AS cook_count
+FROM overcooked_meal_items
+GROUP BY recipe_id
+''');
+    final cookCounts = <int, int>{
+      for (final row in cookCountRows)
+        row['recipe_id'] as int: row['cook_count'] as int,
+    };
+
+    // 统计每个菜谱的评分
+    final ratingRows = await db.rawQuery('''
+SELECT recipe_id, SUM(rating) AS total_rating, COUNT(*) AS rating_count
+FROM overcooked_meal_item_ratings
+GROUP BY recipe_id
+''');
+
+    final result =
+        <int, ({int cookCount, double avgRating, int ratingCount})>{};
+
+    // 合并数据
+    final allRecipeIds = <int>{...cookCounts.keys};
+    for (final row in ratingRows) {
+      allRecipeIds.add(row['recipe_id'] as int);
+    }
+
+    for (final recipeId in allRecipeIds) {
+      final cookCount = cookCounts[recipeId] ?? 0;
+      final ratingRow = ratingRows.firstWhere(
+        (r) => r['recipe_id'] == recipeId,
+        orElse: () => <String, Object?>{},
+      );
+      final totalRating = (ratingRow['total_rating'] as int?) ?? 0;
+      final ratingCount = (ratingRow['rating_count'] as int?) ?? 0;
+      final avgRating = ratingCount > 0 ? totalRating / ratingCount : 0.0;
+
+      result[recipeId] = (
+        cookCount: cookCount,
+        avgRating: avgRating,
+        ratingCount: ratingCount,
+      );
+    }
+
+    return result;
+  }
+
+  /// 获取单个菜谱的统计数据
+  Future<({int cookCount, double avgRating, int ratingCount})> getRecipeStat(
+    int recipeId,
+  ) async {
+    final db = await _database;
+
+    final cookCountRows = await db.rawQuery('''
+SELECT COUNT(*) AS cook_count
+FROM overcooked_meal_items
+WHERE recipe_id = ?
+''', [recipeId]);
+    final cookCount = (cookCountRows.first['cook_count'] as int?) ?? 0;
+
+    final ratingRows = await db.rawQuery('''
+SELECT SUM(rating) AS total_rating, COUNT(*) AS rating_count
+FROM overcooked_meal_item_ratings
+WHERE recipe_id = ?
+''', [recipeId]);
+    final totalRating = (ratingRows.first['total_rating'] as int?) ?? 0;
+    final ratingCount = (ratingRows.first['rating_count'] as int?) ?? 0;
+    final avgRating = ratingCount > 0 ? totalRating / ratingCount : 0.0;
+
+    return (
+      cookCount: cookCount,
+      avgRating: avgRating,
+      ratingCount: ratingCount,
+    );
+  }
 }
