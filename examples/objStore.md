@@ -78,6 +78,7 @@ try {
 
 3. **Android + file_picker：必须处理临时复制文件，避免相册出现重复图片**
    - `file_picker` 在 Android 上可能会把选中的图片复制到缓存目录（如 `.../Android/data/<包名>/cache/file_picker/`），系统媒体库会扫描到，从而在相册里出现“多出一张重复图片”
+   - 若只是“选图上传”，移动端优先使用 `image_picker`（系统照片选择器）读取 bytes 再上传，避免产生可被相册扫描的临时落盘文件
    - 规范做法：
      - 选择完成并读取后调用 `FilePicker.platform.clearTemporaryFiles()`
      - 若需要“暂存到本地以便预览/稍后上传”，优先使用 `stageFileToPendingUploadDir(...)`（见 `lib/core/utils/pending_upload_file.dart`），它会把文件复制到应用临时目录并写入 `.nomedia`，上传完成后再删除暂存文件
