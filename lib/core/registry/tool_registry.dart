@@ -79,7 +79,7 @@ class ToolRegistry {
       ToolInfo(
         id: 'overcooked_kitchen',
         name: '胡闹厨房',
-        description: '菜谱、愿望单、三餐记录与扭蛋机',
+        description: '厨房过家家',
         icon: CupertinoIcons.flame,
         color: IOS26Theme.toolOrange,
         pageBuilder: () => OvercookedToolPage(repository: overcookedRepository),
