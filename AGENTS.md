@@ -9,6 +9,10 @@
 2. **简约原则**：不要过度设计，保持代码简洁，避免不必要的复杂化
 3. **零容忍重复**：必须复用代码，杜绝重复逻辑
 4. **中文响应**：始终使用中文进行交流和回复
+5. **改动验证要求**：
+   - 只要本次改动包含“代码/构建相关文件”（如 `lib/**`、`test/**`、平台代码 `android/**`/`ios/**`/`macos/**`/`windows/**`/`linux/**`、以及 `pubspec.yaml` 等），必须在交付前执行并通过：`flutter analyze` 与 `flutter test`
+   - 若本次改动仅为“文档类变更”（如 `README.md`、`docs/**`、`examples/**`、`*.md` 等），可不执行 `flutter analyze` / `flutter test`
+   - 若仅进行 Git 操作（如生成/整理 `git commit`，且未改动任何代码文件），可不执行 `flutter analyze` / `flutter test`
 
 ## 项目概述
 
