@@ -220,6 +220,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             configService: widget.objStoreConfigService,
             localStore: LocalObjStore(baseDirProvider: _defaultObjStoreBaseDir),
             qiniuClient: QiniuClient(),
+            cacheBaseDirProvider: _defaultObjStoreBaseDir,
           ),
         ),
       ],

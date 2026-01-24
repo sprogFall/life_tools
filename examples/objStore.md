@@ -3,11 +3,19 @@
 本项目已在 `lib/main.dart` 通过 Provider 全局注入：
 
 - `ObjStoreConfigService`：负责保存/读取「资源存储」配置
-- `ObjStoreService`：提供上传/查询（URI 解析）通用接口
+- `ObjStoreService`：提供上传/查询/缓存通用接口（调用方只需要保存 key）
 
 用户可在首页右上角「设置」中进入「资源存储」完成配置与测试。
 
-## 1) 上传图片/视频（bytes -> key/uri）
+## 调用方只需要知道的规则
+
+1. 业务侧**只持久化 `key`**（数据库/配置/导入导出都只存 key）
+2. 展示图片时，**只通过 `ObjStoreService` 的公共方法**拿到“可用资源”（本地文件或 URL）
+3. 不要关心当前到底是“本地存储还是七牛云”，也不要自己维护缓存目录/缓存策略
+
+下面是最常用的 3 个场景示例。
+
+## 1) 上传图片/视频（bytes -> key）
 
 ```dart
 import 'dart:typed_data';
@@ -25,13 +33,46 @@ final uploaded = await objStore.uploadBytes(
   filename: filename,
 );
 
-// uploaded.key：建议业务侧持久化保存（用于后续查询）
-// uploaded.uri：本地存储为 file://...；七牛公有空间为 https://.../key；七牛私有空间为“带签名的临时链接”（会过期）
-print(uploaded.key);
-print(uploaded.uri);
+// 只保存 key（后续展示/缓存/导入导出都用这个 key）
+final String key = uploaded.key;
 ```
 
-## 2) 查询图片/视频（key -> uri）
+## 2) 展示图片（key -> 自动优先缓存，否则用 URL）
+
+你只需要把 `key` 交给公共方法，方法内部会：
+- 能读到本地文件就直接返回 `File`
+- 否则自动去拿下载 URL 并下载到缓存目录，再返回 `File`
+
+```dart
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:life_tools/core/obj_store/obj_store_service.dart';
+
+final objStore = context.read<ObjStoreService>();
+final String key = 'media/xxxx.png';
+
+Widget buildImage() {
+  return FutureBuilder<File?>(
+    future: objStore.ensureCachedFile(key: key),
+    builder: (context, snapshot) {
+      final file = snapshot.data;
+      if (file != null && file.existsSync()) {
+        return Image.file(file, fit: BoxFit.cover);
+      }
+      // 磁盘缓存不可用/下载失败时，兜底用 URL（调用方无需判断本地/七牛）
+      return FutureBuilder<String>(
+        future: objStore.resolveUri(key: key),
+        builder: (context, snap) {
+          final url = snap.data;
+          if (url == null || url.trim().isEmpty) return const SizedBox();
+          return Image.network(url, fit: BoxFit.cover);
+        },
+      );
+    },
+  );
+}
+```
 
 ```dart
 import 'package:provider/provider.dart';
@@ -41,11 +82,24 @@ final objStore = context.read<ObjStoreService>();
 
 final key = 'media/xxxx.png';
 final uri = await objStore.resolveUri(key: key);
-
-// 若配置为七牛私有空间，这里返回带签名的临时下载链接（带 e/token）
 ```
 
-## 3) 异常处理（未配置提示用户去配置）
+## 3) 只查缓存（不触发下载）
+
+```dart
+import 'dart:io';
+import 'package:provider/provider.dart';
+import 'package:life_tools/core/obj_store/obj_store_service.dart';
+
+final objStore = context.read<ObjStoreService>();
+
+final File? cached = await objStore.getCachedFile(key: 'media/xxxx.png');
+if (cached != null && cached.existsSync()) {
+  // 命中缓存，可直接用 Image.file(cached)
+}
+```
+
+## 异常处理（未配置提示用户去配置）
 
 ```dart
 import 'package:provider/provider.dart';
@@ -65,12 +119,10 @@ try {
 }
 ```
 
-## 4) 调用注意事项（重要）
+## 调用注意事项（重要）
 
-1. **只持久化 Key，不要持久化 URI**
-   - `uploaded.key`：建议业务侧持久化保存（数据库/配置等）
-   - `uploaded.uri`：仅用于当前展示/调试
-   - 七牛私有空间的 `uri` 是“带签名的临时下载链接”，会过期；需要展示时应 `resolveUri(key: ...)` 重新获取
+1. **只持久化 `key`**
+   - 不要持久化 URL（URL 可能变化/可能带临时 token）
 
 2. **优先用 bytes 上传，避免路径副作用**
    - 推荐：选择文件后读出 `Uint8List bytes`，再调用 `objStore.uploadBytes(bytes: ..., filename: ...)`

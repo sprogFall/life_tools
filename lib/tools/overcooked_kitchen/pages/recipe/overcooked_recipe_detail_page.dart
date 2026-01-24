@@ -12,7 +12,6 @@ import '../../overcooked_constants.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
-import '../../services/overcooked_image_cache_service.dart';
 import '../../widgets/overcooked_image.dart';
 import 'overcooked_recipe_edit_page.dart';
 import 'overcooked_image_viewer_page.dart';
@@ -171,12 +170,6 @@ class _OvercookedRecipeDetailPageState
 
   Widget _buildContent(BuildContext context, OvercookedRecipe recipe) {
     final objStore = context.read<ObjStoreService>();
-    OvercookedImageCacheService? cache;
-    try {
-      cache = context.read<OvercookedImageCacheService>();
-    } catch (_) {
-      cache = null;
-    }
     final typeName = recipe.typeTagId == null
         ? null
         : _tagsById[recipe.typeTagId!]?.name;
@@ -205,18 +198,11 @@ class _OvercookedRecipeDetailPageState
               objectKeys: [if (recipe.coverImageKey != null) recipe.coverImageKey!],
               title: recipe.name,
             ),
-            child: cache == null
-                ? OvercookedImageByKey(
-                    objStoreService: objStore,
-                    objectKey: recipe.coverImageKey,
-                    borderRadius: 20,
-                  )
-                : OvercookedCachedImageByKey(
-                    objStoreService: objStore,
-                    cacheService: cache,
-                    objectKey: recipe.coverImageKey,
-                    borderRadius: 20,
-                  ),
+            child: OvercookedImageByKey(
+              objStoreService: objStore,
+              objectKey: recipe.coverImageKey,
+              borderRadius: 20,
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -294,18 +280,11 @@ class _OvercookedRecipeDetailPageState
                       initialIndex: index,
                       title: '详细图片',
                     ),
-                    child: cache == null
-                        ? OvercookedImageByKey(
-                            objStoreService: objStore,
-                            objectKey: key,
-                            borderRadius: 18,
-                          )
-                        : OvercookedCachedImageByKey(
-                            objStoreService: objStore,
-                            cacheService: cache,
-                            objectKey: key,
-                            borderRadius: 18,
-                          ),
+                    child: OvercookedImageByKey(
+                      objStoreService: objStore,
+                      objectKey: key,
+                      borderRadius: 18,
+                    ),
                   ),
                 );
               },

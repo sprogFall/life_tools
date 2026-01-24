@@ -84,7 +84,7 @@ void main() {
       await db.close();
     });
 
-    testWidgets('缺少 OvercookedImageCacheService Provider 时仍可正常展示详情', (tester) async {
+    testWidgets('图片未配置时仍可正常展示详情文本', (tester) async {
       final now = DateTime(2026, 1, 2, 10);
       final recipe = OvercookedRecipe.create(
         name: '测试菜谱',

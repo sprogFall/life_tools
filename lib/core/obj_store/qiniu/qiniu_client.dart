@@ -73,9 +73,19 @@ class QiniuClient {
     required String key,
     bool useHttps = true,
   }) {
-    final d = _normalizeDomain(domain, useHttps: useHttps);
-    final k = key.startsWith('/') ? key.substring(1) : key;
-    return '$d/$k';
+    final base = _normalizeDomainUri(domain, useHttps: useHttps);
+    if (base.host.isEmpty) return '';
+
+    final rawKey = key.trim();
+    final normalizedKey = rawKey.startsWith('/') ? rawKey.substring(1) : rawKey;
+    final keySegments =
+        normalizedKey.split('/').where((s) => s.trim().isNotEmpty).toList();
+
+    final segments = <String>[
+      ...base.pathSegments.where((s) => s.trim().isNotEmpty),
+      ...keySegments,
+    ];
+    return base.replace(pathSegments: segments).toString();
   }
 
   String buildPrivateUrl({
@@ -122,13 +132,27 @@ class QiniuClient {
     return 'https://$h';
   }
 
-  static String _normalizeDomain(String domain, {required bool useHttps}) {
+  static Uri _normalizeDomainUri(String domain, {required bool useHttps}) {
     final d = domain.trim();
-    if (d.isEmpty) return '';
-    if (d.startsWith('http://') || d.startsWith('https://')) {
-      return d.replaceAll(RegExp(r'/$'), '');
-    }
+    if (d.isEmpty) return Uri();
+
     final scheme = useHttps ? 'https' : 'http';
-    return '$scheme://${d.replaceAll(RegExp(r'/$'), '')}';
+
+    Uri parsed;
+    if (d.startsWith('http://') || d.startsWith('https://')) {
+      parsed = Uri.parse(d);
+    } else {
+      parsed = Uri.parse('$scheme://$d');
+    }
+
+    // 无论用户输入何种 scheme，都以 useHttps 为准（避免 http 导致移动端图片无法加载）。
+    final normalizedPathSegments =
+        parsed.pathSegments.where((s) => s.trim().isNotEmpty).toList();
+    return parsed.replace(
+      scheme: scheme,
+      pathSegments: normalizedPathSegments,
+      query: null,
+      fragment: null,
+    );
   }
 }

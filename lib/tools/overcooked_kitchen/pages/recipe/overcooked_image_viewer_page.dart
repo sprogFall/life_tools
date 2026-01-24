@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import '../../../../core/obj_store/obj_store_errors.dart';
 import '../../../../core/obj_store/obj_store_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
-import '../../services/overcooked_image_cache_service.dart';
 
 class OvercookedImageViewerPage extends StatefulWidget {
   final List<String> objectKeys;
@@ -53,12 +52,6 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
   @override
   Widget build(BuildContext context) {
     final objStore = context.read<ObjStoreService>();
-    OvercookedImageCacheService? cacheService;
-    try {
-      cacheService = context.read<OvercookedImageCacheService>();
-    } catch (_) {
-      cacheService = null;
-    }
 
     final showIndicator = widget.objectKeys.length > 1;
 
@@ -77,11 +70,10 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
         onPageChanged: (index) => setState(() => _currentIndex = index),
         itemBuilder: (context, index) {
           final key = widget.objectKeys[index].trim();
-          return !kIsWeb && cacheService != null
-              ? _CachedImageView(
+          return !kIsWeb
+              ? _DiskPreferredImageView(
                   objectKey: key,
                   objStore: objStore,
-                  cacheService: cacheService,
                   onZoomChanged: _onZoomChanged,
                 )
               : _NetworkImageView(
@@ -95,26 +87,21 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
   }
 }
 
-class _CachedImageView extends StatelessWidget {
+class _DiskPreferredImageView extends StatelessWidget {
   final String objectKey;
   final ObjStoreService objStore;
-  final OvercookedImageCacheService cacheService;
   final ValueChanged<bool> onZoomChanged;
 
-  const _CachedImageView({
+  const _DiskPreferredImageView({
     required this.objectKey,
     required this.objStore,
-    required this.cacheService,
     required this.onZoomChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<File?>(
-      future: cacheService.ensureCached(
-        key: objectKey,
-        resolveUri: () => objStore.resolveUri(key: objectKey),
-      ),
+      future: objStore.ensureCachedFile(key: objectKey),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -130,9 +117,10 @@ class _CachedImageView extends StatelessWidget {
         }
         final f = snapshot.data;
         if (f == null || !f.existsSync()) {
-          return const Center(
-            child:
-                Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
+          return _NetworkImageView(
+            objectKey: objectKey,
+            objStore: objStore,
+            onZoomChanged: onZoomChanged,
           );
         }
         return _ZoomableImage(

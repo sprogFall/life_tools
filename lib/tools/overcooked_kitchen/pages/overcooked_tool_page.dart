@@ -1,17 +1,13 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../overcooked_constants.dart';
 import '../repository/overcooked_repository.dart';
-import '../services/overcooked_image_cache_service.dart';
 import '../services/overcooked_reminder_service.dart';
 import 'tabs/overcooked_calendar_tab.dart';
 import 'tabs/overcooked_gacha_tab.dart';
@@ -65,11 +61,6 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
     return MultiProvider(
       providers: [
         Provider<OvercookedRepository>.value(value: _repository),
-        Provider<OvercookedImageCacheService>(
-          create: (_) => OvercookedImageCacheService(
-            baseDirProvider: _defaultOvercookedImageCacheBaseDir,
-          ),
-        ),
       ],
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
@@ -230,11 +221,4 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
       ],
     );
   }
-}
-
-Future<Directory> _defaultOvercookedImageCacheBaseDir() async {
-  final base = await getTemporaryDirectory();
-  final dir = Directory(p.join(base.path, 'life_tools_cache'));
-  if (!dir.existsSync()) dir.createSync(recursive: true);
-  return dir;
 }

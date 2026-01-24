@@ -268,5 +268,80 @@ void main() {
         'https://cdn.example.com/media/abc.png?e=1234567890&token=testak:FMNTFUnuG-wbXiPViZ0RjV026sE=',
       );
     });
+
+    test('七牛私有空间：当 key 已是 URL 时，应提取 objectKey 并重新签名', () async {
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final cfg = const ObjStoreConfig.qiniu(
+        bucket: 'bkt',
+        domain: 'https://cdn.example.com',
+        uploadHost: 'https://upload.qiniup.com',
+        keyPrefix: '',
+        isPrivate: true,
+      );
+      final secrets = const ObjStoreQiniuSecrets(
+        accessKey: 'testak',
+        secretKey: 'testsk',
+      );
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        qiniuPrivateDeadlineUnixSeconds: () => 1234567890,
+      );
+
+      final uri = await service.resolveUriWithConfig(
+        config: cfg,
+        key: 'https://cdn.example.com/media/abc.png',
+        secrets: secrets,
+      );
+
+      expect(
+        uri,
+        'https://cdn.example.com/media/abc.png?e=1234567890&token=testak:FMNTFUnuG-wbXiPViZ0RjV026sE=',
+      );
+    });
+
+    test('本地存储：当 key 已是 file:// URL 时，应直接返回（用于兼容历史导入）', () async {
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final tmp = await Directory.systemTemp.createTemp();
+      addTearDown(() async {
+        try {
+          await tmp.delete(recursive: true);
+        } catch (_) {}
+      });
+
+      final localStore = LocalObjStore(baseDirProvider: () async => tmp);
+      final stored = await localStore.saveBytes(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        filename: 'a.png',
+      );
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: localStore,
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+      );
+
+      final uri = await service.resolveUriWithConfig(
+        config: const ObjStoreConfig.local(),
+        key: stored.uri,
+      );
+      expect(uri, stored.uri);
+    });
   });
 }
