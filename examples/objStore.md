@@ -64,3 +64,26 @@ try {
   // TODO: 其他上传/解析错误提示
 }
 ```
+
+## 4) 调用注意事项（重要）
+
+1. **只持久化 Key，不要持久化 URI**
+   - `uploaded.key`：建议业务侧持久化保存（数据库/配置等）
+   - `uploaded.uri`：仅用于当前展示/调试
+   - 七牛私有空间的 `uri` 是“带签名的临时下载链接”，会过期；需要展示时应 `resolveUri(key: ...)` 重新获取
+
+2. **优先用 bytes 上传，避免路径副作用**
+   - 推荐：选择文件后读出 `Uint8List bytes`，再调用 `objStore.uploadBytes(bytes: ..., filename: ...)`
+   - 不要把“选中的文件路径”当成稳定输入：不同平台/插件可能会产生临时复制文件
+
+3. **Android + file_picker：必须处理临时复制文件，避免相册出现重复图片**
+   - `file_picker` 在 Android 上可能会把选中的图片复制到缓存目录（如 `.../Android/data/<包名>/cache/file_picker/`），系统媒体库会扫描到，从而在相册里出现“多出一张重复图片”
+   - 规范做法：
+     - 选择完成并读取后调用 `FilePicker.platform.clearTemporaryFiles()`
+     - 若需要“暂存到本地以便预览/稍后上传”，优先使用 `stageFileToPendingUploadDir(...)`（见 `lib/core/utils/pending_upload_file.dart`），它会把文件复制到应用临时目录并写入 `.nomedia`，上传完成后再删除暂存文件
+     - 若你需要自定义清理逻辑，请复用：
+       - `shouldCleanupPickedFilePath(...)`（`lib/core/utils/picked_file_cleanup.dart`）：判断该路径是否属于可安全删除的临时复制文件
+       - `ensureNoMediaFileInDir(...)`（`lib/core/utils/no_media.dart`）：在目录内写入 `.nomedia`，阻止媒体库扫描
+
+4. **大文件注意**
+   - `uploadBytes(...)` 需要一次性把文件读入内存；对大视频/超大图片请先限制大小、压缩或拆分流程，避免内存峰值过高
