@@ -238,6 +238,8 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
   final Map<String, TextEditingController> _quickAddControllersByCategoryId =
       {};
   final Map<String, FocusNode> _quickAddFocusNodesByCategoryId = {};
+  final Map<String, IOS26QuickAddChipController>
+      _quickAddChipUiControllersByCategoryId = {};
   final Map<String, List<String>> _pendingQuickAddNamesByCategoryId = {};
   final Set<String> _committingCategoryIds = {};
 
@@ -255,15 +257,23 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     );
   }
 
-  void _enterManagingAndFocus(String categoryId) {
+  IOS26QuickAddChipController _uiControllerForCategory(String categoryId) {
+    return _quickAddChipUiControllersByCategoryId.putIfAbsent(
+      categoryId,
+      () => IOS26QuickAddChipController(),
+    );
+  }
+
+  void _enterManaging(String categoryId, {required bool openEditor}) {
     setState(() {
       _managingCategoryIds.add(categoryId);
       _expandedByCategoryId[categoryId] = true;
     });
+    if (!openEditor) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (!_managingCategoryIds.contains(categoryId)) return;
-      _focusNodeForCategory(categoryId).requestFocus();
+      _uiControllerForCategory(categoryId).expand();
     });
   }
 
@@ -274,8 +284,12 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     for (final n in _quickAddFocusNodesByCategoryId.values) {
       n.dispose();
     }
+    for (final c in _quickAddChipUiControllersByCategoryId.values) {
+      c.dispose();
+    }
     _quickAddControllersByCategoryId.clear();
     _quickAddFocusNodesByCategoryId.clear();
+    _quickAddChipUiControllersByCategoryId.clear();
     _pendingQuickAddNamesByCategoryId.clear();
     _committingCategoryIds.clear();
   }
@@ -283,6 +297,7 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
   void _clearQuickAddDraft(String categoryId) {
     _pendingQuickAddNamesByCategoryId.remove(categoryId);
     _quickAddControllersByCategoryId[categoryId]?.clear();
+    _quickAddChipUiControllersByCategoryId[categoryId]?.collapse();
   }
 
   @override
@@ -364,14 +379,14 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                         }),
                         onAdd: () {
                           if (!managing) {
-                            _enterManagingAndFocus(categoryId);
+                            _enterManaging(categoryId, openEditor: true);
                             return;
                           }
-                          _focusNodeForCategory(categoryId).requestFocus();
+                          _uiControllerForCategory(categoryId).expand();
                         },
                         onManage: () {
                           if (!managing) {
-                            _enterManagingAndFocus(categoryId);
+                            _enterManaging(categoryId, openEditor: false);
                             return;
                           }
 
@@ -456,6 +471,9 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                                       focusNode: _focusNodeForCategory(
                                         categoryId,
                                       ),
+                                      uiController: _uiControllerForCategory(
+                                        categoryId,
+                                      ),
                                       placeholder: _hintPlaceholder(
                                         _resolveCreateHint(
                                           categoryName: category.name,
@@ -466,8 +484,9 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                                       loading: _committingCategoryIds.contains(
                                         categoryId,
                                       ),
-                                      onAdd: () => _stageQuickAddTag(
+                                      onAdd: (name) => _stageQuickAddTag(
                                         categoryId: categoryId,
+                                        name: name,
                                         existingNames: categoryItems
                                             .where((e) => e.tag.id != null)
                                             .map((e) => e.tag.name)
@@ -517,35 +536,35 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     ];
   }
 
-  void _stageQuickAddTag({
+  bool _stageQuickAddTag({
     required String categoryId,
+    required String name,
     required Set<String> existingNames,
   }) {
-    if (_committingCategoryIds.contains(categoryId)) return;
+    if (_committingCategoryIds.contains(categoryId)) return false;
 
     final controller = _controllerForCategory(categoryId);
     final focusNode = _focusNodeForCategory(categoryId);
 
-    final name = controller.text.trim();
-    if (name.isEmpty) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
       focusNode.requestFocus();
-      return;
+      return false;
     }
 
     final pending = (_pendingQuickAddNamesByCategoryId[categoryId] ?? const [])
         .toList();
     final used = <String>{...existingNames, ...pending};
-    if (used.contains(name)) {
+    if (used.contains(trimmed)) {
       controller.clear();
       focusNode.requestFocus();
-      return;
+      return false;
     }
 
     setState(() {
-      _pendingQuickAddNamesByCategoryId[categoryId] = [...pending, name];
+      _pendingQuickAddNamesByCategoryId[categoryId] = [...pending, trimmed];
     });
-    controller.clear();
-    focusNode.requestFocus();
+    return true;
   }
 
   List<Widget> _buildPendingQuickAddChips({
@@ -591,7 +610,12 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
 
     final tail = controller.text.trim();
     if (tail.isNotEmpty) {
-      _stageQuickAddTag(categoryId: categoryId, existingNames: existingNames);
+      final staged = _stageQuickAddTag(
+        categoryId: categoryId,
+        name: tail,
+        existingNames: existingNames,
+      );
+      if (staged) controller.clear();
     }
 
     final pending = (_pendingQuickAddNamesByCategoryId[categoryId] ?? const [])

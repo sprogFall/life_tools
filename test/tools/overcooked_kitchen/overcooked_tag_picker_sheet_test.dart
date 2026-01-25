@@ -83,6 +83,15 @@ void main() {
 
       await pumpUntilFound(
         tester,
+        find.byKey(const ValueKey('overcooked-tag-quick-add-button')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked-tag-quick-add-button')),
+      );
+      await tester.pump();
+
+      await pumpUntilFound(
+        tester,
         find.byKey(const ValueKey('overcooked-tag-quick-add-field')),
       );
       await tester.enterText(

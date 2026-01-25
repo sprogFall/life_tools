@@ -267,6 +267,9 @@ void main() {
 
       final inputKey = const ValueKey('tag-quick-add-field-work_log-priority');
       final addKey = const ValueKey('tag-quick-add-button-work_log-priority');
+      await pumpUntilFound(tester, find.byKey(addKey));
+      await tester.tap(find.byKey(addKey));
+      await tester.pump();
       await pumpUntilFound(tester, find.byKey(inputKey));
 
       final field = tester.widget<CupertinoTextField>(find.byKey(inputKey));
@@ -277,6 +280,11 @@ void main() {
       await tester.pump();
       await pumpUntilFound(tester, find.text('重要'));
 
+      // 新增后输入框会收起，需再次点击加号展开继续输入。
+      await pumpUntilFound(tester, find.byKey(addKey));
+      await tester.tap(find.byKey(addKey));
+      await tester.pump();
+      await pumpUntilFound(tester, find.byKey(inputKey));
       await tester.enterText(find.byKey(inputKey), '紧急');
       await tester.tap(find.byKey(addKey));
       await tester.pump();

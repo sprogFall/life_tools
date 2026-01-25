@@ -217,28 +217,25 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
     }
   }
 
-  Future<void> _createFromInline() async {
-    if (!_canCreate || _creating) return;
-    final name = _quickAddController.text.trim();
-    if (name.isEmpty) {
-      _quickAddFocusNode.requestFocus();
-      return;
-    }
-    final exists = _tags.any((t) => t.name.trim() == name);
+  Future<bool> _createFromInline(String name) async {
+    if (!_canCreate || _creating) return false;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return false;
+    final exists = _tags.any((t) => t.name.trim() == trimmed);
     if (exists) {
       _quickAddController.clear();
       _quickAddFocusNode.requestFocus();
-      return;
+      return false;
     }
 
     setState(() => _creating = true);
     try {
-      final created = await widget.onCreateTag!.call(name);
+      final created = await widget.onCreateTag!.call(trimmed);
       final id = created.id;
       if (id == null) {
         throw StateError('新增标签失败：未返回 id');
       }
-      if (!mounted) return;
+      if (!mounted) return false;
 
       final next = [..._tags.where((t) => t.id != id), created]
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -255,7 +252,7 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
         }
       });
       if (!widget.multi) {
-        if (!mounted) return;
+        if (!mounted) return true;
         Navigator.pop(
           context,
           OvercookedTagPickerResult(
@@ -264,8 +261,9 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
           ),
         );
       }
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       await showCupertinoDialog<void>(
         context: context,
         builder: (dialogContext) => CupertinoAlertDialog(
@@ -279,6 +277,7 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
           ],
         ),
       );
+      return false;
     } finally {
       if (mounted) setState(() => _creating = false);
     }

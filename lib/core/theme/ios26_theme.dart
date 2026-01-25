@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -285,16 +286,40 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// iOS 26 风格的「内联新增」输入 chip（输入框 + 右侧加号/加载态）
-class IOS26QuickAddChip extends StatelessWidget {
+class IOS26QuickAddChipController extends ChangeNotifier {
+  bool _expanded = false;
+
+  bool get expanded => _expanded;
+
+  void expand() {
+    if (_expanded) return;
+    _expanded = true;
+    notifyListeners();
+  }
+
+  void collapse() {
+    if (!_expanded) return;
+    _expanded = false;
+    notifyListeners();
+  }
+}
+
+/// iOS 26 风格的「内联新增」chip：
+/// - 默认仅显示一个「+」圆角按钮
+/// - 点击后展开为「短输入框 + ✓」并随输入内容自适应宽度
+/// - 提交成功后自动收起回到「+」
+class IOS26QuickAddChip extends StatefulWidget {
   final Key fieldKey;
   final Key buttonKey;
   final TextEditingController controller;
   final FocusNode focusNode;
   final String placeholder;
   final bool loading;
-  final VoidCallback onAdd;
+  final FutureOr<bool> Function(String name) onAdd;
   final double minFieldWidth;
   final double maxFieldWidth;
+  final IOS26QuickAddChipController? uiController;
+  final bool initiallyCollapsed;
 
   const IOS26QuickAddChip({
     super.key,
@@ -305,65 +330,222 @@ class IOS26QuickAddChip extends StatelessWidget {
     required this.placeholder,
     required this.loading,
     required this.onAdd,
-    this.minFieldWidth = 120,
-    this.maxFieldWidth = 240,
+    this.minFieldWidth = 72,
+    this.maxFieldWidth = 320,
+    this.uiController,
+    this.initiallyCollapsed = true,
   });
+
+  @override
+  State<IOS26QuickAddChip> createState() => _IOS26QuickAddChipState();
+}
+
+class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.uiController?.expanded ?? !widget.initiallyCollapsed;
+    widget.controller.addListener(_onTextChanged);
+    widget.uiController?.addListener(_onUiChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant IOS26QuickAddChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onTextChanged);
+      widget.controller.addListener(_onTextChanged);
+    }
+    if (oldWidget.uiController != widget.uiController) {
+      oldWidget.uiController?.removeListener(_onUiChanged);
+      widget.uiController?.addListener(_onUiChanged);
+      _expanded = widget.uiController?.expanded ?? _expanded;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    widget.uiController?.removeListener(_onUiChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    if (!mounted) return;
+    if (_expanded) setState(() {});
+  }
+
+  void _onUiChanged() {
+    if (!mounted) return;
+    final next = widget.uiController?.expanded ?? _expanded;
+    if (next == _expanded) return;
+    setState(() => _expanded = next);
+    if (next) _requestFocusSoon();
+  }
+
+  void _expand() {
+    if (widget.loading) return;
+    if (_expanded) {
+      _requestFocusSoon();
+      return;
+    }
+    if (widget.uiController != null) {
+      widget.uiController!.expand();
+    } else {
+      setState(() => _expanded = true);
+      _requestFocusSoon();
+    }
+  }
+
+  void _collapse() {
+    if (!_expanded) return;
+    if (widget.uiController != null) {
+      widget.uiController!.collapse();
+    } else {
+      setState(() => _expanded = false);
+    }
+  }
+
+  void _requestFocusSoon() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.focusNode.requestFocus();
+    });
+  }
+
+  Future<void> _commit() async {
+    if (widget.loading) return;
+    final name = widget.controller.text.trim();
+    if (name.isEmpty) {
+      _requestFocusSoon();
+      return;
+    }
+
+    final ok = await Future<bool>.value(widget.onAdd(name));
+    if (!mounted) return;
+    if (!ok) {
+      _requestFocusSoon();
+      return;
+    }
+    widget.controller.clear();
+    _collapse();
+  }
+
+  double _measureTextWidth({
+    required BuildContext context,
+    required String text,
+    required TextStyle style,
+  }) {
+    if (text.isEmpty) return 0;
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+    )..layout(minWidth: 0, maxWidth: double.infinity);
+    return painter.width;
+  }
 
   @override
   Widget build(BuildContext context) {
     final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
     final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: minFieldWidth,
-              maxWidth: maxFieldWidth,
-            ),
-            child: CupertinoTextField(
-              key: fieldKey,
-              controller: controller,
-              focusNode: focusNode,
-              placeholder: placeholder,
-              decoration: const BoxDecoration(color: Colors.transparent),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: IOS26Theme.textPrimary,
-              ),
-              placeholderStyle: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-              ),
-              onSubmitted: (_) => onAdd(),
-            ),
+    final textStyle = const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      color: IOS26Theme.textPrimary,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : (widget.maxFieldWidth + 44);
+        final maxField = (availableWidth - 44)
+            .clamp(0.0, widget.maxFieldWidth)
+            .toDouble();
+        final minField =
+            widget.minFieldWidth.clamp(0.0, maxField).toDouble();
+
+        final raw = widget.controller.text;
+        final textWidth = _measureTextWidth(
+          context: context,
+          text: raw,
+          style: textStyle,
+        );
+        final desiredField = raw.trim().isEmpty
+            ? minField
+            : (textWidth + 24).clamp(minField, maxField).toDouble();
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: border, width: 1),
           ),
-          CupertinoButton(
-            key: buttonKey,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            minimumSize: const Size(44, 44),
-            pressedOpacity: 0.7,
-            onPressed: loading ? null : onAdd,
-            child: loading
-                ? const CupertinoActivityIndicator(radius: 10)
-                : const Icon(
-                    CupertinoIcons.add,
-                    size: 13,
-                    color: IOS26Theme.primaryColor,
-                  ),
-          ),
-        ],
-      ),
+          child: _expanded
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: desiredField,
+                      child: CupertinoTextField(
+                        key: widget.fieldKey,
+                        controller: widget.controller,
+                        focusNode: widget.focusNode,
+                        placeholder: widget.placeholder,
+                        decoration: const BoxDecoration(
+                          color: Colors.transparent,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        style: textStyle,
+                        placeholderStyle: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.9,
+                          ),
+                        ),
+                        onSubmitted: (_) => _commit(),
+                      ),
+                    ),
+                    CupertinoButton(
+                      key: widget.buttonKey,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      pressedOpacity: 0.7,
+                      onPressed: widget.loading ? null : _commit,
+                      child: widget.loading
+                          ? const CupertinoActivityIndicator(radius: 10)
+                          : const Icon(
+                              CupertinoIcons.check_mark,
+                              size: 14,
+                              color: IOS26Theme.toolGreen,
+                            ),
+                    ),
+                  ],
+                )
+              : CupertinoButton(
+                  key: widget.buttonKey,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(44, 44),
+                  pressedOpacity: 0.7,
+                  onPressed: widget.loading ? null : _expand,
+                  child: widget.loading
+                      ? const CupertinoActivityIndicator(radius: 10)
+                      : const Icon(
+                          CupertinoIcons.add,
+                          size: 14,
+                          color: IOS26Theme.primaryColor,
+                        ),
+                ),
+        );
+      },
     );
   }
 }
