@@ -52,6 +52,28 @@ await tagService.createTagForTool(
 );
 ```
 
+## 1.2)（补充）批量新增标签：可关闭自动刷新以提升性能
+`createTagForToolCategory(...)` 新增了可选参数 `refreshCache`（默认 `true`）。当你要连续新增多条标签时，可先关闭自动刷新，最后手动刷新一次：
+
+```dart
+import 'package:provider/provider.dart';
+import 'package:life_tools/core/tags/tag_service.dart';
+
+final tagService = context.read<TagService>();
+
+for (final name in ['紧急', '重要', '待复盘']) {
+  await tagService.createTagForToolCategory(
+    toolId: 'work_log',
+    categoryId: 'priority',
+    name: name,
+    refreshCache: false, // 不每次都 refresh，避免重复 IO
+  );
+}
+
+await tagService.refreshAll();
+await tagService.refreshToolTags('work_log');
+```
+
 ## 2) 工作记录：任务打标签（创建/编辑时传入 tagIds）
 ```dart
 // WorkTaskEditPage 内部已支持选择标签并传给 WorkLogService.createTask/updateTask
