@@ -209,7 +209,7 @@ void main() {
       await pumpUntilNotFound(tester, find.byKey(ValueKey('tag-item-$id')));
     });
 
-    testWidgets('新增标签弹窗的 placeholder 可由分类注册方提供', (tester) async {
+    testWidgets('点击类别加号应进入管理并展示正确 placeholder', (tester) async {
       final deps = await createTagService(tester);
       deps.service.registerToolTagCategories('work_log', const [
         TagCategory(id: 'priority', name: '优先级', createHint: '紧急/重要'),
@@ -234,9 +234,9 @@ void main() {
       );
       await tester.pump();
 
-      final field = tester.widget<CupertinoTextField>(
-        find.byType(CupertinoTextField),
-      );
+      const inputKey = ValueKey('tag-quick-add-field-work_log-priority');
+      await pumpUntilFound(tester, find.byKey(inputKey));
+      final field = tester.widget<CupertinoTextField>(find.byKey(inputKey));
       expect(field.placeholder, '如：紧急/重要');
     });
 

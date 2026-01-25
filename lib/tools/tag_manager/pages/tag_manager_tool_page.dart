@@ -255,6 +255,18 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     );
   }
 
+  void _enterManagingAndFocus(String categoryId) {
+    setState(() {
+      _managingCategoryIds.add(categoryId);
+      _expandedByCategoryId[categoryId] = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_managingCategoryIds.contains(categoryId)) return;
+      _focusNodeForCategory(categoryId).requestFocus();
+    });
+  }
+
   void _disposeQuickAddInputs() {
     for (final c in _quickAddControllersByCategoryId.values) {
       c.dispose();
@@ -350,26 +362,16 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                             _clearQuickAddDraft(categoryId);
                           }
                         }),
-                        onAdd: () => _openCreateTag(
-                          context,
-                          toolId: widget.toolId,
-                          categoryId: categoryId,
-                          categoryName: category.name,
-                          categoryCreateHint: category.createHint,
-                        ),
+                        onAdd: () {
+                          if (!managing) {
+                            _enterManagingAndFocus(categoryId);
+                            return;
+                          }
+                          _focusNodeForCategory(categoryId).requestFocus();
+                        },
                         onManage: () {
                           if (!managing) {
-                            setState(() {
-                              _managingCategoryIds.add(categoryId);
-                              _expandedByCategoryId[categoryId] = true;
-                            });
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (!mounted) return;
-                              if (!_managingCategoryIds.contains(categoryId)) {
-                                return;
-                              }
-                              _focusNodeForCategory(categoryId).requestFocus();
-                            });
+                            _enterManagingAndFocus(categoryId);
                             return;
                           }
 
@@ -513,81 +515,6 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
         _CategoryView(id: c.id, name: c.name, createHint: c.createHint),
       ...extra,
     ];
-  }
-
-  Future<void> _openCreateTag(
-    BuildContext context, {
-    required String toolId,
-    required String categoryId,
-    required String categoryName,
-    required String? categoryCreateHint,
-  }) async {
-    final controller = TextEditingController();
-    String? error;
-    final hint = _resolveCreateHint(
-      categoryName: categoryName,
-      categoryCreateHint: categoryCreateHint,
-    );
-
-    final ok = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) => CupertinoAlertDialog(
-          title: Text('添加到「$categoryName」'),
-          content: Column(
-            children: [
-              const SizedBox(height: 12),
-              const Align(alignment: Alignment.centerLeft, child: Text('标签名')),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: controller,
-                placeholder: _hintPlaceholder(hint),
-                autofocus: true,
-              ),
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    error!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: IOS26Theme.toolRed,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
-            ),
-            CupertinoDialogAction(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isEmpty) {
-                  setState(() => error = '请填写标签名');
-                  return;
-                }
-                Navigator.pop(context, true);
-              },
-              child: const Text('添加'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (ok != true || !context.mounted) return;
-
-    await context.read<TagService>().createTagForToolCategory(
-      toolId: toolId,
-      categoryId: categoryId,
-      name: controller.text.trim(),
-    );
   }
 
   void _stageQuickAddTag({
