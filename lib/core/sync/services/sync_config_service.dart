@@ -31,8 +31,19 @@ class SyncConfigService extends ChangeNotifier {
 
   /// 更新上次同步时间
   Future<void> updateLastSyncTime(DateTime time) async {
+    await updateLastSyncState(time: time);
+  }
+
+  /// 更新上次同步状态（v2 可同时写入服务端游标）
+  Future<void> updateLastSyncState({
+    required DateTime time,
+    int? serverRevision,
+  }) async {
     if (_config == null) return;
-    _config = _config!.copyWith(lastSyncTime: time);
+    _config = _config!.copyWith(
+      lastSyncTime: time,
+      lastServerRevision: serverRevision,
+    );
     await _prefs?.setString(_storageKey, _config!.toJsonString());
     notifyListeners();
   }

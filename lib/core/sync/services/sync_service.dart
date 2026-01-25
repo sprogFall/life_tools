@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../../registry/tool_registry.dart';
+import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import '../models/sync_request.dart';
+import '../models/sync_request_v2.dart';
+import '../models/sync_response_v2.dart';
 import 'sync_api_client.dart';
 import 'sync_config_service.dart';
+import 'tool_sync_order.dart';
 import 'wifi_service.dart';
 
 /// 同步状态
@@ -21,6 +25,7 @@ class SyncService extends ChangeNotifier {
   final SyncConfigService _configService;
   final WifiService _wifiService;
   final SyncApiClient _apiClient;
+  final List<ToolSyncProvider> _toolProviders;
 
   SyncState _state = SyncState.idle;
   String? _lastError;
@@ -34,9 +39,16 @@ class SyncService extends ChangeNotifier {
     required SyncConfigService configService,
     WifiService? wifiService,
     SyncApiClient? apiClient,
+    Iterable<ToolSyncProvider>? toolProviders,
   }) : _configService = configService,
        _wifiService = wifiService ?? WifiService(),
-       _apiClient = apiClient ?? SyncApiClient();
+       _apiClient = apiClient ?? SyncApiClient(),
+       _toolProviders = List<ToolSyncProvider>.unmodifiable(
+         toolProviders ??
+             ToolRegistry.instance.tools
+                 .where((t) => t.supportSync)
+                 .map((t) => t.syncProvider!),
+       );
 
   /// 执行同步（主入口）
   Future<bool> sync() async {
@@ -76,24 +88,28 @@ class SyncService extends ChangeNotifier {
         return true;
       }
 
-      // 4. 调用同步 API
-      final request = SyncRequest(userId: config.userId, toolsData: toolsData);
-
-      final response = await _apiClient.sync(config: config, request: request);
-
-      if (!response.success) {
-        _lastError = response.message ?? '同步失败';
-        _setState(SyncState.failed);
+      // 4. 调用同步 API（优先 v2，服务端不支持则回退 v1）
+      final v2Result = await _trySyncV2(config: config, toolsData: toolsData);
+      if (v2Result == _SyncV2Result.failed) {
         return false;
       }
+      if (v2Result == _SyncV2Result.notSupported) {
+        final request = SyncRequest(userId: config.userId, toolsData: toolsData);
+        final response = await _apiClient.sync(config: config, request: request);
 
-      // 5. 分发服务端数据给各工具
-      if (response.toolsData != null) {
-        await _distributeToolsData(response.toolsData!);
+        if (!response.success) {
+          _lastError = response.message ?? '同步失败';
+          _setState(SyncState.failed);
+          return false;
+        }
+
+        // v1：服务端若返回 tools_data，则覆盖导入
+        if (response.toolsData != null) {
+          await _distributeToolsData(response.toolsData!);
+        }
+
+        await _configService.updateLastSyncTime(response.serverTime);
       }
-
-      // 6. 更新同步时间
-      await _configService.updateLastSyncTime(response.serverTime);
 
       _setState(SyncState.success);
       return true;
@@ -170,14 +186,11 @@ class SyncService extends ChangeNotifier {
   /// 收集所有工具的数据
   Future<Map<String, Map<String, dynamic>>> _collectToolsData() async {
     final result = <String, Map<String, dynamic>>{};
-    final tools = ToolRegistry.instance.tools;
-
-    for (final tool in tools) {
-      if (!tool.supportSync) continue;
+    for (final provider in _toolProviders) {
       try {
-        result[tool.id] = await tool.syncProvider!.exportData();
+        result[provider.toolId] = await provider.exportData();
       } catch (e) {
-        debugPrint('工具 ${tool.name} 导出数据失败: $e');
+        debugPrint('工具 ${provider.toolId} 导出数据失败: $e');
       }
     }
 
@@ -188,26 +201,20 @@ class SyncService extends ChangeNotifier {
   Future<void> _distributeToolsData(
     Map<String, Map<String, dynamic>> toolsData,
   ) async {
-    final tools = ToolRegistry.instance.tools;
-
-    final entries = toolsData.entries.toList()
-      ..sort((a, b) {
-        if (a.key == 'tag_manager' && b.key != 'tag_manager') return -1;
-        if (b.key == 'tag_manager' && a.key != 'tag_manager') return 1;
-        return 0;
-      });
+    final entries = sortToolEntries(toolsData);
+    final providersById = {for (final p in _toolProviders) p.toolId: p};
 
     for (final entry in entries) {
       final toolId = entry.key;
       final data = entry.value;
 
-      final tool = tools.where((t) => t.id == toolId).firstOrNull;
-      if (tool == null || !tool.supportSync) continue;
+      final provider = providersById[toolId];
+      if (provider == null) continue;
 
       try {
-        await tool.syncProvider!.importData(data);
+        await provider.importData(data);
       } catch (e) {
-        debugPrint('工具 ${tool.name} 导入数据失败: $e');
+        debugPrint('工具 $toolId 导入数据失败: $e');
         _lastError ??= '部分工具数据导入失败';
       }
     }
@@ -218,9 +225,82 @@ class SyncService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<_SyncV2Result> _trySyncV2({
+    required SyncConfig config,
+    required Map<String, Map<String, dynamic>> toolsData,
+  }) async {
+    final request = SyncRequestV2(
+      userId: config.userId,
+      clientTimeMs: DateTime.now().millisecondsSinceEpoch,
+      clientState: SyncClientState(
+        clientIsEmpty: _isAllToolsEmpty(toolsData),
+        lastServerRevision: config.lastServerRevision,
+      ),
+      toolsData: toolsData,
+    );
+
+    SyncResponseV2 response;
+    try {
+      response = await _apiClient.syncV2(config: config, request: request);
+    } on SyncApiException catch (e) {
+      // 服务端未实现 v2：允许回退到 v1
+      if (e.statusCode == 404 || e.statusCode == 405) {
+        return _SyncV2Result.notSupported;
+      }
+      rethrow;
+    }
+
+    if (!response.success) {
+      _lastError = response.message ?? '同步失败';
+      _setState(SyncState.failed);
+      return _SyncV2Result.failed;
+    }
+
+    if (response.decision == SyncDecision.useServer &&
+        response.toolsData != null) {
+      await _distributeToolsData(response.toolsData!);
+    }
+
+    await _configService.updateLastSyncState(
+      time: response.serverTime,
+      serverRevision: response.serverRevision,
+    );
+
+    return _SyncV2Result.success;
+  }
+
+  static bool _isAllToolsEmpty(Map<String, Map<String, dynamic>> toolsData) {
+    if (toolsData.isEmpty) return true;
+    return toolsData.values.every(_isToolSnapshotEmpty);
+  }
+
+  static bool _isToolSnapshotEmpty(Map<String, dynamic> snapshot) {
+    final data = snapshot['data'];
+    if (data == null) return false;
+    return _isDeepEmpty(data);
+  }
+
+  static bool _isDeepEmpty(dynamic value) {
+    if (value == null) return true;
+    if (value is String) return value.trim().isEmpty;
+    if (value is bool) return true;
+    if (value is num) return true;
+    if (value is List) return value.isEmpty;
+    if (value is Map) {
+      if (value.isEmpty) return true;
+      for (final v in value.values) {
+        if (!_isDeepEmpty(v)) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
   @override
   void dispose() {
     _apiClient.dispose();
     super.dispose();
   }
 }
+
+enum _SyncV2Result { notSupported, success, failed }

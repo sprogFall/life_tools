@@ -26,6 +26,7 @@ class SyncConfig {
   final List<String> allowedWifiNames; // 私网模式下允许的WiFi名称列表
   final bool autoSyncOnStartup; // 启动时自动同步
   final DateTime? lastSyncTime; // 上次同步时间
+  final int? lastServerRevision; // 上次同步后的服务端游标（v2协议）
 
   const SyncConfig({
     required this.userId,
@@ -36,6 +37,7 @@ class SyncConfig {
     required this.allowedWifiNames,
     this.autoSyncOnStartup = true,
     this.lastSyncTime,
+    this.lastServerRevision,
   });
 
   /// 验证配置是否有效
@@ -64,6 +66,7 @@ class SyncConfig {
     'allowedWifiNames': allowedWifiNames,
     'autoSyncOnStartup': autoSyncOnStartup,
     'lastSyncTime': lastSyncTime?.millisecondsSinceEpoch,
+    'lastServerRevision': lastServerRevision,
   };
 
   static int _readInt(dynamic value, {required int fallback}) {
@@ -117,6 +120,9 @@ class SyncConfig {
               _readInt(map['lastSyncTime'], fallback: 0),
             )
           : null,
+      lastServerRevision: map['lastServerRevision'] == null
+          ? null
+          : _readInt(map['lastServerRevision'], fallback: 0),
     );
   }
 
@@ -141,7 +147,9 @@ class SyncConfig {
     List<String>? allowedWifiNames,
     bool? autoSyncOnStartup,
     DateTime? lastSyncTime,
+    int? lastServerRevision,
     bool clearLastSyncTime = false,
+    bool clearLastServerRevision = false,
   }) {
     return SyncConfig(
       userId: userId ?? this.userId,
@@ -154,6 +162,9 @@ class SyncConfig {
       lastSyncTime: clearLastSyncTime
           ? null
           : (lastSyncTime ?? this.lastSyncTime),
+      lastServerRevision: clearLastServerRevision
+          ? null
+          : (lastServerRevision ?? this.lastServerRevision),
     );
   }
 }

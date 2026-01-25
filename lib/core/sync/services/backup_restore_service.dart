@@ -10,6 +10,7 @@ import '../../services/settings_service.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import 'sync_config_service.dart';
+import 'tool_sync_order.dart';
 
 class BackupRestoreResult {
   final int importedTools;
@@ -203,12 +204,7 @@ class BackupRestoreService {
     var skipped = 0;
     final failed = <String, String>{};
 
-    final entries = toolsMap.entries.toList()
-      ..sort((a, b) {
-        if (a.key == 'tag_manager' && b.key != 'tag_manager') return -1;
-        if (b.key == 'tag_manager' && a.key != 'tag_manager') return 1;
-        return 0;
-      });
+    final entries = sortToolEntries(toolsMap);
 
     for (final entry in entries) {
       final toolId = entry.key;

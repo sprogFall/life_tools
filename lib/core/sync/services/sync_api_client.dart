@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/sync_config.dart';
 import '../models/sync_request.dart';
+import '../models/sync_request_v2.dart';
 import '../models/sync_response.dart';
+import '../models/sync_response_v2.dart';
 
 /// 同步API异常
 class SyncApiException implements Exception {
@@ -56,6 +58,41 @@ class SyncApiClient {
 
       final json = jsonDecode(_decodeUtf8(response)) as Map<String, dynamic>;
       return SyncResponse.fromJson(json);
+    } catch (e) {
+      if (e is SyncApiException) rethrow;
+      throw SyncApiException(message: '同步请求失败: $e');
+    }
+  }
+
+  /// 调用同步接口（v2）
+  /// POST /sync/v2
+  Future<SyncResponseV2> syncV2({
+    required SyncConfig config,
+    required SyncRequestV2 request,
+    Duration timeout = const Duration(seconds: 120),
+  }) async {
+    final uri = Uri.parse('${config.fullServerUrl}/sync/v2');
+
+    final headers = <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      ...config.customHeaders,
+    };
+
+    try {
+      final response = await _httpClient
+          .post(uri, headers: headers, body: jsonEncode(request.toJson()))
+          .timeout(timeout);
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw SyncApiException(
+          statusCode: response.statusCode,
+          message: _extractErrorMessage(response),
+          responseBody: response.body,
+        );
+      }
+
+      final json = jsonDecode(_decodeUtf8(response)) as Map<String, dynamic>;
+      return SyncResponseV2.fromJson(json);
     } catch (e) {
       if (e is SyncApiException) rethrow;
       throw SyncApiException(message: '同步请求失败: $e');
