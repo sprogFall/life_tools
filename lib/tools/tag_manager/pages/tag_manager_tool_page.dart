@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -126,7 +128,10 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
                                   ),
                                 ),
                               )
-                            : _ToolCategoryList(toolId: toolId, allItems: allItems),
+                            : _ToolCategoryList(
+                                toolId: toolId,
+                                allItems: allItems,
+                              ),
                       ),
                     ],
                   );
@@ -230,6 +235,43 @@ class _ToolCategoryList extends StatefulWidget {
 class _ToolCategoryListState extends State<_ToolCategoryList> {
   final Map<String, bool> _expandedByCategoryId = {};
   final Set<String> _managingCategoryIds = {};
+  final Map<String, TextEditingController> _quickAddControllersByCategoryId =
+      {};
+  final Map<String, FocusNode> _quickAddFocusNodesByCategoryId = {};
+  final Map<String, List<String>> _pendingQuickAddNamesByCategoryId = {};
+  final Set<String> _committingCategoryIds = {};
+
+  TextEditingController _controllerForCategory(String categoryId) {
+    return _quickAddControllersByCategoryId.putIfAbsent(
+      categoryId,
+      () => TextEditingController(),
+    );
+  }
+
+  FocusNode _focusNodeForCategory(String categoryId) {
+    return _quickAddFocusNodesByCategoryId.putIfAbsent(
+      categoryId,
+      () => FocusNode(),
+    );
+  }
+
+  void _disposeQuickAddInputs() {
+    for (final c in _quickAddControllersByCategoryId.values) {
+      c.dispose();
+    }
+    for (final n in _quickAddFocusNodesByCategoryId.values) {
+      n.dispose();
+    }
+    _quickAddControllersByCategoryId.clear();
+    _quickAddFocusNodesByCategoryId.clear();
+    _pendingQuickAddNamesByCategoryId.clear();
+    _committingCategoryIds.clear();
+  }
+
+  void _clearQuickAddDraft(String categoryId) {
+    _pendingQuickAddNamesByCategoryId.remove(categoryId);
+    _quickAddControllersByCategoryId[categoryId]?.clear();
+  }
 
   @override
   void didUpdateWidget(covariant _ToolCategoryList oldWidget) {
@@ -237,7 +279,14 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     if (oldWidget.toolId != widget.toolId) {
       _expandedByCategoryId.clear();
       _managingCategoryIds.clear();
+      _disposeQuickAddInputs();
     }
+  }
+
+  @override
+  void dispose() {
+    _disposeQuickAddInputs();
+    super.dispose();
   }
 
   @override
@@ -296,7 +345,10 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                         expanded: expanded,
                         onToggleExpanded: () => setState(() {
                           _expandedByCategoryId[categoryId] = !expanded;
-                          if (expanded) _managingCategoryIds.remove(categoryId);
+                          if (expanded) {
+                            _managingCategoryIds.remove(categoryId);
+                            _clearQuickAddDraft(categoryId);
+                          }
                         }),
                         onAdd: () => _openCreateTag(
                           context,
@@ -305,14 +357,34 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                           categoryName: category.name,
                           categoryCreateHint: category.createHint,
                         ),
-                        onManage: () => setState(() {
-                          if (managing) {
-                            _managingCategoryIds.remove(categoryId);
-                          } else {
-                            _managingCategoryIds.add(categoryId);
-                            _expandedByCategoryId[categoryId] = true;
+                        onManage: () {
+                          if (!managing) {
+                            setState(() {
+                              _managingCategoryIds.add(categoryId);
+                              _expandedByCategoryId[categoryId] = true;
+                            });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
+                              if (!_managingCategoryIds.contains(categoryId)) {
+                                return;
+                              }
+                              _focusNodeForCategory(categoryId).requestFocus();
+                            });
+                            return;
                           }
-                        }),
+
+                          unawaited(
+                            _finishQuickAddForCategory(
+                              context,
+                              toolId: widget.toolId,
+                              categoryId: categoryId,
+                              existingNames: categoryItems
+                                  .where((e) => e.tag.id != null)
+                                  .map((e) => e.tag.name)
+                                  .toSet(),
+                            ),
+                          );
+                        },
                         addKey: ValueKey(
                           'tag-category-add-${widget.toolId}-$categoryId',
                         ),
@@ -323,7 +395,7 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                       ),
                       if (expanded) ...[
                         const SizedBox(height: 12),
-                        if (categoryItems.isEmpty)
+                        if (categoryItems.isEmpty && !managing)
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -337,37 +409,71 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                               ),
                             ),
                           )
-                        else if (managing)
-                          _TagReorderList(
-                            toolId: widget.toolId,
-                            categoryId: categoryId,
-                            items: categoryItems,
-                            onTap: (tagId, tagName) => _openRename(
-                              context,
-                              toolId: widget.toolId,
-                              tagId: tagId,
-                              initialName: tagName,
-                            ),
-                            onRemove: (tagId, tagName) => _confirmDelete(
-                              context,
-                              toolId: widget.toolId,
-                              tagId: tagId,
-                              tagName: tagName,
-                              tools: byTagId[tagId],
-                            ),
-                          )
                         else
                           _TagChipsWrap(
-                            items: categoryItems,
-                            managing: false,
+                            items: categoryItems.isEmpty
+                                ? const <TagInToolCategory>[]
+                                : categoryItems,
+                            managing: managing,
                             onTap: (tagId, tagName) => _openRename(
                               context,
                               toolId: widget.toolId,
                               tagId: tagId,
                               initialName: tagName,
                             ),
-                            onRemove: null,
-                            removeKeyOf: null,
+                            onRemove: managing
+                                ? (tagId, tagName) => _confirmDelete(
+                                    context,
+                                    toolId: widget.toolId,
+                                    tagId: tagId,
+                                    tagName: tagName,
+                                    tools: byTagId[tagId],
+                                  )
+                                : null,
+                            removeKeyOf: managing
+                                ? (tagId) => ValueKey(
+                                    'tag-remove-${widget.toolId}-$categoryId-$tagId',
+                                  )
+                                : null,
+                            trailing: managing
+                                ? [
+                                    ..._buildPendingQuickAddChips(
+                                      toolId: widget.toolId,
+                                      categoryId: categoryId,
+                                    ),
+                                    _TagQuickAddChip(
+                                      fieldKey: ValueKey(
+                                        'tag-quick-add-field-${widget.toolId}-$categoryId',
+                                      ),
+                                      addKey: ValueKey(
+                                        'tag-quick-add-button-${widget.toolId}-$categoryId',
+                                      ),
+                                      controller: _controllerForCategory(
+                                        categoryId,
+                                      ),
+                                      focusNode: _focusNodeForCategory(
+                                        categoryId,
+                                      ),
+                                      placeholder: _hintPlaceholder(
+                                        _resolveCreateHint(
+                                          categoryName: category.name,
+                                          categoryCreateHint:
+                                              category.createHint,
+                                        ),
+                                      ),
+                                      loading: _committingCategoryIds.contains(
+                                        categoryId,
+                                      ),
+                                      onAdd: () => _stageQuickAddTag(
+                                        categoryId: categoryId,
+                                        existingNames: categoryItems
+                                            .where((e) => e.tag.id != null)
+                                            .map((e) => e.tag.name)
+                                            .toSet(),
+                                      ),
+                                    ),
+                                  ]
+                                : const [],
                           ),
                       ],
                     ],
@@ -418,9 +524,10 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
   }) async {
     final controller = TextEditingController();
     String? error;
-    final hint = (categoryCreateHint == null || categoryCreateHint.trim().isEmpty)
-        ? '${categoryName.trim()}标签'
-        : categoryCreateHint.trim();
+    final hint = _resolveCreateHint(
+      categoryName: categoryName,
+      categoryCreateHint: categoryCreateHint,
+    );
 
     final ok = await showCupertinoDialog<bool>(
       context: context,
@@ -434,7 +541,7 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
               const SizedBox(height: 8),
               CupertinoTextField(
                 controller: controller,
-                placeholder: '如：$hint',
+                placeholder: _hintPlaceholder(hint),
                 autofocus: true,
               ),
               if (error != null) ...[
@@ -482,6 +589,147 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
       name: controller.text.trim(),
     );
   }
+
+  void _stageQuickAddTag({
+    required String categoryId,
+    required Set<String> existingNames,
+  }) {
+    if (_committingCategoryIds.contains(categoryId)) return;
+
+    final controller = _controllerForCategory(categoryId);
+    final focusNode = _focusNodeForCategory(categoryId);
+
+    final name = controller.text.trim();
+    if (name.isEmpty) {
+      focusNode.requestFocus();
+      return;
+    }
+
+    final pending = (_pendingQuickAddNamesByCategoryId[categoryId] ?? const [])
+        .toList();
+    final used = <String>{...existingNames, ...pending};
+    if (used.contains(name)) {
+      controller.clear();
+      focusNode.requestFocus();
+      return;
+    }
+
+    setState(() {
+      _pendingQuickAddNamesByCategoryId[categoryId] = [...pending, name];
+    });
+    controller.clear();
+    focusNode.requestFocus();
+  }
+
+  List<Widget> _buildPendingQuickAddChips({
+    required String toolId,
+    required String categoryId,
+  }) {
+    final pending = _pendingQuickAddNamesByCategoryId[categoryId] ?? const [];
+    if (pending.isEmpty) return const [];
+
+    return [
+      for (int i = 0; i < pending.length; i++)
+        _TagChip(
+          key: ValueKey('tag-pending-$toolId-$categoryId-$i'),
+          name: pending[i],
+          onTap: () => _focusNodeForCategory(categoryId).requestFocus(),
+          showRemove: true,
+          onRemove: () => setState(() {
+            final current =
+                _pendingQuickAddNamesByCategoryId[categoryId] ?? const [];
+            if (i >= current.length) return;
+            final next = current.toList()..removeAt(i);
+            if (next.isEmpty) {
+              _pendingQuickAddNamesByCategoryId.remove(categoryId);
+            } else {
+              _pendingQuickAddNamesByCategoryId[categoryId] = next;
+            }
+          }),
+          removeKey: ValueKey('tag-pending-remove-$toolId-$categoryId-$i'),
+        ),
+    ];
+  }
+
+  Future<void> _finishQuickAddForCategory(
+    BuildContext context, {
+    required String toolId,
+    required String categoryId,
+    required Set<String> existingNames,
+  }) async {
+    if (_committingCategoryIds.contains(categoryId)) return;
+
+    final controller = _controllerForCategory(categoryId);
+    final focusNode = _focusNodeForCategory(categoryId);
+
+    final tail = controller.text.trim();
+    if (tail.isNotEmpty) {
+      _stageQuickAddTag(categoryId: categoryId, existingNames: existingNames);
+    }
+
+    final pending = (_pendingQuickAddNamesByCategoryId[categoryId] ?? const [])
+        .toList();
+    if (pending.isEmpty) {
+      setState(() {
+        _managingCategoryIds.remove(categoryId);
+        _clearQuickAddDraft(categoryId);
+      });
+      return;
+    }
+
+    setState(() => _committingCategoryIds.add(categoryId));
+
+    try {
+      final service = context.read<TagService>();
+      for (final name in pending) {
+        await service.createTagForToolCategory(
+          toolId: toolId,
+          categoryId: categoryId,
+          name: name,
+          refreshCache: false,
+        );
+      }
+      await service.refreshAll();
+      await service.refreshToolTags(toolId);
+    } catch (e) {
+      if (context.mounted) {
+        focusNode.requestFocus();
+        await showCupertinoDialog<void>(
+          context: context,
+          builder: (dialogContext) => CupertinoAlertDialog(
+            title: const Text('添加失败'),
+            content: Text(e.toString()),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('知道了'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _committingCategoryIds.remove(categoryId));
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _managingCategoryIds.remove(categoryId);
+      _clearQuickAddDraft(categoryId);
+    });
+  }
+
+  static String _resolveCreateHint({
+    required String categoryName,
+    required String? categoryCreateHint,
+  }) {
+    final raw = categoryCreateHint?.trim();
+    if (raw != null && raw.isNotEmpty) return raw;
+    return '${categoryName.trim()}标签';
+  }
+
+  static String _hintPlaceholder(String hint) => '如：$hint';
 
   Future<void> _openRename(
     BuildContext context, {
@@ -657,107 +905,13 @@ class _CategoryHeader extends StatelessWidget {
   }
 }
 
-class _TagReorderList extends StatelessWidget {
-  final String toolId;
-  final String categoryId;
-  final List<TagInToolCategory> items;
-  final void Function(int tagId, String tagName) onTap;
-  final void Function(int tagId, String tagName) onRemove;
-
-  const _TagReorderList({
-    required this.toolId,
-    required this.categoryId,
-    required this.items,
-    required this.onTap,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final service = context.read<TagService>();
-    final reorderable = items.where((e) => e.tag.id != null).toList();
-
-    return ReorderableListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      buildDefaultDragHandles: false,
-      itemCount: reorderable.length,
-      onReorder: (oldIndex, newIndex) {
-        if (newIndex > oldIndex) newIndex--;
-        final ids = reorderable.map((e) => e.tag.id!).toList();
-        final id = ids.removeAt(oldIndex);
-        ids.insert(newIndex, id);
-        service.reorderToolCategoryTags(
-          toolId: toolId,
-          categoryId: categoryId,
-          tagIds: ids,
-        );
-      },
-      itemBuilder: (context, index) {
-        final item = reorderable[index];
-        final id = item.tag.id!;
-        return Padding(
-          key: ValueKey('tag-sort-$toolId-$categoryId-$id'),
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            children: [
-              ReorderableDelayedDragStartListener(
-                index: index,
-                child: Icon(
-                  CupertinoIcons.line_horizontal_3,
-                  size: 18,
-                  color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(44, 44),
-                  pressedOpacity: 0.7,
-                  onPressed: () => onTap(id, item.tag.name),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      item.tag.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: IOS26Theme.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              CupertinoButton(
-                key: ValueKey('tag-remove-$toolId-$categoryId-$id'),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                onPressed: () => onRemove(id, item.tag.name),
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(14),
-                child: const Icon(
-                  CupertinoIcons.trash,
-                  size: 18,
-                  color: IOS26Theme.toolRed,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
 class _TagChipsWrap extends StatelessWidget {
   final List<TagInToolCategory> items;
   final bool managing;
   final void Function(int tagId, String tagName) onTap;
   final void Function(int tagId, String tagName)? onRemove;
   final Key? Function(int tagId)? removeKeyOf;
+  final List<Widget> trailing;
 
   const _TagChipsWrap({
     required this.items,
@@ -765,6 +919,7 @@ class _TagChipsWrap extends StatelessWidget {
     required this.onTap,
     required this.onRemove,
     required this.removeKeyOf,
+    this.trailing = const [],
   });
 
   @override
@@ -787,6 +942,82 @@ class _TagChipsWrap extends StatelessWidget {
                     : null,
                 removeKey: managing ? removeKeyOf?.call(item.tag.id!) : null,
               ),
+          ...trailing,
+        ],
+      ),
+    );
+  }
+}
+
+class _TagQuickAddChip extends StatelessWidget {
+  final Key fieldKey;
+  final Key addKey;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String placeholder;
+  final bool loading;
+  final VoidCallback onAdd;
+
+  const _TagQuickAddChip({
+    required this.fieldKey,
+    required this.addKey,
+    required this.controller,
+    required this.focusNode,
+    required this.placeholder,
+    required this.loading,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
+    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 120, maxWidth: 240),
+            child: CupertinoTextField(
+              key: fieldKey,
+              controller: controller,
+              focusNode: focusNode,
+              placeholder: placeholder,
+              decoration: const BoxDecoration(color: Colors.transparent),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: IOS26Theme.textPrimary,
+              ),
+              placeholderStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+              ),
+              onSubmitted: (_) => onAdd(),
+            ),
+          ),
+          CupertinoButton(
+            key: addKey,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            minimumSize: const Size(44, 44),
+            pressedOpacity: 0.7,
+            onPressed: loading ? null : onAdd,
+            child: loading
+                ? const CupertinoActivityIndicator(radius: 10)
+                : const Icon(
+                    CupertinoIcons.add,
+                    size: 13,
+                    color: IOS26Theme.primaryColor,
+                  ),
+          ),
         ],
       ),
     );
@@ -843,25 +1074,16 @@ class _TagChip extends StatelessWidget {
             ),
             if (showRemove) ...[
               const SizedBox(width: 8),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: IOS26Theme.textTertiary.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: border, width: 1),
-                ),
-                child: CupertinoButton(
-                  key: removeKey,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  minimumSize: Size.zero,
-                  onPressed: onRemove,
-                  child: const Icon(
-                    CupertinoIcons.xmark,
-                    size: 14,
-                    color: IOS26Theme.toolRed,
-                  ),
+              CupertinoButton(
+                key: removeKey,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                minimumSize: const Size(32, 32),
+                pressedOpacity: 0.7,
+                onPressed: onRemove,
+                child: const Icon(
+                  CupertinoIcons.xmark,
+                  size: 13,
+                  color: IOS26Theme.toolRed,
                 ),
               ),
             ],

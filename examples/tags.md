@@ -32,6 +32,26 @@ for (final t in tags) {
 }
 ```
 
+## 1.1)（新增）在业务页面直接新增标签（可选分类）
+用于在某个工具页面内“边用边补标签”，无需跳转到「标签管理」：
+
+```dart
+import 'package:provider/provider.dart';
+import 'package:life_tools/core/tags/tag_service.dart';
+
+final tagService = context.read<TagService>();
+
+// 写入默认分类（default）
+await tagService.createTagForTool(toolId: 'work_log', name: '紧急');
+
+// 写入指定分类（工具需先注册该分类）
+await tagService.createTagForTool(
+  toolId: 'work_log',
+  categoryId: 'priority',
+  name: '重要',
+);
+```
+
 ## 2) 工作记录：任务打标签（创建/编辑时传入 tagIds）
 ```dart
 // WorkTaskEditPage 内部已支持选择标签并传给 WorkLogService.createTask/updateTask

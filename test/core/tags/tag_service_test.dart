@@ -101,4 +101,37 @@ void main() {
       );
     });
   });
+
+  group('TagService.createTagForTool', () {
+    test('categoryId 为空时使用默认分类并刷新缓存', () async {
+      final service = TagService(repository: tagRepository);
+
+      final id = await service.createTagForTool(toolId: 'work_log', name: '紧急');
+      expect(id, greaterThan(0));
+
+      await service.refreshToolTags('work_log');
+      final tags = await service.listTagsForToolCategory(
+        toolId: 'work_log',
+        categoryId: TagRepository.defaultCategoryId,
+      );
+      expect(tags.map((e) => e.id), contains(id));
+    });
+
+    test('categoryId 指定时写入对应分类', () async {
+      final service = TagService(repository: tagRepository);
+
+      final id = await service.createTagForTool(
+        toolId: 'work_log',
+        categoryId: 'priority',
+        name: '重要',
+      );
+      expect(id, greaterThan(0));
+
+      final tags = await service.listTagsForToolCategory(
+        toolId: 'work_log',
+        categoryId: 'priority',
+      );
+      expect(tags.map((e) => e.id), contains(id));
+    });
+  });
 }

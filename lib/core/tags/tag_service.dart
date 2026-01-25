@@ -110,6 +110,7 @@ class TagService extends ChangeNotifier {
     required String categoryId,
     required String name,
     int? color,
+    bool refreshCache = true,
   }) async {
     final id = await _repository.createTagForToolCategory(
       name: name,
@@ -117,9 +118,32 @@ class TagService extends ChangeNotifier {
       categoryId: categoryId,
       color: color,
     );
-    await refreshAll();
-    await refreshToolTags(toolId);
+    if (refreshCache) {
+      await refreshAll();
+      await refreshToolTags(toolId);
+    }
     return id;
+  }
+
+  /// 便捷新增：为某个工具（可选分类）新增标签。
+  /// - 未传 / 空分类时默认写入 `TagRepository.defaultCategoryId`
+  /// - 完成后会刷新 allTags 与该工具的缓存
+  Future<int> createTagForTool({
+    required String toolId,
+    String? categoryId,
+    required String name,
+    int? color,
+  }) {
+    final normalizedCategoryId =
+        (categoryId == null || categoryId.trim().isEmpty)
+        ? TagRepository.defaultCategoryId
+        : categoryId.trim();
+    return createTagForToolCategory(
+      toolId: toolId,
+      categoryId: normalizedCategoryId,
+      name: name,
+      color: color,
+    );
   }
 
   Future<void> renameTag({required int tagId, required String name}) async {

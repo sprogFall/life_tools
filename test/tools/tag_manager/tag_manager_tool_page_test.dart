@@ -216,7 +216,10 @@ void main() {
       ]);
       await tester.runAsync(() async {
         // 预置一条标签并提前刷新缓存，避免 TagManagerToolPage 在测试结束后仍发起异步查询。
-        await deps.repository.createTag(name: '占位', toolIds: const ['work_log']);
+        await deps.repository.createTag(
+          name: '占位',
+          toolIds: const ['work_log'],
+        );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');
       });
@@ -235,6 +238,79 @@ void main() {
         find.byType(CupertinoTextField),
       );
       expect(field.placeholder, '如：紧急/重要');
+    });
+
+    testWidgets('管理模式支持快速连续添加标签（chip 输入 + 加号）', (tester) async {
+      final deps = await createTagService(tester);
+      deps.service.registerToolTagCategories('work_log', const [
+        TagCategory(id: 'priority', name: '优先级', createHint: '紧急/重要'),
+      ]);
+      await tester.runAsync(() async {
+        // 预置数据并提前刷新缓存，避免页面构建后仍触发异步查询影响测试稳定性。
+        await deps.repository.createTag(
+          name: '占位',
+          toolIds: const ['work_log'],
+        );
+        await deps.service.refreshAll();
+        await deps.service.refreshToolTags('work_log');
+      });
+
+      await tester.pumpWidget(
+        wrap(deps.service, const TagManagerToolPage(initialToolId: 'work_log')),
+      );
+      await pumpUntilFound(tester, find.text('优先级'));
+
+      await tester.tap(
+        find.byKey(const ValueKey('tag-category-manage-work_log-priority')),
+      );
+      await tester.pump();
+
+      final inputKey = const ValueKey('tag-quick-add-field-work_log-priority');
+      final addKey = const ValueKey('tag-quick-add-button-work_log-priority');
+      await pumpUntilFound(tester, find.byKey(inputKey));
+
+      final field = tester.widget<CupertinoTextField>(find.byKey(inputKey));
+      expect(field.placeholder, '如：紧急/重要');
+
+      await tester.enterText(find.byKey(inputKey), '重要');
+      await tester.tap(find.byKey(addKey));
+      await tester.pump();
+      await pumpUntilFound(tester, find.text('重要'));
+
+      await tester.enterText(find.byKey(inputKey), '紧急');
+      await tester.tap(find.byKey(addKey));
+      await tester.pump();
+      await tester.runAsync(() async {
+        final tagsBeforeCommit = await deps.repository
+            .listTagsForToolWithCategory('work_log');
+        expect(tagsBeforeCommit.any((e) => e.tag.name == '重要'), isFalse);
+        expect(tagsBeforeCommit.any((e) => e.tag.name == '紧急'), isFalse);
+      });
+      await pumpUntilFound(tester, find.text('紧急'));
+
+      await tester.tap(
+        find.byKey(const ValueKey('tag-category-manage-work_log-priority')),
+      );
+      await tester.pump();
+
+      await tester.runAsync(() async {
+        final deadline = DateTime.now().add(const Duration(seconds: 8));
+        while (DateTime.now().isBefore(deadline)) {
+          final tags = await deps.repository.listTagsForToolWithCategory(
+            'work_log',
+          );
+          final inPriority = tags
+              .where((e) => e.categoryId == 'priority')
+              .toList();
+          final names = inPriority.map((e) => e.tag.name).toSet();
+          if (names.containsAll({'重要', '紧急'})) return;
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+        }
+        fail('等待提交完成超时');
+      });
+
+      await pumpUntilFound(tester, find.text('重要'));
+      await pumpUntilFound(tester, find.text('紧急'));
     });
   });
 }
