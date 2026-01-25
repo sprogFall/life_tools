@@ -16,14 +16,6 @@ void main() {
       fail('等待组件超时: $finder');
     }
 
-    Future<void> pumpUntilNotFound(WidgetTester tester, Finder finder) async {
-      for (int i = 0; i < 200; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-        if (finder.evaluate().isEmpty) return;
-      }
-      fail('等待组件消失超时: $finder');
-    }
-
     testWidgets('多选模式使用 chip（无开关）且可新增标签', (tester) async {
       final now = DateTime(2026, 1, 1);
       final tags = [
@@ -89,23 +81,19 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('overcooked-tag-1')));
       await tester.pump();
 
-      await tester.tap(find.byKey(const ValueKey('overcooked-tag-add')));
-      await tester.pump();
       await pumpUntilFound(
         tester,
-        find.byKey(const ValueKey('overcooked-tag-add-field')),
+        find.byKey(const ValueKey('overcooked-tag-quick-add-field')),
       );
       await tester.enterText(
-        find.byKey(const ValueKey('overcooked-tag-add-field')),
+        find.byKey(const ValueKey('overcooked-tag-quick-add-field')),
         '快手',
       );
-      await tester.tap(find.text('添加'));
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked-tag-quick-add-button')),
+      );
       await tester.pump();
 
-      await pumpUntilNotFound(
-        tester,
-        find.byKey(const ValueKey('overcooked-tag-add-field')),
-      );
       await pumpUntilFound(tester, find.text('快手'));
 
       await tester.tap(find.byKey(const ValueKey('overcooked-tag-done')));

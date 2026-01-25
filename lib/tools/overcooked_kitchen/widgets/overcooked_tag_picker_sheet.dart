@@ -69,6 +69,9 @@ class OvercookedTagPickerSheet extends StatefulWidget {
 class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
   late Set<int> _selected;
   late List<Tag> _tags;
+  final _searchController = TextEditingController();
+  final _quickAddController = TextEditingController();
+  final _quickAddFocusNode = FocusNode();
   String _query = '';
   bool _creating = false;
   bool _changed = false;
@@ -78,6 +81,14 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
     super.initState();
     _selected = Set<int>.from(widget.selectedIds);
     _tags = widget.tags;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _quickAddController.dispose();
+    _quickAddFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -96,6 +107,7 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: CupertinoSearchTextField(
+              controller: _searchController,
               placeholder: '搜索标签',
               onChanged: (v) => setState(() => _query = v),
             ),
@@ -112,10 +124,18 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
                         ),
                         if (_canCreate) ...[
                           const SizedBox(height: 12),
-                          _TagAddChip(
-                            key: const ValueKey('overcooked-tag-add'),
+                          IOS26QuickAddChip(
+                            fieldKey: const ValueKey(
+                              'overcooked-tag-quick-add-field',
+                            ),
+                            buttonKey: const ValueKey(
+                              'overcooked-tag-quick-add-button',
+                            ),
+                            controller: _quickAddController,
+                            focusNode: _quickAddFocusNode,
+                            placeholder: _quickAddPlaceholder,
                             loading: _creating,
-                            onPressed: _creating ? null : () => _openCreate(),
+                            onAdd: _createFromInline,
                           ),
                         ],
                       ],
@@ -141,10 +161,18 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
                                 : () => _toggle(tag.id!),
                           ),
                         if (_canCreate)
-                          _TagAddChip(
-                            key: const ValueKey('overcooked-tag-add'),
+                          IOS26QuickAddChip(
+                            fieldKey: const ValueKey(
+                              'overcooked-tag-quick-add-field',
+                            ),
+                            buttonKey: const ValueKey(
+                              'overcooked-tag-quick-add-button',
+                            ),
+                            controller: _quickAddController,
+                            focusNode: _quickAddFocusNode,
+                            placeholder: _quickAddPlaceholder,
                             loading: _creating,
-                            onPressed: _creating ? null : () => _openCreate(),
+                            onAdd: _createFromInline,
                           ),
                       ],
                     ),
@@ -157,6 +185,12 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
 
   bool get _canCreate {
     return widget.onCreateTag != null;
+  }
+
+  String get _quickAddPlaceholder {
+    final hint = widget.createHint?.trim();
+    if (hint != null && hint.isNotEmpty) return '如：$hint';
+    return '输入标签名';
   }
 
   void _toggle(int id) {
@@ -183,9 +217,19 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
     }
   }
 
-  Future<void> _openCreate() async {
-    final name = await _showCreateDialog();
-    if (name == null || !mounted) return;
+  Future<void> _createFromInline() async {
+    if (!_canCreate || _creating) return;
+    final name = _quickAddController.text.trim();
+    if (name.isEmpty) {
+      _quickAddFocusNode.requestFocus();
+      return;
+    }
+    final exists = _tags.any((t) => t.name.trim() == name);
+    if (exists) {
+      _quickAddController.clear();
+      _quickAddFocusNode.requestFocus();
+      return;
+    }
 
     setState(() => _creating = true);
     try {
@@ -196,11 +240,14 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
       }
       if (!mounted) return;
 
-      final next = [..._tags.where((t) => t.id != id), created];
+      final next = [..._tags.where((t) => t.id != id), created]
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       setState(() {
         _tags = next;
         _changed = true;
         _query = '';
+        _searchController.clear();
+        _quickAddController.clear();
         if (widget.multi) {
           _selected.add(id);
         } else {
@@ -235,64 +282,6 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
     } finally {
       if (mounted) setState(() => _creating = false);
     }
-  }
-
-  Future<String?> _showCreateDialog() {
-    final controller = TextEditingController();
-    String? error;
-    final hint = widget.createHint?.trim();
-    final placeholder = (hint == null || hint.isEmpty) ? '输入标签名' : '如：$hint';
-
-    return showCupertinoDialog<String?>(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) => CupertinoAlertDialog(
-          title: const Text('新增标签'),
-          content: Column(
-            children: [
-              const SizedBox(height: 12),
-              CupertinoTextField(
-                key: const ValueKey('overcooked-tag-add-field'),
-                controller: controller,
-                placeholder: placeholder,
-                autofocus: true,
-              ),
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    error!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: IOS26Theme.toolRed,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            CupertinoDialogAction(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isEmpty) {
-                  setState(() => error = '请填写标签名');
-                  return;
-                }
-                Navigator.pop(context, name);
-              },
-              child: const Text('添加'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -373,44 +362,6 @@ class _TagSelectChip extends StatelessWidget {
             color: fg,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _TagAddChip extends StatelessWidget {
-  final bool loading;
-  final VoidCallback? onPressed;
-
-  const _TagAddChip({
-    super.key,
-    required this.loading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
-    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border, width: 1),
-      ),
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        minimumSize: const Size(44, 44),
-        pressedOpacity: 0.7,
-        onPressed: onPressed,
-        child: loading
-            ? const CupertinoActivityIndicator(radius: 10)
-            : const Icon(
-                CupertinoIcons.add,
-                size: 16,
-                color: IOS26Theme.primaryColor,
-              ),
       ),
     );
   }

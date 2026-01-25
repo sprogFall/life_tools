@@ -441,11 +441,11 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                                       toolId: widget.toolId,
                                       categoryId: categoryId,
                                     ),
-                                    _TagQuickAddChip(
+                                    IOS26QuickAddChip(
                                       fieldKey: ValueKey(
                                         'tag-quick-add-field-${widget.toolId}-$categoryId',
                                       ),
-                                      addKey: ValueKey(
+                                      buttonKey: ValueKey(
                                         'tag-quick-add-button-${widget.toolId}-$categoryId',
                                       ),
                                       controller: _controllerForCategory(
@@ -943,81 +943,6 @@ class _TagChipsWrap extends StatelessWidget {
                 removeKey: managing ? removeKeyOf?.call(item.tag.id!) : null,
               ),
           ...trailing,
-        ],
-      ),
-    );
-  }
-}
-
-class _TagQuickAddChip extends StatelessWidget {
-  final Key fieldKey;
-  final Key addKey;
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String placeholder;
-  final bool loading;
-  final VoidCallback onAdd;
-
-  const _TagQuickAddChip({
-    required this.fieldKey,
-    required this.addKey,
-    required this.controller,
-    required this.focusNode,
-    required this.placeholder,
-    required this.loading,
-    required this.onAdd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
-    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 120, maxWidth: 240),
-            child: CupertinoTextField(
-              key: fieldKey,
-              controller: controller,
-              focusNode: focusNode,
-              placeholder: placeholder,
-              decoration: const BoxDecoration(color: Colors.transparent),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: IOS26Theme.textPrimary,
-              ),
-              placeholderStyle: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-              ),
-              onSubmitted: (_) => onAdd(),
-            ),
-          ),
-          CupertinoButton(
-            key: addKey,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            minimumSize: const Size(44, 44),
-            pressedOpacity: 0.7,
-            onPressed: loading ? null : onAdd,
-            child: loading
-                ? const CupertinoActivityIndicator(radius: 10)
-                : const Icon(
-                    CupertinoIcons.add,
-                    size: 13,
-                    color: IOS26Theme.primaryColor,
-                  ),
-          ),
         ],
       ),
     );

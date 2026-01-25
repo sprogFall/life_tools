@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 /// iOS 26 风格主题配置
@@ -278,6 +279,90 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// iOS 26 风格的「内联新增」输入 chip（输入框 + 右侧加号/加载态）
+class IOS26QuickAddChip extends StatelessWidget {
+  final Key fieldKey;
+  final Key buttonKey;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String placeholder;
+  final bool loading;
+  final VoidCallback onAdd;
+  final double minFieldWidth;
+  final double maxFieldWidth;
+
+  const IOS26QuickAddChip({
+    super.key,
+    required this.fieldKey,
+    required this.buttonKey,
+    required this.controller,
+    required this.focusNode,
+    required this.placeholder,
+    required this.loading,
+    required this.onAdd,
+    this.minFieldWidth = 120,
+    this.maxFieldWidth = 240,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
+    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: minFieldWidth,
+              maxWidth: maxFieldWidth,
+            ),
+            child: CupertinoTextField(
+              key: fieldKey,
+              controller: controller,
+              focusNode: focusNode,
+              placeholder: placeholder,
+              decoration: const BoxDecoration(color: Colors.transparent),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: IOS26Theme.textPrimary,
+              ),
+              placeholderStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+              ),
+              onSubmitted: (_) => onAdd(),
+            ),
+          ),
+          CupertinoButton(
+            key: buttonKey,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            minimumSize: const Size(44, 44),
+            pressedOpacity: 0.7,
+            onPressed: loading ? null : onAdd,
+            child: loading
+                ? const CupertinoActivityIndicator(radius: 10)
+                : const Icon(
+                    CupertinoIcons.add,
+                    size: 13,
+                    color: IOS26Theme.primaryColor,
+                  ),
+          ),
+        ],
       ),
     );
   }
