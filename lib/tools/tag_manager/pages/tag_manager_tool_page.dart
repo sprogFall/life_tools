@@ -351,6 +351,9 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
           Expanded(
             child: ListView.separated(
               physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
               itemCount: categories.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {

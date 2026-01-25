@@ -113,5 +113,100 @@ void main() {
       expect(result!.tagsChanged, isTrue);
       expect(result.selectedIds, containsAll(<int>{1, 2}));
     });
+
+    testWidgets('键盘弹出时新增标签输入框不被遮挡', (tester) async {
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetDevicePixelRatio());
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      addTearDown(() => tester.view.resetViewInsets());
+
+      final now = DateTime(2026, 1, 1);
+      final tags = List<Tag>.generate(
+        120,
+        (i) => Tag(
+          id: i + 1,
+          name: '标签${i + 1}',
+          color: null,
+          sortIndex: i,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  key: const ValueKey('open'),
+                  onPressed: () async {
+                    await OvercookedTagPickerSheet.show(
+                      context,
+                      title: '选择标签',
+                      tags: tags,
+                      selectedIds: const <int>{},
+                      multi: true,
+                      onCreateTag: (name) async {
+                        return Tag(
+                          id: 999,
+                          name: name,
+                          color: null,
+                          sortIndex: 0,
+                          createdAt: now,
+                          updatedAt: now,
+                        );
+                      },
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open')));
+      await tester.pumpAndSettle();
+
+      final scrollable = find.byType(SingleChildScrollView);
+      final quickAddButton =
+          find.byKey(const ValueKey('overcooked-tag-quick-add-button'));
+      final quickAddField =
+          find.byKey(const ValueKey('overcooked-tag-quick-add-field'));
+
+      await tester.dragUntilVisible(
+        quickAddButton,
+        scrollable,
+        const Offset(0, -300),
+      );
+      await tester.pump();
+
+      for (int i = 0; i < 30; i++) {
+        await tester.drag(scrollable, const Offset(0, -400));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      await tester.tap(quickAddButton);
+      await tester.pump();
+      await pumpUntilFound(tester, quickAddField);
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pumpAndSettle();
+
+      final screenHeight = tester.view.physicalSize.height;
+      final keyboardHeight = tester.view.viewInsets.bottom;
+      final sheetRect = tester.getRect(find.byType(OvercookedTagPickerSheet));
+      final fieldRect = tester.getRect(quickAddField);
+
+      // 关键点：键盘出现时，整个 bottom sheet 本身也应上移，避免被键盘覆盖。
+      expect(sheetRect.bottom, lessThanOrEqualTo(screenHeight - keyboardHeight));
+      expect(fieldRect.bottom, lessThanOrEqualTo(screenHeight - keyboardHeight));
+    });
   });
 }

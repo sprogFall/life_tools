@@ -48,16 +48,24 @@ class OvercookedTagPickerSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SafeArea(
-        child: OvercookedTagPickerSheet(
-          title: title,
-          tags: tags,
-          selectedIds: selectedIds,
-          multi: multi,
-          createHint: createHint,
-          onCreateTag: onCreateTag,
-        ),
-      ),
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.viewInsetsOf(sheetContext).bottom;
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: SafeArea(
+            child: OvercookedTagPickerSheet(
+              title: title,
+              tags: tags,
+              selectedIds: selectedIds,
+              multi: multi,
+              createHint: createHint,
+              onCreateTag: onCreateTag,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -93,6 +101,7 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final filtered = _tags.where((t) {
       final q = _query.trim().toLowerCase();
       if (q.isEmpty) return true;
@@ -115,35 +124,38 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
           Expanded(
             child: filtered.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          '暂无可选标签',
-                          style: TextStyle(color: IOS26Theme.textSecondary),
-                        ),
-                        if (_canCreate) ...[
-                          const SizedBox(height: 12),
-                          IOS26QuickAddChip(
-                            fieldKey: const ValueKey(
-                              'overcooked-tag-quick-add-field',
-                            ),
-                            buttonKey: const ValueKey(
-                              'overcooked-tag-quick-add-button',
-                            ),
-                            controller: _quickAddController,
-                            focusNode: _quickAddFocusNode,
-                            placeholder: _quickAddPlaceholder,
-                            loading: _creating,
-                            onAdd: _createFromInline,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: bottomInset),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            '暂无可选标签',
+                            style: TextStyle(color: IOS26Theme.textSecondary),
                           ),
+                          if (_canCreate) ...[
+                            const SizedBox(height: 12),
+                            IOS26QuickAddChip(
+                              fieldKey: const ValueKey(
+                                'overcooked-tag-quick-add-field',
+                              ),
+                              buttonKey: const ValueKey(
+                                'overcooked-tag-quick-add-button',
+                              ),
+                              controller: _quickAddController,
+                              focusNode: _quickAddFocusNode,
+                              placeholder: _quickAddPlaceholder,
+                              loading: _creating,
+                              onAdd: _createFromInline,
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   )
                 : SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + bottomInset),
                     child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
