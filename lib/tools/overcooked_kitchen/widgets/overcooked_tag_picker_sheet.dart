@@ -4,11 +4,23 @@ import 'package:flutter/material.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/theme/ios26_theme.dart';
 
+class OvercookedTagPickerResult {
+  final Set<int> selectedIds;
+  final bool tagsChanged;
+
+  const OvercookedTagPickerResult({
+    required this.selectedIds,
+    required this.tagsChanged,
+  });
+}
+
 class OvercookedTagPickerSheet extends StatefulWidget {
   final String title;
   final List<Tag> tags;
   final Set<int> selectedIds;
   final bool multi;
+  final String? createHint;
+  final Future<Tag> Function(String name)? onCreateTag;
 
   const OvercookedTagPickerSheet({
     super.key,
@@ -16,16 +28,20 @@ class OvercookedTagPickerSheet extends StatefulWidget {
     required this.tags,
     required this.selectedIds,
     required this.multi,
+    this.createHint,
+    this.onCreateTag,
   });
 
-  static Future<Set<int>?> show(
+  static Future<OvercookedTagPickerResult?> show(
     BuildContext context, {
     required String title,
     required List<Tag> tags,
     required Set<int> selectedIds,
     required bool multi,
+    String? createHint,
+    Future<Tag> Function(String name)? onCreateTag,
   }) {
-    return showModalBottomSheet<Set<int>>(
+    return showModalBottomSheet<OvercookedTagPickerResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: IOS26Theme.surfaceColor,
@@ -38,6 +54,8 @@ class OvercookedTagPickerSheet extends StatefulWidget {
           tags: tags,
           selectedIds: selectedIds,
           multi: multi,
+          createHint: createHint,
+          onCreateTag: onCreateTag,
         ),
       ),
     );
@@ -50,17 +68,21 @@ class OvercookedTagPickerSheet extends StatefulWidget {
 
 class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
   late Set<int> _selected;
+  late List<Tag> _tags;
   String _query = '';
+  bool _creating = false;
+  bool _changed = false;
 
   @override
   void initState() {
     super.initState();
     _selected = Set<int>.from(widget.selectedIds);
+    _tags = widget.tags;
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = widget.tags.where((t) {
+    final filtered = _tags.where((t) {
       final q = _query.trim().toLowerCase();
       if (q.isEmpty) return true;
       return t.name.toLowerCase().contains(q);
@@ -80,73 +102,195 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
           ),
           Expanded(
             child: filtered.isEmpty
-                ? const Center(
-                    child: Text(
-                      '暂无可选标签',
-                      style: TextStyle(color: IOS26Theme.textSecondary),
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          '暂无可选标签',
+                          style: TextStyle(color: IOS26Theme.textSecondary),
+                        ),
+                        if (_canCreate) ...[
+                          const SizedBox(height: 12),
+                          _TagAddChip(
+                            key: const ValueKey('overcooked-tag-add'),
+                            loading: _creating,
+                            onPressed: _creating ? null : () => _openCreate(),
+                          ),
+                        ],
+                      ],
                     ),
                   )
-                : ListView.separated(
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, index) => Divider(
-                      height: 1,
-                      color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-                    ),
-                    itemBuilder: (context, index) {
-                      final tag = filtered[index];
-                      final id = tag.id;
-                      final checked = id != null && _selected.contains(id);
-                      return ListTile(
-                        title: Text(
-                          tag.name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: IOS26Theme.textPrimary,
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final tag in filtered)
+                          _TagSelectChip(
+                            key: tag.id == null
+                                ? null
+                                : ValueKey('overcooked-tag-${tag.id}'),
+                            text: tag.name,
+                            selected:
+                                tag.id != null && _selected.contains(tag.id),
+                            onPressed: tag.id == null
+                                ? null
+                                : () => _toggle(tag.id!),
                           ),
-                        ),
-                        trailing: widget.multi
-                            ? CupertinoSwitch(
-                                value: checked,
-                                onChanged: id == null
-                                    ? null
-                                    : (value) => setState(() {
-                                        if (value) {
-                                          _selected.add(id);
-                                        } else {
-                                          _selected.remove(id);
-                                        }
-                                      }),
-                              )
-                            : checked
-                            ? const Icon(
-                                CupertinoIcons.check_mark_circled_solid,
-                                color: IOS26Theme.primaryColor,
-                              )
-                            : const SizedBox.shrink(),
-                        onTap: id == null
-                            ? null
-                            : () {
-                                setState(() {
-                                  if (widget.multi) {
-                                    if (checked) {
-                                      _selected.remove(id);
-                                    } else {
-                                      _selected.add(id);
-                                    }
-                                  } else {
-                                    _selected = {id};
-                                  }
-                                });
-                                if (!widget.multi) {
-                                  Navigator.pop(context, _selected);
-                                }
-                              },
-                      );
-                    },
+                        if (_canCreate)
+                          _TagAddChip(
+                            key: const ValueKey('overcooked-tag-add'),
+                            loading: _creating,
+                            onPressed: _creating ? null : () => _openCreate(),
+                          ),
+                      ],
+                    ),
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  bool get _canCreate {
+    return widget.onCreateTag != null;
+  }
+
+  void _toggle(int id) {
+    final checked = _selected.contains(id);
+    setState(() {
+      if (widget.multi) {
+        if (checked) {
+          _selected.remove(id);
+        } else {
+          _selected.add(id);
+        }
+      } else {
+        _selected = {id};
+      }
+    });
+    if (!widget.multi) {
+      Navigator.pop(
+        context,
+        OvercookedTagPickerResult(
+          selectedIds: _selected,
+          tagsChanged: _changed,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openCreate() async {
+    final name = await _showCreateDialog();
+    if (name == null || !mounted) return;
+
+    setState(() => _creating = true);
+    try {
+      final created = await widget.onCreateTag!.call(name);
+      final id = created.id;
+      if (id == null) {
+        throw StateError('新增标签失败：未返回 id');
+      }
+      if (!mounted) return;
+
+      final next = [..._tags.where((t) => t.id != id), created];
+      setState(() {
+        _tags = next;
+        _changed = true;
+        _query = '';
+        if (widget.multi) {
+          _selected.add(id);
+        } else {
+          _selected = {id};
+        }
+      });
+      if (!widget.multi) {
+        if (!mounted) return;
+        Navigator.pop(
+          context,
+          OvercookedTagPickerResult(
+            selectedIds: _selected,
+            tagsChanged: _changed,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (dialogContext) => CupertinoAlertDialog(
+          title: const Text('新增失败'),
+          content: Text(e.toString()),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
+
+  Future<String?> _showCreateDialog() {
+    final controller = TextEditingController();
+    String? error;
+    final hint = widget.createHint?.trim();
+    final placeholder = (hint == null || hint.isEmpty) ? '输入标签名' : '如：$hint';
+
+    return showCupertinoDialog<String?>(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => CupertinoAlertDialog(
+          title: const Text('新增标签'),
+          content: Column(
+            children: [
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                key: const ValueKey('overcooked-tag-add-field'),
+                controller: controller,
+                placeholder: placeholder,
+                autofocus: true,
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    error!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: IOS26Theme.toolRed,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isEmpty) {
+                  setState(() => error = '请填写标签名');
+                  return;
+                }
+                Navigator.pop(context, name);
+              },
+              child: const Text('添加'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -172,10 +316,101 @@ class _OvercookedTagPickerSheetState extends State<OvercookedTagPickerSheet> {
             ),
           ),
           CupertinoButton(
-            onPressed: () => Navigator.pop(context, _selected),
+            key: const ValueKey('overcooked-tag-done'),
+            onPressed: () => Navigator.pop(
+              context,
+              OvercookedTagPickerResult(
+                selectedIds: _selected,
+                tagsChanged: _changed,
+              ),
+            ),
             child: const Text('完成'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TagSelectChip extends StatelessWidget {
+  final String text;
+  final bool selected;
+  final VoidCallback? onPressed;
+
+  const _TagSelectChip({
+    super.key,
+    required this.text,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = selected
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
+        : IOS26Theme.surfaceColor.withValues(alpha: 0.65);
+    final border = selected
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.35)
+        : IOS26Theme.textTertiary.withValues(alpha: 0.35);
+    final fg = selected ? IOS26Theme.primaryColor : IOS26Theme.textPrimary;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        minimumSize: const Size(44, 44),
+        pressedOpacity: 0.7,
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: fg,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TagAddChip extends StatelessWidget {
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  const _TagAddChip({
+    super.key,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
+    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        minimumSize: const Size(44, 44),
+        pressedOpacity: 0.7,
+        onPressed: onPressed,
+        child: loading
+            ? const CupertinoActivityIndicator(radius: 10)
+            : const Icon(
+                CupertinoIcons.add,
+                size: 16,
+                color: IOS26Theme.primaryColor,
+              ),
       ),
     );
   }

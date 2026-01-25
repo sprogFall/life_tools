@@ -274,11 +274,26 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                     tags: _typeTags,
                     selectedIds: _typeTagId == null ? {} : {_typeTagId!},
                     multi: false,
+                    createHint: OvercookedTagUtils.createHint(
+                      context,
+                      OvercookedTagCategories.dishType,
+                    ),
+                    onCreateTag: (name) => OvercookedTagUtils.createTag(
+                      context,
+                      categoryId: OvercookedTagCategories.dishType,
+                      name: name,
+                    ),
                   );
-                  if (selected == null) return;
-                  setState(
-                    () => _typeTagId = selected.isEmpty ? null : selected.first,
-                  );
+                  if (selected == null || !mounted) return;
+                  if (selected.tagsChanged) {
+                    await _loadTags();
+                    if (!mounted) return;
+                  }
+                  setState(() {
+                    _typeTagId = selected.selectedIds.isEmpty
+                        ? null
+                        : selected.selectedIds.first;
+                  });
                 },
         ),
         const SizedBox(height: 14),
@@ -297,9 +312,22 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                     tags: _ingredientTags,
                     selectedIds: _ingredientTagIds,
                     multi: true,
+                    createHint: OvercookedTagUtils.createHint(
+                      context,
+                      OvercookedTagCategories.ingredient,
+                    ),
+                    onCreateTag: (name) => OvercookedTagUtils.createTag(
+                      context,
+                      categoryId: OvercookedTagCategories.ingredient,
+                      name: name,
+                    ),
                   );
-                  if (selected == null) return;
-                  setState(() => _ingredientTagIds = selected);
+                  if (selected == null || !mounted) return;
+                  if (selected.tagsChanged) {
+                    await _loadTags();
+                    if (!mounted) return;
+                  }
+                  setState(() => _ingredientTagIds = selected.selectedIds);
                 },
         ),
         const SizedBox(height: 14),
@@ -318,9 +346,22 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                     tags: _sauceTags,
                     selectedIds: _sauceTagIds,
                     multi: true,
+                    createHint: OvercookedTagUtils.createHint(
+                      context,
+                      OvercookedTagCategories.sauce,
+                    ),
+                    onCreateTag: (name) => OvercookedTagUtils.createTag(
+                      context,
+                      categoryId: OvercookedTagCategories.sauce,
+                      name: name,
+                    ),
                   );
-                  if (selected == null) return;
-                  setState(() => _sauceTagIds = selected);
+                  if (selected == null || !mounted) return;
+                  if (selected.tagsChanged) {
+                    await _loadTags();
+                    if (!mounted) return;
+                  }
+                  setState(() => _sauceTagIds = selected.selectedIds);
                 },
         ),
         const SizedBox(height: 14),
@@ -348,9 +389,22 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                     tags: _flavorTags,
                     selectedIds: _flavorTagIds,
                     multi: true,
+                    createHint: OvercookedTagUtils.createHint(
+                      context,
+                      OvercookedTagCategories.flavor,
+                    ),
+                    onCreateTag: (name) => OvercookedTagUtils.createTag(
+                      context,
+                      categoryId: OvercookedTagCategories.flavor,
+                      name: name,
+                    ),
                   );
-                  if (selected == null) return;
-                  setState(() => _flavorTagIds = selected);
+                  if (selected == null || !mounted) return;
+                  if (selected.tagsChanged) {
+                    await _loadTags();
+                    if (!mounted) return;
+                  }
+                  setState(() => _flavorTagIds = selected.selectedIds);
                 },
         ),
         const SizedBox(height: 14),

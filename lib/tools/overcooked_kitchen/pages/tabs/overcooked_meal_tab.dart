@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
-import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../models/overcooked_meal.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../overcooked_constants.dart';
@@ -37,7 +36,8 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
   List<OvercookedMeal> _meals = const [];
   Map<int, OvercookedRecipe> _recipesById = const {};
-  Map<int, Map<int, int>> _ratingsByMealId = const {}; // mealId -> {recipeId -> rating}
+  Map<int, Map<int, int>> _ratingsByMealId =
+      const {}; // mealId -> {recipeId -> rating}
 
   List<Tag> _mealSlotTags = const [];
   Map<int, Tag> _mealSlotTagsById = const {};
@@ -224,7 +224,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
               ),
             )
           else
-          for (final meal in _meals)
+            for (final meal in _meals)
               _MealCard(
                 meal: meal,
                 tagName: _mealSlotTagsById[meal.mealTagId]?.name,
@@ -250,7 +250,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 onRatingChanged: _loading
                     ? null
                     : (recipeId, rating) =>
-                        _updateRating(meal.id, recipeId, rating),
+                          _updateRating(meal.id, recipeId, rating),
               ),
         ],
       ),
@@ -263,50 +263,28 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   }
 
   Future<void> _addMealFlow() async {
-    if (_mealSlotTags.isEmpty) {
-      final go = await showCupertinoDialog<bool>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('还没有“餐次”标签'),
-          content: const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text('请先到「标签管理 -> 胡闹厨房 -> 餐次」创建，例如：早餐/午餐/晚餐。'),
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
-            ),
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('去创建'),
-            ),
-          ],
-        ),
-      );
-      if (go == true && mounted) {
-        await Navigator.of(context).push(
-          CupertinoPageRoute<void>(
-            builder: (_) => const TagManagerToolPage(
-              initialToolId: OvercookedConstants.toolId,
-            ),
-          ),
-        );
-        if (!mounted) return;
-        await _refresh();
-      }
-      return;
-    }
-
     final picked = await OvercookedTagPickerSheet.show(
       context,
       title: '选择餐次',
       tags: _mealSlotTags,
       selectedIds: const {},
       multi: false,
+      createHint: OvercookedTagUtils.createHint(
+        context,
+        OvercookedTagCategories.mealSlot,
+      ),
+      onCreateTag: (name) => OvercookedTagUtils.createTag(
+        context,
+        categoryId: OvercookedTagCategories.mealSlot,
+        name: name,
+      ),
     );
-    if (picked == null || picked.isEmpty || !mounted) return;
-    final tagId = picked.first;
+    if (picked == null || picked.selectedIds.isEmpty || !mounted) return;
+    if (picked.tagsChanged) {
+      await _refresh();
+      if (!mounted) return;
+    }
+    final tagId = picked.selectedIds.first;
 
     final existed = _meals.any((m) => m.mealTagId == tagId);
     if (existed) {
@@ -348,15 +326,6 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   }
 
   Future<void> _pickMealTagForMeal(OvercookedMeal meal) async {
-    if (_mealSlotTags.isEmpty) {
-      await OvercookedDialogs.showMessage(
-        context,
-        title: '暂无可用餐次标签',
-        content: '请先到「标签管理 -> 胡闹厨房 -> 餐次」创建标签。',
-      );
-      return;
-    }
-
     final current = meal.mealTagId == null ? const <int>{} : {meal.mealTagId!};
     final picked = await OvercookedTagPickerSheet.show(
       context,
@@ -364,9 +333,22 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
       tags: _mealSlotTags,
       selectedIds: current,
       multi: false,
+      createHint: OvercookedTagUtils.createHint(
+        context,
+        OvercookedTagCategories.mealSlot,
+      ),
+      onCreateTag: (name) => OvercookedTagUtils.createTag(
+        context,
+        categoryId: OvercookedTagCategories.mealSlot,
+        name: name,
+      ),
     );
-    if (picked == null || picked.isEmpty || !mounted) return;
-    final tagId = picked.first;
+    if (picked == null || picked.selectedIds.isEmpty || !mounted) return;
+    if (picked.tagsChanged) {
+      await _refresh();
+      if (!mounted) return;
+    }
+    final tagId = picked.selectedIds.first;
 
     final existed = _meals.any((m) => m.id != meal.id && m.mealTagId == tagId);
     if (existed) {
@@ -786,10 +768,7 @@ class _RecipeRatingRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _StarRating(
-            rating: rating,
-            onChanged: onRatingChanged,
-          ),
+          _StarRating(rating: rating, onChanged: onRatingChanged),
         ],
       ),
     );

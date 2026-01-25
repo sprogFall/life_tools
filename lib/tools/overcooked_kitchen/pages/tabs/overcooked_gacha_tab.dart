@@ -293,12 +293,25 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       tags: _typeTags,
       selectedIds: _selectedTypeIds,
       multi: true,
+      createHint: OvercookedTagUtils.createHint(
+        context,
+        OvercookedTagCategories.dishType,
+      ),
+      onCreateTag: (name) => OvercookedTagUtils.createTag(
+        context,
+        categoryId: OvercookedTagCategories.dishType,
+        name: name,
+      ),
     );
-    if (selected == null) return;
+    if (selected == null || !mounted) return;
+    if (selected.tagsChanged) {
+      await _loadTypes();
+      if (!mounted) return;
+    }
     setState(() {
-      _selectedTypeIds = selected;
+      _selectedTypeIds = selected.selectedIds;
       final next = <int, int>{};
-      for (final id in selected) {
+      for (final id in _selectedTypeIds) {
         next[id] = _typeCountById[id] ?? 1;
       }
       _typeCountById = next;
