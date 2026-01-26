@@ -60,7 +60,7 @@ class _FakeOvercookedRepository extends OvercookedRepository {
 
   @override
   Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
-      getRecipeStats() async {
+  getRecipeStats() async {
     return const {};
   }
 }
@@ -156,7 +156,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('overcooked_gacha_import_button')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_import_button')),
+        findsOneWidget,
+      );
       expect(find.text('就你了'), findsOneWidget);
 
       await tester.tap(
@@ -165,10 +168,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(importedDate, DateTime(2026, 1, 2));
-      expect(
-        (repository as _FakeOvercookedRepository).addedWishes,
-        [(date: DateTime(2026, 1, 2), recipeId: 100)],
-      );
+      expect((repository as _FakeOvercookedRepository).addedWishes, [
+        (date: DateTime(2026, 1, 2), recipeId: 100),
+      ]);
     });
   });
 }

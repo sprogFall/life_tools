@@ -466,8 +466,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
         final maxField = (availableWidth - 44)
             .clamp(0.0, widget.maxFieldWidth)
             .toDouble();
-        final minField =
-            widget.minFieldWidth.clamp(0.0, maxField).toDouble();
+        final minField = widget.minFieldWidth.clamp(0.0, maxField).toDouble();
 
         final raw = widget.controller.text;
         final textWidth = _measureTextWidth(

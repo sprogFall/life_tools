@@ -53,7 +53,7 @@ void main() {
       ToolRegistry.instance.registerAll();
     });
 
-    test('exportAsJson 应包含 AI 配置/同步配置/默认工具配置/工具数据', () async {
+    test('exportAsJson 默认应避免导出敏感信息（AI Key/同步 Headers/七牛 AKSK）', () async {
       final aiConfigService = AiConfigService();
       await aiConfigService.init();
       await aiConfigService.save(
@@ -120,12 +120,83 @@ void main() {
 
       expect(map['version'], isA<int>());
       expect(map['ai_config'], isA<Map>());
+      final ai = Map<String, dynamic>.from(map['ai_config'] as Map);
+      expect(ai.containsKey('apiKey'), isFalse);
+
       expect(map['sync_config'], isA<Map>());
+      final sync = Map<String, dynamic>.from(map['sync_config'] as Map);
+      expect(sync.containsKey('customHeaders'), isFalse);
+
       expect(map['obj_store_config'], isA<Map>());
-      expect(map['obj_store_secrets'], isA<Map>());
+      expect(map['obj_store_secrets'], isNull);
       expect(map['settings'], isA<Map>());
       expect(map['tools'], isA<Map>());
       expect((map['tools'] as Map).containsKey('work_log'), isTrue);
+    });
+
+    test('exportAsJson includeSensitive=true 时应包含敏感信息', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      await aiConfigService.save(
+        const AiConfig(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'k1',
+          model: 'm1',
+          temperature: 0.7,
+          maxOutputTokens: 256,
+        ),
+      );
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+      await syncConfigService.save(
+        const SyncConfig(
+          userId: 'u1',
+          networkType: SyncNetworkType.public,
+          serverUrl: 'sync.example.com',
+          serverPort: 443,
+          customHeaders: {'X-Test': '1'},
+          allowedWifiNames: [],
+          autoSyncOnStartup: false,
+        ),
+      );
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+      await objStoreConfigService.save(
+        const ObjStoreConfig.qiniu(
+          bucket: 'bkt',
+          domain: 'https://cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ),
+        secrets: const ObjStoreQiniuSecrets(accessKey: 'ak', secretKey: 'sk'),
+      );
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: const [],
+      );
+
+      final jsonText = await service.exportAsJson(includeSensitive: true);
+      final map = jsonDecode(jsonText) as Map<String, dynamic>;
+
+      final ai = Map<String, dynamic>.from(map['ai_config'] as Map);
+      expect(ai['apiKey'], 'k1');
+
+      final sync = Map<String, dynamic>.from(map['sync_config'] as Map);
+      expect(sync['customHeaders'], isA<Map>());
+
+      expect(map['obj_store_secrets'], isA<Map>());
     });
 
     test('导出为 TXT 文件时应使用紧凑 JSON（不换行）', () async {
@@ -242,6 +313,159 @@ void main() {
       expect(settingsService.defaultToolId, 'work_log');
       expect(tool.lastImported, isNotNull);
       expect(tool.lastImported!['version'], 1);
+    });
+
+    test('restoreFromJson 缺失敏感字段时不应覆盖本地敏感信息', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      await aiConfigService.save(
+        const AiConfig(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'keep_ai_key',
+          model: 'm_old',
+          temperature: 0.7,
+          maxOutputTokens: 256,
+        ),
+      );
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+      await syncConfigService.save(
+        const SyncConfig(
+          userId: 'u_old',
+          networkType: SyncNetworkType.public,
+          serverUrl: 'old.example.com',
+          serverPort: 443,
+          customHeaders: {'Authorization': 'Bearer keep'},
+          allowedWifiNames: [],
+          autoSyncOnStartup: false,
+        ),
+      );
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+      await objStoreConfigService.save(
+        const ObjStoreConfig.qiniu(
+          bucket: 'bkt_old',
+          domain: 'https://cdn.old.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ),
+        secrets: const ObjStoreQiniuSecrets(
+          accessKey: 'keep_ak',
+          secretKey: 'keep_sk',
+        ),
+      );
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: const [],
+      );
+
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': const {
+          'baseUrl': 'https://example.com/v1',
+          // 故意不包含 apiKey
+          'model': 'm_new',
+          'temperature': 0.2,
+          'maxOutputTokens': 512,
+        },
+        'sync_config': const {
+          'userId': 'u_new',
+          'networkType': 0,
+          'serverUrl': 'new.example.com',
+          'serverPort': 443,
+          // 故意不包含 customHeaders
+          'allowedWifiNames': <String>[],
+          'autoSyncOnStartup': true,
+        },
+        'obj_store_config': const ObjStoreConfig.qiniu(
+          bucket: 'bkt_new',
+          domain: 'https://cdn.new.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ).toJson(),
+        // 故意不包含 obj_store_secrets
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': const <String, dynamic>{},
+      };
+
+      await service.restoreFromJson(jsonEncode(payload));
+
+      expect(aiConfigService.config, isNotNull);
+      expect(aiConfigService.config!.model, 'm_new');
+      expect(aiConfigService.config!.apiKey, 'keep_ai_key');
+
+      expect(syncConfigService.config, isNotNull);
+      expect(syncConfigService.config!.userId, 'u_new');
+      expect(
+        syncConfigService.config!.customHeaders['Authorization'],
+        'Bearer keep',
+      );
+
+      expect(objStoreConfigService.config, isNotNull);
+      expect(objStoreConfigService.config!.bucket, 'bkt_new');
+      expect(objStoreConfigService.qiniuSecrets, isNotNull);
+      expect(objStoreConfigService.qiniuSecrets!.accessKey, 'keep_ak');
+    });
+
+    test('restoreFromJson：七牛配置缺失 AKSK 时应仍保留配置（secrets 为空）', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: const [],
+      );
+
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': null,
+        'sync_config': null,
+        'obj_store_config': const ObjStoreConfig.qiniu(
+          bucket: 'bkt',
+          domain: 'https://cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+          keyPrefix: 'media/',
+          isPrivate: true,
+        ).toJson(),
+        // 不提供 obj_store_secrets
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': const <String, dynamic>{},
+      };
+
+      await service.restoreFromJson(jsonEncode(payload));
+
+      expect(objStoreConfigService.config, isNotNull);
+      expect(objStoreConfigService.config!.type, ObjStoreType.qiniu);
+      expect(objStoreConfigService.qiniuSecrets, isNull);
     });
 
     test('restoreFromJson 应优先导入 tag_manager，避免其它工具的标签关联丢失', () async {

@@ -20,7 +20,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../../test_helpers/test_app_wrapper.dart';
 
 class _FakeTagService extends TagService {
-  _FakeTagService(Database db) : super(repository: TagRepository.withDatabase(db));
+  _FakeTagService(Database db)
+    : super(repository: TagRepository.withDatabase(db));
 
   @override
   Future<List<Tag>> listTagsForToolCategory({
@@ -48,10 +49,14 @@ class _FakeOvercookedRepository extends OvercookedRepository {
 class _FakeObjStoreService extends ObjStoreService {
   _FakeObjStoreService()
     : super(
-        configService: ObjStoreConfigService(secretStore: InMemorySecretStore()),
+        configService: ObjStoreConfigService(
+          secretStore: InMemorySecretStore(),
+        ),
         localStore: LocalObjStore(
           baseDirProvider: () async {
-            final dir = Directory(p.join(Directory.systemTemp.path, 'obj_store'));
+            final dir = Directory(
+              p.join(Directory.systemTemp.path, 'obj_store'),
+            );
             if (!dir.existsSync()) dir.createSync(recursive: true);
             return dir;
           },

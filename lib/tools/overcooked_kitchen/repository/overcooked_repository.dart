@@ -379,16 +379,12 @@ ORDER BY updated_at DESC, id DESC
       );
       final uniqueIds = _dedupeInts(recipeIds).toList();
       for (int i = 0; i < uniqueIds.length; i++) {
-        await txn.insert(
-          'overcooked_meal_items',
-          {
-            'meal_id': mealId,
-            'recipe_id': uniqueIds[i],
-            'sort_index': i,
-            'created_at': time.millisecondsSinceEpoch,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        await txn.insert('overcooked_meal_items', {
+          'meal_id': mealId,
+          'recipe_id': uniqueIds[i],
+          'sort_index': i,
+          'created_at': time.millisecondsSinceEpoch,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
   }
@@ -471,16 +467,12 @@ ORDER BY updated_at DESC, id DESC
 
       final uniqueIds = _dedupeInts(recipeIds).toList();
       for (int i = 0; i < uniqueIds.length; i++) {
-        await txn.insert(
-          'overcooked_meal_items',
-          {
-            'meal_id': mealId,
-            'recipe_id': uniqueIds[i],
-            'sort_index': i,
-            'created_at': time.millisecondsSinceEpoch,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        await txn.insert('overcooked_meal_items', {
+          'meal_id': mealId,
+          'recipe_id': uniqueIds[i],
+          'sort_index': i,
+          'created_at': time.millisecondsSinceEpoch,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
   }
@@ -792,8 +784,7 @@ ORDER BY m.day_key ASC
           final maxRows = await txn.rawQuery(
             'SELECT MAX(sort_index) AS max_sort_index FROM tags',
           );
-          final maxSortIndex =
-              (maxRows.first['max_sort_index'] as int?) ?? -1;
+          final maxSortIndex = (maxRows.first['max_sort_index'] as int?) ?? -1;
           tagId = await txn.insert('tags', {
             'name': name,
             'color': null,
@@ -814,16 +805,12 @@ WHERE tool_id = ? AND category_id = ?
         final maxLinkSortIndex =
             (maxLinkRows.first['max_sort_index'] as int?) ?? -1;
 
-        await txn.insert(
-          'tool_tags',
-          {
-            'tool_id': toolId,
-            'tag_id': tagId,
-            'category_id': categoryId,
-            'sort_index': maxLinkSortIndex + 1,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        await txn.insert('tool_tags', {
+          'tool_id': toolId,
+          'tag_id': tagId,
+          'category_id': categoryId,
+          'sort_index': maxLinkSortIndex + 1,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
         return tagId;
       }
 
@@ -862,16 +849,12 @@ WHERE tool_id = ? AND category_id = ?
 
         for (int i = 0; i < items.length; i++) {
           final it = items[i];
-          await txn.insert(
-            'overcooked_meal_items',
-            {
-              'meal_id': mealId,
-              'recipe_id': it['recipe_id'] as int,
-              'sort_index': i,
-              'created_at': (it['created_at'] as int?) ?? now,
-            },
-            conflictAlgorithm: ConflictAlgorithm.ignore,
-          );
+          await txn.insert('overcooked_meal_items', {
+            'meal_id': mealId,
+            'recipe_id': it['recipe_id'] as int,
+            'sort_index': i,
+            'created_at': (it['created_at'] as int?) ?? now,
+          }, conflictAlgorithm: ConflictAlgorithm.ignore);
         }
       }
     });
@@ -984,16 +967,12 @@ ORDER BY recipe_id ASC, tag_id ASC
     DateTime? now,
   }) async {
     final db = await _database;
-    await db.insert(
-      'overcooked_meal_item_ratings',
-      {
-        'meal_id': mealId,
-        'recipe_id': recipeId,
-        'rating': rating,
-        'created_at': (now ?? DateTime.now()).millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('overcooked_meal_item_ratings', {
+      'meal_id': mealId,
+      'recipe_id': recipeId,
+      'rating': rating,
+      'created_at': (now ?? DateTime.now()).millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteRating({
@@ -1017,14 +996,13 @@ ORDER BY recipe_id ASC, tag_id ASC
       whereArgs: [mealId],
     );
     return {
-      for (final row in rows)
-        row['recipe_id'] as int: row['rating'] as int,
+      for (final row in rows) row['recipe_id'] as int: row['rating'] as int,
     };
   }
 
   /// 获取所有菜谱的统计数据：做菜次数和平均分
   Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
-      getRecipeStats() async {
+  getRecipeStats() async {
     final db = await _database;
 
     // 统计每个菜谱的做菜次数
@@ -1080,18 +1058,24 @@ GROUP BY recipe_id
   ) async {
     final db = await _database;
 
-    final cookCountRows = await db.rawQuery('''
+    final cookCountRows = await db.rawQuery(
+      '''
 SELECT COUNT(*) AS cook_count
 FROM overcooked_meal_items
 WHERE recipe_id = ?
-''', [recipeId]);
+''',
+      [recipeId],
+    );
     final cookCount = (cookCountRows.first['cook_count'] as int?) ?? 0;
 
-    final ratingRows = await db.rawQuery('''
+    final ratingRows = await db.rawQuery(
+      '''
 SELECT SUM(rating) AS total_rating, COUNT(*) AS rating_count
 FROM overcooked_meal_item_ratings
 WHERE recipe_id = ?
-''', [recipeId]);
+''',
+      [recipeId],
+    );
     final totalRating = (ratingRows.first['total_rating'] as int?) ?? 0;
     final ratingCount = (ratingRows.first['rating_count'] as int?) ?? 0;
     final avgRating = ratingCount > 0 ? totalRating / ratingCount : 0.0;

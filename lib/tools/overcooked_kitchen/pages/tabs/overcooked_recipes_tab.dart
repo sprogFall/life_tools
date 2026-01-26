@@ -264,10 +264,14 @@ class _RecipeCard extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
+                            color: IOS26Theme.toolPurple.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
+                              color: IOS26Theme.toolPurple.withValues(
+                                alpha: 0.25,
+                              ),
                               width: 1,
                             ),
                           ),
@@ -288,7 +292,9 @@ class _RecipeCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
+                            color: IOS26Theme.textSecondary.withValues(
+                              alpha: 0.85,
+                            ),
                           ),
                         ),
                       if (ratingCount > 0) ...[

@@ -239,7 +239,7 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
       {};
   final Map<String, FocusNode> _quickAddFocusNodesByCategoryId = {};
   final Map<String, IOS26QuickAddChipController>
-      _quickAddChipUiControllersByCategoryId = {};
+  _quickAddChipUiControllersByCategoryId = {};
   final Map<String, List<String>> _pendingQuickAddNamesByCategoryId = {};
   final Set<String> _committingCategoryIds = {};
 

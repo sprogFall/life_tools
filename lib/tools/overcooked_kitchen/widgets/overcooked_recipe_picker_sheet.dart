@@ -121,7 +121,10 @@ class _OvercookedRecipePickerSheetState
                 ),
                 const SizedBox(width: 8),
                 CupertinoButton(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   color: _sortMode == _SortMode.ratingDesc
                       ? IOS26Theme.primaryColor
                       : IOS26Theme.textTertiary.withValues(alpha: 0.3),

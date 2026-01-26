@@ -94,8 +94,14 @@ class SyncService extends ChangeNotifier {
         return false;
       }
       if (v2Result == _SyncV2Result.notSupported) {
-        final request = SyncRequest(userId: config.userId, toolsData: toolsData);
-        final response = await _apiClient.sync(config: config, request: request);
+        final request = SyncRequest(
+          userId: config.userId,
+          toolsData: toolsData,
+        );
+        final response = await _apiClient.sync(
+          config: config,
+          request: request,
+        );
 
         if (!response.success) {
           _lastError = response.message ?? '同步失败';

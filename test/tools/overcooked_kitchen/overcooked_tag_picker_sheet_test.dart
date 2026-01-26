@@ -174,10 +174,12 @@ void main() {
       await tester.pumpAndSettle();
 
       final scrollable = find.byType(SingleChildScrollView);
-      final quickAddButton =
-          find.byKey(const ValueKey('overcooked-tag-quick-add-button'));
-      final quickAddField =
-          find.byKey(const ValueKey('overcooked-tag-quick-add-field'));
+      final quickAddButton = find.byKey(
+        const ValueKey('overcooked-tag-quick-add-button'),
+      );
+      final quickAddField = find.byKey(
+        const ValueKey('overcooked-tag-quick-add-field'),
+      );
 
       await tester.dragUntilVisible(
         quickAddButton,
@@ -205,8 +207,14 @@ void main() {
       final fieldRect = tester.getRect(quickAddField);
 
       // 关键点：键盘出现时，整个 bottom sheet 本身也应上移，避免被键盘覆盖。
-      expect(sheetRect.bottom, lessThanOrEqualTo(screenHeight - keyboardHeight));
-      expect(fieldRect.bottom, lessThanOrEqualTo(screenHeight - keyboardHeight));
+      expect(
+        sheetRect.bottom,
+        lessThanOrEqualTo(screenHeight - keyboardHeight),
+      );
+      expect(
+        fieldRect.bottom,
+        lessThanOrEqualTo(screenHeight - keyboardHeight),
+      );
     });
   });
 }

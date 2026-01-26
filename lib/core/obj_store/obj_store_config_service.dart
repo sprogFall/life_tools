@@ -43,17 +43,30 @@ class ObjStoreConfigService extends ChangeNotifier {
   Future<void> save(
     ObjStoreConfig config, {
     ObjStoreQiniuSecrets? secrets,
+    bool allowMissingSecrets = false,
   }) async {
     _config = config;
     await _prefs?.setString(_storageKey, config.toJsonString());
 
     if (config.type == ObjStoreType.qiniu) {
       if (secrets == null || !secrets.isValid) {
-        throw const FormatException('七牛云存储需要填写 AK/SK');
+        if (!allowMissingSecrets) {
+          throw const FormatException('七牛云存储需要填写 AK/SK');
+        }
+        _qiniuSecrets = null;
+        await _secretStore.delete(key: _qiniuAccessKey);
+        await _secretStore.delete(key: _qiniuSecretKey);
+      } else {
+        _qiniuSecrets = secrets;
+        await _secretStore.write(
+          key: _qiniuAccessKey,
+          value: secrets.accessKey,
+        );
+        await _secretStore.write(
+          key: _qiniuSecretKey,
+          value: secrets.secretKey,
+        );
       }
-      _qiniuSecrets = secrets;
-      await _secretStore.write(key: _qiniuAccessKey, value: secrets.accessKey);
-      await _secretStore.write(key: _qiniuSecretKey, value: secrets.secretKey);
     } else {
       _qiniuSecrets = null;
       await _secretStore.delete(key: _qiniuAccessKey);

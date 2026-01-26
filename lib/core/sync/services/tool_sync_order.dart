@@ -8,4 +8,3 @@ List<MapEntry<String, T>> sortToolEntries<T>(Map<String, T> toolsData) {
   });
   return entries;
 }
-

@@ -14,4 +14,3 @@ bool isPathWithinAnyDir({
   }
   return false;
 }
-

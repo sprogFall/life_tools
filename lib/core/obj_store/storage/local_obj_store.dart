@@ -36,8 +36,13 @@ class LocalObjStore {
 
   Future<String?> resolveUri({required String key}) async {
     final baseDir = await _baseDirProvider();
-    final safeKey = key.replaceAll('\\', '/');
-    final path = p.normalize(p.join(baseDir.path, safeKey));
+    final safeKey = key.replaceAll('\\', '/').trim();
+    if (safeKey.isEmpty) return null;
+    if (p.isAbsolute(safeKey)) return null;
+
+    final base = p.normalize(baseDir.path);
+    final path = p.normalize(p.join(base, safeKey));
+    if (!p.isWithin(base, path)) return null;
     final file = File(path);
     if (!file.existsSync()) return null;
     return Uri.file(file.path).toString();

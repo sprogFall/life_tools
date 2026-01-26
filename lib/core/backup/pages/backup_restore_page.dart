@@ -29,6 +29,7 @@ class BackupRestorePage extends StatefulWidget {
 class _BackupRestorePageState extends State<BackupRestorePage> {
   final _restoreController = TextEditingController();
   bool _isRestoring = false;
+  bool _includeSensitive = true;
 
   @override
   void initState() {
@@ -125,11 +126,37 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 10),
           _buildHint('将以下内容导出为 JSON（大数据量推荐导出为 TXT 文件）：'),
           const SizedBox(height: 6),
-          _buildHint('1) AI 配置（含 API Key）'),
-          _buildHint('2) 数据同步配置'),
-          _buildHint('3) 资源存储配置（含七牛 AK/SK）'),
+          _buildHint('1) AI 配置（Base URL / 模型 / 参数）'),
+          _buildHint('2) 数据同步配置（服务器/网络模式等）'),
+          _buildHint('3) 资源存储配置（七牛/本地）'),
           _buildHint('4) 默认打开工具/工具排序等应用配置'),
           _buildHint('5) 各工具数据（通过 ToolSyncProvider 导出）'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '包含敏感信息（AI Key / Token / 七牛 AKSK）',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: IOS26Theme.textSecondary,
+                  ),
+                ),
+              ),
+              CupertinoSwitch(
+                value: _includeSensitive,
+                onChanged: (v) => setState(() => _includeSensitive = v),
+                activeTrackColor: IOS26Theme.primaryColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _buildHint(
+            _includeSensitive
+                ? '默认已开启：导出内容会包含密钥/Token，分享前请确认接收方可信。'
+                : '已关闭：不会导出密钥/Token（更安全，导入后可在设置页重新填写）。',
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -310,7 +337,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   Future<void> _exportAndShare() async {
     try {
       final service = _buildService(context);
-      final jsonText = await service.exportAsJson(pretty: false);
+      final jsonText = await service.exportAsJson(
+        pretty: false,
+        includeSensitive: _includeSensitive,
+      );
       final fileName = _buildBackupFileName(DateTime.now());
 
       final result = await ShareService.shareBackup(jsonText, fileName);
@@ -329,7 +359,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   Future<void> _exportToTxtFile() async {
     try {
       final service = _buildService(context);
-      final jsonText = await service.exportAsJson(pretty: false);
+      final jsonText = await service.exportAsJson(
+        pretty: false,
+        includeSensitive: _includeSensitive,
+      );
 
       final fileName = _buildBackupFileName(DateTime.now());
       final bytes = Uint8List.fromList(utf8.encode(jsonText));
@@ -357,7 +390,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   Future<void> _exportToClipboard() async {
     final service = _buildService(context);
-    final jsonText = await service.exportAsJson(pretty: false);
+    final jsonText = await service.exportAsJson(
+      pretty: false,
+      includeSensitive: _includeSensitive,
+    );
     await Clipboard.setData(ClipboardData(text: jsonText));
     if (!mounted) return;
 

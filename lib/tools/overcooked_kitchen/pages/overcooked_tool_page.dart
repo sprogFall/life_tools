@@ -59,9 +59,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        Provider<OvercookedRepository>.value(value: _repository),
-      ],
+      providers: [Provider<OvercookedRepository>.value(value: _repository)],
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
         body: Stack(

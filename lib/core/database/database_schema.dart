@@ -554,7 +554,9 @@ class DatabaseSchema {
     );
   }
 
-  static Future<void> _createOvercookedMealTablesV14(DatabaseExecutor db) async {
+  static Future<void> _createOvercookedMealTablesV14(
+    DatabaseExecutor db,
+  ) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS overcooked_meal_days (
         day_key INTEGER PRIMARY KEY,
@@ -581,7 +583,9 @@ class DatabaseSchema {
     );
   }
 
-  static Future<void> _createOvercookedMealTablesV15(DatabaseExecutor db) async {
+  static Future<void> _createOvercookedMealTablesV15(
+    DatabaseExecutor db,
+  ) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS overcooked_meals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -787,7 +791,9 @@ SET sort_index = (
     final isLegacyItems = itemNames.contains('day_key');
 
     // 新表已存在且旧 items 不是 legacy，说明已迁移过
-    final mealsColumns = await db.rawQuery('PRAGMA table_info(overcooked_meals)');
+    final mealsColumns = await db.rawQuery(
+      'PRAGMA table_info(overcooked_meals)',
+    );
     final hasMealsTable = mealsColumns.isNotEmpty;
     if (hasMealsTable && !isLegacyItems) return;
 
@@ -853,8 +859,7 @@ SET sort_index = (
           final maxRows = await txn.rawQuery(
             'SELECT MAX(sort_index) AS max_sort_index FROM tags',
           );
-          final maxSortIndex =
-              (maxRows.first['max_sort_index'] as int?) ?? -1;
+          final maxSortIndex = (maxRows.first['max_sort_index'] as int?) ?? -1;
           tagId = await txn.insert('tags', {
             'name': name,
             'color': null,
@@ -916,16 +921,12 @@ WHERE tool_id = ? AND category_id = ?
         );
         for (int i = 0; i < legacyItems.length; i++) {
           final row = legacyItems[i];
-          await txn.insert(
-            'overcooked_meal_items',
-            {
-              'meal_id': mealId,
-              'recipe_id': row['recipe_id'] as int,
-              'sort_index': i,
-              'created_at': (row['created_at'] as int?) ?? now,
-            },
-            conflictAlgorithm: ConflictAlgorithm.ignore,
-          );
+          await txn.insert('overcooked_meal_items', {
+            'meal_id': mealId,
+            'recipe_id': row['recipe_id'] as int,
+            'sort_index': i,
+            'created_at': (row['created_at'] as int?) ?? now,
+          }, conflictAlgorithm: ConflictAlgorithm.ignore);
         }
       }
 

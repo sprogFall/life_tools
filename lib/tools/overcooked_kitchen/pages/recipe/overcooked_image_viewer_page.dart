@@ -111,8 +111,10 @@ class _DiskPreferredImageView extends StatelessWidget {
               ? '未配置资源存储'
               : '图片加载失败';
           return Center(
-            child:
-                Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
+            child: Text(
+              errMsg,
+              style: const TextStyle(color: IOS26Theme.textSecondary),
+            ),
           );
         }
         final f = snapshot.data;
@@ -156,15 +158,19 @@ class _NetworkImageView extends StatelessWidget {
               ? '未配置资源存储'
               : '图片加载失败';
           return Center(
-            child:
-                Text(errMsg, style: const TextStyle(color: IOS26Theme.textSecondary)),
+            child: Text(
+              errMsg,
+              style: const TextStyle(color: IOS26Theme.textSecondary),
+            ),
           );
         }
         final uriText = snapshot.data?.trim();
         if (uriText == null || uriText.isEmpty) {
           return const Center(
-            child:
-                Text('图片不存在', style: TextStyle(color: IOS26Theme.textSecondary)),
+            child: Text(
+              '图片不存在',
+              style: TextStyle(color: IOS26Theme.textSecondary),
+            ),
           );
         }
 
@@ -179,7 +185,7 @@ class _NetworkImageView extends StatelessWidget {
                   final value = progress.expectedTotalBytes == null
                       ? null
                       : progress.cumulativeBytesLoaded /
-                          progress.expectedTotalBytes!;
+                            progress.expectedTotalBytes!;
                   return Center(
                     child: SizedBox(
                       width: 24,
@@ -190,8 +196,10 @@ class _NetworkImageView extends StatelessWidget {
                 },
                 errorBuilder: (context, error, stackTrace) {
                   return const Center(
-                    child: Text('图片加载失败',
-                        style: TextStyle(color: IOS26Theme.textSecondary)),
+                    child: Text(
+                      '图片加载失败',
+                      style: TextStyle(color: IOS26Theme.textSecondary),
+                    ),
                   );
                 },
               );

@@ -78,8 +78,10 @@ class QiniuClient {
 
     final rawKey = key.trim();
     final normalizedKey = rawKey.startsWith('/') ? rawKey.substring(1) : rawKey;
-    final keySegments =
-        normalizedKey.split('/').where((s) => s.trim().isNotEmpty).toList();
+    final keySegments = normalizedKey
+        .split('/')
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
 
     final segments = <String>[
       ...base.pathSegments.where((s) => s.trim().isNotEmpty),
@@ -146,8 +148,9 @@ class QiniuClient {
     }
 
     // 无论用户输入何种 scheme，都以 useHttps 为准（避免 http 导致移动端图片无法加载）。
-    final normalizedPathSegments =
-        parsed.pathSegments.where((s) => s.trim().isNotEmpty).toList();
+    final normalizedPathSegments = parsed.pathSegments
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
     return parsed.replace(
       scheme: scheme,
       pathSegments: normalizedPathSegments,

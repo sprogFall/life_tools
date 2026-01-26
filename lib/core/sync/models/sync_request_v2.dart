@@ -34,4 +34,3 @@ class SyncClientState {
     'client_is_empty': clientIsEmpty,
   };
 }
-

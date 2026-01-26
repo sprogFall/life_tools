@@ -25,5 +25,24 @@ void main() {
       expect(File('${tmp.path}/${stored.key}').existsSync(), isTrue);
       expect(File('${tmp.path}/media/.nomedia').existsSync(), isTrue);
     });
+
+    test('resolveUri 不应允许通过 ../ 读取 baseDir 之外的文件', () async {
+      final root = await Directory.systemTemp.createTemp('life_tools_test_');
+      addTearDown(() async {
+        try {
+          await root.delete(recursive: true);
+        } catch (_) {}
+      });
+
+      final baseDir = Directory('${root.path}/base')..createSync();
+      final outside = File('${root.path}/secret.txt')
+        ..writeAsStringSync('secret', flush: true);
+
+      final store = LocalObjStore(baseDirProvider: () async => baseDir);
+      final uri = await store.resolveUri(key: '../secret.txt');
+
+      expect(outside.existsSync(), isTrue);
+      expect(uri, isNull);
+    });
   });
 }

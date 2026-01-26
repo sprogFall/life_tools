@@ -51,7 +51,10 @@ class BackupRestoreService {
                  .map((t) => t.syncProvider!),
        );
 
-  Future<String> exportAsJson({bool pretty = false}) async {
+  Future<String> exportAsJson({
+    bool pretty = false,
+    bool includeSensitive = false,
+  }) async {
     final tools = <String, Map<String, dynamic>>{};
 
     for (final provider in toolProviders) {
@@ -65,13 +68,31 @@ class BackupRestoreService {
     final objStoreConfig = objStoreConfigService.config;
     final objStoreSecrets = objStoreConfigService.qiniuSecrets;
 
+    final aiConfig = aiConfigService.config;
+    final syncConfig = syncConfigService.config;
+
+    final aiConfigJson = aiConfig == null
+        ? null
+        : Map<String, dynamic>.from(aiConfig.toMap());
+    if (!includeSensitive) {
+      aiConfigJson?.remove('apiKey');
+    }
+
+    final syncConfigJson = syncConfig == null
+        ? null
+        : Map<String, dynamic>.from(syncConfig.toMap());
+    if (!includeSensitive) {
+      syncConfigJson?.remove('customHeaders');
+    }
+
     final payload = <String, dynamic>{
       'version': backupVersion,
       'exported_at': DateTime.now().millisecondsSinceEpoch,
-      'ai_config': aiConfigService.config?.toMap(),
-      'sync_config': syncConfigService.config?.toMap(),
+      'sensitive_included': includeSensitive,
+      'ai_config': aiConfigJson,
+      'sync_config': syncConfigJson,
       'obj_store_config': objStoreConfig?.toJson(),
-      'obj_store_secrets': objStoreSecrets == null
+      'obj_store_secrets': (!includeSensitive || objStoreSecrets == null)
           ? null
           : {
               'accessKey': objStoreSecrets.accessKey,
@@ -124,14 +145,84 @@ class BackupRestoreService {
 
     final aiConfigMap = readJsonMap(decoded['ai_config']);
     if (aiConfigMap != null) {
-      final config = AiConfig.fromMap(aiConfigMap);
-      await aiConfigService.save(config);
+      final current = aiConfigService.config;
+      final next = AiConfig(
+        baseUrl:
+            (aiConfigMap.containsKey('baseUrl')
+                ? (aiConfigMap['baseUrl'] as String?)
+                : current?.baseUrl) ??
+            '',
+        apiKey:
+            (aiConfigMap.containsKey('apiKey')
+                ? (aiConfigMap['apiKey'] as String?)
+                : current?.apiKey) ??
+            '',
+        model:
+            (aiConfigMap.containsKey('model')
+                ? (aiConfigMap['model'] as String?)
+                : current?.model) ??
+            '',
+        temperature:
+            (aiConfigMap.containsKey('temperature')
+                ? (aiConfigMap['temperature'] as num?)?.toDouble()
+                : current?.temperature) ??
+            0.7,
+        maxOutputTokens:
+            (aiConfigMap.containsKey('maxOutputTokens')
+                ? (aiConfigMap['maxOutputTokens'] as num?)?.toInt()
+                : current?.maxOutputTokens) ??
+            1024,
+      );
+      await aiConfigService.save(next);
     }
 
     final syncConfigMap = readJsonMap(decoded['sync_config']);
     if (syncConfigMap != null) {
-      final config = SyncConfig.fromMap(syncConfigMap);
-      await syncConfigService.save(config);
+      final incoming = SyncConfig.fromMap(syncConfigMap);
+      final current = syncConfigService.config;
+      final applyLastSyncTime = syncConfigMap.containsKey('lastSyncTime');
+      final applyLastServerRevision = syncConfigMap.containsKey(
+        'lastServerRevision',
+      );
+      final merged = current == null
+          ? incoming
+          : current.copyWith(
+              userId: syncConfigMap.containsKey('userId')
+                  ? incoming.userId
+                  : null,
+              networkType: syncConfigMap.containsKey('networkType')
+                  ? incoming.networkType
+                  : null,
+              serverUrl: syncConfigMap.containsKey('serverUrl')
+                  ? incoming.serverUrl
+                  : null,
+              serverPort: syncConfigMap.containsKey('serverPort')
+                  ? incoming.serverPort
+                  : null,
+              customHeaders: syncConfigMap.containsKey('customHeaders')
+                  ? incoming.customHeaders
+                  : null,
+              allowedWifiNames: syncConfigMap.containsKey('allowedWifiNames')
+                  ? incoming.allowedWifiNames
+                  : null,
+              autoSyncOnStartup: syncConfigMap.containsKey('autoSyncOnStartup')
+                  ? incoming.autoSyncOnStartup
+                  : null,
+              lastSyncTime: (applyLastSyncTime && incoming.lastSyncTime != null)
+                  ? incoming.lastSyncTime
+                  : null,
+              clearLastSyncTime:
+                  applyLastSyncTime && incoming.lastSyncTime == null,
+              lastServerRevision:
+                  (applyLastServerRevision &&
+                      incoming.lastServerRevision != null)
+                  ? incoming.lastServerRevision
+                  : null,
+              clearLastServerRevision:
+                  applyLastServerRevision &&
+                  incoming.lastServerRevision == null,
+            );
+      await syncConfigService.save(merged);
     }
 
     final objStoreConfigMap = readJsonMap(decoded['obj_store_config']);
@@ -154,7 +245,11 @@ class BackupRestoreService {
               ),
             );
           } else {
-            await objStoreConfigService.clear();
+            await objStoreConfigService.save(
+              config,
+              secrets: objStoreConfigService.qiniuSecrets,
+              allowMissingSecrets: true,
+            );
           }
         } else if (config.type == ObjStoreType.local) {
           await objStoreConfigService.save(config);

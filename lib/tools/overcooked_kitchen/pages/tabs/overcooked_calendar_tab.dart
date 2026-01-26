@@ -201,7 +201,9 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
     return GestureDetector(
       onTap: () => widget.onOpenDay(date),
       child: Container(
-        key: ValueKey('overcooked_calendar_day_${OvercookedRepository.dayKey(date)}'),
+        key: ValueKey(
+          'overcooked_calendar_day_${OvercookedRepository.dayKey(date)}',
+        ),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(10),

@@ -195,7 +195,9 @@ class _OvercookedRecipeDetailPageState
           height: 220,
           child: GestureDetector(
             onTap: () => _openImageViewer(
-              objectKeys: [if (recipe.coverImageKey != null) recipe.coverImageKey!],
+              objectKeys: [
+                if (recipe.coverImageKey != null) recipe.coverImageKey!,
+              ],
               title: recipe.name,
             ),
             child: OvercookedImageByKey(

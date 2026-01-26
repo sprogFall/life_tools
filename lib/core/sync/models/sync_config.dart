@@ -51,10 +51,22 @@ class SyncConfig {
   /// 构建完整的服务端URL
   String get fullServerUrl {
     final url = serverUrl.trim();
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return '$url:$serverPort';
+    if (url.isEmpty) return '';
+
+    final withScheme = url.contains('://') ? url : 'https://$url';
+    final parsed = Uri.tryParse(withScheme);
+    if (parsed == null || parsed.host.trim().isEmpty) {
+      // 回退：尽力返回旧格式（避免因为解析失败直接崩溃）
+      return url.contains('://')
+          ? '$url:$serverPort'
+          : 'https://$url:$serverPort';
     }
-    return 'https://$url:$serverPort';
+
+    final scheme = parsed.scheme.trim().isEmpty ? 'https' : parsed.scheme;
+    final port = parsed.hasPort ? parsed.port : serverPort;
+    // 不携带 path/query/fragment，避免生成类似 https://host/path:443 的无效 URL
+    final host = parsed.host.contains(':') ? '[${parsed.host}]' : parsed.host;
+    return '$scheme://$host:$port';
   }
 
   Map<String, dynamic> toMap() => {

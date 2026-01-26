@@ -147,7 +147,9 @@ class ObjStoreService {
 
     // 先命中缓存，避免未配置时仍可离线使用
     final existing = _memoryCache[normalizedKey];
-    if (existing != null && existing.existsSync()) return Future.value(existing);
+    if (existing != null && existing.existsSync()) {
+      return Future.value(existing);
+    }
 
     final inflight = _inflightCache[normalizedKey];
     if (inflight != null) return inflight;
@@ -177,8 +179,8 @@ class ObjStoreService {
     final baseDirProvider = _cacheBaseDirProvider;
     if (baseDirProvider == null) {
       // 未启用磁盘缓存：退化为“尽力返回本地 file://”
-      final uriText = (await (resolveUriWhenMiss ?? (() => resolveUri(key: key)))())
-          .trim();
+      final uriText =
+          (await (resolveUriWhenMiss ?? (() => resolveUri(key: key)))()).trim();
       final uri = Uri.tryParse(uriText);
       if (uri != null && uri.scheme == 'file') {
         final f = File.fromUri(uri);
@@ -405,7 +407,9 @@ class ObjStoreService {
     if (uri.scheme == 'file') return trimmed;
 
     if (uri.scheme == 'http' || uri.scheme == 'https') {
-      final segments = uri.pathSegments.where((s) => s.trim().isNotEmpty).toList();
+      final segments = uri.pathSegments
+          .where((s) => s.trim().isNotEmpty)
+          .toList();
       if (segments.isEmpty) return '';
       final mediaIndex = segments.indexOf('media');
       if (mediaIndex >= 0) {
@@ -423,7 +427,9 @@ class ObjStoreService {
 
     final uri = Uri.tryParse(trimmed);
     if (uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme == 'file')) {
+        (uri.scheme == 'http' ||
+            uri.scheme == 'https' ||
+            uri.scheme == 'file')) {
       return p.extension(uri.path);
     }
 
@@ -449,8 +455,13 @@ class ObjStoreService {
       return null;
     }
     final baseDir = await baseDirProvider();
-    final safeKey = objectKey.replaceAll('\\', '/');
-    final path = p.normalize(p.join(baseDir.path, safeKey));
+    final safeKey = objectKey.replaceAll('\\', '/').trim();
+    if (safeKey.isEmpty) return null;
+    if (p.isAbsolute(safeKey)) return null;
+
+    final base = p.normalize(baseDir.path);
+    final path = p.normalize(p.join(base, safeKey));
+    if (!p.isWithin(base, path)) return null;
     final f = File(path);
     if (!f.existsSync()) return null;
     return f;

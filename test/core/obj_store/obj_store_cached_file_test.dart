@@ -62,6 +62,35 @@ void main() {
       expect(cached!.path, localFile.path);
     });
 
+    test('getCachedFile：不应允许通过 ../ 命中 baseDir 之外的文件', () async {
+      final root = await Directory.systemTemp.createTemp('life_tools_test_');
+      addTearDown(() async {
+        try {
+          await root.delete(recursive: true);
+        } catch (_) {}
+      });
+
+      final baseDir = Directory('${root.path}/base')..createSync();
+      final outside = File('${root.path}/secret.txt')
+        ..writeAsStringSync('secret', flush: true);
+
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(baseDirProvider: () async => baseDir),
+        qiniuClient: QiniuClient(),
+        cacheBaseDirProvider: () async => baseDir,
+      );
+
+      final cached = await service.getCachedFile(key: '../secret.txt');
+      expect(outside.existsSync(), isTrue);
+      expect(cached, isNull);
+    });
+
     test('ensureCachedFile：七牛公有空间应下载并落盘缓存，二次调用不重复下载', () async {
       final baseDir = await Directory.systemTemp.createTemp('life_tools_test_');
       addTearDown(() async {
@@ -108,46 +137,50 @@ void main() {
       expect(client.getCount, 1);
     });
 
-    test('ensureCachedFile：key 为带 query 的 URL 时应复用同一缓存（避免 token 变化导致重复下载）', () async {
-      final baseDir = await Directory.systemTemp.createTemp('life_tools_test_');
-      addTearDown(() async {
-        try {
-          await baseDir.delete(recursive: true);
-        } catch (_) {}
-      });
+    test(
+      'ensureCachedFile：key 为带 query 的 URL 时应复用同一缓存（避免 token 变化导致重复下载）',
+      () async {
+        final baseDir = await Directory.systemTemp.createTemp(
+          'life_tools_test_',
+        );
+        addTearDown(() async {
+          try {
+            await baseDir.delete(recursive: true);
+          } catch (_) {}
+        });
 
-      final configService = ObjStoreConfigService(
-        secretStore: InMemorySecretStore(),
-      );
-      await configService.init();
+        final configService = ObjStoreConfigService(
+          secretStore: InMemorySecretStore(),
+        );
+        await configService.init();
 
-      final client = _CountingHttpClient(body: Uint8List.fromList([1, 1, 2]));
-      final service = ObjStoreService(
-        configService: configService,
-        localStore: LocalObjStore(baseDirProvider: () async => baseDir),
-        qiniuClient: QiniuClient(),
-        cacheBaseDirProvider: () async => baseDir,
-        cacheHttpClient: client,
-      );
+        final client = _CountingHttpClient(body: Uint8List.fromList([1, 1, 2]));
+        final service = ObjStoreService(
+          configService: configService,
+          localStore: LocalObjStore(baseDirProvider: () async => baseDir),
+          qiniuClient: QiniuClient(),
+          cacheBaseDirProvider: () async => baseDir,
+          cacheHttpClient: client,
+        );
 
-      const url1 = 'https://cdn.example.com/media/a.png?e=1&token=t1';
-      const url2 = 'https://cdn.example.com/media/a.png?e=2&token=t2';
+        const url1 = 'https://cdn.example.com/media/a.png?e=1&token=t1';
+        const url2 = 'https://cdn.example.com/media/a.png?e=2&token=t2';
 
-      final f1 = await service.ensureCachedFile(
-        key: url1,
-        resolveUriWhenMiss: () async => url1,
-      );
-      expect(f1, isNotNull);
-      expect(client.getCount, 1);
+        final f1 = await service.ensureCachedFile(
+          key: url1,
+          resolveUriWhenMiss: () async => url1,
+        );
+        expect(f1, isNotNull);
+        expect(client.getCount, 1);
 
-      final f2 = await service.ensureCachedFile(
-        key: url2,
-        resolveUriWhenMiss: () async => url2,
-      );
-      expect(f2, isNotNull);
-      expect(f2!.path, f1!.path);
-      expect(client.getCount, 1);
-    });
+        final f2 = await service.ensureCachedFile(
+          key: url2,
+          resolveUriWhenMiss: () async => url2,
+        );
+        expect(f2, isNotNull);
+        expect(f2!.path, f1!.path);
+        expect(client.getCount, 1);
+      },
+    );
   });
 }
-
