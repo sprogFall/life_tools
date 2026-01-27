@@ -76,8 +76,10 @@ class DataCapsuleClient {
       region: region,
       service: 's3',
     );
-    final signature =
-        Hmac(sha256, signingKey).convert(utf8.encode(stringToSign)).toString();
+    final signature = Hmac(
+      sha256,
+      signingKey,
+    ).convert(utf8.encode(stringToSign)).toString();
 
     final authorization =
         'AWS4-HMAC-SHA256 '
@@ -180,10 +182,15 @@ class DataCapsuleClient {
       region: region,
       service: 's3',
     );
-    final signature =
-        Hmac(sha256, signingKey).convert(utf8.encode(stringToSign)).toString();
+    final signature = Hmac(
+      sha256,
+      signingKey,
+    ).convert(utf8.encode(stringToSign)).toString();
 
-    final signedParams = <String, String>{...queryParams, 'X-Amz-Signature': signature};
+    final signedParams = <String, String>{
+      ...queryParams,
+      'X-Amz-Signature': signature,
+    };
     return uri.replace(queryParameters: signedParams).toString();
   }
 
@@ -192,17 +199,39 @@ class DataCapsuleClient {
     Duration timeout = const Duration(seconds: 8),
   }) async {
     try {
+      final uri = Uri.parse(url);
+
+      Future<int> send({required bool withRange}) async {
+        final req = http.Request('GET', uri);
+        if (withRange) req.headers['Range'] = 'bytes=0-0';
+        final resp = await _httpClient.send(req).timeout(timeout);
+        _cancelStreamedResponse(resp);
+        return resp.statusCode;
+      }
+
       // 预签名 URL 通常只对 GET 生效，直接 HEAD 可能会返回签名不匹配（误判不可访问）。
-      // 这里用 GET + Range 避免下载大文件。
-      final req = http.Request('GET', Uri.parse(url))
-        ..headers['Range'] = 'bytes=0-0';
-      final resp = await _httpClient.send(req).timeout(timeout);
-      final code = resp.statusCode;
+      // 先尝试 GET + Range（避免下载大文件），若部分 S3 兼容服务对额外 Header 校验较严格，
+      // 可能会拒绝 Range，从而误判不可访问，因此对 400/403 做一次纯 GET 回退。
+      final code = await send(withRange: true);
       if (code == 416) return true; // 空文件等情况：Range 不可满足但对象存在
-      return code >= 200 && code < 400;
+      if (code >= 200 && code < 400) return true;
+
+      if (code == 400 || code == 403) {
+        final code2 = await send(withRange: false);
+        if (code2 == 416) return true;
+        return code2 >= 200 && code2 < 400;
+      }
+
+      return false;
     } catch (_) {
       return false;
     }
+  }
+
+  static void _cancelStreamedResponse(http.StreamedResponse resp) {
+    try {
+      resp.stream.listen((_) {}).cancel();
+    } catch (_) {}
   }
 
   static Uri normalizeBaseUri(String base, {required bool useHttps}) {
@@ -210,8 +239,7 @@ class DataCapsuleClient {
     if (raw.isEmpty) return Uri();
 
     final scheme = useHttps ? 'https' : 'http';
-    final parsed =
-        (raw.startsWith('http://') || raw.startsWith('https://'))
+    final parsed = (raw.startsWith('http://') || raw.startsWith('https://'))
         ? Uri.parse(raw)
         : Uri.parse('$scheme://$raw');
 

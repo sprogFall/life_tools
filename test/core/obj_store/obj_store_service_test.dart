@@ -16,20 +16,7 @@ import 'package:life_tools/core/obj_store/storage/local_obj_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _RecordingHttpClient extends http.BaseClient {
-  _RecordingHttpClient(this._handler);
-
-  final Future<http.StreamedResponse> Function(http.BaseRequest request)
-  _handler;
-
-  http.BaseRequest? lastRequest;
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    lastRequest = request;
-    return _handler(request);
-  }
-}
+import '../../test_helpers/recording_http_client.dart';
 
 void main() {
   group('ObjStoreService', () {
@@ -109,7 +96,7 @@ void main() {
         secrets: const ObjStoreQiniuSecrets(accessKey: 'ak', secretKey: 'sk'),
       );
 
-      final client = _RecordingHttpClient((request) async {
+      final client = RecordingHttpClient((request) async {
         final bodyBytes = await request.finalize().fold<List<int>>(
           <int>[],
           (acc, chunk) => acc..addAll(chunk),
@@ -158,7 +145,7 @@ void main() {
         secrets: const ObjStoreQiniuSecrets(accessKey: 'ak', secretKey: 'sk'),
       );
 
-      final client = _RecordingHttpClient((request) async {
+      final client = RecordingHttpClient((request) async {
         final resp = jsonEncode({'key': 'media/abc.png', 'hash': 'x'});
         return http.StreamedResponse(Stream.value(utf8.encode(resp)), 200);
       });
@@ -201,7 +188,7 @@ void main() {
         ),
       );
 
-      final client = _RecordingHttpClient((request) async {
+      final client = RecordingHttpClient((request) async {
         final resp = jsonEncode({'key': 'media/abc.png', 'hash': 'x'});
         return http.StreamedResponse(Stream.value(utf8.encode(resp)), 200);
       });
@@ -365,12 +352,13 @@ void main() {
         ),
       );
 
-      final client = _RecordingHttpClient((request) async {
+      final client = RecordingHttpClient((request) async {
         expect(request.method, 'PUT');
         expect(request.url.toString(), contains('/bkt/media/'));
 
         final auth =
-            request.headers['Authorization'] ?? request.headers['authorization'];
+            request.headers['Authorization'] ??
+            request.headers['authorization'];
         expect(auth, isNotNull);
         expect(auth!, contains('Credential=ak/'));
         expect(auth, contains('/test-region/s3/aws4_request'));
@@ -463,9 +451,10 @@ void main() {
     });
 
     test('数据胶囊：Region 缺省时应使用 us-east-1 参与签名', () async {
-      final client = _RecordingHttpClient((request) async {
+      final client = RecordingHttpClient((request) async {
         final auth =
-            request.headers['Authorization'] ?? request.headers['authorization'];
+            request.headers['Authorization'] ??
+            request.headers['authorization'];
         expect(auth, isNotNull);
         expect(auth!, contains('/us-east-1/s3/aws4_request'));
         return http.StreamedResponse(Stream.value(const <int>[]), 200);
@@ -510,7 +499,7 @@ void main() {
     });
 
     test('数据胶囊：probeWithConfig 应使用 GET（避免 HEAD 导致预签名校验失败）', () async {
-      final client = _RecordingHttpClient((request) async {
+      final client = RecordingHttpClient((request) async {
         expect(request.method, 'GET');
         expect(request.headers['Range'], 'bytes=0-0');
         return http.StreamedResponse(Stream.value(const <int>[]), 206);

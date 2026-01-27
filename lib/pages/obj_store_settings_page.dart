@@ -86,10 +86,12 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           cfg?.dataCapsuleUseHttps ?? _guessUseHttps(cfg?.dataCapsuleEndpoint);
       _dataCapsuleForcePathStyle = cfg?.dataCapsuleForcePathStyle ?? true;
       _dataCapsuleBucketController.text = cfg?.dataCapsuleBucket ?? '';
-      _dataCapsuleEndpointController.text =
-          _stripDomainScheme(cfg?.dataCapsuleEndpoint ?? '');
-      _dataCapsuleDomainController.text =
-          _stripDomainScheme(cfg?.dataCapsuleDomain ?? '');
+      _dataCapsuleEndpointController.text = _stripDomainScheme(
+        cfg?.dataCapsuleEndpoint ?? '',
+      );
+      _dataCapsuleDomainController.text = _stripDomainScheme(
+        cfg?.dataCapsuleDomain ?? '',
+      );
       _dataCapsuleRegionController.text =
           (cfg?.dataCapsuleRegion?.trim().isNotEmpty ?? false)
           ? cfg!.dataCapsuleRegion!
@@ -603,7 +605,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ],
           const SizedBox(height: 14),
           _buildLabeledField(
-            label: '查询 Key（用于测试查询/拼接URL）',
+            label: '查询 Key / URL（用于测试查询/拼接URL，支持粘贴完整 URL）',
             child: CupertinoTextField(
               controller: _queryKeyController,
               placeholder: _lastUploaded?.key ?? '如：media/xxx.png',
@@ -652,7 +654,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
             '2. 七牛云存储会在本机生成上传 Token 并直接上传到七牛。\n'
             '3. 七牛私有空间查询会生成带签名的临时下载链接（带 e/token）。\n'
-            '4. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。',
+            '4. 数据胶囊为 S3 兼容对象存储：上传使用 PUT 直传；私有空间查询会生成带 X-Amz-* 的临时链接（默认 30 分钟）。\n'
+            '5. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。\n'
+            '6. 若数据胶囊配置了 Domain（自定义访问域名），私有空间建议使用与 Endpoint 同源的域名，否则可能因签名校验导致“可访问=否”。',
             style: TextStyle(
               fontSize: 13,
               color: IOS26Theme.textSecondary,
@@ -842,8 +846,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         _ => const ObjStoreConfig.local(),
       };
       final secrets = _type == ObjStoreType.qiniu ? _readQiniuSecrets() : null;
-      final dataCapsuleSecrets =
-          _type == ObjStoreType.dataCapsule ? _readDataCapsuleSecrets() : null;
+      final dataCapsuleSecrets = _type == ObjStoreType.dataCapsule
+          ? _readDataCapsuleSecrets()
+          : null;
 
       final uploaded = await service.uploadBytesWithConfig(
         config: config,
@@ -857,7 +862,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         _lastUploaded = uploaded;
         _queryKeyController.text = uploaded.key;
       });
-      await _showInfo('上传成功', 'Key: ${uploaded.key}\nURI: ${uploaded.uri}');
+      await _showObjResult(title: '上传成功', key: uploaded.key, uri: uploaded.uri);
     } on ObjStoreNotConfiguredException catch (e) {
       await _showInfo('未配置', e.message);
     } catch (e) {
@@ -885,8 +890,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         _ => const ObjStoreConfig.local(),
       };
       final secrets = _type == ObjStoreType.qiniu ? _readQiniuSecrets() : null;
-      final dataCapsuleSecrets =
-          _type == ObjStoreType.dataCapsule ? _readDataCapsuleSecrets() : null;
+      final dataCapsuleSecrets = _type == ObjStoreType.dataCapsule
+          ? _readDataCapsuleSecrets()
+          : null;
 
       final uri = await service.resolveUriWithConfig(
         config: config,
@@ -900,7 +906,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         secrets: secrets,
         dataCapsuleSecrets: dataCapsuleSecrets,
       );
-      await _showInfo('查询结果', 'URI: $uri\n可访问: ${ok ? '是' : '否'}');
+      await _showQueryResult(uri: uri, ok: ok);
     } on ObjStoreNotConfiguredException catch (e) {
       await _showInfo('未配置', e.message);
     } catch (e) {
@@ -965,6 +971,147 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showObjResult({
+    required String title,
+    required String key,
+    required String uri,
+  }) async {
+    final safeUri = _redactSensitiveUrl(uri);
+    final safeContent = 'Key: $key\nURI: $safeUri';
+    if (!mounted) return;
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: Text(title),
+        content: SelectableText(safeContent),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: safeContent));
+            },
+            child: const Text('复制脱敏内容'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () async {
+              final ok = await _confirmCopySensitive(
+                title: '复制原始 URI？',
+                content: '原始 URI 可能包含签名/Token 等敏感信息，复制后请勿截图或分享。',
+              );
+              if (ok != true) return;
+              await Clipboard.setData(
+                ClipboardData(text: 'Key: $key\nURI: $uri'),
+              );
+            },
+            child: const Text('复制原始内容'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showQueryResult({required String uri, required bool ok}) async {
+    final safeUri = _redactSensitiveUrl(uri);
+    final safeContent = 'URI: $safeUri\n可访问: ${ok ? '是' : '否'}';
+    if (!mounted) return;
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('查询结果'),
+        content: SelectableText(safeContent),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: safeContent));
+            },
+            child: const Text('复制脱敏结果'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () async {
+              final confirmed = await _confirmCopySensitive(
+                title: '复制原始 URI？',
+                content: '原始 URI 可能包含签名/Token 等敏感信息，复制后请勿截图或分享。',
+              );
+              if (confirmed != true) return;
+              await Clipboard.setData(
+                ClipboardData(text: 'URI: $uri\n可访问: ${ok ? '是' : '否'}'),
+              );
+            },
+            child: const Text('复制原始结果'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _confirmCopySensitive({
+    required String title,
+    required String content,
+  }) async {
+    if (!mounted) return false;
+    return showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('继续'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _redactSensitiveUrl(String input) {
+    final raw = input.trim();
+    final uri = Uri.tryParse(raw);
+    if (uri == null) return input;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return input;
+    if (uri.query.trim().isEmpty) return input;
+
+    const sensitiveKeys = <String>{
+      'X-Amz-Credential',
+      'X-Amz-Signature',
+      'X-Amz-Security-Token',
+      'token',
+      'e',
+      'uploadToken',
+      'access_token',
+    };
+
+    String mask(String v) {
+      final s = v.trim();
+      if (s.isEmpty) return '***';
+      if (s.length <= 8) return '***';
+      return '${s.substring(0, 4)}***${s.substring(s.length - 4)}';
+    }
+
+    final qpAll = uri.queryParametersAll;
+    final redacted = <String, String>{};
+    for (final e in qpAll.entries) {
+      final key = e.key;
+      final values = e.value;
+      if (values.isEmpty) continue;
+      final value = values.first;
+      redacted[key] = sensitiveKeys.contains(key) ? mask(value) : value;
+    }
+    return uri.replace(queryParameters: redacted).toString();
   }
 
   static bool _guessUseHttps(String? domain) {
