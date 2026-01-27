@@ -63,7 +63,7 @@ class ObjStoreConfig {
   const ObjStoreConfig.dataCapsule({
     required String bucket,
     required String endpoint,
-    required String region,
+    String region = 'us-east-1',
     String? domain,
     String keyPrefix = '',
     bool isPrivate = true,
@@ -92,9 +92,7 @@ class ObjStoreConfig {
             _isNonEmpty(domain) &&
             _isNonEmpty(uploadHost);
       case ObjStoreType.dataCapsule:
-        return _isNonEmpty(dataCapsuleBucket) &&
-            _isNonEmpty(dataCapsuleEndpoint) &&
-            _isNonEmpty(dataCapsuleRegion);
+        return _isNonEmpty(dataCapsuleBucket) && _isNonEmpty(dataCapsuleEndpoint);
     }
   }
 

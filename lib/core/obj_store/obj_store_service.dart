@@ -312,7 +312,10 @@ class ObjStoreService {
 
         final bucket = config.dataCapsuleBucket!.trim();
         final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region = config.dataCapsuleRegion!.trim();
+        final region =
+            (config.dataCapsuleRegion ?? '').trim().isEmpty
+            ? 'us-east-1'
+            : config.dataCapsuleRegion!.trim();
         final useHttps = config.dataCapsuleUseHttps ?? true;
         final isPrivate = config.dataCapsuleIsPrivate ?? true;
         final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
@@ -450,7 +453,10 @@ class ObjStoreService {
 
         final bucket = config.dataCapsuleBucket!.trim();
         final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region = config.dataCapsuleRegion!.trim();
+        final region =
+            (config.dataCapsuleRegion ?? '').trim().isEmpty
+            ? 'us-east-1'
+            : config.dataCapsuleRegion!.trim();
         final useHttps = config.dataCapsuleUseHttps ?? true;
         final isPrivate = config.dataCapsuleIsPrivate ?? true;
         final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;

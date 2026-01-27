@@ -90,7 +90,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           _stripDomainScheme(cfg?.dataCapsuleEndpoint ?? '');
       _dataCapsuleDomainController.text =
           _stripDomainScheme(cfg?.dataCapsuleDomain ?? '');
-      _dataCapsuleRegionController.text = cfg?.dataCapsuleRegion ?? '';
+      _dataCapsuleRegionController.text =
+          (cfg?.dataCapsuleRegion?.trim().isNotEmpty ?? false)
+          ? cfg!.dataCapsuleRegion!
+          : 'us-east-1';
       _dataCapsuleKeyPrefixController.text =
           cfg?.dataCapsuleKeyPrefix ?? 'media/';
 
@@ -101,6 +104,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _dataCapsuleIsPrivate = true;
       _dataCapsuleUseHttps = true;
       _dataCapsuleForcePathStyle = true;
+      _dataCapsuleRegionController.text = 'us-east-1';
       _dataCapsuleKeyPrefixController.text = 'media/';
     }
   }
@@ -497,7 +501,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'Region',
+            label: 'Region（可选，默认 us-east-1）',
             child: CupertinoTextField(
               controller: _dataCapsuleRegionController,
               placeholder: '如：us-east-1',
@@ -785,7 +789,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       bucket: _dataCapsuleBucketController.text.trim(),
       endpoint: _normalizeDomainInput(_dataCapsuleEndpointController.text),
       domain: domain.isEmpty ? null : domain,
-      region: _dataCapsuleRegionController.text.trim(),
+      region: _dataCapsuleRegionController.text.trim().isEmpty
+          ? 'us-east-1'
+          : _dataCapsuleRegionController.text.trim(),
       keyPrefix: _dataCapsuleKeyPrefixController.text.trim(),
       isPrivate: _dataCapsuleIsPrivate,
       useHttps: _dataCapsuleUseHttps,

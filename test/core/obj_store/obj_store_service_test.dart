@@ -461,5 +461,93 @@ void main() {
       expect(uri.queryParameters['X-Amz-Algorithm'], 'AWS4-HMAC-SHA256');
       expect(uri.queryParameters['X-Amz-Signature'], isNotEmpty);
     });
+
+    test('数据胶囊：Region 缺省时应使用 us-east-1 参与签名', () async {
+      final client = _RecordingHttpClient((request) async {
+        final auth =
+            request.headers['Authorization'] ?? request.headers['authorization'];
+        expect(auth, isNotNull);
+        expect(auth!, contains('/us-east-1/s3/aws4_request'));
+        return http.StreamedResponse(Stream.value(const <int>[]), 200);
+      });
+
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        dataCapsuleClient: DataCapsuleClient(
+          httpClient: client,
+          nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+        ),
+      );
+
+      await service.uploadBytesWithConfig(
+        config: const ObjStoreConfig.dataCapsule(
+          bucket: 'bkt',
+          endpoint: 'https://s3.example.com',
+          region: '',
+          keyPrefix: 'media/',
+          isPrivate: true,
+          useHttps: true,
+          forcePathStyle: true,
+        ),
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
+        bytes: Uint8List.fromList([1, 2, 3]),
+        filename: 'a.bin',
+      );
+    });
+
+    test('数据胶囊：probeWithConfig 应使用 GET（避免 HEAD 导致预签名校验失败）', () async {
+      final client = _RecordingHttpClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.headers['Range'], 'bytes=0-0');
+        return http.StreamedResponse(Stream.value(const <int>[]), 206);
+      });
+
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        dataCapsuleClient: DataCapsuleClient(
+          httpClient: client,
+          nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+        ),
+      );
+
+      final ok = await service.probeWithConfig(
+        config: const ObjStoreConfig.dataCapsule(
+          bucket: 'bkt',
+          endpoint: 'https://s3.example.com',
+          region: 'us-east-1',
+          keyPrefix: '',
+          isPrivate: false,
+          useHttps: true,
+          forcePathStyle: true,
+        ),
+        key: 'media/a.png',
+      );
+      expect(ok, isTrue);
+    });
   });
 }

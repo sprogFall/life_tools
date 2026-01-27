@@ -192,8 +192,14 @@ class DataCapsuleClient {
     Duration timeout = const Duration(seconds: 8),
   }) async {
     try {
-      final resp = await _httpClient.head(Uri.parse(url)).timeout(timeout);
-      return resp.statusCode >= 200 && resp.statusCode < 400;
+      // 预签名 URL 通常只对 GET 生效，直接 HEAD 可能会返回签名不匹配（误判不可访问）。
+      // 这里用 GET + Range 避免下载大文件。
+      final req = http.Request('GET', Uri.parse(url))
+        ..headers['Range'] = 'bytes=0-0';
+      final resp = await _httpClient.send(req).timeout(timeout);
+      final code = resp.statusCode;
+      if (code == 416) return true; // 空文件等情况：Range 不可满足但对象存在
+      return code >= 200 && code < 400;
     } catch (_) {
       return false;
     }
@@ -320,4 +326,3 @@ class DataCapsuleClient {
     return '$y$m${d}T$hh$mm${ss}Z';
   }
 }
-
