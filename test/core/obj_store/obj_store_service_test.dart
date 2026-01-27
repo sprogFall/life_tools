@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/obj_store/data_capsule/data_capsule_client.dart';
 import 'package:life_tools/core/obj_store/obj_store_config.dart';
 import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
 import 'package:life_tools/core/obj_store/obj_store_errors.dart';
@@ -342,6 +343,123 @@ void main() {
         key: stored.uri,
       );
       expect(uri, stored.uri);
+    });
+
+    test('数据胶囊存储：上传后应使用PUT并返回可用URL（含签名）', () async {
+      final secretStore = InMemorySecretStore();
+      final configService = ObjStoreConfigService(secretStore: secretStore);
+      await configService.init();
+      await configService.save(
+        const ObjStoreConfig.dataCapsule(
+          bucket: 'bkt',
+          endpoint: 'https://s3.example.com',
+          region: 'test-region',
+          keyPrefix: 'media/',
+          isPrivate: true,
+          useHttps: true,
+          forcePathStyle: true,
+        ),
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
+      );
+
+      final client = _RecordingHttpClient((request) async {
+        expect(request.method, 'PUT');
+        expect(request.url.toString(), contains('/bkt/media/'));
+
+        final auth =
+            request.headers['Authorization'] ?? request.headers['authorization'];
+        expect(auth, isNotNull);
+        expect(auth!, contains('Credential=ak/'));
+        expect(auth, contains('/test-region/s3/aws4_request'));
+
+        final bodyBytes = await request.finalize().fold<List<int>>(
+          <int>[],
+          (acc, chunk) => acc..addAll(chunk),
+        );
+        expect(bodyBytes, [1, 2, 3]);
+
+        return http.StreamedResponse(Stream.value(const <int>[]), 200);
+      });
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        dataCapsuleClient: DataCapsuleClient(
+          httpClient: client,
+          nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+        ),
+      );
+
+      final result = await service.uploadBytes(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        filename: 'abc.png',
+      );
+
+      expect(result.storageType, ObjStoreType.dataCapsule);
+      expect(result.key, startsWith('media/'));
+      expect(result.uri, isNotEmpty);
+
+      final uri = Uri.parse(result.uri);
+      expect(uri.queryParameters['X-Amz-Algorithm'], 'AWS4-HMAC-SHA256');
+      expect(
+        uri.queryParameters['X-Amz-Credential'],
+        contains('ak/20200101/test-region/s3/aws4_request'),
+      );
+      expect(uri.queryParameters['X-Amz-SignedHeaders'], 'host');
+      expect(uri.queryParameters['X-Amz-Signature'], isNotEmpty);
+    });
+
+    test('数据胶囊私有空间：当 key 已是 URL 时应重新签名', () async {
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        dataCapsuleClient: DataCapsuleClient(
+          nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+        ),
+      );
+
+      const cfg = ObjStoreConfig.dataCapsule(
+        bucket: 'bkt',
+        endpoint: 'https://s3.example.com',
+        region: 'test-region',
+        keyPrefix: '',
+        isPrivate: true,
+        useHttps: true,
+        forcePathStyle: true,
+      );
+
+      final uriText = await service.resolveUriWithConfig(
+        config: cfg,
+        key: 'https://s3.example.com/bkt/media/a.png?old=1',
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
+      );
+
+      final uri = Uri.parse(uriText);
+      expect(uri.path, '/bkt/media/a.png');
+      expect(uri.queryParameters.containsKey('old'), isFalse);
+      expect(uri.queryParameters['X-Amz-Algorithm'], 'AWS4-HMAC-SHA256');
+      expect(uri.queryParameters['X-Amz-Signature'], isNotEmpty);
     });
   });
 }

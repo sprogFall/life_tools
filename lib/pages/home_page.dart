@@ -727,6 +727,8 @@ class _SettingsSheet extends StatelessWidget {
                           builder: (context, objStore, _) {
                             final isQiniuPrivate =
                                 objStore.config?.qiniuIsPrivate ?? false;
+                            final isDataCapsulePrivate =
+                                objStore.config?.dataCapsuleIsPrivate ?? true;
                             final value = switch (objStore.selectedType) {
                               ObjStoreType.none => '未选择',
                               ObjStoreType.local =>
@@ -734,6 +736,12 @@ class _SettingsSheet extends StatelessWidget {
                               ObjStoreType.qiniu =>
                                 objStore.isConfigured
                                     ? (isQiniuPrivate ? '七牛云(私有)' : '七牛云(公有)')
+                                    : '未配置',
+                              ObjStoreType.dataCapsule =>
+                                objStore.isConfigured
+                                    ? (isDataCapsulePrivate
+                                          ? '数据胶囊(私有)'
+                                          : '数据胶囊(公有)')
                                     : '未配置',
                             };
                             return _SettingsItem(

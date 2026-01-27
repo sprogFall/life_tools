@@ -13,6 +13,7 @@ import 'core/backup/services/receive_share_service.dart';
 import 'core/messages/message_service.dart';
 import 'core/obj_store/obj_store_config_service.dart';
 import 'core/obj_store/obj_store_service.dart';
+import 'core/obj_store/data_capsule/data_capsule_client.dart';
 import 'core/obj_store/qiniu/qiniu_client.dart';
 import 'core/obj_store/secret_store/prefs_secret_store.dart';
 import 'core/obj_store/storage/local_obj_store.dart';
@@ -220,6 +221,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             configService: widget.objStoreConfigService,
             localStore: LocalObjStore(baseDirProvider: _defaultObjStoreBaseDir),
             qiniuClient: QiniuClient(),
+            dataCapsuleClient: DataCapsuleClient(),
             cacheBaseDirProvider: _defaultObjStoreBaseDir,
           ),
         ),

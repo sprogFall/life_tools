@@ -66,7 +66,27 @@ class BackupRestoreService {
     }
 
     final objStoreConfig = objStoreConfigService.config;
-    final objStoreSecrets = objStoreConfigService.qiniuSecrets;
+
+    Map<String, String>? objStoreSecretsJson;
+    if (includeSensitive && objStoreConfig != null) {
+      if (objStoreConfig.type == ObjStoreType.qiniu) {
+        final secrets = objStoreConfigService.qiniuSecrets;
+        if (secrets != null) {
+          objStoreSecretsJson = {
+            'accessKey': secrets.accessKey,
+            'secretKey': secrets.secretKey,
+          };
+        }
+      } else if (objStoreConfig.type == ObjStoreType.dataCapsule) {
+        final secrets = objStoreConfigService.dataCapsuleSecrets;
+        if (secrets != null) {
+          objStoreSecretsJson = {
+            'accessKey': secrets.accessKey,
+            'secretKey': secrets.secretKey,
+          };
+        }
+      }
+    }
 
     final aiConfig = aiConfigService.config;
     final syncConfig = syncConfigService.config;
@@ -92,12 +112,7 @@ class BackupRestoreService {
       'ai_config': aiConfigJson,
       'sync_config': syncConfigJson,
       'obj_store_config': objStoreConfig?.toJson(),
-      'obj_store_secrets': (!includeSensitive || objStoreSecrets == null)
-          ? null
-          : {
-              'accessKey': objStoreSecrets.accessKey,
-              'secretKey': objStoreSecrets.secretKey,
-            },
+      'obj_store_secrets': objStoreSecretsJson,
       'settings': {
         'default_tool_id': settingsService.defaultToolId,
         'tool_order': settingsService.toolOrder,
@@ -248,6 +263,28 @@ class BackupRestoreService {
             await objStoreConfigService.save(
               config,
               secrets: objStoreConfigService.qiniuSecrets,
+              allowMissingSecrets: true,
+            );
+          }
+        } else if (config.type == ObjStoreType.dataCapsule) {
+          final secretsMap = readJsonMap(decoded['obj_store_secrets']);
+          final accessKey = (secretsMap?['accessKey'] as String?)?.trim();
+          final secretKey = (secretsMap?['secretKey'] as String?)?.trim();
+          if (accessKey != null &&
+              accessKey.isNotEmpty &&
+              secretKey != null &&
+              secretKey.isNotEmpty) {
+            await objStoreConfigService.save(
+              config,
+              dataCapsuleSecrets: ObjStoreDataCapsuleSecrets(
+                accessKey: accessKey,
+                secretKey: secretKey,
+              ),
+            );
+          } else {
+            await objStoreConfigService.save(
+              config,
+              dataCapsuleSecrets: objStoreConfigService.dataCapsuleSecrets,
               allowMissingSecrets: true,
             );
           }

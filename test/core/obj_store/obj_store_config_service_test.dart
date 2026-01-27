@@ -58,6 +58,39 @@ void main() {
       expect(service2.qiniuSecrets!.accessKey, 'ak');
     });
 
+    test('数据胶囊：保存配置（含AK/SK）后应为已配置，并可在重启后恢复', () async {
+      final secretStore = InMemorySecretStore();
+      final service = ObjStoreConfigService(secretStore: secretStore);
+      await service.init();
+
+      await service.save(
+        const ObjStoreConfig.dataCapsule(
+          bucket: 'bkt',
+          endpoint: 'https://s3.example.com',
+          region: 'test-region',
+          keyPrefix: 'media/',
+          isPrivate: true,
+          useHttps: true,
+          forcePathStyle: true,
+        ),
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
+      );
+
+      expect(service.selectedType, ObjStoreType.dataCapsule);
+      expect(service.isConfigured, isTrue);
+
+      final service2 = ObjStoreConfigService(secretStore: secretStore);
+      await service2.init();
+
+      expect(service2.selectedType, ObjStoreType.dataCapsule);
+      expect(service2.isConfigured, isTrue);
+      expect(service2.dataCapsuleSecrets, isNotNull);
+      expect(service2.dataCapsuleSecrets!.accessKey, 'ak');
+    });
+
     test('清除后应恢复为未选择', () async {
       final service = ObjStoreConfigService(secretStore: InMemorySecretStore());
       await service.init();

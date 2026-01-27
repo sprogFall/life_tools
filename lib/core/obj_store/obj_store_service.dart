@@ -11,6 +11,7 @@ import 'obj_store_config_service.dart';
 import 'obj_store_errors.dart';
 import 'obj_store_key.dart';
 import 'obj_store_secrets.dart';
+import 'data_capsule/data_capsule_client.dart';
 import 'qiniu/qiniu_client.dart';
 import 'storage/local_obj_store.dart';
 import '../utils/no_media.dart';
@@ -31,6 +32,7 @@ class ObjStoreService {
   final ObjStoreConfigService _configService;
   final LocalObjStore _localStore;
   final QiniuClient _qiniuClient;
+  final DataCapsuleClient _dataCapsuleClient;
   final int Function() _qiniuPrivateDeadlineUnixSeconds;
   final BaseDirProvider? _cacheBaseDirProvider;
   final http.Client _cacheHttpClient;
@@ -41,12 +43,14 @@ class ObjStoreService {
     required ObjStoreConfigService configService,
     required LocalObjStore localStore,
     required QiniuClient qiniuClient,
+    DataCapsuleClient? dataCapsuleClient,
     int Function()? qiniuPrivateDeadlineUnixSeconds,
     BaseDirProvider? cacheBaseDirProvider,
     http.Client? cacheHttpClient,
   }) : _configService = configService,
        _localStore = localStore,
        _qiniuClient = qiniuClient,
+       _dataCapsuleClient = dataCapsuleClient ?? DataCapsuleClient(),
        _qiniuPrivateDeadlineUnixSeconds =
            qiniuPrivateDeadlineUnixSeconds ?? _defaultPrivateDeadline,
        _cacheBaseDirProvider = cacheBaseDirProvider,
@@ -64,6 +68,7 @@ class ObjStoreService {
     return uploadBytesWithConfig(
       config: cfg,
       secrets: _configService.qiniuSecrets,
+      dataCapsuleSecrets: _configService.dataCapsuleSecrets,
       bytes: bytes,
       filename: filename,
     );
@@ -79,6 +84,7 @@ class ObjStoreService {
       config: cfg,
       key: key,
       secrets: _configService.qiniuSecrets,
+      dataCapsuleSecrets: _configService.dataCapsuleSecrets,
     );
   }
 
@@ -236,6 +242,7 @@ class ObjStoreService {
     required Uint8List bytes,
     required String filename,
     ObjStoreQiniuSecrets? secrets,
+    ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
   }) async {
     switch (config.type) {
       case ObjStoreType.none:
@@ -293,6 +300,69 @@ class ObjStoreService {
           key: result.key,
           uri: url,
         );
+      case ObjStoreType.dataCapsule:
+        if (!config.isValid) {
+          throw const ObjStoreConfigInvalidException(
+            '数据胶囊配置不完整，请检查 Bucket / Endpoint / Region',
+          );
+        }
+        if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
+          throw const ObjStoreNotConfiguredException('请先填写数据胶囊 AK/SK');
+        }
+
+        final bucket = config.dataCapsuleBucket!.trim();
+        final endpoint = config.dataCapsuleEndpoint!.trim();
+        final region = config.dataCapsuleRegion!.trim();
+        final useHttps = config.dataCapsuleUseHttps ?? true;
+        final isPrivate = config.dataCapsuleIsPrivate ?? true;
+        final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
+        final base =
+            (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
+            ? config.dataCapsuleDomain!.trim()
+            : endpoint;
+
+        final key = ObjStoreKey.generate(
+          filename: filename,
+          prefix: config.dataCapsuleKeyPrefix ?? '',
+        );
+
+        await _dataCapsuleClient.putObject(
+          accessKey: dataCapsuleSecrets.accessKey,
+          secretKey: dataCapsuleSecrets.secretKey,
+          region: region,
+          endpoint: endpoint,
+          bucket: bucket,
+          key: key,
+          bytes: bytes,
+          useHttps: useHttps,
+          forcePathStyle: forcePathStyle,
+        );
+
+        final url = isPrivate
+            ? _dataCapsuleClient.buildPrivateGetUrl(
+                base: base,
+                bucket: bucket,
+                key: key,
+                accessKey: dataCapsuleSecrets.accessKey,
+                secretKey: dataCapsuleSecrets.secretKey,
+                region: region,
+                expires: const Duration(minutes: 30),
+                useHttps: useHttps,
+                forcePathStyle: forcePathStyle,
+              )
+            : _dataCapsuleClient.buildPublicUrl(
+                base: base,
+                bucket: bucket,
+                key: key,
+                useHttps: useHttps,
+                forcePathStyle: forcePathStyle,
+              );
+
+        return ObjStoreObject(
+          storageType: ObjStoreType.dataCapsule,
+          key: key,
+          uri: url,
+        );
     }
   }
 
@@ -300,6 +370,7 @@ class ObjStoreService {
     required ObjStoreConfig config,
     required String key,
     ObjStoreQiniuSecrets? secrets,
+    ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
   }) async {
     final trimmed = key.trim();
     final parsed = Uri.tryParse(trimmed);
@@ -367,6 +438,80 @@ class ObjStoreService {
           deadlineUnixSeconds: _qiniuPrivateDeadlineUnixSeconds(),
           useHttps: useHttps,
         );
+      case ObjStoreType.dataCapsule:
+        // 兼容历史数据：字段可能误存为 file:// 或外部链接
+        if (isFileUri) return trimmed;
+
+        if (!config.isValid) {
+          throw const ObjStoreConfigInvalidException(
+            '数据胶囊配置不完整，请检查 Bucket / Endpoint / Region',
+          );
+        }
+
+        final bucket = config.dataCapsuleBucket!.trim();
+        final endpoint = config.dataCapsuleEndpoint!.trim();
+        final region = config.dataCapsuleRegion!.trim();
+        final useHttps = config.dataCapsuleUseHttps ?? true;
+        final isPrivate = config.dataCapsuleIsPrivate ?? true;
+        final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
+        final base =
+            (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
+            ? config.dataCapsuleDomain!.trim()
+            : endpoint;
+
+        if (isHttpUrl) {
+          if (!isPrivate) return trimmed;
+          if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
+            throw const ObjStoreNotConfiguredException(
+              '私有空间查询需要填写数据胶囊 AK/SK',
+            );
+          }
+          final objectKey = _extractDataCapsuleObjectKeyFromUrl(
+            uri: parsed,
+            bucket: bucket,
+            forcePathStyle: forcePathStyle,
+          );
+          if (objectKey.isEmpty) {
+            throw const ObjStoreQueryException('数据胶囊 URL 解析失败');
+          }
+          return _dataCapsuleClient.buildPrivateGetUrl(
+            base: base,
+            bucket: bucket,
+            key: objectKey,
+            accessKey: dataCapsuleSecrets.accessKey,
+            secretKey: dataCapsuleSecrets.secretKey,
+            region: region,
+            expires: const Duration(minutes: 30),
+            useHttps: useHttps,
+            forcePathStyle: forcePathStyle,
+          );
+        }
+
+        if (!isPrivate) {
+          return _dataCapsuleClient.buildPublicUrl(
+            base: base,
+            bucket: bucket,
+            key: key,
+            useHttps: useHttps,
+            forcePathStyle: forcePathStyle,
+          );
+        }
+        if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
+          throw const ObjStoreNotConfiguredException(
+            '私有空间查询需要填写数据胶囊 AK/SK',
+          );
+        }
+        return _dataCapsuleClient.buildPrivateGetUrl(
+          base: base,
+          bucket: bucket,
+          key: key,
+          accessKey: dataCapsuleSecrets.accessKey,
+          secretKey: dataCapsuleSecrets.secretKey,
+          region: region,
+          expires: const Duration(minutes: 30),
+          useHttps: useHttps,
+          forcePathStyle: forcePathStyle,
+        );
     }
   }
 
@@ -375,6 +520,7 @@ class ObjStoreService {
     required String key,
     Duration timeout = const Duration(seconds: 8),
     ObjStoreQiniuSecrets? secrets,
+    ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
   }) async {
     switch (config.type) {
       case ObjStoreType.none:
@@ -389,7 +535,37 @@ class ObjStoreService {
           secrets: secrets,
         );
         return _qiniuClient.probePublicUrl(url: url, timeout: timeout);
+      case ObjStoreType.dataCapsule:
+        final url = await resolveUriWithConfig(
+          config: config,
+          key: key,
+          dataCapsuleSecrets: dataCapsuleSecrets,
+        );
+        return _dataCapsuleClient.probePublicUrl(url: url, timeout: timeout);
     }
+  }
+
+  static String _extractDataCapsuleObjectKeyFromUrl({
+    required Uri uri,
+    required String bucket,
+    required bool forcePathStyle,
+  }) {
+    final segments = uri.pathSegments
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+    if (segments.isEmpty) return '';
+
+    if (forcePathStyle) {
+      final idx = segments.indexOf(bucket);
+      if (idx >= 0 && idx + 1 < segments.length) {
+        return segments.sublist(idx + 1).join('/');
+      }
+    }
+
+    final mediaIndex = segments.indexOf('media');
+    if (mediaIndex >= 0) return segments.sublist(mediaIndex).join('/');
+
+    return segments.join('/');
   }
 
   static int _defaultPrivateDeadline() {

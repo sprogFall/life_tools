@@ -25,12 +25,24 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   bool _qiniuIsPrivate = false;
   bool _qiniuUseHttps = true;
 
+  bool _dataCapsuleIsPrivate = true;
+  bool _dataCapsuleUseHttps = true;
+  bool _dataCapsuleForcePathStyle = true;
+
   final _qiniuAccessKeyController = TextEditingController();
   final _qiniuSecretKeyController = TextEditingController();
   final _qiniuBucketController = TextEditingController();
   final _qiniuDomainController = TextEditingController();
   final _qiniuUploadHostController = TextEditingController();
   final _qiniuKeyPrefixController = TextEditingController();
+
+  final _dataCapsuleAccessKeyController = TextEditingController();
+  final _dataCapsuleSecretKeyController = TextEditingController();
+  final _dataCapsuleBucketController = TextEditingController();
+  final _dataCapsuleEndpointController = TextEditingController();
+  final _dataCapsuleDomainController = TextEditingController();
+  final _dataCapsuleRegionController = TextEditingController();
+  final _dataCapsuleKeyPrefixController = TextEditingController();
 
   PlatformFile? _selectedFile;
   ObjStoreObject? _lastUploaded;
@@ -67,6 +79,30 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _qiniuUploadHostController.text = 'https://upload.qiniup.com';
       _qiniuKeyPrefixController.text = 'media/';
     }
+
+    if (cfg?.type == ObjStoreType.dataCapsule) {
+      _dataCapsuleIsPrivate = cfg?.dataCapsuleIsPrivate ?? true;
+      _dataCapsuleUseHttps =
+          cfg?.dataCapsuleUseHttps ?? _guessUseHttps(cfg?.dataCapsuleEndpoint);
+      _dataCapsuleForcePathStyle = cfg?.dataCapsuleForcePathStyle ?? true;
+      _dataCapsuleBucketController.text = cfg?.dataCapsuleBucket ?? '';
+      _dataCapsuleEndpointController.text =
+          _stripDomainScheme(cfg?.dataCapsuleEndpoint ?? '');
+      _dataCapsuleDomainController.text =
+          _stripDomainScheme(cfg?.dataCapsuleDomain ?? '');
+      _dataCapsuleRegionController.text = cfg?.dataCapsuleRegion ?? '';
+      _dataCapsuleKeyPrefixController.text =
+          cfg?.dataCapsuleKeyPrefix ?? 'media/';
+
+      final secrets = cfgService.dataCapsuleSecrets;
+      _dataCapsuleAccessKeyController.text = secrets?.accessKey ?? '';
+      _dataCapsuleSecretKeyController.text = secrets?.secretKey ?? '';
+    } else {
+      _dataCapsuleIsPrivate = true;
+      _dataCapsuleUseHttps = true;
+      _dataCapsuleForcePathStyle = true;
+      _dataCapsuleKeyPrefixController.text = 'media/';
+    }
   }
 
   @override
@@ -77,6 +113,13 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     _qiniuDomainController.dispose();
     _qiniuUploadHostController.dispose();
     _qiniuKeyPrefixController.dispose();
+    _dataCapsuleAccessKeyController.dispose();
+    _dataCapsuleSecretKeyController.dispose();
+    _dataCapsuleBucketController.dispose();
+    _dataCapsuleEndpointController.dispose();
+    _dataCapsuleDomainController.dispose();
+    _dataCapsuleRegionController.dispose();
+    _dataCapsuleKeyPrefixController.dispose();
     _queryKeyController.dispose();
     super.dispose();
   }
@@ -119,6 +162,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                     const SizedBox(height: 16),
                     if (_type == ObjStoreType.qiniu) ...[
                       _buildQiniuConfigCard(),
+                      const SizedBox(height: 16),
+                    ],
+                    if (_type == ObjStoreType.dataCapsule) ...[
+                      _buildDataCapsuleConfigCard(),
                       const SizedBox(height: 16),
                     ],
                     if (_type != ObjStoreType.none) ...[
@@ -167,6 +214,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               ObjStoreType.qiniu: Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Text('七牛云'),
+              ),
+              ObjStoreType.dataCapsule: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('数据胶囊'),
               ),
             },
             onValueChanged: (v) {
@@ -301,6 +352,164 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             label: 'Key 前缀（可选）',
             child: CupertinoTextField(
               controller: _qiniuKeyPrefixController,
+              placeholder: '如：media/',
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataCapsuleConfigCard() {
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '数据胶囊配置',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: IOS26Theme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: '空间类型',
+            child: CupertinoSlidingSegmentedControl<bool>(
+              groupValue: _dataCapsuleIsPrivate,
+              children: const {
+                false: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('公有'),
+                ),
+                true: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('私有'),
+                ),
+              },
+              onValueChanged: (v) {
+                if (v == null) return;
+                setState(() => _dataCapsuleIsPrivate = v);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: '访问协议',
+            child: CupertinoSlidingSegmentedControl<bool>(
+              groupValue: _dataCapsuleUseHttps,
+              children: const {
+                true: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('https'),
+                ),
+                false: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('http'),
+                ),
+              },
+              onValueChanged: (v) {
+                if (v == null) return;
+                setState(() => _dataCapsuleUseHttps = v);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'URL 风格',
+            child: CupertinoSlidingSegmentedControl<bool>(
+              groupValue: _dataCapsuleForcePathStyle,
+              children: const {
+                true: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('路径风格'),
+                ),
+                false: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('虚拟主机'),
+                ),
+              },
+              onValueChanged: (v) {
+                if (v == null) return;
+                setState(() => _dataCapsuleForcePathStyle = v);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'AccessKey（AK）',
+            child: CupertinoTextField(
+              controller: _dataCapsuleAccessKeyController,
+              placeholder: '如：xxxxx',
+              autocorrect: false,
+              enableSuggestions: false,
+              keyboardType: TextInputType.text,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'SecretKey（SK）',
+            child: CupertinoTextField(
+              controller: _dataCapsuleSecretKeyController,
+              placeholder: '如：xxxxx',
+              autocorrect: false,
+              enableSuggestions: false,
+              keyboardType: TextInputType.text,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'Bucket',
+            child: CupertinoTextField(
+              controller: _dataCapsuleBucketController,
+              placeholder: '如：my-bucket',
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'Endpoint（上传/访问）',
+            child: CupertinoTextField(
+              controller: _dataCapsuleEndpointController,
+              placeholder: '如：s3.example.com',
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: '访问域名（可选）',
+            child: CupertinoTextField(
+              controller: _dataCapsuleDomainController,
+              placeholder: '如：cdn.example.com',
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'Region',
+            child: CupertinoTextField(
+              controller: _dataCapsuleRegionController,
+              placeholder: '如：us-east-1',
+              autocorrect: false,
+              decoration: _fieldDecoration(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabeledField(
+            label: 'Key 前缀（可选）',
+            child: CupertinoTextField(
+              controller: _dataCapsuleKeyPrefixController,
               placeholder: '如：media/',
               autocorrect: false,
               decoration: _fieldDecoration(),
@@ -532,10 +741,16 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     try {
       if (_type == ObjStoreType.local) {
         await cfgService.save(const ObjStoreConfig.local());
-      } else {
+      } else if (_type == ObjStoreType.qiniu) {
         final cfg = _readQiniuConfig();
         final secrets = _readQiniuSecrets();
         await cfgService.save(cfg, secrets: secrets);
+      } else if (_type == ObjStoreType.dataCapsule) {
+        final cfg = _readDataCapsuleConfig();
+        final secrets = _readDataCapsuleSecrets();
+        await cfgService.save(cfg, dataCapsuleSecrets: secrets);
+      } else {
+        throw StateError('Unknown ObjStoreType: $_type');
       }
       if (!mounted) return;
       await _showInfo('已保存', '资源存储配置已保存');
@@ -561,6 +776,27 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     return ObjStoreQiniuSecrets(
       accessKey: _qiniuAccessKeyController.text.trim(),
       secretKey: _qiniuSecretKeyController.text.trim(),
+    );
+  }
+
+  ObjStoreConfig _readDataCapsuleConfig() {
+    final domain = _normalizeDomainInput(_dataCapsuleDomainController.text);
+    return ObjStoreConfig.dataCapsule(
+      bucket: _dataCapsuleBucketController.text.trim(),
+      endpoint: _normalizeDomainInput(_dataCapsuleEndpointController.text),
+      domain: domain.isEmpty ? null : domain,
+      region: _dataCapsuleRegionController.text.trim(),
+      keyPrefix: _dataCapsuleKeyPrefixController.text.trim(),
+      isPrivate: _dataCapsuleIsPrivate,
+      useHttps: _dataCapsuleUseHttps,
+      forcePathStyle: _dataCapsuleForcePathStyle,
+    );
+  }
+
+  ObjStoreDataCapsuleSecrets _readDataCapsuleSecrets() {
+    return ObjStoreDataCapsuleSecrets(
+      accessKey: _dataCapsuleAccessKeyController.text.trim(),
+      secretKey: _dataCapsuleSecretKeyController.text.trim(),
     );
   }
 
@@ -594,14 +830,19 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
     setState(() => _isTestingUpload = true);
     try {
-      final config = _type == ObjStoreType.qiniu
-          ? _readQiniuConfig()
-          : const ObjStoreConfig.local();
+      final config = switch (_type) {
+        ObjStoreType.qiniu => _readQiniuConfig(),
+        ObjStoreType.dataCapsule => _readDataCapsuleConfig(),
+        _ => const ObjStoreConfig.local(),
+      };
       final secrets = _type == ObjStoreType.qiniu ? _readQiniuSecrets() : null;
+      final dataCapsuleSecrets =
+          _type == ObjStoreType.dataCapsule ? _readDataCapsuleSecrets() : null;
 
       final uploaded = await service.uploadBytesWithConfig(
         config: config,
         secrets: secrets,
+        dataCapsuleSecrets: dataCapsuleSecrets,
         bytes: bytes,
         filename: file.name,
       );
@@ -632,20 +873,26 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     setState(() => _isTestingQuery = true);
     try {
       final service = context.read<ObjStoreService>();
-      final config = _type == ObjStoreType.qiniu
-          ? _readQiniuConfig()
-          : const ObjStoreConfig.local();
+      final config = switch (_type) {
+        ObjStoreType.qiniu => _readQiniuConfig(),
+        ObjStoreType.dataCapsule => _readDataCapsuleConfig(),
+        _ => const ObjStoreConfig.local(),
+      };
       final secrets = _type == ObjStoreType.qiniu ? _readQiniuSecrets() : null;
+      final dataCapsuleSecrets =
+          _type == ObjStoreType.dataCapsule ? _readDataCapsuleSecrets() : null;
 
       final uri = await service.resolveUriWithConfig(
         config: config,
         key: key,
         secrets: secrets,
+        dataCapsuleSecrets: dataCapsuleSecrets,
       );
       final ok = await service.probeWithConfig(
         config: config,
         key: key,
         secrets: secrets,
+        dataCapsuleSecrets: dataCapsuleSecrets,
       );
       await _showInfo('查询结果', 'URI: $uri\n可访问: ${ok ? '是' : '否'}');
     } on ObjStoreNotConfiguredException catch (e) {

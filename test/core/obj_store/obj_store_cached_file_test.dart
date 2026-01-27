@@ -11,6 +11,7 @@ import 'package:life_tools/core/obj_store/qiniu/qiniu_auth.dart';
 import 'package:life_tools/core/obj_store/qiniu/qiniu_client.dart';
 import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
 import 'package:life_tools/core/obj_store/storage/local_obj_store.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _CountingHttpClient extends http.BaseClient {
@@ -59,7 +60,7 @@ void main() {
 
       final cached = await service.getCachedFile(key: 'media/a.png');
       expect(cached, isNotNull);
-      expect(cached!.path, localFile.path);
+      expect(p.normalize(cached!.path), p.normalize(localFile.path));
     });
 
     test('getCachedFile：不应允许通过 ../ 命中 baseDir 之外的文件', () async {

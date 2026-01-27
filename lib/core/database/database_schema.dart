@@ -301,7 +301,7 @@ class DatabaseSchema {
         'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_id ON tool_tags(tool_id, category_id)',
       );
     }
-    if (toolTagNames.contains('sort_index')) {
+    if (toolTagNames.contains('category_id') && toolTagNames.contains('sort_index')) {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_sort_index ON tool_tags(tool_id, category_id, sort_index)',
       );
@@ -753,6 +753,11 @@ LIMIT 1
     if (!names.contains('sort_index')) {
       await db.execute(
         "ALTER TABLE tool_tags ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0",
+      );
+    }
+    if (!names.contains('category_id')) {
+      await db.execute(
+        "ALTER TABLE tool_tags ADD COLUMN category_id TEXT NOT NULL DEFAULT 'default'",
       );
     }
 
