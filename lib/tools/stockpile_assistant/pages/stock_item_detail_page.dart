@@ -4,11 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
+import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../models/stock_consumption.dart';
 import '../models/stock_item.dart';
 import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
+import '../stockpile_constants.dart';
+import '../utils/stockpile_tag_utils.dart';
 import '../utils/stockpile_utils.dart';
 import 'stock_consumption_edit_page.dart';
 import 'stock_item_edit_page.dart';
@@ -24,6 +27,7 @@ class StockItemDetailPage extends StatefulWidget {
 
 class _StockItemDetailPageState extends State<StockItemDetailPage> {
   late final StockpileService _service;
+  TagService? _tagService;
 
   StockItem? _item;
   List<Tag> _tags = const [];
@@ -35,6 +39,12 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
   void initState() {
     super.initState();
     _service = context.read<StockpileService>();
+    try {
+      _tagService = context.read<TagService>();
+      _tagService?.refreshToolTags(StockpileConstants.toolId);
+    } catch (_) {
+      _tagService = null;
+    }
     _reload();
   }
 
@@ -109,7 +119,24 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
   }
 
   Widget _buildContent(StockItem item) {
-    final tagNames = _tags.map((t) => t.name).toList();
+    final categoryByTagId = <int, String>{};
+    final tagService = _tagService;
+    if (tagService != null) {
+      for (final link in tagService.tagsForToolWithCategory(
+        StockpileConstants.toolId,
+      )) {
+        final id = link.tag.id;
+        if (id != null) categoryByTagId[id] = link.categoryId;
+      }
+    }
+    final split = StockpileTagUtils.splitItemTags(
+      tags: _tags,
+      categoryByTagId: categoryByTagId,
+    );
+    final typeNames = split.itemTypes.map((t) => t.name).toList();
+    final location = (split.location?.name.trim().isNotEmpty ?? false)
+        ? split.location!.name.trim()
+        : item.location.trim();
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
@@ -127,8 +154,8 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              _kv('物品标签', tagNames.isEmpty ? '无' : tagNames.join('、')),
-              if (item.location.trim().isNotEmpty) _kv('位置', item.location),
+              _kv('物品类型', typeNames.isEmpty ? '无' : typeNames.join('、')),
+              if (location.isNotEmpty) _kv('位置', location),
               _kv(
                 '库存',
                 '${StockpileFormat.num(item.remainingQuantity)}/${StockpileFormat.num(item.totalQuantity)}${item.unit.isEmpty ? '' : item.unit}',

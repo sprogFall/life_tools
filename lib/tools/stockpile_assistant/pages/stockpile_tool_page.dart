@@ -18,6 +18,8 @@ import '../models/stock_item.dart';
 import '../models/stockpile_drafts.dart';
 import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
+import '../stockpile_constants.dart';
+import '../utils/stockpile_tag_utils.dart';
 import '../utils/stockpile_utils.dart';
 import '../widgets/stockpile_consume_button.dart';
 import 'stockpile_ai_batch_entry_page.dart';
@@ -44,6 +46,16 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     super.initState();
     _service = widget.service ?? StockpileService();
     _ownsService = widget.service == null;
+    // 预热囤货助手的标签（含分类），用于列表展示“物品类型/位置”。
+    TagService? tagService;
+    try {
+      tagService = context.read<TagService>();
+    } catch (_) {
+      tagService = null;
+    }
+    Future.microtask(
+      () => tagService?.refreshToolTags(StockpileConstants.toolId),
+    );
     if (_ownsService) {
       _service.loadItems().then((_) {
         if (!mounted) return;
@@ -207,6 +219,21 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         final now = DateTime.now();
         final expiring = service.expiringSoonItems(now);
         final restockDue = service.restockDueItems(now);
+        TagService? tagService;
+        try {
+          tagService = context.watch<TagService>();
+        } catch (_) {
+          tagService = null;
+        }
+        final categoryByTagId = <int, String>{};
+        if (tagService != null) {
+          for (final link in tagService.tagsForToolWithCategory(
+            StockpileConstants.toolId,
+          )) {
+            final id = link.tag.id;
+            if (id != null) categoryByTagId[id] = link.categoryId;
+          }
+        }
 
         if (items.isEmpty) {
           return const Center(
@@ -285,6 +312,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                 item,
                 now,
                 item.id == null ? const [] : service.tagsForItem(item.id!),
+                categoryByTagId,
               ),
           ],
         );
@@ -292,16 +320,30 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     );
   }
 
-  Widget _buildItemCard(StockItem item, DateTime now, List<Tag> tags) {
+  Widget _buildItemCard(
+    StockItem item,
+    DateTime now,
+    List<Tag> tags,
+    Map<int, String> categoryByTagId,
+  ) {
     final compact = item.isDepleted;
     final expiryDate = item.expiryDate;
     final badge = compact ? null : _buildStatusBadges(item, now);
     final qtyText =
         '${StockpileFormat.num(item.remainingQuantity)}/${StockpileFormat.num(item.totalQuantity)}${item.unit.isEmpty ? '' : item.unit}';
-    final tagText = tags.isEmpty ? '无标签' : tags.map((t) => t.name).join('、');
-    final locationText = item.location.trim().isEmpty
-        ? ''
-        : ' · ${item.location.trim()}';
+    final split = StockpileTagUtils.splitItemTags(
+      tags: tags,
+      categoryByTagId: categoryByTagId,
+    );
+    final typeText = split.itemTypes.isEmpty
+        ? '无类型'
+        : split.itemTypes.map((t) => t.name).join('、');
+    final locationFromTag = split.location?.name.trim() ?? '';
+    final legacyLocation = item.location.trim();
+    final location = locationFromTag.isNotEmpty
+        ? locationFromTag
+        : legacyLocation;
+    final locationText = location.isEmpty ? '' : ' · $location';
 
     return GlassContainer(
       margin: EdgeInsets.only(bottom: compact ? 8 : 12),
@@ -348,7 +390,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                   ),
                   SizedBox(height: compact ? 4 : 6),
                   Text(
-                    '$tagText$locationText',
+                    '$typeText$locationText',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

@@ -1,4 +1,6 @@
 import '../../tools/overcooked_kitchen/overcooked_constants.dart';
+import '../../tools/stockpile_assistant/stockpile_constants.dart';
+import '../../tools/work_log/work_log_constants.dart';
 import 'models/tag_category.dart';
 import 'tag_service.dart';
 
@@ -11,6 +13,29 @@ class BuiltInTagCategories {
   BuiltInTagCategories._();
 
   static void registerAll(TagService tagService) {
+    // 工作记录：把“标签”语义明确为“归属”（项目/客户/团队/OKR…）
+    tagService.registerToolTagCategories(WorkLogConstants.toolId, const [
+      TagCategory(
+        id: WorkLogTagCategories.affiliation,
+        name: '归属',
+        createHint: '项目A/客户B/团队C/OKR',
+      ),
+    ]);
+
+    // 囤货助手：物品类型 + 位置
+    tagService.registerToolTagCategories(StockpileConstants.toolId, const [
+      TagCategory(
+        id: StockpileTagCategories.itemType,
+        name: '物品类型',
+        createHint: '零食/调料/日化/母婴',
+      ),
+      TagCategory(
+        id: StockpileTagCategories.location,
+        name: '位置',
+        createHint: '冰箱/冷冻/橱柜/阳台',
+      ),
+    ]);
+
     // 胡闹厨房：菜谱/扭蛋机需要分类筛选
     tagService.registerToolTagCategories(OvercookedConstants.toolId, const [
       TagCategory(

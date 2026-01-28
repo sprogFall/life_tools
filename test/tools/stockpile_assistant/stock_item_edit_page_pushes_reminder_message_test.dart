@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/messages/message_repository.dart';
 import 'package:life_tools/core/messages/message_service.dart';
+import 'package:life_tools/core/tags/built_in_tag_categories.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
+import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/tools/stockpile_assistant/pages/stock_item_edit_page.dart';
 import 'package:life_tools/tools/stockpile_assistant/repository/stockpile_repository.dart';
 import 'package:life_tools/tools/stockpile_assistant/services/stockpile_service.dart';
@@ -24,6 +26,7 @@ void main() {
       late Database db;
       late StockpileService stockpileService;
       late MessageService messageService;
+      late TagService tagService;
 
       await tester.runAsync(() async {
         db = await openDatabase(
@@ -33,15 +36,18 @@ void main() {
           onCreate: DatabaseSchema.onCreate,
           onUpgrade: DatabaseSchema.onUpgrade,
         );
+        final tagRepository = TagRepository.withDatabase(db);
         stockpileService = StockpileService.withRepositories(
           repository: StockpileRepository.withDatabase(db),
-          tagRepository: TagRepository.withDatabase(db),
+          tagRepository: tagRepository,
         );
         await stockpileService.loadItems();
         messageService = MessageService(
           repository: MessageRepository.withDatabase(db),
         );
         await messageService.init();
+        tagService = TagService(repository: tagRepository);
+        BuiltInTagCategories.registerAll(tagService);
       });
       addTearDown(() async {
         await tester.runAsync(() async => db.close());
@@ -50,6 +56,7 @@ void main() {
       await tester.pumpWidget(
         MultiProvider(
           providers: [
+            ChangeNotifierProvider<TagService>.value(value: tagService),
             ChangeNotifierProvider<MessageService>.value(value: messageService),
             ChangeNotifierProvider<StockpileService>.value(
               value: stockpileService,

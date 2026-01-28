@@ -345,7 +345,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
               Row(
                 children: [
                   const Text(
-                    '标签',
+                    '归属',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -372,7 +372,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                 const Center(child: CupertinoActivityIndicator())
               else if (tags.isEmpty)
                 Text(
-                  '暂无可用标签，请先在「标签管理」中创建并关联到「工作记录」',
+                  '暂无可用归属，请先在「标签管理」中创建并关联到「工作记录」',
                   style: TextStyle(
                     fontSize: 13,
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.9),

@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/core/tags/built_in_tag_categories.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
+import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/tools/stockpile_assistant/ai/stockpile_ai_intent.dart';
 import 'package:life_tools/tools/stockpile_assistant/models/stockpile_drafts.dart';
 import 'package:life_tools/tools/stockpile_assistant/pages/stockpile_ai_batch_entry_page.dart';
@@ -33,15 +35,21 @@ void main() {
       await tester.runAsync(() async => db.close());
     });
 
+    final tagRepository = TagRepository.withDatabase(db);
     final service = StockpileService.withRepositories(
       repository: StockpileRepository.withDatabase(db),
-      tagRepository: TagRepository.withDatabase(db),
+      tagRepository: tagRepository,
     );
+    final tagService = TagService(repository: tagRepository);
+    BuiltInTagCategories.registerAll(tagService);
 
     await tester.pumpWidget(
       TestAppWrapper(
-        child: ChangeNotifierProvider<StockpileService>.value(
-          value: service,
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<TagService>.value(value: tagService),
+            ChangeNotifierProvider<StockpileService>.value(value: service),
+          ],
           child: StockpileAiBatchEntryPage(
             initialItems: [
               StockItemDraft(
@@ -114,15 +122,21 @@ void main() {
       await tester.runAsync(() async => db.close());
     });
 
+    final tagRepository = TagRepository.withDatabase(db);
     final service = StockpileService.withRepositories(
       repository: StockpileRepository.withDatabase(db),
-      tagRepository: TagRepository.withDatabase(db),
+      tagRepository: tagRepository,
     );
+    final tagService = TagService(repository: tagRepository);
+    BuiltInTagCategories.registerAll(tagService);
 
     await tester.pumpWidget(
       TestAppWrapper(
-        child: ChangeNotifierProvider<StockpileService>.value(
-          value: service,
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<TagService>.value(value: tagService),
+            ChangeNotifierProvider<StockpileService>.value(value: service),
+          ],
           child: StockpileAiBatchEntryPage(
             initialItems: const [],
             initialConsumptions: [

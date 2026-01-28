@@ -4,13 +4,18 @@ import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
+import '../../../core/tags/tag_service.dart';
+import '../../../core/tags/widgets/tag_picker_sheet.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_select_field.dart';
 import '../ai/stockpile_ai_intent.dart';
 import '../models/stock_consumption.dart';
 import '../models/stock_item.dart';
 import '../models/stockpile_drafts.dart';
 import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
+import '../stockpile_constants.dart';
+import '../utils/stockpile_tag_utils.dart';
 import '../utils/stockpile_utils.dart';
 
 class StockpileAiBatchEntryPage extends StatefulWidget {
@@ -42,6 +47,10 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
       .toList(growable: true);
 
   bool _saving = false;
+  bool _loadingTags = false;
+  List<Tag> _itemTypeTags = const [];
+  List<Tag> _locationTags = const [];
+  Map<int, Tag> _tagsById = const {};
 
   _ItemEntry _createItemEntry(StockItemDraft draft) {
     return _ItemEntry.fromDraft(keyId: _nextItemKey++, draft: draft);
@@ -63,6 +72,11 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         widget.initialItems.isNotEmpty) {
       _tab = 0;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadTagOptions();
+    });
 
     final service = context.read<StockpileService>();
     Future<void>.microtask(() async {
@@ -254,14 +268,16 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
           const SizedBox(height: 10),
           _buildTwoColRow(
             left: _buildCompactField(
-              title: '位置',
-              child: _buildTextField(
-                key: ValueKey(
-                  'stockpile_ai_batch_item_${entry.keyId}_location',
+              title: '位置（来自标签）',
+              child: IOS26SelectField(
+                buttonKey: ValueKey(
+                  'stockpile_ai_batch_item_${entry.keyId}_pick_location',
                 ),
-                controller: entry.locationController,
-                placeholder: '如：冰箱',
-                textInputAction: TextInputAction.next,
+                text: _locationLabelForEntry(entry),
+                isPlaceholder: _locationIsPlaceholderForEntry(entry),
+                onPressed: _saving
+                    ? null
+                    : () => _pickLocationForItemEntry(entry),
               ),
             ),
             right: _buildCompactField(
@@ -781,44 +797,40 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
   }
 
   Widget _buildTagSelector(_ItemEntry entry) {
-    return Consumer<StockpileService>(
-      builder: (context, service, _) {
-        final tags = service.availableTags.where((e) => e.id != null).toList();
-        if (tags.isEmpty) {
-          return GlassContainer(
-            padding: const EdgeInsets.all(12),
-            child: const Text(
-              '暂无可用标签（可在「标签管理」中创建并关联到「囤货助手」）',
-              style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
-            ),
-          );
-        }
+    final tags = _itemTypeTags.where((e) => e.id != null).toList();
+    if (tags.isEmpty) {
+      return GlassContainer(
+        padding: const EdgeInsets.all(12),
+        child: const Text(
+          '暂无可用物品类型（可在「标签管理」中创建并关联到「囤货助手」）',
+          style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+        ),
+      );
+    }
 
-        return GlassContainer(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '标签',
-                style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final tag in tags) ...[
-                      _buildTagPill(tag, entry),
-                      const SizedBox(width: 10),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+    return GlassContainer(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '物品类型',
+            style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
           ),
-        );
-      },
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final tag in tags) ...[
+                  _buildTagPill(tag, entry),
+                  const SizedBox(width: 10),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -890,6 +902,118 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         ),
       ),
     );
+  }
+
+  String _locationLabelForEntry(_ItemEntry entry) {
+    final locationIds = _locationTags.map((e) => e.id).whereType<int>().toSet();
+    final selected = entry.selectedTagIds.where(locationIds.contains);
+    if (selected.isNotEmpty) {
+      final id = selected.first;
+      final tagName = _tagsById[id]?.name.trim();
+      if (tagName != null && tagName.isNotEmpty) return tagName;
+    }
+    final legacy = entry.locationController.text.trim();
+    return legacy.isEmpty ? '未选择' : legacy;
+  }
+
+  bool _locationIsPlaceholderForEntry(_ItemEntry entry) {
+    final locationIds = _locationTags.map((e) => e.id).whereType<int>().toSet();
+    final hasLocationTag = entry.selectedTagIds.any(locationIds.contains);
+    if (hasLocationTag) return false;
+    return entry.locationController.text.trim().isEmpty;
+  }
+
+  Future<void> _pickLocationForItemEntry(_ItemEntry entry) async {
+    final locationIds = _locationTags.map((e) => e.id).whereType<int>().toSet();
+    final current = entry.selectedTagIds.where(locationIds.contains);
+    final selected = await TagPickerSheetView.show<TagPickerResult>(
+      context,
+      title: '选择位置',
+      tags: _locationTags,
+      selectedIds: current.isEmpty ? <int>{} : {current.first},
+      multi: false,
+      keyPrefix: 'stockpile-location',
+      createHint: StockpileTagUtils.createHint(
+        context,
+        StockpileTagCategories.location,
+      ),
+      onCreateTag: (name) => StockpileTagUtils.createTag(
+        context,
+        categoryId: StockpileTagCategories.location,
+        name: name,
+      ),
+      buildResult: (ids, changed) =>
+          TagPickerResult(selectedIds: ids, tagsChanged: changed),
+    );
+    if (selected == null || !mounted) return;
+
+    final id = selected.selectedIds.isEmpty ? null : selected.selectedIds.first;
+    setState(() {
+      entry.selectedTagIds.removeWhere(locationIds.contains);
+      if (id != null) {
+        entry.selectedTagIds.add(id);
+        final name = _tagsById[id]?.name;
+        if (name != null) entry.locationController.text = name;
+      }
+    });
+
+    if (selected.tagsChanged) {
+      await _loadTagOptions();
+    }
+  }
+
+  Future<void> _loadTagOptions() async {
+    if (_loadingTags) return;
+    setState(() => _loadingTags = true);
+    try {
+      final tagService = context.read<TagService>();
+      final itemTypeTags = await tagService.listTagsForToolCategory(
+        toolId: StockpileConstants.toolId,
+        categoryId: StockpileTagCategories.itemType,
+      );
+      final locationTags = await tagService.listTagsForToolCategory(
+        toolId: StockpileConstants.toolId,
+        categoryId: StockpileTagCategories.location,
+      );
+      final all = await tagService.listTagsForTool(StockpileConstants.toolId);
+
+      if (!mounted) return;
+      setState(() {
+        _itemTypeTags = itemTypeTags;
+        _locationTags = locationTags;
+        _tagsById = {
+          for (final t in all)
+            if (t.id != null) t.id!: t,
+        };
+      });
+
+      // 兼容历史/AI 草稿：若存在位置文本，尝试自动匹配同名“位置”标签并写入 tagIds。
+      final locationIds = _locationTags
+          .map((e) => e.id)
+          .whereType<int>()
+          .toSet();
+      for (final entry in _items) {
+        if (entry.selectedTagIds.any(locationIds.contains)) {
+          final id = entry.selectedTagIds.firstWhere(locationIds.contains);
+          final name = _tagsById[id]?.name;
+          if (name != null) entry.locationController.text = name;
+          continue;
+        }
+        final legacy = entry.locationController.text.trim();
+        if (legacy.isEmpty) continue;
+        for (final t in _locationTags) {
+          final id = t.id;
+          if (id != null && t.name.trim() == legacy) {
+            entry.selectedTagIds.add(id);
+            break;
+          }
+        }
+      }
+    } catch (_) {
+      // 测试/极端情况下（例如页面已销毁或数据库关闭）直接忽略，避免抛出异步异常。
+    } finally {
+      if (mounted) setState(() => _loadingTags = false);
+    }
   }
 
   Widget _buildInlineField({required String title, required Widget child}) {

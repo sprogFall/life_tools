@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/core/tags/built_in_tag_categories.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
+import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/tools/stockpile_assistant/pages/stock_item_edit_page.dart';
 import 'package:life_tools/tools/stockpile_assistant/repository/stockpile_repository.dart';
 import 'package:life_tools/tools/stockpile_assistant/services/stockpile_service.dart';
@@ -35,11 +37,16 @@ void main() {
       repository: StockpileRepository.withDatabase(db),
       tagRepository: TagRepository.withDatabase(db),
     );
+    final tagService = TagService(repository: TagRepository.withDatabase(db));
+    BuiltInTagCategories.registerAll(tagService);
 
     await tester.pumpWidget(
       TestAppWrapper(
-        child: ChangeNotifierProvider<StockpileService>.value(
-          value: service,
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<TagService>.value(value: tagService),
+            ChangeNotifierProvider<StockpileService>.value(value: service),
+          ],
           child: const StockItemEditPage(),
         ),
       ),
@@ -49,6 +56,11 @@ void main() {
     expect(find.text('名称'), findsOneWidget);
     expect(find.text('位置'), findsOneWidget);
     expect(find.text('数量'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('采购日期'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('采购日期'), findsOneWidget);
 
     await tester.scrollUntilVisible(

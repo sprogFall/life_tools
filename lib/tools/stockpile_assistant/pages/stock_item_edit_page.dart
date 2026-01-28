@@ -1,14 +1,20 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
+import '../../../core/tags/tag_service.dart';
+import '../../../core/tags/widgets/tag_picker_sheet.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_select_field.dart';
 import '../models/stock_item.dart';
 import '../models/stockpile_drafts.dart';
 import '../services/stockpile_reminder_service.dart';
 import '../services/stockpile_service.dart';
+import '../stockpile_constants.dart';
+import '../utils/stockpile_tag_utils.dart';
 import '../utils/stockpile_utils.dart';
 
 class StockItemEditPage extends StatefulWidget {
@@ -39,12 +45,23 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
 
   StockItem? _editing;
   Set<int> _selectedTagIds = {};
+  Set<int> _selectedItemTypeTagIds = {};
+  int? _selectedLocationTagId;
+
+  bool _loadingTags = false;
+  List<Tag> _itemTypeTags = const [];
+  List<Tag> _locationTags = const [];
+  Map<int, Tag> _tagsById = const {};
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
     _service = context.read<StockpileService>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadTagOptions();
+    });
     final id = widget.itemId;
     if (id != null) {
       _loading = true;
@@ -58,11 +75,13 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
           _loading = false;
         });
         if (item != null) _fill(item);
+        _syncTagSelectionsFromAll();
       });
     } else {
       final draft = widget.draft;
       if (draft != null) {
         _fillDraft(draft);
+        _syncTagSelectionsFromAll();
       }
     }
   }
@@ -145,17 +164,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildTagSelector(),
+                  _buildItemTypePicker(),
                   const SizedBox(height: 12),
-                  _buildFormCard(
-                    title: '位置',
-                    child: _buildTextField(
-                      key: const ValueKey('stock_item_location'),
-                      controller: _locationController,
-                      placeholder: '如：冰箱、客厅',
-                      textInputAction: TextInputAction.next,
-                    ),
-                  ),
+                  _buildLocationPicker(),
                   const SizedBox(height: 12),
                   _buildFormCard(
                     title: '数量',
@@ -285,93 +296,189 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     );
   }
 
-  Widget _buildTagSelector() {
-    return Consumer<StockpileService>(
-      builder: (context, service, _) {
-        final tags = service.availableTags;
-        if (tags.isEmpty) {
-          return GlassContainer(
-            padding: const EdgeInsets.all(12),
-            child: const Text(
-              '暂无可用标签，请先在「标签管理」中创建并关联到「囤货助手」',
-              style: TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
-            ),
-          );
-        }
+  Widget _buildItemTypePicker() {
+    final names =
+        _selectedItemTypeTagIds
+            .map((id) => _tagsById[id]?.name)
+            .whereType<String>()
+            .toList()
+          ..sort();
+    final text = names.isEmpty ? '未选择' : names.join('、');
 
-        return GlassContainer(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '物品标签',
-                style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
-              ),
-              const SizedBox(height: 10),
-              for (final tag in tags) _buildTagRow(tag),
-            ],
-          ),
-        );
-      },
+    return _buildFormCard(
+      title: '物品类型',
+      child: IOS26SelectField(
+        buttonKey: const ValueKey('stock_item_pick_item_types'),
+        text: text,
+        isPlaceholder: names.isEmpty,
+        onPressed: _pickItemTypes,
+      ),
     );
   }
 
-  Widget _buildTagRow(Tag tag) {
-    final id = tag.id;
-    if (id == null) return const SizedBox.shrink();
+  Widget _buildLocationPicker() {
+    final selectedName = _selectedLocationTagId == null
+        ? null
+        : _tagsById[_selectedLocationTagId!]?.name;
+    final legacy = _locationController.text.trim();
+    final text = selectedName ?? (legacy.isEmpty ? '未选择' : legacy);
+    final isPlaceholder = selectedName == null && legacy.isEmpty;
 
-    final selected = _selectedTagIds.contains(id);
-    final dotColor = tag.color == null
-        ? IOS26Theme.textTertiary
-        : Color(tag.color!);
-
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      onPressed: () {
-        setState(() {
-          if (selected) {
-            _selectedTagIds.remove(id);
-          } else {
-            _selectedTagIds.add(id);
-          }
-        });
-      },
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: dotColor,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              tag.name,
-              style: const TextStyle(
-                fontSize: 15,
-                color: IOS26Theme.textPrimary,
-              ),
-            ),
-          ),
-          if (selected)
-            const Icon(
-              CupertinoIcons.check_mark_circled_solid,
-              size: 20,
-              color: IOS26Theme.primaryColor,
-            )
-          else
-            const Icon(
-              CupertinoIcons.circle,
-              size: 20,
-              color: IOS26Theme.textTertiary,
-            ),
-        ],
+    return _buildFormCard(
+      title: '位置',
+      child: IOS26SelectField(
+        buttonKey: const ValueKey('stock_item_pick_location'),
+        text: text,
+        isPlaceholder: isPlaceholder,
+        onPressed: _pickLocation,
       ),
     );
+  }
+
+  Future<void> _pickItemTypes() async {
+    final selected = await TagPickerSheetView.show<TagPickerResult>(
+      context,
+      title: '选择物品类型',
+      tags: _itemTypeTags,
+      selectedIds: _selectedItemTypeTagIds,
+      multi: true,
+      keyPrefix: 'stockpile-tag',
+      createHint: StockpileTagUtils.createHint(
+        context,
+        StockpileTagCategories.itemType,
+      ),
+      onCreateTag: (name) => StockpileTagUtils.createTag(
+        context,
+        categoryId: StockpileTagCategories.itemType,
+        name: name,
+      ),
+      buildResult: (ids, changed) =>
+          TagPickerResult(selectedIds: ids, tagsChanged: changed),
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _selectedItemTypeTagIds = selected.selectedIds);
+    _rebuildAllSelectedTagIds();
+
+    if (selected.tagsChanged) {
+      await _loadTagOptions();
+    }
+  }
+
+  Future<void> _pickLocation() async {
+    final initial = _selectedLocationTagId == null
+        ? <int>{}
+        : {_selectedLocationTagId!};
+    final selected = await TagPickerSheetView.show<TagPickerResult>(
+      context,
+      title: '选择位置',
+      tags: _locationTags,
+      selectedIds: initial,
+      multi: false,
+      keyPrefix: 'stockpile-location',
+      createHint: StockpileTagUtils.createHint(
+        context,
+        StockpileTagCategories.location,
+      ),
+      onCreateTag: (name) => StockpileTagUtils.createTag(
+        context,
+        categoryId: StockpileTagCategories.location,
+        name: name,
+      ),
+      buildResult: (ids, changed) =>
+          TagPickerResult(selectedIds: ids, tagsChanged: changed),
+    );
+    if (selected == null || !mounted) return;
+
+    final id = selected.selectedIds.isEmpty ? null : selected.selectedIds.first;
+    setState(() => _selectedLocationTagId = id);
+    if (id != null) {
+      final name = _tagsById[id]?.name;
+      if (name != null) _locationController.text = name;
+    }
+    _rebuildAllSelectedTagIds();
+
+    if (selected.tagsChanged) {
+      await _loadTagOptions();
+    }
+  }
+
+  void _rebuildAllSelectedTagIds() {
+    final next = <int>{..._selectedItemTypeTagIds};
+    final locationId = _selectedLocationTagId;
+    if (locationId != null) next.add(locationId);
+    if (!setEquals(next, _selectedTagIds)) {
+      setState(() => _selectedTagIds = next);
+    }
+  }
+
+  void _syncTagSelectionsFromAll() {
+    if (_locationTags.isEmpty && _itemTypeTags.isEmpty) return;
+
+    final locationIds = _locationTags.map((e) => e.id).whereType<int>().toSet();
+    final selectedLocationIds = _selectedTagIds.where(locationIds.contains);
+    _selectedLocationTagId = selectedLocationIds.isEmpty
+        ? null
+        : selectedLocationIds.first;
+    _selectedItemTypeTagIds = {
+      for (final id in _selectedTagIds)
+        if (!locationIds.contains(id)) id,
+    };
+
+    // 兼容历史数据：若已有 location 文本，尝试自动匹配同名位置标签。
+    if (_selectedLocationTagId == null) {
+      final legacy = _locationController.text.trim();
+      if (legacy.isNotEmpty) {
+        for (final t in _locationTags) {
+          final id = t.id;
+          if (id != null && t.name.trim() == legacy) {
+            _selectedLocationTagId = id;
+            _selectedItemTypeTagIds.remove(id);
+            _selectedTagIds.add(id);
+            break;
+          }
+        }
+      }
+    }
+
+    final locationId = _selectedLocationTagId;
+    if (locationId != null) {
+      final name = _tagsById[locationId]?.name.trim();
+      if (name != null && name.isNotEmpty) {
+        _locationController.text = name;
+      }
+    }
+  }
+
+  Future<void> _loadTagOptions() async {
+    if (_loadingTags) return;
+    setState(() => _loadingTags = true);
+    try {
+      final tagService = context.read<TagService>();
+      final itemTypeTags = await tagService.listTagsForToolCategory(
+        toolId: StockpileConstants.toolId,
+        categoryId: StockpileTagCategories.itemType,
+      );
+      final locationTags = await tagService.listTagsForToolCategory(
+        toolId: StockpileConstants.toolId,
+        categoryId: StockpileTagCategories.location,
+      );
+      final all = await tagService.listTagsForTool(StockpileConstants.toolId);
+
+      setState(() {
+        _itemTypeTags = itemTypeTags;
+        _locationTags = locationTags;
+        _tagsById = {
+          for (final t in all)
+            if (t.id != null) t.id!: t,
+        };
+      });
+      _syncTagSelectionsFromAll();
+      _rebuildAllSelectedTagIds();
+    } catch (_) {
+      // 测试/极端情况下（例如页面已销毁或数据库关闭）直接忽略，避免抛出异步异常。
+    } finally {
+      if (mounted) setState(() => _loadingTags = false);
+    }
   }
 
   Widget _buildExpirySection() {

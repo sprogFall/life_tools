@@ -324,4 +324,26 @@ class TagService extends ChangeNotifier {
       await refreshToolTags(normalizedToolId);
     }
   }
+
+  /// 启动期迁移：将某工具下的“默认”分类标签迁移到更明确的分类。
+  /// 返回迁移条数；如迁移发生，会刷新该工具的 toolTag 缓存。
+  Future<int> migrateToolDefaultCategoryTo({
+    required String toolId,
+    required String toCategoryId,
+  }) async {
+    final normalizedToolId = toolId.trim();
+    final normalizedCategoryId = toCategoryId.trim();
+    if (normalizedToolId.isEmpty) return 0;
+    if (normalizedCategoryId.isEmpty) return 0;
+
+    final migrated = await _repository.migrateToolTagCategory(
+      toolId: normalizedToolId,
+      fromCategoryId: TagRepository.defaultCategoryId,
+      toCategoryId: normalizedCategoryId,
+    );
+    if (migrated > 0) {
+      await refreshToolTags(normalizedToolId);
+    }
+    return migrated;
+  }
 }

@@ -301,7 +301,8 @@ class DatabaseSchema {
         'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_id ON tool_tags(tool_id, category_id)',
       );
     }
-    if (toolTagNames.contains('category_id') && toolTagNames.contains('sort_index')) {
+    if (toolTagNames.contains('category_id') &&
+        toolTagNames.contains('sort_index')) {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_sort_index ON tool_tags(tool_id, category_id, sort_index)',
       );

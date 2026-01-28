@@ -278,7 +278,7 @@ class _TagFilterBar extends StatelessWidget {
       child: Row(
         children: [
           const Text(
-            '标签',
+            '归属',
             style: TextStyle(
               fontSize: 12,
               color: IOS26Theme.textSecondary,

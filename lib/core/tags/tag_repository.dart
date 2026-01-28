@@ -239,6 +239,65 @@ ORDER BY tt.category_id ASC, tt.sort_index ASC, t.name COLLATE NOCASE ASC
     return results.map((e) => Tag.fromMap(e)).toList();
   }
 
+  /// 将某个工具下的标签从一个分类迁移到另一个分类（仅修改 tool_tags）。
+  ///
+  /// 主要用于：早期只有“默认”分类时，后续引入更明确的分类后做无感升级。
+  /// 返回迁移的条数。
+  Future<int> migrateToolTagCategory({
+    required String toolId,
+    required String fromCategoryId,
+    required String toCategoryId,
+  }) async {
+    final normalizedToolId = toolId.trim();
+    if (normalizedToolId.isEmpty) {
+      throw ArgumentError('migrateToolTagCategory 需要 toolId');
+    }
+    final from = fromCategoryId.trim().isEmpty
+        ? defaultCategoryId
+        : fromCategoryId.trim();
+    final to = toCategoryId.trim().isEmpty
+        ? defaultCategoryId
+        : toCategoryId.trim();
+    if (from == to) return 0;
+
+    final db = await _database;
+    return db.transaction((txn) async {
+      final maxRows = await txn.rawQuery(
+        '''
+SELECT MAX(sort_index) AS max_sort_index
+FROM tool_tags
+WHERE tool_id = ? AND category_id = ?
+''',
+        [normalizedToolId, to],
+      );
+      var nextSortIndex = ((maxRows.first['max_sort_index'] as int?) ?? -1) + 1;
+
+      final rows = await txn.rawQuery(
+        '''
+SELECT tag_id, sort_index
+FROM tool_tags
+WHERE tool_id = ? AND category_id = ?
+ORDER BY sort_index ASC, tag_id ASC
+''',
+        [normalizedToolId, from],
+      );
+      if (rows.isEmpty) return 0;
+
+      var migrated = 0;
+      for (final row in rows) {
+        final tagId = row['tag_id'] as int;
+        final updated = await txn.update(
+          'tool_tags',
+          {'category_id': to, 'sort_index': nextSortIndex++},
+          where: 'tool_id = ? AND tag_id = ? AND category_id = ?',
+          whereArgs: [normalizedToolId, tagId, from],
+        );
+        if (updated > 0) migrated += 1;
+      }
+      return migrated;
+    });
+  }
+
   Future<List<TagInToolCategory>> listTagsForToolWithCategory(
     String toolId,
   ) async {
