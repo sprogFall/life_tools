@@ -25,10 +25,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   bool _qiniuIsPrivate = false;
   bool _qiniuUseHttps = true;
 
-  bool _dataCapsuleIsPrivate = true;
-  bool _dataCapsuleUseHttps = true;
-  bool _dataCapsuleForcePathStyle = true;
-
   final _qiniuAccessKeyController = TextEditingController();
   final _qiniuSecretKeyController = TextEditingController();
   final _qiniuBucketController = TextEditingController();
@@ -41,7 +37,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   final _dataCapsuleBucketController = TextEditingController();
   final _dataCapsuleEndpointController = TextEditingController();
   final _dataCapsuleDomainController = TextEditingController();
-  final _dataCapsuleRegionController = TextEditingController();
   final _dataCapsuleKeyPrefixController = TextEditingController();
 
   PlatformFile? _selectedFile;
@@ -81,10 +76,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     }
 
     if (cfg?.type == ObjStoreType.dataCapsule) {
-      _dataCapsuleIsPrivate = cfg?.dataCapsuleIsPrivate ?? true;
-      _dataCapsuleUseHttps =
-          cfg?.dataCapsuleUseHttps ?? _guessUseHttps(cfg?.dataCapsuleEndpoint);
-      _dataCapsuleForcePathStyle = cfg?.dataCapsuleForcePathStyle ?? true;
       _dataCapsuleBucketController.text = cfg?.dataCapsuleBucket ?? '';
       _dataCapsuleEndpointController.text = _stripDomainScheme(
         cfg?.dataCapsuleEndpoint ?? '',
@@ -92,10 +83,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _dataCapsuleDomainController.text = _stripDomainScheme(
         cfg?.dataCapsuleDomain ?? '',
       );
-      _dataCapsuleRegionController.text =
-          (cfg?.dataCapsuleRegion?.trim().isNotEmpty ?? false)
-          ? cfg!.dataCapsuleRegion!
-          : 'us-east-1';
       _dataCapsuleKeyPrefixController.text =
           cfg?.dataCapsuleKeyPrefix ?? 'media/';
 
@@ -103,10 +90,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _dataCapsuleAccessKeyController.text = secrets?.accessKey ?? '';
       _dataCapsuleSecretKeyController.text = secrets?.secretKey ?? '';
     } else {
-      _dataCapsuleIsPrivate = true;
-      _dataCapsuleUseHttps = true;
-      _dataCapsuleForcePathStyle = true;
-      _dataCapsuleRegionController.text = 'us-east-1';
       _dataCapsuleKeyPrefixController.text = 'media/';
     }
   }
@@ -124,7 +107,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     _dataCapsuleBucketController.dispose();
     _dataCapsuleEndpointController.dispose();
     _dataCapsuleDomainController.dispose();
-    _dataCapsuleRegionController.dispose();
     _dataCapsuleKeyPrefixController.dispose();
     _queryKeyController.dispose();
     super.dispose();
@@ -297,6 +279,17 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               },
             ),
           ),
+          if (!_qiniuUseHttps) ...[
+            const SizedBox(height: 8),
+            const Text(
+              '安全提示：HTTP 为明文传输，AK/SK/文件内容可能被截获，仅建议内网调试使用。',
+              style: TextStyle(
+                fontSize: 12,
+                color: IOS26Theme.toolRed,
+                height: 1.4,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           _buildLabeledField(
             label: 'AccessKey（AK）',
@@ -383,67 +376,16 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildLabeledField(
-            label: '空间类型',
-            child: CupertinoSlidingSegmentedControl<bool>(
-              groupValue: _dataCapsuleIsPrivate,
-              children: const {
-                false: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('公有'),
-                ),
-                true: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('私有'),
-                ),
-              },
-              onValueChanged: (v) {
-                if (v == null) return;
-                setState(() => _dataCapsuleIsPrivate = v);
-              },
-            ),
-          ),
+          _buildLabeledField(label: '空间类型', child: _buildFixedValue('私有（固定）')),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: '访问协议',
-            child: CupertinoSlidingSegmentedControl<bool>(
-              groupValue: _dataCapsuleUseHttps,
-              children: const {
-                true: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('https'),
-                ),
-                false: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('http'),
-                ),
-              },
-              onValueChanged: (v) {
-                if (v == null) return;
-                setState(() => _dataCapsuleUseHttps = v);
-              },
-            ),
+            child: _buildFixedValue('https（固定）'),
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: 'URL 风格',
-            child: CupertinoSlidingSegmentedControl<bool>(
-              groupValue: _dataCapsuleForcePathStyle,
-              children: const {
-                true: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('路径风格'),
-                ),
-                false: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('虚拟主机'),
-                ),
-              },
-              onValueChanged: (v) {
-                if (v == null) return;
-                setState(() => _dataCapsuleForcePathStyle = v);
-              },
-            ),
+            child: _buildFixedValue('路径风格（固定）'),
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
@@ -503,12 +445,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'Region（可选，默认 us-east-1）',
-            child: CupertinoTextField(
-              controller: _dataCapsuleRegionController,
-              placeholder: '如：us-east-1',
-              autocorrect: false,
-              decoration: _fieldDecoration(),
+            label: 'Region',
+            child: _buildFixedValue(
+              '${ObjStoreConfig.dataCapsuleFixedRegion}（固定）',
             ),
           ),
           const SizedBox(height: 12),
@@ -595,7 +534,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           if (_lastUploaded != null) ...[
             const SizedBox(height: 12),
             Text(
-              '上传结果：\nKey: ${_lastUploaded!.key}\nURI: ${_lastUploaded!.uri}',
+              '上传结果：\nKey: ${_lastUploaded!.key}\nURI: ${_redactSensitiveUrl(_lastUploaded!.uri)}',
               style: const TextStyle(
                 fontSize: 13,
                 color: IOS26Theme.textSecondary,
@@ -654,7 +593,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
             '2. 七牛云存储会在本机生成上传 Token 并直接上传到七牛。\n'
             '3. 七牛私有空间查询会生成带签名的临时下载链接（带 e/token）。\n'
-            '4. 数据胶囊为 S3 兼容对象存储：上传使用 PUT 直传；私有空间查询会生成带 X-Amz-* 的临时链接（默认 30 分钟）。\n'
+            '4. 数据胶囊固定使用 HTTPS + 路径风格 + 私有空间，Region 固定 us-east-1；上传使用 PUT 直传，私有查询会生成带 X-Amz-* 的临时链接（默认 30 分钟）。\n'
             '5. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。\n'
             '6. 若数据胶囊配置了 Domain（自定义访问域名），私有空间建议使用与 Endpoint 同源的域名，否则可能因签名校验导致“可访问=否”。',
             style: TextStyle(
@@ -722,6 +661,17 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         const SizedBox(height: 6),
         child,
       ],
+    );
+  }
+
+  static Widget _buildFixedValue(String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: _fieldDecoration(),
+      child: Text(
+        value,
+        style: const TextStyle(fontSize: 14, color: IOS26Theme.textPrimary),
+      ),
     );
   }
 
@@ -793,13 +743,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       bucket: _dataCapsuleBucketController.text.trim(),
       endpoint: _normalizeDomainInput(_dataCapsuleEndpointController.text),
       domain: domain.isEmpty ? null : domain,
-      region: _dataCapsuleRegionController.text.trim().isEmpty
-          ? 'us-east-1'
-          : _dataCapsuleRegionController.text.trim(),
       keyPrefix: _dataCapsuleKeyPrefixController.text.trim(),
-      isPrivate: _dataCapsuleIsPrivate,
-      useHttps: _dataCapsuleUseHttps,
-      forcePathStyle: _dataCapsuleForcePathStyle,
     );
   }
 

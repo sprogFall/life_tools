@@ -198,7 +198,7 @@ class ObjStoreService {
       return null;
     }
 
-    final cfg = _configService.config;
+    final cfg = _configService.config?.normalizedDataCapsuleFixed();
     if (resolveUriWhenMiss == null &&
         cfg?.type == ObjStoreType.dataCapsule &&
         (cfg?.dataCapsuleIsPrivate ?? true)) {
@@ -208,11 +208,9 @@ class ObjStoreService {
         if (secrets != null && secrets.isValid) {
           final bucket = dcCfg.dataCapsuleBucket!.trim();
           final endpoint = dcCfg.dataCapsuleEndpoint!.trim();
-          final region = (dcCfg.dataCapsuleRegion ?? '').trim().isEmpty
-              ? 'us-east-1'
-              : dcCfg.dataCapsuleRegion!.trim();
-          final useHttps = dcCfg.dataCapsuleUseHttps ?? true;
-          final forcePathStyle = dcCfg.dataCapsuleForcePathStyle ?? true;
+          final region = ObjStoreConfig.dataCapsuleFixedRegion;
+          final useHttps = ObjStoreConfig.dataCapsuleFixedUseHttps;
+          final forcePathStyle = ObjStoreConfig.dataCapsuleFixedForcePathStyle;
 
           final rawKey = key.trim();
           var objectKey = rawKey;
@@ -312,7 +310,8 @@ class ObjStoreService {
     ObjStoreQiniuSecrets? secrets,
     ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
   }) async {
-    switch (config.type) {
+    final normalizedConfig = config.normalizedDataCapsuleFixed();
+    switch (normalizedConfig.type) {
       case ObjStoreType.none:
         throw const ObjStoreNotConfiguredException();
       case ObjStoreType.local:
@@ -326,7 +325,7 @@ class ObjStoreService {
           uri: stored.uri,
         );
       case ObjStoreType.qiniu:
-        if (!config.isValid) {
+        if (!normalizedConfig.isValid) {
           throw const ObjStoreConfigInvalidException(
             '七牛云配置不完整，请检查 Bucket / 域名 / 上传域名',
           );
@@ -336,22 +335,22 @@ class ObjStoreService {
         }
         final key = ObjStoreKey.generate(
           filename: filename,
-          prefix: config.keyPrefix ?? '',
+          prefix: normalizedConfig.keyPrefix ?? '',
         );
         final result = await _qiniuClient.uploadBytes(
           accessKey: secrets.accessKey,
           secretKey: secrets.secretKey,
-          bucket: config.bucket!.trim(),
-          uploadHost: config.uploadHost!.trim(),
+          bucket: normalizedConfig.bucket!.trim(),
+          uploadHost: normalizedConfig.uploadHost!.trim(),
           key: key,
           bytes: bytes,
           filename: filename,
         );
-        final isPrivate = config.qiniuIsPrivate ?? false;
-        final useHttps = config.qiniuUseHttps ?? true;
+        final isPrivate = normalizedConfig.qiniuIsPrivate ?? false;
+        final useHttps = normalizedConfig.qiniuUseHttps ?? true;
         final url = isPrivate
             ? _qiniuClient.buildPrivateUrl(
-                domain: config.domain!.trim(),
+                domain: normalizedConfig.domain!.trim(),
                 key: result.key,
                 accessKey: secrets.accessKey,
                 secretKey: secrets.secretKey,
@@ -359,7 +358,7 @@ class ObjStoreService {
                 useHttps: useHttps,
               )
             : _qiniuClient.buildPublicUrl(
-                domain: config.domain!.trim(),
+                domain: normalizedConfig.domain!.trim(),
                 key: result.key,
                 useHttps: useHttps,
               );
@@ -369,30 +368,29 @@ class ObjStoreService {
           uri: url,
         );
       case ObjStoreType.dataCapsule:
-        if (!config.isValid) {
+        if (!normalizedConfig.isValid) {
           throw const ObjStoreConfigInvalidException(
-            '数据胶囊配置不完整，请检查 Bucket / Endpoint / Region',
+            '数据胶囊配置不完整，请检查 Bucket / Endpoint',
           );
         }
         if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
           throw const ObjStoreNotConfiguredException('请先填写数据胶囊 AK/SK');
         }
 
-        final bucket = config.dataCapsuleBucket!.trim();
-        final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region = (config.dataCapsuleRegion ?? '').trim().isEmpty
-            ? 'us-east-1'
-            : config.dataCapsuleRegion!.trim();
-        final useHttps = config.dataCapsuleUseHttps ?? true;
-        final isPrivate = config.dataCapsuleIsPrivate ?? true;
-        final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
-        final base = (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
-            ? config.dataCapsuleDomain!.trim()
+        final bucket = normalizedConfig.dataCapsuleBucket!.trim();
+        final endpoint = normalizedConfig.dataCapsuleEndpoint!.trim();
+        final region = ObjStoreConfig.dataCapsuleFixedRegion;
+        final useHttps = ObjStoreConfig.dataCapsuleFixedUseHttps;
+        final isPrivate = ObjStoreConfig.dataCapsuleFixedIsPrivate;
+        final forcePathStyle = ObjStoreConfig.dataCapsuleFixedForcePathStyle;
+        final base =
+            (normalizedConfig.dataCapsuleDomain?.trim().isNotEmpty ?? false)
+            ? normalizedConfig.dataCapsuleDomain!.trim()
             : endpoint;
 
         final key = ObjStoreKey.generate(
           filename: filename,
-          prefix: config.dataCapsuleKeyPrefix ?? '',
+          prefix: normalizedConfig.dataCapsuleKeyPrefix ?? '',
         );
 
         await _dataCapsuleClient.putObject(
@@ -441,13 +439,14 @@ class ObjStoreService {
     ObjStoreQiniuSecrets? secrets,
     ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
   }) async {
+    final normalizedConfig = config.normalizedDataCapsuleFixed();
     final trimmed = key.trim();
     final parsed = Uri.tryParse(trimmed);
     final isFileUri = parsed != null && parsed.scheme == 'file';
     final isHttpUrl =
         parsed != null && (parsed.scheme == 'http' || parsed.scheme == 'https');
 
-    switch (config.type) {
+    switch (normalizedConfig.type) {
       case ObjStoreType.none:
         throw const ObjStoreNotConfiguredException();
       case ObjStoreType.local:
@@ -463,11 +462,11 @@ class ObjStoreService {
         // 兼容历史数据：字段可能误存为 file://（或已拼好的 URL）。
         if (isFileUri) return trimmed;
 
-        if (!config.isValid) {
+        if (!normalizedConfig.isValid) {
           throw const ObjStoreConfigInvalidException('七牛云配置不完整，请检查访问域名');
         }
-        final isPrivate = config.qiniuIsPrivate ?? false;
-        final useHttps = config.qiniuUseHttps ?? true;
+        final isPrivate = normalizedConfig.qiniuIsPrivate ?? false;
+        final useHttps = normalizedConfig.qiniuUseHttps ?? true;
 
         // 如果 key 已经是 URL：
         // - 公有空间：直接使用该 URL
@@ -480,7 +479,7 @@ class ObjStoreService {
 
           final objectKey = parsed.pathSegments.join('/');
           return _qiniuClient.buildPrivateUrl(
-            domain: config.domain!.trim(),
+            domain: normalizedConfig.domain!.trim(),
             key: objectKey,
             accessKey: secrets.accessKey,
             secretKey: secrets.secretKey,
@@ -491,7 +490,7 @@ class ObjStoreService {
 
         if (!isPrivate) {
           return _qiniuClient.buildPublicUrl(
-            domain: config.domain!.trim(),
+            domain: normalizedConfig.domain!.trim(),
             key: key,
             useHttps: useHttps,
           );
@@ -500,7 +499,7 @@ class ObjStoreService {
           throw const ObjStoreNotConfiguredException('私有空间查询需要填写七牛云 AK/SK');
         }
         return _qiniuClient.buildPrivateUrl(
-          domain: config.domain!.trim(),
+          domain: normalizedConfig.domain!.trim(),
           key: key,
           accessKey: secrets.accessKey,
           secretKey: secrets.secretKey,
@@ -511,22 +510,21 @@ class ObjStoreService {
         // 兼容历史数据：字段可能误存为 file:// 或外部链接
         if (isFileUri) return trimmed;
 
-        if (!config.isValid) {
+        if (!normalizedConfig.isValid) {
           throw const ObjStoreConfigInvalidException(
-            '数据胶囊配置不完整，请检查 Bucket / Endpoint / Region',
+            '数据胶囊配置不完整，请检查 Bucket / Endpoint',
           );
         }
 
-        final bucket = config.dataCapsuleBucket!.trim();
-        final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region = (config.dataCapsuleRegion ?? '').trim().isEmpty
-            ? 'us-east-1'
-            : config.dataCapsuleRegion!.trim();
-        final useHttps = config.dataCapsuleUseHttps ?? true;
-        final isPrivate = config.dataCapsuleIsPrivate ?? true;
-        final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
-        final base = (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
-            ? config.dataCapsuleDomain!.trim()
+        final bucket = normalizedConfig.dataCapsuleBucket!.trim();
+        final endpoint = normalizedConfig.dataCapsuleEndpoint!.trim();
+        final region = ObjStoreConfig.dataCapsuleFixedRegion;
+        final useHttps = ObjStoreConfig.dataCapsuleFixedUseHttps;
+        final isPrivate = ObjStoreConfig.dataCapsuleFixedIsPrivate;
+        final forcePathStyle = ObjStoreConfig.dataCapsuleFixedForcePathStyle;
+        final base =
+            (normalizedConfig.dataCapsuleDomain?.trim().isNotEmpty ?? false)
+            ? normalizedConfig.dataCapsuleDomain!.trim()
             : endpoint;
 
         if (isHttpUrl) {
@@ -588,7 +586,8 @@ class ObjStoreService {
     ObjStoreQiniuSecrets? secrets,
     ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
   }) async {
-    switch (config.type) {
+    final normalizedConfig = config.normalizedDataCapsuleFixed();
+    switch (normalizedConfig.type) {
       case ObjStoreType.none:
         throw const ObjStoreNotConfiguredException();
       case ObjStoreType.local:
@@ -596,26 +595,24 @@ class ObjStoreService {
         return uri != null;
       case ObjStoreType.qiniu:
         final url = await resolveUriWithConfig(
-          config: config,
+          config: normalizedConfig,
           key: key,
           secrets: secrets,
         );
         return _qiniuClient.probePublicUrl(url: url, timeout: timeout);
       case ObjStoreType.dataCapsule:
-        if (!config.isValid) {
+        if (!normalizedConfig.isValid) {
           throw const ObjStoreConfigInvalidException(
-            '数据胶囊配置不完整，请检查 Bucket / Endpoint / Region',
+            '数据胶囊配置不完整，请检查 Bucket / Endpoint',
           );
         }
 
-        final bucket = config.dataCapsuleBucket!.trim();
-        final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region = (config.dataCapsuleRegion ?? '').trim().isEmpty
-            ? 'us-east-1'
-            : config.dataCapsuleRegion!.trim();
-        final useHttps = config.dataCapsuleUseHttps ?? true;
-        final isPrivate = config.dataCapsuleIsPrivate ?? true;
-        final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
+        final bucket = normalizedConfig.dataCapsuleBucket!.trim();
+        final endpoint = normalizedConfig.dataCapsuleEndpoint!.trim();
+        final region = ObjStoreConfig.dataCapsuleFixedRegion;
+        final useHttps = ObjStoreConfig.dataCapsuleFixedUseHttps;
+        final isPrivate = ObjStoreConfig.dataCapsuleFixedIsPrivate;
+        final forcePathStyle = ObjStoreConfig.dataCapsuleFixedForcePathStyle;
 
         if (isPrivate) {
           if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
@@ -650,7 +647,10 @@ class ObjStoreService {
           );
         }
 
-        final url = await resolveUriWithConfig(config: config, key: key);
+        final url = await resolveUriWithConfig(
+          config: normalizedConfig,
+          key: key,
+        );
         return _dataCapsuleClient.probePublicUrl(url: url, timeout: timeout);
     }
   }

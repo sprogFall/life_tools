@@ -69,9 +69,9 @@ void main() {
           endpoint: 'https://s3.example.com',
           region: 'test-region',
           keyPrefix: 'media/',
-          isPrivate: true,
-          useHttps: true,
-          forcePathStyle: true,
+          isPrivate: false,
+          useHttps: false,
+          forcePathStyle: false,
         ),
         dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
           accessKey: 'ak',
@@ -81,6 +81,22 @@ void main() {
 
       expect(service.selectedType, ObjStoreType.dataCapsule);
       expect(service.isConfigured, isTrue);
+      expect(
+        service.config!.dataCapsuleRegion,
+        ObjStoreConfig.dataCapsuleFixedRegion,
+      );
+      expect(
+        service.config!.dataCapsuleUseHttps,
+        ObjStoreConfig.dataCapsuleFixedUseHttps,
+      );
+      expect(
+        service.config!.dataCapsuleIsPrivate,
+        ObjStoreConfig.dataCapsuleFixedIsPrivate,
+      );
+      expect(
+        service.config!.dataCapsuleForcePathStyle,
+        ObjStoreConfig.dataCapsuleFixedForcePathStyle,
+      );
 
       final service2 = ObjStoreConfigService(secretStore: secretStore);
       await service2.init();
@@ -89,6 +105,22 @@ void main() {
       expect(service2.isConfigured, isTrue);
       expect(service2.dataCapsuleSecrets, isNotNull);
       expect(service2.dataCapsuleSecrets!.accessKey, 'ak');
+      expect(
+        service2.config!.dataCapsuleRegion,
+        ObjStoreConfig.dataCapsuleFixedRegion,
+      );
+      expect(
+        service2.config!.dataCapsuleUseHttps,
+        ObjStoreConfig.dataCapsuleFixedUseHttps,
+      );
+      expect(
+        service2.config!.dataCapsuleIsPrivate,
+        ObjStoreConfig.dataCapsuleFixedIsPrivate,
+      );
+      expect(
+        service2.config!.dataCapsuleForcePathStyle,
+        ObjStoreConfig.dataCapsuleFixedForcePathStyle,
+      );
     });
 
     test('清除后应恢复为未选择', () async {

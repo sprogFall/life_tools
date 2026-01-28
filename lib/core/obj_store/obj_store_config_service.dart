@@ -44,7 +44,10 @@ class ObjStoreConfigService extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    _config = ObjStoreConfig.tryFromJsonString(_prefs?.getString(_storageKey));
+    final stored = ObjStoreConfig.tryFromJsonString(
+      _prefs?.getString(_storageKey),
+    );
+    _config = stored?.normalizedDataCapsuleFixed();
     await _loadSecrets();
   }
 
@@ -54,10 +57,11 @@ class ObjStoreConfigService extends ChangeNotifier {
     ObjStoreDataCapsuleSecrets? dataCapsuleSecrets,
     bool allowMissingSecrets = false,
   }) async {
-    _config = config;
-    await _prefs?.setString(_storageKey, config.toJsonString());
+    final normalized = config.normalizedDataCapsuleFixed();
+    _config = normalized;
+    await _prefs?.setString(_storageKey, normalized.toJsonString());
 
-    if (config.type == ObjStoreType.qiniu) {
+    if (normalized.type == ObjStoreType.qiniu) {
       if (secrets == null || !secrets.isValid) {
         if (!allowMissingSecrets) {
           throw const FormatException('七牛云存储需要填写 AK/SK');
@@ -80,7 +84,7 @@ class ObjStoreConfigService extends ChangeNotifier {
       _dataCapsuleSecrets = null;
       await _secretStore.delete(key: _dataCapsuleAccessKey);
       await _secretStore.delete(key: _dataCapsuleSecretKey);
-    } else if (config.type == ObjStoreType.dataCapsule) {
+    } else if (normalized.type == ObjStoreType.dataCapsule) {
       if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
         if (!allowMissingSecrets) {
           throw const FormatException('数据胶囊存储需要填写AK/SK');

@@ -340,11 +340,7 @@ void main() {
         const ObjStoreConfig.dataCapsule(
           bucket: 'bkt',
           endpoint: 'https://s3.example.com',
-          region: 'test-region',
           keyPrefix: 'media/',
-          isPrivate: true,
-          useHttps: true,
-          forcePathStyle: true,
         ),
         dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
           accessKey: 'ak',
@@ -361,7 +357,10 @@ void main() {
             request.headers['authorization'];
         expect(auth, isNotNull);
         expect(auth!, contains('Credential=ak/'));
-        expect(auth, contains('/test-region/s3/aws4_request'));
+        expect(
+          auth,
+          contains('/${ObjStoreConfig.dataCapsuleFixedRegion}/s3/aws4_request'),
+        );
 
         final bodyBytes = await request.finalize().fold<List<int>>(
           <int>[],
@@ -399,7 +398,9 @@ void main() {
       expect(uri.queryParameters['X-Amz-Algorithm'], 'AWS4-HMAC-SHA256');
       expect(
         uri.queryParameters['X-Amz-Credential'],
-        contains('ak/20200101/test-region/s3/aws4_request'),
+        contains(
+          'ak/20200101/${ObjStoreConfig.dataCapsuleFixedRegion}/s3/aws4_request',
+        ),
       );
       expect(uri.queryParameters['X-Amz-SignedHeaders'], 'host');
       expect(uri.queryParameters['X-Amz-Signature'], isNotEmpty);
@@ -427,11 +428,7 @@ void main() {
       const cfg = ObjStoreConfig.dataCapsule(
         bucket: 'bkt',
         endpoint: 'https://s3.example.com',
-        region: 'test-region',
         keyPrefix: '',
-        isPrivate: true,
-        useHttps: true,
-        forcePathStyle: true,
       );
 
       final uriText = await service.resolveUriWithConfig(
@@ -450,13 +447,16 @@ void main() {
       expect(uri.queryParameters['X-Amz-Signature'], isNotEmpty);
     });
 
-    test('数据胶囊：Region 缺省时应使用 us-east-1 参与签名', () async {
+    test('数据胶囊：固定使用 us-east-1 参与签名', () async {
       final client = RecordingHttpClient((request) async {
         final auth =
             request.headers['Authorization'] ??
             request.headers['authorization'];
         expect(auth, isNotNull);
-        expect(auth!, contains('/us-east-1/s3/aws4_request'));
+        expect(
+          auth!,
+          contains('/${ObjStoreConfig.dataCapsuleFixedRegion}/s3/aws4_request'),
+        );
         return http.StreamedResponse(Stream.value(const <int>[]), 200);
       });
 
@@ -483,11 +483,8 @@ void main() {
         config: const ObjStoreConfig.dataCapsule(
           bucket: 'bkt',
           endpoint: 'https://s3.example.com',
-          region: '',
+          region: 'test-region',
           keyPrefix: 'media/',
-          isPrivate: true,
-          useHttps: true,
-          forcePathStyle: true,
         ),
         dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
           accessKey: 'ak',
@@ -528,13 +525,13 @@ void main() {
         config: const ObjStoreConfig.dataCapsule(
           bucket: 'bkt',
           endpoint: 'https://s3.example.com',
-          region: 'us-east-1',
           keyPrefix: '',
-          isPrivate: false,
-          useHttps: true,
-          forcePathStyle: true,
         ),
         key: 'media/a.png',
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
       );
       expect(ok, isTrue);
     });
@@ -575,11 +572,7 @@ void main() {
         config: const ObjStoreConfig.dataCapsule(
           bucket: 'bkt',
           endpoint: 'https://s3.cstcloud.cn',
-          region: 'us-east-1',
           keyPrefix: '',
-          isPrivate: true,
-          useHttps: true,
-          forcePathStyle: true,
         ),
         key: 'media/a.png',
         dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(

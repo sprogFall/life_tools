@@ -5,6 +5,11 @@ enum ObjStoreType { none, local, qiniu, dataCapsule }
 class ObjStoreConfig {
   final ObjStoreType type;
 
+  static const String dataCapsuleFixedRegion = 'us-east-1';
+  static const bool dataCapsuleFixedIsPrivate = true;
+  static const bool dataCapsuleFixedUseHttps = true;
+  static const bool dataCapsuleFixedForcePathStyle = true;
+
   // Qiniu only
   final String? bucket;
   final String? domain;
@@ -63,12 +68,12 @@ class ObjStoreConfig {
   const ObjStoreConfig.dataCapsule({
     required String bucket,
     required String endpoint,
-    String region = 'us-east-1',
+    String region = ObjStoreConfig.dataCapsuleFixedRegion,
     String? domain,
     String keyPrefix = '',
-    bool isPrivate = true,
-    bool useHttps = true,
-    bool forcePathStyle = true,
+    bool isPrivate = ObjStoreConfig.dataCapsuleFixedIsPrivate,
+    bool useHttps = ObjStoreConfig.dataCapsuleFixedUseHttps,
+    bool forcePathStyle = ObjStoreConfig.dataCapsuleFixedForcePathStyle,
   }) : this._(
          type: ObjStoreType.dataCapsule,
          dataCapsuleBucket: bucket,
@@ -92,7 +97,8 @@ class ObjStoreConfig {
             _isNonEmpty(domain) &&
             _isNonEmpty(uploadHost);
       case ObjStoreType.dataCapsule:
-        return _isNonEmpty(dataCapsuleBucket) && _isNonEmpty(dataCapsuleEndpoint);
+        return _isNonEmpty(dataCapsuleBucket) &&
+            _isNonEmpty(dataCapsuleEndpoint);
     }
   }
 
@@ -130,6 +136,16 @@ class ObjStoreConfig {
       dataCapsuleUseHttps: dataCapsuleUseHttps ?? this.dataCapsuleUseHttps,
       dataCapsuleForcePathStyle:
           dataCapsuleForcePathStyle ?? this.dataCapsuleForcePathStyle,
+    );
+  }
+
+  ObjStoreConfig normalizedDataCapsuleFixed() {
+    if (type != ObjStoreType.dataCapsule) return this;
+    return copyWith(
+      dataCapsuleRegion: dataCapsuleFixedRegion,
+      dataCapsuleIsPrivate: dataCapsuleFixedIsPrivate,
+      dataCapsuleUseHttps: dataCapsuleFixedUseHttps,
+      dataCapsuleForcePathStyle: dataCapsuleFixedForcePathStyle,
     );
   }
 
@@ -215,7 +231,7 @@ class ObjStoreConfig {
             (!endpoint.startsWith('http://'));
         final forcePathStyle =
             (map['dataCapsuleForcePathStyle'] as bool?) ?? true;
-        return ObjStoreConfig.dataCapsule(
+        final cfg = ObjStoreConfig.dataCapsule(
           bucket: bucket,
           endpoint: endpoint,
           region: region,
@@ -225,6 +241,7 @@ class ObjStoreConfig {
           useHttps: useHttps,
           forcePathStyle: forcePathStyle,
         );
+        return cfg.normalizedDataCapsuleFixed();
     }
   }
 }

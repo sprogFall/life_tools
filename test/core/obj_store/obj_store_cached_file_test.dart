@@ -157,11 +157,7 @@ void main() {
         const ObjStoreConfig.dataCapsule(
           bucket: 'bkt',
           endpoint: 'https://s3.cstcloud.cn',
-          region: 'us-east-1',
           keyPrefix: '',
-          isPrivate: true,
-          useHttps: true,
-          forcePathStyle: true,
         ),
         dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
           accessKey: 'ak',
