@@ -198,6 +198,60 @@ class ObjStoreService {
       return null;
     }
 
+    final cfg = _configService.config;
+    if (resolveUriWhenMiss == null &&
+        cfg?.type == ObjStoreType.dataCapsule &&
+        (cfg?.dataCapsuleIsPrivate ?? true)) {
+      final dcCfg = cfg!;
+      if (dcCfg.isValid) {
+        final secrets = _configService.dataCapsuleSecrets;
+        if (secrets != null && secrets.isValid) {
+          final bucket = dcCfg.dataCapsuleBucket!.trim();
+          final endpoint = dcCfg.dataCapsuleEndpoint!.trim();
+          final region = (dcCfg.dataCapsuleRegion ?? '').trim().isEmpty
+              ? 'us-east-1'
+              : dcCfg.dataCapsuleRegion!.trim();
+          final useHttps = dcCfg.dataCapsuleUseHttps ?? true;
+          final forcePathStyle = dcCfg.dataCapsuleForcePathStyle ?? true;
+
+          final rawKey = key.trim();
+          var objectKey = rawKey;
+          final parsed = Uri.tryParse(rawKey);
+          if (parsed != null &&
+              (parsed.scheme == 'http' || parsed.scheme == 'https')) {
+            objectKey = _extractDataCapsuleObjectKeyFromUrl(
+              uri: parsed,
+              bucket: bucket,
+              forcePathStyle: forcePathStyle,
+            );
+          }
+
+          if (objectKey.isNotEmpty) {
+            final bytes = await _dataCapsuleClient.getPrivateObjectBytes(
+              accessKey: secrets.accessKey,
+              secretKey: secrets.secretKey,
+              region: region,
+              endpoint: endpoint,
+              bucket: bucket,
+              key: objectKey,
+              useHttps: useHttps,
+              forcePathStyle: forcePathStyle,
+              timeout: timeout,
+            );
+            final cached = bytes == null
+                ? null
+                : await _writeCacheBytes(
+                    baseDirProvider: baseDirProvider,
+                    cacheKey: normalizedKey,
+                    extHint: _extractExt(objectKey),
+                    bytes: bytes,
+                  );
+            if (cached != null) return cached;
+          }
+        }
+      }
+    }
+
     final uriText =
         (await (resolveUriWhenMiss ?? (() => resolveUri(key: key)))()).trim();
     if (uriText.isEmpty) return null;
@@ -213,10 +267,30 @@ class ObjStoreService {
     }
 
     // 下载并写入缓存（key 的归一化保证 token 变化不影响缓存命中）
-    final file = await _cacheFileForKey(
+    final resp = await _cacheHttpClient
+        .get(Uri.parse(uriText))
+        .timeout(timeout);
+    if (resp.statusCode < 200 || resp.statusCode >= 300) return null;
+    if (resp.bodyBytes.isEmpty) return null;
+    return _writeCacheBytes(
       baseDirProvider: baseDirProvider,
       cacheKey: normalizedKey,
       extHint: _extractExt(uriText),
+      bytes: resp.bodyBytes,
+    );
+  }
+
+  Future<File?> _writeCacheBytes({
+    required BaseDirProvider baseDirProvider,
+    required String cacheKey,
+    required String extHint,
+    required Uint8List bytes,
+  }) async {
+    if (bytes.isEmpty) return null;
+    final file = await _cacheFileForKey(
+      baseDirProvider: baseDirProvider,
+      cacheKey: cacheKey,
+      extHint: extHint,
     );
     final tmp = File('${file.path}.tmp');
     if (tmp.existsSync()) {
@@ -225,15 +299,9 @@ class ObjStoreService {
       } catch (_) {}
     }
 
-    final resp = await _cacheHttpClient
-        .get(Uri.parse(uriText))
-        .timeout(timeout);
-    if (resp.statusCode < 200 || resp.statusCode >= 300) return null;
-    if (resp.bodyBytes.isEmpty) return null;
-
-    await tmp.writeAsBytes(resp.bodyBytes, flush: true);
+    await tmp.writeAsBytes(bytes, flush: true);
     await tmp.rename(file.path);
-    _memoryCache[normalizedKey] = file;
+    _memoryCache[cacheKey] = file;
     return file;
   }
 

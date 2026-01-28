@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:life_tools/core/obj_store/data_capsule/data_capsule_client.dart';
 import 'package:life_tools/core/obj_store/obj_store_config.dart';
 import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
 import 'package:life_tools/core/obj_store/obj_store_service.dart';
@@ -13,6 +14,8 @@ import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.da
 import 'package:life_tools/core/obj_store/storage/local_obj_store.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../test_helpers/recording_http_client.dart';
 
 class _CountingHttpClient extends http.BaseClient {
   int getCount = 0;
@@ -136,6 +139,67 @@ void main() {
       final f2 = await service.ensureCachedFile(key: key);
       expect(f2!.path, f1.path);
       expect(client.getCount, 1);
+    });
+
+    test('ensureCachedFile：数据胶囊私有空间应使用签名GET并落盘缓存', () async {
+      final baseDir = await Directory.systemTemp.createTemp('life_tools_test_');
+      addTearDown(() async {
+        try {
+          await baseDir.delete(recursive: true);
+        } catch (_) {}
+      });
+
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+      await configService.save(
+        const ObjStoreConfig.dataCapsule(
+          bucket: 'bkt',
+          endpoint: 'https://s3.cstcloud.cn',
+          region: 'us-east-1',
+          keyPrefix: '',
+          isPrivate: true,
+          useHttps: true,
+          forcePathStyle: true,
+        ),
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
+      );
+
+      final signedClient = RecordingHttpClient((request) async {
+        expect(request.method, 'GET');
+        expect(
+          request.headers['Authorization'] ?? request.headers['authorization'],
+          isNotNull,
+        );
+        return http.StreamedResponse(
+          Stream.value(Uint8List.fromList([4, 5, 6])),
+          200,
+        );
+      });
+      final cacheClient = _CountingHttpClient(
+        body: Uint8List.fromList([9, 9, 9]),
+      );
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(baseDirProvider: () async => baseDir),
+        qiniuClient: QiniuClient(),
+        dataCapsuleClient: DataCapsuleClient(
+          httpClient: signedClient,
+          nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+        ),
+        cacheBaseDirProvider: () async => baseDir,
+        cacheHttpClient: cacheClient,
+      );
+
+      final f1 = await service.ensureCachedFile(key: 'media/a.png');
+      expect(f1, isNotNull);
+      expect(await f1!.readAsBytes(), [4, 5, 6]);
+      expect(cacheClient.getCount, 0);
     });
 
     test(

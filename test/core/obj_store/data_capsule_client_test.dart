@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/obj_store/data_capsule/data_capsule_client.dart';
@@ -115,6 +116,44 @@ void main() {
         timeout: const Duration(seconds: 1),
       );
       expect(ok, isTrue);
+    });
+  });
+
+  group('DataCapsuleClient.getPrivateObjectBytes', () {
+    test('应使用签名 GET 并返回内容', () async {
+      final client = RecordingHttpClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.toString(), contains('/bkt/media/a.jpg'));
+        expect(
+          request.headers['Authorization'] ?? request.headers['authorization'],
+          isNotNull,
+        );
+        expect(request.headers['x-amz-date'], isNotNull);
+        expect(request.headers['x-amz-content-sha256'], isNotNull);
+        return http.StreamedResponse(
+          Stream.value(Uint8List.fromList([1, 2, 3])),
+          200,
+        );
+      });
+
+      final bytes =
+          await DataCapsuleClient(
+            httpClient: client,
+            nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+          ).getPrivateObjectBytes(
+            accessKey: 'ak',
+            secretKey: 'sk',
+            region: 'us-east-1',
+            endpoint: 's3.cstcloud.cn',
+            bucket: 'bkt',
+            key: 'media/a.jpg',
+            useHttps: true,
+            forcePathStyle: true,
+            timeout: const Duration(seconds: 1),
+          );
+
+      expect(bytes, isNotNull);
+      expect(bytes, [1, 2, 3]);
     });
   });
 }

@@ -233,6 +233,51 @@ class DataCapsuleClient {
     }
   }
 
+  Future<Uint8List?> getPrivateObjectBytes({
+    required String accessKey,
+    required String secretKey,
+    required String region,
+    required String endpoint,
+    required String bucket,
+    required String key,
+    required bool useHttps,
+    required bool forcePathStyle,
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
+    try {
+      final endpointUri = normalizeBaseUri(endpoint, useHttps: useHttps);
+      if (endpointUri.host.isEmpty) return null;
+
+      final uri = _buildObjectUri(
+        base: endpointUri,
+        bucket: bucket,
+        key: key,
+        forcePathStyle: forcePathStyle,
+      );
+
+      final payloadHash = sha256.convert(const <int>[]).toString();
+      final signedHeaders = _buildSignedHeaders(
+        method: 'GET',
+        uri: uri,
+        region: region,
+        accessKey: accessKey,
+        secretKey: secretKey,
+        payloadHash: payloadHash,
+      );
+
+      final req = http.Request('GET', uri)..headers.addAll(signedHeaders);
+      final resp = await _httpClient.send(req).timeout(timeout);
+      final code = resp.statusCode;
+      if (code < 200 || code >= 300) return null;
+
+      final bytes = await resp.stream.toBytes();
+      if (bytes.isEmpty) return null;
+      return bytes;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static void _cancelStreamedResponse(http.StreamedResponse resp) {
     try {
       resp.stream.listen((_) {}).cancel();
