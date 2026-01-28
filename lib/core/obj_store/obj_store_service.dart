@@ -312,15 +312,13 @@ class ObjStoreService {
 
         final bucket = config.dataCapsuleBucket!.trim();
         final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region =
-            (config.dataCapsuleRegion ?? '').trim().isEmpty
+        final region = (config.dataCapsuleRegion ?? '').trim().isEmpty
             ? 'us-east-1'
             : config.dataCapsuleRegion!.trim();
         final useHttps = config.dataCapsuleUseHttps ?? true;
         final isPrivate = config.dataCapsuleIsPrivate ?? true;
         final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
-        final base =
-            (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
+        final base = (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
             ? config.dataCapsuleDomain!.trim()
             : endpoint;
 
@@ -453,24 +451,20 @@ class ObjStoreService {
 
         final bucket = config.dataCapsuleBucket!.trim();
         final endpoint = config.dataCapsuleEndpoint!.trim();
-        final region =
-            (config.dataCapsuleRegion ?? '').trim().isEmpty
+        final region = (config.dataCapsuleRegion ?? '').trim().isEmpty
             ? 'us-east-1'
             : config.dataCapsuleRegion!.trim();
         final useHttps = config.dataCapsuleUseHttps ?? true;
         final isPrivate = config.dataCapsuleIsPrivate ?? true;
         final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
-        final base =
-            (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
+        final base = (config.dataCapsuleDomain?.trim().isNotEmpty ?? false)
             ? config.dataCapsuleDomain!.trim()
             : endpoint;
 
         if (isHttpUrl) {
           if (!isPrivate) return trimmed;
           if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
-            throw const ObjStoreNotConfiguredException(
-              '私有空间查询需要填写数据胶囊 AK/SK',
-            );
+            throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊 AK/SK');
           }
           final objectKey = _extractDataCapsuleObjectKeyFromUrl(
             uri: parsed,
@@ -503,9 +497,7 @@ class ObjStoreService {
           );
         }
         if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
-          throw const ObjStoreNotConfiguredException(
-            '私有空间查询需要填写数据胶囊 AK/SK',
-          );
+          throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊 AK/SK');
         }
         return _dataCapsuleClient.buildPrivateGetUrl(
           base: base,
@@ -542,11 +534,55 @@ class ObjStoreService {
         );
         return _qiniuClient.probePublicUrl(url: url, timeout: timeout);
       case ObjStoreType.dataCapsule:
-        final url = await resolveUriWithConfig(
-          config: config,
-          key: key,
-          dataCapsuleSecrets: dataCapsuleSecrets,
-        );
+        if (!config.isValid) {
+          throw const ObjStoreConfigInvalidException(
+            '数据胶囊配置不完整，请检查 Bucket / Endpoint / Region',
+          );
+        }
+
+        final bucket = config.dataCapsuleBucket!.trim();
+        final endpoint = config.dataCapsuleEndpoint!.trim();
+        final region = (config.dataCapsuleRegion ?? '').trim().isEmpty
+            ? 'us-east-1'
+            : config.dataCapsuleRegion!.trim();
+        final useHttps = config.dataCapsuleUseHttps ?? true;
+        final isPrivate = config.dataCapsuleIsPrivate ?? true;
+        final forcePathStyle = config.dataCapsuleForcePathStyle ?? true;
+
+        if (isPrivate) {
+          if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
+            throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊 AK/SK');
+          }
+
+          final trimmed = key.trim();
+          final parsed = Uri.tryParse(trimmed);
+          var objectKey = trimmed;
+          if (parsed != null &&
+              (parsed.scheme == 'http' || parsed.scheme == 'https')) {
+            objectKey = _extractDataCapsuleObjectKeyFromUrl(
+              uri: parsed,
+              bucket: bucket,
+              forcePathStyle: forcePathStyle,
+            );
+          }
+          if (objectKey.isEmpty) {
+            throw const ObjStoreQueryException('数据胶囊 URL 解析失败');
+          }
+
+          return _dataCapsuleClient.probePrivateObject(
+            accessKey: dataCapsuleSecrets.accessKey,
+            secretKey: dataCapsuleSecrets.secretKey,
+            region: region,
+            endpoint: endpoint,
+            bucket: bucket,
+            key: objectKey,
+            useHttps: useHttps,
+            forcePathStyle: forcePathStyle,
+            timeout: timeout,
+          );
+        }
+
+        final url = await resolveUriWithConfig(config: config, key: key);
         return _dataCapsuleClient.probePublicUrl(url: url, timeout: timeout);
     }
   }

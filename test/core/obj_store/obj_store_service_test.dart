@@ -538,5 +538,56 @@ void main() {
       );
       expect(ok, isTrue);
     });
+
+    test('数据胶囊私有空间：probeWithConfig 应走签名 GET', () async {
+      final client = RecordingHttpClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.headers['Range'], 'bytes=0-0');
+        expect(
+          request.headers['Authorization'] ?? request.headers['authorization'],
+          isNotNull,
+        );
+        expect(request.headers['x-amz-date'], isNotNull);
+        expect(request.headers['x-amz-content-sha256'], isNotNull);
+        return http.StreamedResponse(Stream.value(const <int>[]), 206);
+      });
+
+      final configService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await configService.init();
+
+      final service = ObjStoreService(
+        configService: configService,
+        localStore: LocalObjStore(
+          baseDirProvider: () async => Directory.systemTemp.createTemp(),
+        ),
+        qiniuClient: QiniuClient(
+          authFactory: (ak, sk) => QiniuAuth(accessKey: ak, secretKey: sk),
+        ),
+        dataCapsuleClient: DataCapsuleClient(
+          httpClient: client,
+          nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+        ),
+      );
+
+      final ok = await service.probeWithConfig(
+        config: const ObjStoreConfig.dataCapsule(
+          bucket: 'bkt',
+          endpoint: 'https://s3.cstcloud.cn',
+          region: 'us-east-1',
+          keyPrefix: '',
+          isPrivate: true,
+          useHttps: true,
+          forcePathStyle: true,
+        ),
+        key: 'media/a.png',
+        dataCapsuleSecrets: const ObjStoreDataCapsuleSecrets(
+          accessKey: 'ak',
+          secretKey: 'sk',
+        ),
+      );
+      expect(ok, isTrue);
+    });
   });
 }

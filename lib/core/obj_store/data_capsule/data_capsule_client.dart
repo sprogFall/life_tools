@@ -39,59 +39,18 @@ class DataCapsuleClient {
       forcePathStyle: forcePathStyle,
     );
 
-    final now = _nowUtc();
-    final amzDate = _formatAmzDate(now);
-    final dateStamp = _formatDateStamp(now);
     final payloadHash = sha256.convert(bytes).toString();
-
-    final hostHeader = _hostHeaderValue(uri);
-    final canonicalUri = _canonicalPath(uri);
-    const canonicalQuery = '';
-
-    final canonicalHeaders = StringBuffer()
-      ..writeln('host:$hostHeader')
-      ..writeln('x-amz-content-sha256:$payloadHash')
-      ..writeln('x-amz-date:$amzDate');
-
-    const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
-
-    final canonicalRequest =
-        'PUT\n'
-        '$canonicalUri\n'
-        '$canonicalQuery\n'
-        '${canonicalHeaders.toString()}\n'
-        '$signedHeaders\n'
-        '$payloadHash';
-
-    final scope = '$dateStamp/$region/s3/aws4_request';
-    final stringToSign =
-        'AWS4-HMAC-SHA256\n'
-        '$amzDate\n'
-        '$scope\n'
-        '${sha256.convert(utf8.encode(canonicalRequest))}';
-
-    final signingKey = _deriveSigningKey(
-      secretKey: secretKey,
-      dateStamp: dateStamp,
+    final signedHeaders = _buildSignedHeaders(
+      method: 'PUT',
+      uri: uri,
       region: region,
-      service: 's3',
+      accessKey: accessKey,
+      secretKey: secretKey,
+      payloadHash: payloadHash,
     );
-    final signature = Hmac(
-      sha256,
-      signingKey,
-    ).convert(utf8.encode(stringToSign)).toString();
-
-    final authorization =
-        'AWS4-HMAC-SHA256 '
-        'Credential=$accessKey/$scope, '
-        'SignedHeaders=$signedHeaders, '
-        'Signature=$signature';
 
     final req = http.Request('PUT', uri)
-      ..headers['host'] = hostHeader
-      ..headers['x-amz-date'] = amzDate
-      ..headers['x-amz-content-sha256'] = payloadHash
-      ..headers['Authorization'] = authorization
+      ..headers.addAll(signedHeaders)
       ..bodyBytes = bytes;
 
     final resp = await _httpClient.send(req);
@@ -228,6 +187,52 @@ class DataCapsuleClient {
     }
   }
 
+  Future<bool> probePrivateObject({
+    required String accessKey,
+    required String secretKey,
+    required String region,
+    required String endpoint,
+    required String bucket,
+    required String key,
+    required bool useHttps,
+    required bool forcePathStyle,
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    try {
+      final endpointUri = normalizeBaseUri(endpoint, useHttps: useHttps);
+      if (endpointUri.host.isEmpty) return false;
+
+      final uri = _buildObjectUri(
+        base: endpointUri,
+        bucket: bucket,
+        key: key,
+        forcePathStyle: forcePathStyle,
+      );
+
+      final payloadHash = sha256.convert(const <int>[]).toString();
+      final signedHeaders = _buildSignedHeaders(
+        method: 'GET',
+        uri: uri,
+        region: region,
+        accessKey: accessKey,
+        secretKey: secretKey,
+        payloadHash: payloadHash,
+      );
+
+      final req = http.Request('GET', uri)
+        ..headers.addAll(signedHeaders)
+        ..headers['Range'] = 'bytes=0-0';
+
+      final resp = await _httpClient.send(req).timeout(timeout);
+      _cancelStreamedResponse(resp);
+      final code = resp.statusCode;
+      if (code == 416) return true;
+      return code >= 200 && code < 400;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static void _cancelStreamedResponse(http.StreamedResponse resp) {
     try {
       resp.stream.listen((_) {}).cancel();
@@ -317,6 +322,68 @@ class DataCapsuleClient {
 
   static String _encodeQueryComponent(String input) =>
       Uri.encodeQueryComponent(input);
+
+  Map<String, String> _buildSignedHeaders({
+    required String method,
+    required Uri uri,
+    required String region,
+    required String accessKey,
+    required String secretKey,
+    required String payloadHash,
+  }) {
+    final now = _nowUtc();
+    final amzDate = _formatAmzDate(now);
+    final dateStamp = _formatDateStamp(now);
+    final hostHeader = _hostHeaderValue(uri);
+    final canonicalUri = _canonicalPath(uri);
+    const canonicalQuery = '';
+
+    final canonicalHeaders = StringBuffer()
+      ..writeln('host:$hostHeader')
+      ..writeln('x-amz-content-sha256:$payloadHash')
+      ..writeln('x-amz-date:$amzDate');
+
+    const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+
+    final canonicalRequest =
+        '${method.toUpperCase()}\n'
+        '$canonicalUri\n'
+        '$canonicalQuery\n'
+        '${canonicalHeaders.toString()}\n'
+        '$signedHeaders\n'
+        '$payloadHash';
+
+    final scope = '$dateStamp/$region/s3/aws4_request';
+    final stringToSign =
+        'AWS4-HMAC-SHA256\n'
+        '$amzDate\n'
+        '$scope\n'
+        '${sha256.convert(utf8.encode(canonicalRequest))}';
+
+    final signingKey = _deriveSigningKey(
+      secretKey: secretKey,
+      dateStamp: dateStamp,
+      region: region,
+      service: 's3',
+    );
+    final signature = Hmac(
+      sha256,
+      signingKey,
+    ).convert(utf8.encode(stringToSign)).toString();
+
+    final authorization =
+        'AWS4-HMAC-SHA256 '
+        'Credential=$accessKey/$scope, '
+        'SignedHeaders=$signedHeaders, '
+        'Signature=$signature';
+
+    return {
+      'host': hostHeader,
+      'x-amz-date': amzDate,
+      'x-amz-content-sha256': payloadHash,
+      'Authorization': authorization,
+    };
+  }
 
   static Uint8List _deriveSigningKey({
     required String secretKey,

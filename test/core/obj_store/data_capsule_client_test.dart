@@ -64,4 +64,57 @@ void main() {
       expect(ok, isTrue);
     });
   });
+
+  group('DataCapsuleClient.probePrivateObject', () {
+    test('应使用签名 GET + Range，并携带 Authorization 头', () async {
+      final client = RecordingHttpClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.toString(), contains('/bkt/media/a.jpg'));
+        expect(request.headers['Range'], 'bytes=0-0');
+        expect(
+          request.headers['Authorization'] ?? request.headers['authorization'],
+          isNotNull,
+        );
+        expect(request.headers['x-amz-date'], isNotNull);
+        expect(request.headers['x-amz-content-sha256'], isNotNull);
+        return http.StreamedResponse(const Stream<List<int>>.empty(), 206);
+      });
+
+      final ok =
+          await DataCapsuleClient(
+            httpClient: client,
+            nowUtc: () => DateTime.utc(2020, 1, 1, 0, 0, 0),
+          ).probePrivateObject(
+            accessKey: 'ak',
+            secretKey: 'sk',
+            region: 'us-east-1',
+            endpoint: 's3.cstcloud.cn',
+            bucket: 'bkt',
+            key: 'media/a.jpg',
+            useHttps: true,
+            forcePathStyle: true,
+            timeout: const Duration(seconds: 1),
+          );
+      expect(ok, isTrue);
+    });
+
+    test('416 也应视为存在', () async {
+      final client = RecordingHttpClient((request) async {
+        return http.StreamedResponse(const Stream<List<int>>.empty(), 416);
+      });
+
+      final ok = await DataCapsuleClient(httpClient: client).probePrivateObject(
+        accessKey: 'ak',
+        secretKey: 'sk',
+        region: 'us-east-1',
+        endpoint: 's3.cstcloud.cn',
+        bucket: 'bkt',
+        key: 'media/empty.jpg',
+        useHttps: true,
+        forcePathStyle: true,
+        timeout: const Duration(seconds: 1),
+      );
+      expect(ok, isTrue);
+    });
+  });
 }
