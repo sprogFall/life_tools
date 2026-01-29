@@ -116,6 +116,7 @@ class BackupRestoreService {
       'settings': {
         'default_tool_id': settingsService.defaultToolId,
         'tool_order': settingsService.toolOrder,
+        'hidden_tool_ids': settingsService.hiddenToolIds,
       },
       'tools': tools,
     };
@@ -303,6 +304,11 @@ class BackupRestoreService {
       final toolOrder = toolOrderRaw is List
           ? toolOrderRaw.whereType<String>().toList()
           : const <String>[];
+      final hasHiddenToolIds = settingsMap.containsKey('hidden_tool_ids');
+      final hiddenRaw = settingsMap['hidden_tool_ids'];
+      final hiddenToolIds = hiddenRaw is List
+          ? hiddenRaw.whereType<String>().toList()
+          : const <String>[];
 
       if (toolOrder.isNotEmpty) {
         final known = ToolRegistry.instance.tools.map((t) => t.id).toSet();
@@ -310,6 +316,10 @@ class BackupRestoreService {
         if (filtered.isNotEmpty) {
           await settingsService.updateToolOrder(filtered);
         }
+      }
+
+      if (hasHiddenToolIds) {
+        await settingsService.setHiddenToolIds(hiddenToolIds);
       }
 
       if (defaultToolId != null && defaultToolId.trim().isNotEmpty) {

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
+import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/obj_store/obj_store_config.dart';
 import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
 import 'package:life_tools/core/obj_store/obj_store_secrets.dart';
@@ -197,6 +198,86 @@ void main() {
       expect(sync['customHeaders'], isA<Map>());
 
       expect(map['obj_store_secrets'], isA<Map>());
+    });
+
+    test('导出/还原应包含工具管理信息（首页隐藏工具）', () async {
+      final db1 = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      addTearDown(() async => db1.close());
+
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService(databaseProvider: () async => db1);
+      await settingsService.init();
+      await settingsService.setToolHidden('overcooked_kitchen', true);
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: const [],
+      );
+
+      final jsonText = await service.exportAsJson();
+      final map = jsonDecode(jsonText) as Map<String, dynamic>;
+      final settings = Map<String, dynamic>.from(map['settings'] as Map);
+      final hidden =
+          (settings['hidden_tool_ids'] as List?)?.whereType<String>().toList() ??
+          const <String>[];
+      expect(hidden, contains('overcooked_kitchen'));
+
+      SharedPreferences.setMockInitialValues({});
+
+      final db2 = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      addTearDown(() async => db2.close());
+
+      final aiConfigService2 = AiConfigService();
+      await aiConfigService2.init();
+      final syncConfigService2 = SyncConfigService();
+      await syncConfigService2.init();
+      final objStoreConfigService2 = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService2.init();
+
+      final settingsService2 = SettingsService(databaseProvider: () async => db2);
+      await settingsService2.init();
+
+      final service2 = BackupRestoreService(
+        aiConfigService: aiConfigService2,
+        syncConfigService: syncConfigService2,
+        settingsService: settingsService2,
+        objStoreConfigService: objStoreConfigService2,
+        toolProviders: const [],
+      );
+
+      await service2.restoreFromJson(jsonText);
+
+      expect(settingsService2.hiddenToolIds, contains('overcooked_kitchen'));
+      expect(
+        settingsService2.getHomeTools().any((t) => t.id == 'overcooked_kitchen'),
+        isFalse,
+      );
     });
 
     test('导出为 TXT 文件时应使用紧凑 JSON（不换行）', () async {

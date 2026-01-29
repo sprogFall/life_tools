@@ -144,7 +144,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('设置'), findsOneWidget);
-      expect(find.text('默认打开工具'), findsOneWidget);
+      expect(find.text('工具管理'), findsOneWidget);
     });
 
     testWidgets('设置弹出层中 AI 模型名过长应使用省略号', (tester) async {

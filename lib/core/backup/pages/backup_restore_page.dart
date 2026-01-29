@@ -129,7 +129,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           _buildHint('1) AI 配置（Base URL / 模型 / 参数）'),
           _buildHint('2) 数据同步配置（服务器/网络模式等）'),
           _buildHint('3) 资源存储配置（七牛/本地）'),
-          _buildHint('4) 默认打开工具/工具排序等应用配置'),
+          _buildHint('4) 工具管理（默认进入/首页显示/工具排序等应用配置）'),
           _buildHint('5) 各工具数据（通过 ToolSyncProvider 导出）'),
           const SizedBox(height: 10),
           Row(

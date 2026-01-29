@@ -11,6 +11,7 @@ typedef DatabaseProvider = Future<Database> Function();
 /// 应用设置服务：管理工具排序与默认工具配置
 class SettingsService extends ChangeNotifier {
   static const String _defaultToolKey = 'default_tool_id';
+  static const String _hiddenToolIdsKey = 'hidden_tool_ids';
   static const String _tagManagerToolId = 'tag_manager';
   static const String _workLogToolId = 'work_log';
   static const String _stockpileToolId = 'stockpile_assistant';
@@ -21,6 +22,7 @@ class SettingsService extends ChangeNotifier {
   SharedPreferences? _prefs;
   String? _defaultToolId;
   List<String> _toolOrder = [];
+  Set<String> _hiddenToolIds = {};
 
   SettingsService({DatabaseProvider? databaseProvider})
     : _databaseProvider =
@@ -28,11 +30,33 @@ class SettingsService extends ChangeNotifier {
 
   String? get defaultToolId => _defaultToolId;
   List<String> get toolOrder => List.unmodifiable(_toolOrder);
+  List<String> get hiddenToolIds {
+    final ordered = <String>[];
+    for (final id in _toolOrder) {
+      if (_hiddenToolIds.contains(id)) ordered.add(id);
+    }
+    for (final id in _hiddenToolIds) {
+      if (!ordered.contains(id)) ordered.add(id);
+    }
+    return List.unmodifiable(ordered);
+  }
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     _defaultToolId = _prefs?.getString(_defaultToolKey);
+    _hiddenToolIds = _loadHiddenToolIds();
     await _loadToolOrder();
+  }
+
+  Set<String> _loadHiddenToolIds() {
+    final raw = _prefs?.getStringList(_hiddenToolIdsKey) ?? const <String>[];
+    final known = ToolRegistry.instance.tools.map((t) => t.id).toSet();
+    return raw.where(known.contains).toSet();
+  }
+
+  Future<void> _saveHiddenToolIds() async {
+    final ids = hiddenToolIds;
+    await _prefs?.setStringList(_hiddenToolIdsKey, ids);
   }
 
   Future<void> _loadToolOrder() async {
@@ -93,9 +117,62 @@ class SettingsService extends ChangeNotifier {
     return sortedTools;
   }
 
+  List<ToolInfo> getHomeTools() {
+    return getSortedTools()
+        .where((t) => !_hiddenToolIds.contains(t.id))
+        .toList(growable: false);
+  }
+
   Future<void> updateToolOrder(List<String> newOrder) async {
     _toolOrder = _ensureTagManagerLast(newOrder);
     await _saveToolOrder();
+    notifyListeners();
+  }
+
+  Future<void> updateHomeToolOrder(List<String> newVisibleOrder) async {
+    // 按“旧顺序中的可见位置”替换，从而保留隐藏工具的占位顺序。
+    final current = List<String>.from(_toolOrder);
+    final visibleInCurrent = current.where((id) => !_hiddenToolIds.contains(id));
+
+    final visibleSet = visibleInCurrent.toSet();
+    final normalized = <String>[
+      ...newVisibleOrder.where(visibleSet.contains),
+      ...visibleInCurrent.where((id) => !newVisibleOrder.contains(id)),
+    ];
+
+    var visibleWriteIndex = 0;
+    final merged = current
+        .map((id) {
+          if (_hiddenToolIds.contains(id)) return id;
+          if (visibleWriteIndex >= normalized.length) return id;
+          return normalized[visibleWriteIndex++];
+        })
+        .toList(growable: false);
+
+    await updateToolOrder(merged);
+  }
+
+  bool isToolHidden(String toolId) => _hiddenToolIds.contains(toolId);
+
+  Future<void> setToolHidden(String toolId, bool hidden) async {
+    final known = ToolRegistry.instance.getById(toolId);
+    if (known == null) return;
+
+    final changed = hidden
+        ? _hiddenToolIds.add(toolId)
+        : _hiddenToolIds.remove(toolId);
+    if (!changed) return;
+
+    await _saveHiddenToolIds();
+    notifyListeners();
+  }
+
+  Future<void> setHiddenToolIds(Iterable<String> toolIds) async {
+    final known = ToolRegistry.instance.tools.map((t) => t.id).toSet();
+    final next = toolIds.where(known.contains).toSet();
+    if (setEquals(next, _hiddenToolIds)) return;
+    _hiddenToolIds = next;
+    await _saveHiddenToolIds();
     notifyListeners();
   }
 

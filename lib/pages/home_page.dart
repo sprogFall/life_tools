@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import '../core/messages/message_service.dart';
 import '../core/messages/pages/all_messages_page.dart';
 import '../core/messages/message_navigation.dart';
@@ -16,8 +18,10 @@ import '../core/services/settings_service.dart';
 import '../core/sync/services/sync_config_service.dart';
 import '../core/sync/pages/sync_settings_page.dart';
 import '../core/theme/ios26_theme.dart';
+import '../core/widgets/ios26_settings_row.dart';
 import 'ai_settings_page.dart';
 import 'obj_store_settings_page.dart';
+import 'tool_management_page.dart';
 
 /// 首页欢迎页面，iOS 26 风格
 class HomePage extends StatelessWidget {
@@ -72,7 +76,7 @@ class HomePage extends StatelessWidget {
                 Expanded(
                   child: Consumer2<SettingsService, MessageService>(
                     builder: (context, settings, messageService, child) {
-                      final tools = settings.getSortedTools();
+                      final tools = settings.getHomeTools();
                       return _buildContent(
                         context,
                         tools,
@@ -237,7 +241,17 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // 工具网格
-          GridView.builder(
+          if (tools.isEmpty)
+            Text(
+              '暂无可显示的工具，请到「工具管理」中开启',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
+              ),
+            )
+          else
+            ReorderableGridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -247,9 +261,33 @@ class HomePage extends StatelessWidget {
               childAspectRatio: 1.1,
             ),
             itemCount: tools.length,
+            dragStartDelay: const Duration(milliseconds: 250),
+            dragWidgetBuilderV2: DragWidgetBuilderV2(
+              builder: (index, child, screenshot) {
+                return Transform.scale(
+                  scale: 1.03,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    elevation: 10,
+                    shadowColor: Colors.black.withValues(alpha: 0.22),
+                    child: Opacity(opacity: 0.98, child: child),
+                  ),
+                );
+              },
+            ),
+            onReorder: (oldIndex, newIndex) {
+              if (oldIndex == newIndex) return;
+              HapticFeedback.selectionClick();
+
+              final ids = tools.map((t) => t.id).toList(growable: true);
+              final moved = ids.removeAt(oldIndex);
+              ids.insert(newIndex, moved);
+              unawaited(settings.updateHomeToolOrder(ids));
+            },
             itemBuilder: (context, index) {
               final tool = tools[index];
               return _IOS26ToolCard(
+                key: ValueKey('home_tool_${tool.id}'),
                 tool: tool,
                 isDefault: tool.id == settings.defaultToolId,
                 onTap: () {
@@ -405,6 +443,7 @@ class _IOS26ToolCard extends StatefulWidget {
   final VoidCallback onTap;
 
   const _IOS26ToolCard({
+    super.key,
     required this.tool,
     required this.isDefault,
     required this.onTap,
@@ -671,20 +710,16 @@ class _SettingsSheet extends StatelessWidget {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _SettingsItem(
+                        IOS26SettingsRow(
                           icon: CupertinoIcons.app,
-                          title: '默认打开工具',
+                          title: '工具管理',
                           value: settings.defaultToolId == null
-                              ? '首页'
-                              : tools
-                                        .where(
-                                          (t) => t.id == settings.defaultToolId,
-                                        )
+                              ? '默认：首页'
+                              : '默认：${tools
+                                        .where((t) => t.id == settings.defaultToolId)
                                         .firstOrNull
-                                        ?.name ??
-                                    '首页',
-                          onTap: () =>
-                              _showToolPicker(context, settings, tools),
+                                        ?.name ?? '首页'}',
+                          onTap: () => _openToolManagement(context),
                         ),
                         Container(
                           height: 0.5,
@@ -693,7 +728,7 @@ class _SettingsSheet extends StatelessWidget {
                             alpha: 0.25,
                           ),
                         ),
-                        _SettingsItem(
+                        IOS26SettingsRow(
                           icon: CupertinoIcons.sparkles,
                           title: 'AI配置',
                           value: aiValue,
@@ -708,7 +743,7 @@ class _SettingsSheet extends StatelessWidget {
                         ),
                         Consumer<SyncConfigService>(
                           builder: (context, syncConfig, _) {
-                            return _SettingsItem(
+                            return IOS26SettingsRow(
                               icon: CupertinoIcons.cloud_upload,
                               title: '数据同步',
                               value: syncConfig.isConfigured ? '已配置' : '未配置',
@@ -744,7 +779,7 @@ class _SettingsSheet extends StatelessWidget {
                                           : '数据胶囊(公有)')
                                     : '未配置',
                             };
-                            return _SettingsItem(
+                            return IOS26SettingsRow(
                               icon: CupertinoIcons.photo_on_rectangle,
                               title: '资源存储',
                               value: value,
@@ -759,7 +794,7 @@ class _SettingsSheet extends StatelessWidget {
                             alpha: 0.25,
                           ),
                         ),
-                        _SettingsItem(
+                        IOS26SettingsRow(
                           icon: CupertinoIcons.archivebox,
                           title: '备份与还原',
                           value: '导入/导出',
@@ -776,7 +811,7 @@ class _SettingsSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                '设置默认工具后，下次打开应用将直接进入该工具',
+                '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序',
                 style: TextStyle(
                   fontSize: 13,
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
@@ -791,68 +826,14 @@ class _SettingsSheet extends StatelessWidget {
     );
   }
 
-  void _showToolPicker(
-    BuildContext context,
-    SettingsService settings,
-    List<ToolInfo> tools,
-  ) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('选择默认工具'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              settings.setDefaultTool(null);
-              Navigator.pop(context);
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (settings.defaultToolId == null)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8),
-                    child: Icon(
-                      CupertinoIcons.checkmark_circle_fill,
-                      color: IOS26Theme.primaryColor,
-                      size: 20,
-                    ),
-                  ),
-                const Text('首页'),
-              ],
-            ),
-          ),
-          ...tools.map(
-            (tool) => CupertinoActionSheetAction(
-              onPressed: () {
-                settings.setDefaultTool(tool.id);
-                Navigator.pop(context);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (settings.defaultToolId == tool.id)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(
-                        CupertinoIcons.checkmark_circle_fill,
-                        color: IOS26Theme.primaryColor,
-                        size: 20,
-                      ),
-                    ),
-                  Text(tool.name),
-                ],
-              ),
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          isDestructiveAction: true,
-          child: const Text('取消'),
-        ),
-      ),
-    );
+  void _openToolManagement(BuildContext context) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.pop();
+    Future<void>.microtask(() {
+      navigator.push(
+        CupertinoPageRoute<void>(builder: (_) => const ToolManagementPage()),
+      );
+    });
   }
 
   void _openAiSettings(BuildContext context) {
@@ -893,72 +874,5 @@ class _SettingsSheet extends StatelessWidget {
         CupertinoPageRoute<void>(builder: (_) => const ObjStoreSettingsPage()),
       );
     });
-  }
-}
-
-/// 设置项组件
-class _SettingsItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-  final VoidCallback onTap;
-
-  const _SettingsItem({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: IOS26Theme.textPrimary,
-                ),
-              ),
-            ),
-            if (value.trim().isNotEmpty)
-              Flexible(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: IOS26Theme.textSecondary,
-                  ),
-                ),
-              ),
-            const SizedBox(width: 8),
-            const Icon(
-              CupertinoIcons.chevron_right,
-              color: IOS26Theme.textTertiary,
-              size: 18,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
