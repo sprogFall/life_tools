@@ -138,7 +138,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '??????????????',
+                        '不知道吃什么？去扭蛋机抽一个',
                         style: IOS26Theme.bodyMedium.copyWith(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -149,7 +149,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       onPressed: widget.onJumpToGacha,
-                      child: Text('???', style: IOS26Theme.labelLarge),
+                      child: Text('去扭蛋', style: IOS26Theme.labelLarge),
                     ),
                   ],
                 ),
@@ -165,7 +165,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
       children: [
         Expanded(
           child: Text(
-            '??',
+            '菜谱',
             style: IOS26Theme.headlineMedium.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -186,7 +186,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
             await _refresh();
           },
           child: Text(
-            '+ ??',
+            '+ 新建',
             style: IOS26Theme.labelLarge.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
