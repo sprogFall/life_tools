@@ -151,9 +151,8 @@ class _OvercookedRecipePickerSheetState
                       const SizedBox(width: 4),
                       Text(
                         '评分',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                        style: IOS26Theme.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: _sortMode == _SortMode.ratingDesc
                               ? Colors.white
                               : IOS26Theme.textSecondary,
@@ -168,10 +167,10 @@ class _OvercookedRecipePickerSheetState
           const SizedBox(height: 4),
           Expanded(
             child: filtered.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       '暂无可选菜谱',
-                      style: TextStyle(color: IOS26Theme.textSecondary),
+                      style: IOS26Theme.bodySmall,
                     ),
                   )
                 : ListView.separated(
@@ -201,11 +200,7 @@ class _OvercookedRecipePickerSheetState
                         ),
                         title: Text(
                           r.name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: IOS26Theme.textPrimary,
-                          ),
+                          style: IOS26Theme.titleSmall,
                         ),
                         subtitle: ratingCount > 0
                             ? Row(
@@ -218,8 +213,7 @@ class _OvercookedRecipePickerSheetState
                                   const SizedBox(width: 2),
                                   Text(
                                     avgRating.toStringAsFixed(1),
-                                    style: TextStyle(
-                                      fontSize: 12,
+                                    style: IOS26Theme.bodySmall.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: IOS26Theme.toolOrange,
                                     ),
@@ -270,11 +264,7 @@ class _OvercookedRecipePickerSheetState
             child: Text(
               widget.title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.titleMedium,
             ),
           ),
           CupertinoButton(

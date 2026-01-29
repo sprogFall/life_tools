@@ -117,13 +117,9 @@ class HomePage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       '消息',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: IOS26Theme.textPrimary,
-                      ),
+                      style: IOS26Theme.headlineSmall,
                     ),
                     const Spacer(),
                     CupertinoButton(
@@ -139,9 +135,7 @@ class HomePage extends StatelessWidget {
                             },
                       child: Text(
                         '全部消息',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                        style: IOS26Theme.labelLarge.copyWith(
                           color: allMessages.isEmpty
                               ? IOS26Theme.textTertiary
                               : IOS26Theme.primaryColor,
@@ -154,8 +148,7 @@ class HomePage extends StatelessWidget {
                 if (unreadMessages.isEmpty)
                   Text(
                     '当前暂时没有新的消息',
-                    style: TextStyle(
-                      fontSize: 14,
+                    style: IOS26Theme.bodyMedium.copyWith(
                       height: 1.3,
                       color: IOS26Theme.textSecondary.withValues(alpha: 0.75),
                     ),
@@ -178,8 +171,7 @@ class HomePage extends StatelessWidget {
                   unreadMessages.isEmpty
                       ? '共 ${allMessages.length} 条消息'
                       : '未读 ${unreadMessages.length} / 共 ${allMessages.length} 条',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.75),
                   ),
                 ),
@@ -188,22 +180,16 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           // 工具标题
-          const Text(
+          Text(
             '我的工具',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.35,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.headlineMedium,
           ),
           const SizedBox(height: 16),
           // 工具网格
           if (tools.isEmpty)
             Text(
               '暂无可显示的工具，请到「工具管理」中开启',
-              style: TextStyle(
-                fontSize: 14,
+              style: IOS26Theme.bodyMedium.copyWith(
                 height: 1.4,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
               ),
@@ -381,11 +367,7 @@ class _HomeMessageTickerListState extends State<_HomeMessageTickerList> {
               message.body,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.15,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.bodyMedium.copyWith(height: 1.15),
             ),
           );
         },
@@ -538,23 +520,16 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                       // 名称
                       Text(
                         widget.tool.name,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.41,
-                          color: IOS26Theme.textPrimary,
-                        ),
+                        style: IOS26Theme.titleLarge,
                       ),
                       const SizedBox(height: 4),
                       // 描述
                       Text(
                         widget.tool.description,
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: IOS26Theme.bodySmall.copyWith(
                           color: IOS26Theme.textSecondary.withValues(
                             alpha: 0.8,
                           ),
-                          letterSpacing: -0.08,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -576,20 +551,18 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                         color: IOS26Theme.primaryColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             CupertinoIcons.star_fill,
                             color: Colors.white,
                             size: 10,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             '默认',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                            style: IOS26Theme.bodySmall.copyWith(
                               color: Colors.white,
                             ),
                           ),
@@ -634,17 +607,13 @@ class _SettingsSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             // 标题
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Text(
                     '设置',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.headlineMedium,
                   ),
                 ],
               ),
@@ -770,8 +739,7 @@ class _SettingsSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序',
-                style: TextStyle(
-                  fontSize: 13,
+                style: IOS26Theme.bodySmall.copyWith(
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
                 ),
                 textAlign: TextAlign.center,

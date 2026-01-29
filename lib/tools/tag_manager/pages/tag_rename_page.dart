@@ -52,13 +52,9 @@ class _TagRenamePageState extends State<TagRenamePage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -72,23 +68,16 @@ class _TagRenamePageState extends State<TagRenamePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '标签名',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: IOS26Theme.textPrimary,
-                        ),
+                        style: IOS26Theme.titleSmall,
                       ),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _nameController,
                         decoration: InputDecoration(
                           hintText: '例如：紧急',
-                          hintStyle: const TextStyle(
-                            fontSize: 15,
-                            color: IOS26Theme.textSecondary,
-                          ),
+                          hintStyle: IOS26Theme.bodyMedium,
                           filled: true,
                           fillColor: IOS26Theme.surfaceColor.withValues(
                             alpha: 0.65,

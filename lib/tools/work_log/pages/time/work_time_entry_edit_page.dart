@@ -71,13 +71,9 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -111,23 +107,14 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '关联任务',
-            style: TextStyle(
-              fontSize: 13,
-              color: IOS26Theme.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            style: IOS26Theme.bodySmall,
           ),
           const SizedBox(height: 8),
           Text(
             widget.taskTitle!,
-            style: const TextStyle(
-              fontSize: 17,
-              color: IOS26Theme.textPrimary,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.3,
-            ),
+            style: IOS26Theme.titleLarge,
           ),
         ],
       ),
@@ -139,13 +126,9 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const Text(
+          Text(
             '日期',
-            style: TextStyle(
-              fontSize: 15,
-              color: IOS26Theme.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const Spacer(),
           CupertinoButton(
@@ -153,11 +136,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
             onPressed: _pickDate,
             child: Text(
               _formatDate(_workDate),
-              style: const TextStyle(
-                fontSize: 15,
-                color: IOS26Theme.primaryColor,
-                fontWeight: FontWeight.w600,
-              ),
+              style: IOS26Theme.labelLarge,
             ),
           ),
         ],
@@ -171,13 +150,9 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '内容与用时',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           _buildTextField(

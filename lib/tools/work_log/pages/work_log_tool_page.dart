@@ -122,10 +122,8 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                           const SizedBox(width: 4),
                           Text(
                             '首页',
-                            style: TextStyle(
-                              fontSize: 17,
+                            style: IOS26Theme.labelLarge.copyWith(
                               color: IOS26Theme.primaryColor,
-                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -209,22 +207,18 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
             key: const ValueKey('work_log_ai_input_button'),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             onPressed: _openVoiceInput,
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   CupertinoIcons.sparkles,
                   size: 18,
                   color: IOS26Theme.primaryColor,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'AI录入',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: IOS26Theme.primaryColor,
-                  ),
+                  style: IOS26Theme.labelLarge,
                 ),
               ],
             ),
@@ -272,8 +266,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
+            style: IOS26Theme.bodySmall.copyWith(
               color: isActive
                   ? IOS26Theme.primaryColor
                   : IOS26Theme.textSecondary,

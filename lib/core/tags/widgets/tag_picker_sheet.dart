@@ -137,9 +137,9 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             '暂无可选标签',
-                            style: TextStyle(color: IOS26Theme.textSecondary),
+                            style: IOS26Theme.bodySmall,
                           ),
                           if (_canCreate) ...[
                             const SizedBox(height: 12),
@@ -303,11 +303,7 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
             child: Text(
               widget.title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.titleMedium,
             ),
           ),
           CupertinoButton(
@@ -357,9 +353,8 @@ class _TagSelectChip extends StatelessWidget {
         onPressed: onPressed,
         child: Text(
           text,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+          style: IOS26Theme.bodySmall.copyWith(
+            fontWeight: FontWeight.w600,
             color: fg,
           ),
         ),

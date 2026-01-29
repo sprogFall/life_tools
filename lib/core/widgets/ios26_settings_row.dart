@@ -40,10 +40,7 @@ class IOS26SettingsRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.titleMedium,
               ),
             ),
             if (trailing != null) ...[
@@ -56,10 +53,7 @@ class IOS26SettingsRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: IOS26Theme.textSecondary,
-                    ),
+                    style: IOS26Theme.bodyMedium,
                   ),
                 ),
               if (showChevron) ...[

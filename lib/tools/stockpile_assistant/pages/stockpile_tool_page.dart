@@ -138,10 +138,8 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                           const SizedBox(width: 4),
                           Text(
                             '首页',
-                            style: TextStyle(
-                              fontSize: 17,
+                            style: IOS26Theme.labelLarge.copyWith(
                               color: IOS26Theme.primaryColor,
-                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -187,22 +185,18 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
             key: const ValueKey('stockpile_ai_input_button'),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             onPressed: _openAiInput,
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   CupertinoIcons.sparkles,
                   size: 18,
                   color: IOS26Theme.primaryColor,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'AI录入',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: IOS26Theme.primaryColor,
-                  ),
+                  style: IOS26Theme.labelLarge,
                 ),
               ],
             ),
@@ -270,10 +264,10 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         }
 
         if (items.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               '暂无记录，点击右上角 + 录入',
-              style: TextStyle(fontSize: 16, color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodyMedium,
             ),
           );
         }
@@ -302,8 +296,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                     Expanded(
                       child: Text(
                         '需要补货：${restockDue.length} 个',
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: IOS26Theme.bodyMedium.copyWith(
                           color: IOS26Theme.textPrimary,
                         ),
                       ),
@@ -332,8 +325,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                     Expanded(
                       child: Text(
                         '临期/已过期：${expiring.length} 个（列表已按临期优先排序）',
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: IOS26Theme.bodyMedium.copyWith(
                           color: IOS26Theme.textPrimary,
                         ),
                       ),
@@ -412,11 +404,9 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                           item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: compact ? 15 : 16,
-                            fontWeight: FontWeight.w600,
-                            color: IOS26Theme.textPrimary,
-                          ),
+                          style: compact
+                              ? IOS26Theme.titleSmall
+                              : IOS26Theme.titleMedium,
                         ),
                       ),
                       if (badge != null) badge,
@@ -427,18 +417,12 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                     '$typeText$locationText',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: compact ? 12 : 13,
-                      color: IOS26Theme.textSecondary,
-                    ),
+                    style: IOS26Theme.bodySmall,
                   ),
                   SizedBox(height: compact ? 2 : 4),
                   Text(
                     '库存：$qtyText',
-                    style: TextStyle(
-                      fontSize: compact ? 12 : 13,
-                      color: IOS26Theme.textSecondary,
-                    ),
+                    style: IOS26Theme.bodySmall,
                   ),
                   if (!compact) ...[
                     const SizedBox(height: 4),
@@ -446,10 +430,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                       expiryDate == null
                           ? '到期：无保质期'
                           : '到期：${StockpileFormat.date(expiryDate)}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary,
-                      ),
+                      style: IOS26Theme.bodySmall,
                     ),
                   ],
                 ],
@@ -490,7 +471,10 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text, style: TextStyle(fontSize: 12, color: color)),
+      child: Text(
+        text,
+        style: IOS26Theme.bodySmall.copyWith(color: color),
+      ),
     );
   }
 
@@ -681,4 +665,3 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     );
   }
 }
-

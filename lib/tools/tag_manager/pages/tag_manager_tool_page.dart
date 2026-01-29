@@ -68,21 +68,19 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
               leading: CupertinoButton(
                 padding: const EdgeInsets.all(8),
                 onPressed: () => _navigateToHome(context),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       CupertinoIcons.home,
                       color: IOS26Theme.primaryColor,
                       size: 20,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
                       '首页',
-                      style: TextStyle(
-                        fontSize: 17,
+                      style: IOS26Theme.labelLarge.copyWith(
                         color: IOS26Theme.primaryColor,
-                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -119,8 +117,7 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
                             ? Center(
                                 child: Text(
                                   '暂无可用工具',
-                                  style: TextStyle(
-                                    fontSize: 15,
+                                  style: IOS26Theme.bodyMedium.copyWith(
                                     color: IOS26Theme.textSecondary.withValues(
                                       alpha: 0.9,
                                     ),
@@ -215,7 +212,10 @@ class _FilterChip extends StatelessWidget {
       onPressed: onTap,
       child: Text(
         text,
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: fg),
+        style: IOS26Theme.bodySmall.copyWith(
+          fontWeight: FontWeight.w600,
+          color: fg,
+        ),
       ),
     );
   }
@@ -416,8 +416,7 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
                             alignment: Alignment.centerLeft,
                             child: Text(
                               '暂无标签',
-                              style: TextStyle(
-                                fontSize: 13,
+                              style: IOS26Theme.bodySmall.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: IOS26Theme.textSecondary.withValues(
                                   alpha: 0.95,
@@ -791,19 +790,14 @@ class _CategoryHeader extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.titleSmall,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '$count',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                  style: IOS26Theme.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
                   ),
                 ),
@@ -933,9 +927,8 @@ class _TagChip extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: IOS26Theme.textPrimary,
                 ),
               ),

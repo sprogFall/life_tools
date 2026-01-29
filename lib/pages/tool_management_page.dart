@@ -79,8 +79,7 @@ class _HintCard extends StatelessWidget {
           Expanded(
             child: Text(
               '首页长按工具卡片并拖拽可调整顺序。\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 $hiddenCount 个）。',
-              style: TextStyle(
-                fontSize: 13,
+              style: IOS26Theme.bodySmall.copyWith(
                 height: 1.35,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
                 fontWeight: FontWeight.w500,
@@ -245,17 +244,12 @@ class _CardHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: IOS26Theme.titleMedium,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: IOS26Theme.bodySmall.copyWith(
                     height: 1.25,
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
@@ -282,4 +276,3 @@ class _Divider extends StatelessWidget {
     );
   }
 }
-

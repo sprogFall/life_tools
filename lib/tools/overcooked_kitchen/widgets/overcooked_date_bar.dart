@@ -44,11 +44,7 @@ class OvercookedDateBar extends StatelessWidget {
               ),
               child: Text(
                 text,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.titleSmall,
               ),
             ),
           ),

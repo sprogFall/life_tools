@@ -129,13 +129,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -179,13 +175,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '存储方式',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           CupertinoSlidingSegmentedControl<ObjStoreType>(
@@ -229,13 +221,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '七牛云配置',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
@@ -281,10 +269,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           if (!_qiniuUseHttps) ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '安全提示：HTTP 为明文传输，AK/SK/文件内容可能被截获，仅建议内网调试使用。',
-              style: TextStyle(
-                fontSize: 12,
+              style: IOS26Theme.bodySmall.copyWith(
                 color: IOS26Theme.toolRed,
                 height: 1.4,
               ),
@@ -367,13 +354,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '数据胶囊配置',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           _buildLabeledField(label: '空间类型', child: _buildFixedValue('私有（固定）')),
@@ -471,13 +454,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '测试',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           Row(
@@ -489,10 +468,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                       : '${_selectedFile!.name}（${_selectedFile!.size} bytes）',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodySmall,
                 ),
               ),
               const SizedBox(width: 12),
@@ -503,11 +479,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                   vertical: 12,
                 ),
                 onPressed: _pickFile,
-                child: const Text(
+                child: Text(
                   '选择文件',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: IOS26Theme.labelLarge.copyWith(
                     color: IOS26Theme.textSecondary,
                   ),
                 ),
@@ -523,11 +497,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               onPressed: _isTestingUpload ? null : () => _testUpload(context),
               child: Text(
                 _isTestingUpload ? '测试上传中...' : '测试上传',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.primaryColor,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -535,11 +505,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             const SizedBox(height: 12),
             Text(
               '上传结果：\nKey: ${_lastUploaded!.key}\nURI: ${_redactSensitiveUrl(_lastUploaded!.uri)}',
-              style: const TextStyle(
-                fontSize: 13,
-                color: IOS26Theme.textSecondary,
-                height: 1.4,
-              ),
+              style: IOS26Theme.bodySmall.copyWith(height: 1.4),
             ),
           ],
           const SizedBox(height: 14),
@@ -561,11 +527,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               onPressed: _isTestingQuery ? null : () => _testQuery(context),
               child: Text(
                 _isTestingQuery ? '查询中...' : '测试查询',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.primaryColor,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -579,14 +541,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             '说明',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           SizedBox(height: 10),
           Text(
@@ -596,11 +554,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             '4. 数据胶囊固定使用 HTTPS + 路径风格 + 私有空间，Region 固定 us-east-1；上传使用 PUT 直传，私有查询会生成带 X-Amz-* 的临时链接（默认 30 分钟）。\n'
             '5. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。\n'
             '6. 若数据胶囊配置了 Domain（自定义访问域名），私有空间建议使用与 Endpoint 同源的域名，否则可能因签名校验导致“可访问=否”。',
-            style: TextStyle(
-              fontSize: 13,
-              color: IOS26Theme.textSecondary,
-              height: 1.5,
-            ),
+            style: IOS26Theme.bodySmall.copyWith(height: 1.5),
           ),
         ],
       ),
@@ -613,13 +567,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '危险区',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -628,11 +578,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               color: IOS26Theme.toolRed.withValues(alpha: 0.12),
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
-              child: const Text(
+              child: Text(
                 '清除资源存储配置',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.toolRed,
                 ),
               ),
@@ -652,8 +600,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
+          style: IOS26Theme.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
             color: IOS26Theme.textSecondary,
           ),
@@ -670,7 +617,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       decoration: _fieldDecoration(),
       child: Text(
         value,
-        style: const TextStyle(fontSize: 14, color: IOS26Theme.textPrimary),
+        style: IOS26Theme.bodyMedium.copyWith(
+          color: IOS26Theme.textPrimary,
+        ),
       ),
     );
   }

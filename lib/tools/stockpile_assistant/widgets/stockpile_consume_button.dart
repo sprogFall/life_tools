@@ -17,20 +17,18 @@ class StockpileConsumeButton extends StatelessWidget {
       color: IOS26Theme.toolOrange.withValues(alpha: 0.16),
       borderRadius: BorderRadius.circular(14),
       onPressed: onPressed,
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             CupertinoIcons.minus_circle_fill,
             size: 18,
             color: IOS26Theme.toolOrange,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Text(
             '消耗',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            style: IOS26Theme.labelLarge.copyWith(
               color: IOS26Theme.toolOrange,
             ),
           ),

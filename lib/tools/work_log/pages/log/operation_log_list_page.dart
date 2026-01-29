@@ -90,8 +90,7 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
     return Center(
       child: Text(
         '暂无操作记录',
-        style: TextStyle(
-          fontSize: 15,
+        style: IOS26Theme.bodyMedium.copyWith(
           color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
         ),
       ),
@@ -131,39 +130,25 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
                 Expanded(
                   child: Text(
                     log.operationType.displayName,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.titleSmall,
                   ),
                 ),
                 Text(
                   _formatDateTime(log.createdAt),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodySmall,
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               log.summary,
-              style: const TextStyle(
-                fontSize: 14,
-                color: IOS26Theme.textPrimary,
-                height: 1.4,
-              ),
+              style: IOS26Theme.bodyMedium.copyWith(height: 1.4),
             ),
             if (log.targetTitle.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 log.targetTitle,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: IOS26Theme.textSecondary,
-                ),
+                style: IOS26Theme.bodySmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

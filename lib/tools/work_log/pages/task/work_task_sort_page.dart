@@ -74,13 +74,9 @@ class _WorkTaskSortPageState extends State<WorkTaskSortPage> {
                           height: 18,
                           child: CupertinoActivityIndicator(radius: 9),
                         )
-                      : const Text(
+                      : Text(
                           '保存',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: IOS26Theme.primaryColor,
-                          ),
+                          style: IOS26Theme.labelLarge,
                         ),
                 ),
               ],
@@ -104,8 +100,7 @@ class _WorkTaskSortPageState extends State<WorkTaskSortPage> {
       return Center(
         child: Text(
           '暂无可排序的任务',
-          style: TextStyle(
-            fontSize: 15,
+          style: IOS26Theme.bodyMedium.copyWith(
             color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
           ),
         ),
@@ -209,8 +204,7 @@ class _WorkTaskSortPageState extends State<WorkTaskSortPage> {
           Expanded(
             child: Text(
               '拖拽调整顺序，点击图钉可置顶/取消置顶。\n排序仅对当前筛选结果生效。',
-              style: TextStyle(
-                fontSize: 13,
+              style: IOS26Theme.bodySmall.copyWith(
                 height: 1.35,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
                 fontWeight: FontWeight.w500,
@@ -240,11 +234,7 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: IOS26Theme.textPrimary,
-          ),
+          style: IOS26Theme.titleSmall,
         ),
         const SizedBox(width: 8),
         Container(
@@ -255,18 +245,16 @@ class _SectionTitle extends StatelessWidget {
           ),
           child: Text(
             '$count',
-            style: TextStyle(
-              fontSize: 12,
+            style: IOS26Theme.bodySmall.copyWith(
               color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
         const Spacer(),
         Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 12,
+          style: IOS26Theme.bodySmall.copyWith(
             color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
             fontWeight: FontWeight.w500,
           ),
@@ -320,17 +308,12 @@ class _TaskSortRow extends StatelessWidget {
                   task.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: IOS26Theme.titleSmall,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _statusLabel(task.status),
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
                     fontWeight: FontWeight.w500,
                   ),

@@ -148,11 +148,10 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             onPressed: _saving ? null : _save,
             child: Text(
               _saving ? '保存中…' : '保存',
-              style: TextStyle(
+              style: IOS26Theme.labelLarge.copyWith(
                 color: _saving
                     ? IOS26Theme.textTertiary
                     : IOS26Theme.primaryColor,
-                fontWeight: FontWeight.w800,
               ),
             ),
           ),
@@ -215,11 +214,10 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                       color: IOS26Theme.primaryColor,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: _saving ? null : _pickCover,
-                      child: const Text(
+                      child: Text(
                         '上传',
-                        style: TextStyle(
+                        style: IOS26Theme.labelLarge.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -425,9 +423,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Text(
+            child: Text(
               '暂无图片',
-              style: TextStyle(color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodySmall,
             ),
           )
         else
@@ -496,9 +494,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           color: IOS26Theme.primaryColor,
           borderRadius: BorderRadius.circular(14),
           onPressed: _saving ? null : _pickDetailImages,
-          child: const Text(
+          child: Text(
             '添加图片',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+            style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
           ),
         ),
         const SizedBox(height: 18),
@@ -529,14 +527,10 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                   color: IOS26Theme.toolPurple,
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     '暂无可用标签，请先在“标签管理”中创建并关联到“胡闹厨房”',
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.25,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.bodySmall.copyWith(height: 1.25),
                   ),
                 ),
                 CupertinoButton(
@@ -563,11 +557,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   Widget _fieldTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w800,
-        color: IOS26Theme.textPrimary,
-      ),
+      style: IOS26Theme.titleSmall,
     );
   }
 
@@ -589,9 +579,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       alignment: Alignment.center,
-      child: const Text(
+      child: Text(
         '暂无图片',
-        style: TextStyle(fontSize: 12, color: IOS26Theme.textSecondary),
+        style: IOS26Theme.bodySmall,
       ),
     );
   }
@@ -614,9 +604,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.titleSmall.copyWith(
                   color: label == '未选择'
                       ? IOS26Theme.textSecondary
                       : IOS26Theme.textPrimary,
@@ -658,9 +646,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.titleSmall.copyWith(
                   color: names.isEmpty
                       ? IOS26Theme.textSecondary
                       : IOS26Theme.textPrimary,

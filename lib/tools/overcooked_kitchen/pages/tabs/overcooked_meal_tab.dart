@@ -110,16 +110,12 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  '三餐记录',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                ),
+            Expanded(
+              child: Text(
+                '三餐记录',
+                style: IOS26Theme.headlineMedium,
               ),
+            ),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -128,12 +124,9 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 color: IOS26Theme.primaryColor,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _addMealFlow,
-                child: const Text(
+                child: Text(
                   '新增餐次',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                 ),
               ),
             ],
@@ -159,22 +152,14 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '今日做菜量（菜谱去重）',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: IOS26Theme.textSecondary,
-                        ),
+                        style: IOS26Theme.bodySmall,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         '$distinctTypeCount',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: IOS26Theme.textPrimary,
-                        ),
+                        style: IOS26Theme.headlineLarge,
                       ),
                     ],
                   ),
@@ -194,9 +179,8 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                   ),
                   child: Text(
                     '餐次 ${_meals.length}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                    style: IOS26Theme.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: IOS26Theme.toolPurple,
                     ),
                   ),
@@ -216,8 +200,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
               child: Center(
                 child: Text(
                   '今天还没记录，点右上角「新增餐次」开始',
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: IOS26Theme.bodyMedium.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
                   ),
                 ),
@@ -607,9 +590,8 @@ class _MealCard extends StatelessWidget {
                   onPressed: onPickMealTag,
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                    style: IOS26Theme.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: IOS26Theme.primaryColor,
                     ),
                   ),
@@ -636,20 +618,15 @@ class _MealCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               '做了什么菜（点击打分）',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodySmall,
             ),
             const SizedBox(height: 8),
             if (recipes.isEmpty && missingRecipeCount == 0)
               Text(
                 '还没选择菜谱，点右上角「选择菜谱」添加',
-                style: TextStyle(
-                  fontSize: 14,
+                style: IOS26Theme.bodyMedium.copyWith(
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
                 ),
               )
@@ -675,25 +652,17 @@ class _MealCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text(
+                Text(
                   '评价',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodySmall,
                 ),
                 const Spacer(),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: onEditNote,
-                  child: const Text(
+                  child: Text(
                     '编辑',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -701,8 +670,7 @@ class _MealCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               meal.note.trim().isEmpty ? '（暂无评价）' : meal.note.trim(),
-              style: TextStyle(
-                fontSize: 14,
+              style: IOS26Theme.bodyMedium.copyWith(
                 height: 1.35,
                 color: meal.note.trim().isEmpty
                     ? IOS26Theme.textSecondary.withValues(alpha: 0.85)
@@ -760,11 +728,7 @@ class _RecipeRatingRow extends StatelessWidget {
               recipeName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.titleSmall,
             ),
           ),
           const SizedBox(width: 8),

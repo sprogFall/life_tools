@@ -91,14 +91,10 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 '扭蛋机',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.headlineMedium,
               ),
             ),
             CupertinoButton(
@@ -109,12 +105,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                   : IOS26Theme.textTertiary.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(14),
               onPressed: canRoll ? _roll : null,
-              child: const Text(
+              child: Text(
                 '扭蛋',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
               ),
             ),
           ],
@@ -137,9 +130,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                     typeText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                    style: IOS26Theme.titleSmall.copyWith(
                       color: entries.isEmpty
                           ? IOS26Theme.textSecondary
                           : IOS26Theme.textPrimary,
@@ -165,21 +156,15 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         '每种风格抽取份数',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: IOS26Theme.textSecondary,
-                        ),
+                        style: IOS26Theme.bodySmall,
                       ),
                     ),
                     Text(
                       '共 $totalCount 道',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
+                      style: IOS26Theme.bodySmall.copyWith(
                         color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
                       ),
                     ),
@@ -223,13 +208,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
               width: 1,
             ),
-            child: const Text(
+            child: Text(
               '暂无“菜品风格”标签：请先在“标签管理”创建标签并关联到“胡闹厨房”后再来抽取。',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.3,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.bodySmall,
             ),
           ),
         const SizedBox(height: 12),
@@ -239,8 +220,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             child: Center(
               child: Text(
                 '先选好风格搭配，再点“扭蛋”开抽',
-                style: TextStyle(
-                  fontSize: 15,
+                style: IOS26Theme.bodyMedium.copyWith(
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
                 ),
               ),
@@ -262,12 +242,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             color: IOS26Theme.primaryColor,
             borderRadius: BorderRadius.circular(14),
             onPressed: _loading ? null : _importToWish,
-            child: const Text(
+            child: Text(
               '就你了',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+              style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
             ),
           ),
         ],
@@ -278,11 +255,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
   Widget _fieldTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w800,
-        color: IOS26Theme.textPrimary,
-      ),
+      style: IOS26Theme.titleSmall,
     );
   }
 
@@ -441,11 +414,7 @@ class _PickedCard extends StatelessWidget {
         children: [
           Text(
             recipe.name,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleMedium,
           ),
           if (type != null && type.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -461,9 +430,8 @@ class _PickedCard extends StatelessWidget {
               ),
               child: Text(
                 type,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: IOS26Theme.toolPurple,
                 ),
               ),
@@ -473,8 +441,7 @@ class _PickedCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               recipe.intro.trim(),
-              style: TextStyle(
-                fontSize: 12,
+              style: IOS26Theme.bodySmall.copyWith(
                 height: 1.25,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
               ),
@@ -509,11 +476,7 @@ class _TypeCountRow extends StatelessWidget {
               name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.titleSmall,
             ),
           ),
           _iconButton(
@@ -524,11 +487,7 @@ class _TypeCountRow extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             '$c',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(width: 10),
           _iconButton(

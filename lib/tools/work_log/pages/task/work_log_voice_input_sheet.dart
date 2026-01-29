@@ -90,11 +90,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
         Expanded(
           child: Text(
             widget.title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleMedium,
             textAlign: TextAlign.center,
           ),
         ),
@@ -112,8 +108,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
         children: [
           Text(
             widget.helperText,
-            style: const TextStyle(
-              fontSize: 13,
+            style: IOS26Theme.bodySmall.copyWith(
               fontWeight: FontWeight.w600,
               color: IOS26Theme.textSecondary,
             ),
@@ -148,18 +143,14 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             color: IOS26Theme.primaryColor,
             padding: const EdgeInsets.symmetric(vertical: 14),
             borderRadius: BorderRadius.circular(14),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(CupertinoIcons.sparkles, size: 18, color: Colors.white),
-                SizedBox(width: 8),
+                const Icon(CupertinoIcons.sparkles, size: 18, color: Colors.white),
+                const SizedBox(width: 8),
                 Text(
                   '提交给AI',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+                  style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                 ),
               ],
             ),

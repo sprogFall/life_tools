@@ -155,12 +155,9 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
               onPressed: _saving ? null : _save,
               child: _saving
                   ? const CupertinoActivityIndicator(color: Colors.white)
-                  : const Text(
+                  : Text(
                       '保存',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                     ),
             ),
           ),
@@ -176,9 +173,9 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
       widgets.add(
         GlassContainer(
           padding: const EdgeInsets.all(12),
-          child: const Text(
+          child: Text(
             '暂无物品条目，可在下方增加物品',
-            style: TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodyMedium,
           ),
         ),
       );
@@ -359,9 +356,9 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
       widgets.add(
         GlassContainer(
           padding: const EdgeInsets.all(12),
-          child: const Text(
+          child: Text(
             '暂无消耗条目，可在下方增加消耗',
-            style: TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodyMedium,
           ),
         ),
       );
@@ -411,10 +408,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
         children: [
           Row(
             children: [
-              const Text(
-                '消耗',
-                style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
-              ),
+              Text('消耗', style: IOS26Theme.bodySmall),
               const Spacer(),
               CupertinoButton(
                 key: ValueKey(
@@ -510,21 +504,14 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
                       entry.displayItemText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: IOS26Theme.textPrimary,
-                      ),
+                      style: IOS26Theme.titleSmall,
                     ),
                   ),
                   if (entry.remainingQuantity != null) ...[
                     const SizedBox(width: 10),
                     Text(
                       '库存：${StockpileFormat.num(entry.remainingQuantity!)}${entry.unitText}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary,
-                      ),
+                      style: IOS26Theme.bodySmall,
                     ),
                   ],
                   const SizedBox(width: 6),
@@ -573,18 +560,14 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 13,
+                style: IOS26Theme.bodySmall.copyWith(
                   color: IOS26Theme.textPrimary,
                 ),
               ),
             ),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 13,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodySmall,
             ),
             const SizedBox(width: 6),
             const Icon(
@@ -618,11 +601,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.titleSmall,
               ),
             ),
             const Icon(
@@ -667,8 +646,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
                     dateText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: IOS26Theme.bodySmall.copyWith(
                       color: entry.expiryDate == null
                           ? IOS26Theme.textTertiary
                           : IOS26Theme.textSecondary,
@@ -752,8 +730,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
                     dateText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: IOS26Theme.bodySmall.copyWith(
                       color: entry.restockRemindDate == null
                           ? IOS26Theme.textTertiary
                           : IOS26Theme.textSecondary,
@@ -801,9 +778,9 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
     if (tags.isEmpty) {
       return GlassContainer(
         padding: const EdgeInsets.all(12),
-        child: const Text(
+        child: Text(
           '暂无可用物品类型（可在「标签管理」中创建并关联到「囤货助手」）',
-          style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+          style: IOS26Theme.bodySmall,
         ),
       );
     }
@@ -813,9 +790,9 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '物品类型',
-            style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall,
           ),
           const SizedBox(height: 10),
           SingleChildScrollView(
@@ -884,11 +861,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
             const SizedBox(width: 8),
             Text(
               tag.name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
+              style: IOS26Theme.titleSmall.copyWith(color: textColor),
             ),
             if (selected) ...[
               const SizedBox(width: 8),
@@ -1028,10 +1001,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodySmall,
             ),
           ),
           const SizedBox(width: 10),
@@ -1209,7 +1179,7 @@ class _StockpileAiBatchEntryPageState extends State<StockpileAiBatchEntryPage> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 12, color: IOS26Theme.textSecondary),
+          style: IOS26Theme.bodySmall,
         ),
         const SizedBox(height: 6),
         child,

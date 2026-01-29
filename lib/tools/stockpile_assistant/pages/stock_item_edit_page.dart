@@ -263,11 +263,10 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(14),
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text(
+                  child: Text(
                     '取消',
-                    style: TextStyle(
+                    style: IOS26Theme.labelLarge.copyWith(
                       color: IOS26Theme.textSecondary,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -280,12 +279,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                   color: IOS26Theme.primaryColor,
                   borderRadius: BorderRadius.circular(14),
                   onPressed: _save,
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                   ),
                 ),
               ),
@@ -492,9 +488,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '到期提醒',
-            style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall,
           ),
           const SizedBox(height: 10),
           Row(
@@ -527,8 +523,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                               dateText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
+                              style: IOS26Theme.bodySmall.copyWith(
                                 color: _expiryDate == null
                                     ? IOS26Theme.textTertiary
                                     : IOS26Theme.textSecondary,
@@ -597,9 +592,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '补货提醒',
-            style: TextStyle(fontSize: 13, color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall,
           ),
           const SizedBox(height: 10),
           Row(
@@ -633,8 +628,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                               dateText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
+                              style: IOS26Theme.bodySmall.copyWith(
                                 color: _restockRemindDate == null
                                     ? IOS26Theme.textTertiary
                                     : IOS26Theme.textSecondary,
@@ -700,10 +694,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 13,
-              color: IOS26Theme.textSecondary,
-            ),
+            style: IOS26Theme.bodySmall,
           ),
           SizedBox(height: compact ? 8 : 10),
           child,
@@ -721,7 +712,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: IOS26Theme.textSecondary),
+          style: IOS26Theme.bodySmall,
         ),
         const SizedBox(height: 6),
         child,
@@ -744,18 +735,14 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 15,
+                style: IOS26Theme.bodyMedium.copyWith(
                   color: IOS26Theme.textPrimary,
                 ),
               ),
             ),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 15,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodyMedium,
             ),
             const SizedBox(width: 6),
             const Icon(

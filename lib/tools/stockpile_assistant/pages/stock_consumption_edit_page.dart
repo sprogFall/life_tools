@@ -88,20 +88,13 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                           Expanded(
                             child: Text(
                               _itemName,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: IOS26Theme.textPrimary,
-                              ),
+                              style: IOS26Theme.titleSmall,
                             ),
                           ),
                           if (_remaining != null)
                             Text(
                               '剩余：${StockpileFormat.num(_remaining!)}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: IOS26Theme.textSecondary,
-                              ),
+                              style: IOS26Theme.bodySmall,
                             ),
                         ],
                       ),
@@ -158,12 +151,9 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             color: IOS26Theme.primaryColor,
             borderRadius: BorderRadius.circular(14),
             onPressed: _save,
-            child: const Text(
+            child: Text(
               '保存',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+              style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
             ),
           ),
         ),
@@ -182,8 +172,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 15,
+              style: IOS26Theme.bodyMedium.copyWith(
                 color: IOS26Theme.textPrimary,
               ),
             ),
@@ -218,18 +207,14 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 15,
+                style: IOS26Theme.bodyMedium.copyWith(
                   color: IOS26Theme.textPrimary,
                 ),
               ),
             ),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 15,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodyMedium,
             ),
             const SizedBox(width: 6),
             const Icon(

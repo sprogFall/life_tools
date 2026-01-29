@@ -160,10 +160,10 @@ class _OvercookedRecipeDetailPageState
       body: _loading && recipe == null
           ? const Center(child: CupertinoActivityIndicator())
           : recipe == null
-          ? const Center(
+          ? Center(
               child: Text(
                 '未找到菜谱',
-                style: TextStyle(color: IOS26Theme.textSecondary),
+                style: IOS26Theme.bodySmall,
               ),
             )
           : _buildContent(context, recipe),
@@ -212,11 +212,7 @@ class _OvercookedRecipeDetailPageState
         const SizedBox(height: 14),
         Text(
           recipe.name,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: IOS26Theme.textPrimary,
-          ),
+          style: IOS26Theme.headlineMedium,
         ),
         if (typeName != null && typeName.trim().isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -244,8 +240,7 @@ class _OvercookedRecipeDetailPageState
           const SizedBox(height: 8),
           Text(
             recipe.intro.trim(),
-            style: const TextStyle(
-              fontSize: 14,
+            style: IOS26Theme.bodyMedium.copyWith(
               height: 1.4,
               color: IOS26Theme.textPrimary,
             ),
@@ -256,8 +251,7 @@ class _OvercookedRecipeDetailPageState
         const SizedBox(height: 8),
         Text(
           recipe.content.trim().isEmpty ? '（暂无）' : recipe.content.trim(),
-          style: TextStyle(
-            fontSize: 14,
+          style: IOS26Theme.bodyMedium.copyWith(
             height: 1.45,
             color: recipe.content.trim().isEmpty
                 ? IOS26Theme.textSecondary
@@ -313,14 +307,10 @@ class _OvercookedRecipeDetailPageState
                   color: IOS26Theme.toolPurple,
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     '暂无可用标签，请先在“标签管理”中创建并关联到“胡闹厨房”',
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.25,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.bodySmall.copyWith(height: 1.25),
                   ),
                 ),
                 CupertinoButton(
@@ -347,11 +337,7 @@ class _OvercookedRecipeDetailPageState
   Widget _sectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w800,
-        color: IOS26Theme.textPrimary,
-      ),
+      style: IOS26Theme.titleSmall,
     );
   }
 
@@ -367,9 +353,8 @@ class _OvercookedRecipeDetailPageState
       children: [
         Text(
           '$title：',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+          style: IOS26Theme.bodySmall.copyWith(
+            fontWeight: FontWeight.w600,
             color: IOS26Theme.textSecondary,
           ),
         ),
@@ -386,9 +371,8 @@ class _OvercookedRecipeDetailPageState
             ),
             child: Text(
               v,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+              style: IOS26Theme.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
                 color: color,
               ),
             ),

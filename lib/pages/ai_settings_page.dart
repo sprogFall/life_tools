@@ -64,13 +64,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -102,13 +98,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'OpenAI 兼容配置',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
@@ -196,11 +188,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               onPressed: _isTesting ? null : () => _testConnection(context),
               child: Text(
                 _isTesting ? '测试中...' : '测试连接',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.primaryColor,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -214,25 +202,17 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             '说明',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           SizedBox(height: 10),
           Text(
             '1. Base URL 支持填写到域名（如 https://example.com），也支持直接填写到 /v1。\n'
             '2. 该配置用于 OpenAI 格式的 /v1/chat/completions。\n'
             '3. API Key 将保存在本地设备（SharedPreferences）。',
-            style: TextStyle(
-              fontSize: 13,
-              color: IOS26Theme.textSecondary,
-              height: 1.5,
-            ),
+            style: IOS26Theme.bodySmall.copyWith(height: 1.5),
           ),
         ],
       ),
@@ -245,13 +225,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '危险区',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -260,11 +236,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               color: IOS26Theme.toolRed.withValues(alpha: 0.12),
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
-              child: const Text(
+              child: Text(
                 '清除AI配置',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.toolRed,
                 ),
               ),
@@ -284,8 +258,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
+          style: IOS26Theme.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
             color: IOS26Theme.textSecondary,
           ),

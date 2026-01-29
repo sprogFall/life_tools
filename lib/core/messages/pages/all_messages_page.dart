@@ -24,8 +24,7 @@ class AllMessagesPage extends StatelessWidget {
               return Center(
                 child: Text(
                   '当前暂时没有消息',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: IOS26Theme.bodyMedium.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
                   ),
                 ),
@@ -85,18 +84,13 @@ class _MessageListItem extends StatelessWidget {
                     message.title.trim().isEmpty ? '消息' : message.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.titleSmall,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   _formatTime(message.createdAt),
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.textTertiary,
                   ),
                 ),
@@ -105,8 +99,7 @@ class _MessageListItem extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               message.body,
-              style: TextStyle(
-                fontSize: 14,
+              style: IOS26Theme.bodyMedium.copyWith(
                 height: 1.25,
                 color: message.isRead
                     ? IOS26Theme.textSecondary.withValues(alpha: 0.7)
@@ -119,13 +112,9 @@ class _MessageListItem extends StatelessWidget {
                 _ReadTag(isRead: message.isRead),
                 const Spacer(),
                 if (MessageNavigation.canOpen(message))
-                  const Text(
+                  Text(
                     '前往工具',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
               ],
             ),
@@ -181,8 +170,7 @@ class _ReadTag extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 12,
+        style: IOS26Theme.bodySmall.copyWith(
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -201,10 +189,9 @@ class _SwipeReadBackground extends StatelessWidget {
         color: IOS26Theme.toolGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
+      child: Text(
         '标记已读',
-        style: TextStyle(
-          fontSize: 13,
+        style: IOS26Theme.bodySmall.copyWith(
           fontWeight: FontWeight.w600,
           color: IOS26Theme.toolGreen,
         ),

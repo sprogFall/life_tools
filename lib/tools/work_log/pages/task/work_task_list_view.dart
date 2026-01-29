@@ -61,8 +61,7 @@ class _WorkTaskListViewState extends State<WorkTaskListView> {
                   ? Center(
                       child: Text(
                         '暂无符合条件的任务',
-                        style: TextStyle(
-                          fontSize: 15,
+                        style: IOS26Theme.bodyMedium.copyWith(
                           color: IOS26Theme.textSecondary.withValues(
                             alpha: 0.9,
                           ),
@@ -107,13 +106,9 @@ class _StatusFilterBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          const Text(
+          Text(
             '状态',
-            style: TextStyle(
-              fontSize: 12,
-              color: IOS26Theme.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
+            style: IOS26Theme.bodySmall,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -215,8 +210,7 @@ class _FilterChip extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontSize: 13,
+              style: IOS26Theme.bodySmall.copyWith(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected
                     ? _statusColor(status)
@@ -235,8 +229,7 @@ class _FilterChip extends StatelessWidget {
                 ),
                 child: Text(
                   '$count',
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: isSelected
                         ? _statusColor(status)
@@ -277,13 +270,9 @@ class _TagFilterBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: Row(
         children: [
-          const Text(
+          Text(
             '归属',
-            style: TextStyle(
-              fontSize: 12,
-              color: IOS26Theme.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
+            style: IOS26Theme.bodySmall,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -345,8 +334,7 @@ class _TagChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
+          style: IOS26Theme.bodySmall.copyWith(
             color: isSelected
                 ? IOS26Theme.primaryColor
                 : IOS26Theme.textSecondary,
@@ -407,18 +395,12 @@ class _TaskCard extends StatelessWidget {
                           task.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: IOS26Theme.textPrimary,
-                            letterSpacing: -0.24,
-                          ),
+                          style: IOS26Theme.titleLarge,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           _statusLabel(task.status),
-                          style: TextStyle(
-                            fontSize: 13,
+                          style: IOS26Theme.bodySmall.copyWith(
                             color: IOS26Theme.textSecondary.withValues(
                               alpha: 0.9,
                             ),
@@ -450,8 +432,7 @@ class _TaskCard extends StatelessWidget {
                           totalMinutes,
                           task.estimatedMinutes,
                         ),
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: IOS26Theme.bodySmall.copyWith(
                           color: IOS26Theme.primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
@@ -560,8 +541,7 @@ class _TaskCard extends StatelessWidget {
       ),
       child: Text(
         tag.name,
-        style: const TextStyle(
-          fontSize: 12,
+        style: IOS26Theme.bodySmall.copyWith(
           color: IOS26Theme.textSecondary,
           fontWeight: FontWeight.w600,
         ),

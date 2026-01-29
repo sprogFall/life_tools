@@ -34,9 +34,7 @@ class IOS26SelectField extends StatelessWidget {
                 text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.titleSmall.copyWith(
                   color: isPlaceholder
                       ? IOS26Theme.textSecondary
                       : IOS26Theme.textPrimary,

@@ -141,14 +141,10 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
                 ),
               ),
               const SizedBox(width: 4),
-              const Expanded(
+              Expanded(
                 child: Text(
                   OvercookedConstants.toolName,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: IOS26Theme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
               ),

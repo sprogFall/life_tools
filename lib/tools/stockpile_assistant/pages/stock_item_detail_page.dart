@@ -116,10 +116,10 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
   }
 
   Widget _buildNotFound() {
-    return const Center(
+    return Center(
       child: Text(
         '未找到该物品（可能已删除）',
-        style: TextStyle(fontSize: 16, color: IOS26Theme.textSecondary),
+        style: IOS26Theme.bodyMedium,
       ),
     );
   }
@@ -153,11 +153,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
             children: [
               Text(
                 item.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.headlineSmall,
               ),
               const SizedBox(height: 10),
               _kv('物品类型', typeNames.isEmpty ? '无' : typeNames.join('、')),
@@ -189,31 +185,24 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                 const SizedBox(height: 10),
                 Text(
                   item.note,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodyMedium,
                 ),
               ],
             ],
           ),
         ),
         const SizedBox(height: 14),
-        const Text(
+        Text(
           '消耗记录',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: IOS26Theme.textPrimary,
-          ),
+          style: IOS26Theme.titleMedium,
         ),
         const SizedBox(height: 10),
         if (_logs.isEmpty)
-          const GlassContainer(
-            padding: EdgeInsets.all(14),
+          GlassContainer(
+            padding: const EdgeInsets.all(14),
             child: Text(
               '暂无消耗记录',
-              style: TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodyMedium,
             ),
           )
         else
@@ -231,17 +220,13 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
             width: 72,
             child: Text(
               k,
-              style: const TextStyle(
-                fontSize: 13,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodySmall,
             ),
           ),
           Expanded(
             child: Text(
               v,
-              style: const TextStyle(
-                fontSize: 13,
+              style: IOS26Theme.bodySmall.copyWith(
                 color: IOS26Theme.textPrimary,
               ),
             ),
@@ -269,28 +254,18 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
               children: [
                 Text(
                   log.method.trim().isEmpty ? '消耗' : log.method,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: IOS26Theme.titleSmall,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   StockpileFormat.dateTime(log.consumedAt),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodySmall,
                 ),
                 if (log.note.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     log.note,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: IOS26Theme.textSecondary,
-                    ),
+                    style: IOS26Theme.bodySmall,
                   ),
                 ],
               ],
@@ -299,9 +274,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
           const SizedBox(width: 8),
           Text(
             '-${StockpileFormat.num(log.quantity)}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+            style: IOS26Theme.titleMedium.copyWith(
               color: IOS26Theme.toolOrange,
             ),
           ),

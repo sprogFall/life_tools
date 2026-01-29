@@ -92,13 +92,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -132,13 +128,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '基本信息',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           _buildTextField(
@@ -173,13 +165,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '时间范围',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           _TimeRow(
@@ -216,13 +204,9 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '任务状态',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: IOS26Theme.textPrimary,
-            ),
+            style: IOS26Theme.titleSmall,
           ),
           const SizedBox(height: 12),
           Container(
@@ -344,25 +328,17 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
             children: [
               Row(
                 children: [
-                  const Text(
+                  Text(
                     '归属',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.titleSmall,
                   ),
                   const Spacer(),
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: () => _openTagManager(context),
-                    child: const Text(
+                    child: Text(
                       '管理',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: IOS26Theme.primaryColor,
-                      ),
+                      style: IOS26Theme.labelLarge,
                     ),
                   ),
                 ],
@@ -373,8 +349,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
               else if (tags.isEmpty)
                 Text(
                   '暂无可用归属，请先在「标签管理」中创建并关联到「工作记录」',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
                   ),
                 )
@@ -442,8 +417,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
+          style: IOS26Theme.bodySmall.copyWith(
             color: isSelected
                 ? IOS26Theme.primaryColor
                 : (isSecondary
@@ -593,18 +567,14 @@ class _TimeRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
+              style: IOS26Theme.bodyMedium.copyWith(
                 color: IOS26Theme.textPrimary,
               ),
             ),
             const Spacer(),
             Text(
               value == null ? '未设置' : _format(value!),
-              style: const TextStyle(
-                fontSize: 15,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodyMedium,
             ),
             if (onClear != null) ...[
               const SizedBox(width: 10),

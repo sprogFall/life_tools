@@ -87,14 +87,10 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 '厨房日历',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.headlineMedium,
               ),
             ),
             _monthButton(
@@ -123,13 +119,9 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 '热力图（按"菜谱去重"的每日做菜量）',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.titleSmall,
               ),
               const SizedBox(height: 10),
               _weekdayHeader(),
@@ -168,9 +160,8 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
               child: Text(
                 e,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
                 ),
               ),
@@ -211,9 +202,8 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
         alignment: Alignment.center,
         child: Text(
           '${date.day}',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+          style: IOS26Theme.bodySmall.copyWith(
+            fontWeight: FontWeight.w600,
             color: count <= 0
                 ? IOS26Theme.textSecondary
                 : IOS26Theme.textPrimary,
@@ -228,9 +218,8 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
       children: [
         Text(
           '少',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+          style: IOS26Theme.bodySmall.copyWith(
+            fontWeight: FontWeight.w600,
             color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
           ),
         ),
@@ -248,9 +237,8 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
         ),
         Text(
           '多',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+          style: IOS26Theme.bodySmall.copyWith(
+            fontWeight: FontWeight.w600,
             color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
           ),
         ),
@@ -269,11 +257,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          color: IOS26Theme.textPrimary,
-        ),
+        style: IOS26Theme.titleSmall,
       ),
     );
   }

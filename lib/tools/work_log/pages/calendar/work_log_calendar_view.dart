@@ -78,11 +78,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.titleMedium,
               textAlign: TextAlign.center,
             ),
           ),
@@ -222,35 +218,26 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                   children: [
                     Text(
                       _formatWeekday(d),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: IOS26Theme.textPrimary,
-                      ),
+                      style: IOS26Theme.titleSmall,
                     ),
                     const SizedBox(width: 10),
                     Text(
                       _formatDate(d),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: IOS26Theme.textSecondary,
-                      ),
+                      style: IOS26Theme.bodySmall,
                     ),
                     const Spacer(),
                     if (minutes > 0)
                       Text(
                         _minutesToHoursText(minutes),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                        style: IOS26Theme.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: IOS26Theme.primaryColor,
                         ),
                       )
                     else
                       Text(
                         '0h',
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: IOS26Theme.bodyMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: IOS26Theme.textSecondary.withValues(
                             alpha: 0.9,
@@ -290,20 +277,14 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const Text(
+              Text(
                 '总计',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.textPrimary,
-                ),
+                style: IOS26Theme.titleSmall,
               ),
               const Spacer(),
               Text(
                 total > 0 ? _minutesToHoursText(total) : '0h',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.titleSmall.copyWith(
                   color: IOS26Theme.primaryColor,
                 ),
               ),
@@ -314,8 +295,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
         if (todaysEntries.isEmpty)
           Text(
             '当天暂无工时记录',
-            style: TextStyle(
-              fontSize: 15,
+            style: IOS26Theme.bodyMedium.copyWith(
               color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
             ),
           )
@@ -337,19 +317,12 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                           children: [
                             Text(
                               '工作内容：$content',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: IOS26Theme.textPrimary,
-                              ),
+                              style: IOS26Theme.titleSmall,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               '任务：$taskTitle',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: IOS26Theme.textSecondary,
-                              ),
+                              style: IOS26Theme.bodySmall,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -359,9 +332,8 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                       const SizedBox(width: 12),
                       Text(
                         _minutesToHoursText(e.minutes),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                        style: IOS26Theme.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: IOS26Theme.primaryColor,
                         ),
                       ),
@@ -390,8 +362,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
               child: Center(
                 child: Text(
                   t,
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.textSecondary,
                   ),
@@ -563,7 +534,7 @@ class _DayCell extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           color: selected
               ? IOS26Theme.primaryColor.withValues(alpha: 0.12)
@@ -576,9 +547,8 @@ class _DayCell extends StatelessWidget {
           children: [
             Text(
               '${date.day}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+              style: IOS26Theme.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
                 color: textColor,
               ),
             ),
@@ -586,9 +556,8 @@ class _DayCell extends StatelessWidget {
             if (minutesText != null)
               Text(
                 minutesText,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: IOS26Theme.primaryColor,
                 ),
               ),

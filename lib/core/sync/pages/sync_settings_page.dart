@@ -96,13 +96,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     vertical: 8,
                   ),
                   onPressed: _saveConfig,
-                  child: const Text(
+                  child: Text(
                     '保存',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ],
@@ -137,19 +133,14 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   Widget _buildCardTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: IOS26Theme.textPrimary,
-      ),
+      style: IOS26Theme.titleSmall,
     );
   }
 
   Widget _buildHint(String text) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 13,
+      style: IOS26Theme.bodySmall.copyWith(
         color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
       ),
     );
@@ -161,8 +152,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
+          style: IOS26Theme.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
             color: IOS26Theme.textSecondary,
           ),
@@ -330,8 +320,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           Expanded(
             child: Text(
               wifiName,
-              style: const TextStyle(
-                fontSize: 15,
+              style: IOS26Theme.bodyMedium.copyWith(
                 color: IOS26Theme.textPrimary,
               ),
             ),
@@ -365,10 +354,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   '启动时自动同步',
-                  style: TextStyle(fontSize: 15, color: IOS26Theme.textPrimary),
+                  style: IOS26Theme.bodyMedium.copyWith(
+                    color: IOS26Theme.textPrimary,
+                  ),
                 ),
               ),
               CupertinoSwitch(
@@ -405,13 +396,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
                       ? const CupertinoActivityIndicator(radius: 9, color: Colors.white)
-                      : const Text(
+                      : Text(
                           '立即同步',
-                          style: TextStyle(
+                          style: IOS26Theme.labelLarge.copyWith(
                             color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.24,
                           ),
                         ),
                 ),
@@ -425,10 +413,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 _buildHint('上次同步：暂无'),
               if (syncService.state == SyncState.success) ...[
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   '同步成功',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.toolGreen,
                     fontWeight: FontWeight.w600,
                   ),
@@ -436,10 +423,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               ],
               if (lastError != null) ...[
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   '错误信息（便于调试）：',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.toolRed,
                   ),
@@ -458,8 +444,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   ),
                   child: Text(
                     lastError,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: IOS26Theme.bodySmall.copyWith(
                       color: IOS26Theme.toolRed,
                       height: 1.25,
                     ),
@@ -474,11 +459,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                         borderRadius: BorderRadius.circular(14),
                         color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                         onPressed: () => _copyToClipboard(lastError),
-                        child: const Text(
+                        child: Text(
                           '复制错误详情',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                          style: IOS26Theme.labelLarge.copyWith(
                             color: IOS26Theme.textSecondary,
                           ),
                         ),

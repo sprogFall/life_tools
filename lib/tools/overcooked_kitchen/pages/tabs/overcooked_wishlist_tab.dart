@@ -124,16 +124,12 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  '愿望单',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                ),
+            Expanded(
+              child: Text(
+                '愿望单',
+                style: IOS26Theme.headlineMedium,
               ),
+            ),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -142,12 +138,9 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 color: IOS26Theme.primaryColor,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _editWishes,
-                child: const Text(
+                child: Text(
                   '选择菜谱',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                 ),
               ),
             ],
@@ -170,31 +163,19 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '准备清单（自动汇总）',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: IOS26Theme.titleSmall,
                 ),
                 const SizedBox(height: 10),
                 Text(
                   '主料：$ingredientText',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodySmall.copyWith(height: 1.35),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '调味：$sauceText',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodySmall.copyWith(height: 1.35),
                 ),
               ],
             ),
@@ -211,8 +192,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
               child: Center(
                 child: Text(
                   '这天还没想好吃什么，点“选择菜谱”添加',
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: IOS26Theme.bodyMedium.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
                   ),
                 ),
@@ -337,11 +317,7 @@ class _WishRow extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: IOS26Theme.textPrimary,
-              ),
+              style: IOS26Theme.titleSmall,
             ),
           ),
           CupertinoButton(

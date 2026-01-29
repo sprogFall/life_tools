@@ -152,8 +152,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
       return Center(
         child: Text(
           '任务不存在或已删除',
-          style: TextStyle(
-            fontSize: 15,
+          style: IOS26Theme.bodyMedium.copyWith(
             color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
           ),
         ),
@@ -177,21 +176,12 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                 children: [
                   Text(
                     task.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: IOS26Theme.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
+                    style: IOS26Theme.headlineSmall,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     '任务信息',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textPrimary,
-                    ),
+                    style: IOS26Theme.titleSmall,
                   ),
                   const SizedBox(height: 12),
                   _InfoRow(label: '状态', value: _statusLabel(task.status)),
@@ -213,11 +203,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                     const SizedBox(height: 12),
                     Text(
                       task.description,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: IOS26Theme.textSecondary,
-                        height: 1.4,
-                      ),
+                      style: IOS26Theme.bodyMedium.copyWith(height: 1.4),
                     ),
                   ],
                 ],
@@ -226,26 +212,18 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text(
+                Text(
                   '工时记录',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: IOS26Theme.textPrimary,
-                  ),
+                  style: IOS26Theme.titleSmall,
                 ),
                 const Spacer(),
                 if (canAddTimeEntry)
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: _openAddTimeEntry,
-                    child: const Text(
+                    child: Text(
                       '添加',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: IOS26Theme.primaryColor,
-                      ),
+                      style: IOS26Theme.labelLarge,
                     ),
                   ),
               ],
@@ -254,8 +232,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             if (_entries.isEmpty && !_loadingMore)
               Text(
                 '暂无工时记录${canAddTimeEntry ? '，点击右上角时钟添加' : ''}',
-                style: TextStyle(
-                  fontSize: 15,
+                style: IOS26Theme.bodyMedium.copyWith(
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
                 ),
               )
@@ -281,59 +258,55 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                     flex: 3,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: IOS26Theme.primaryColor,
-                      borderRadius: BorderRadius.circular(14),
-                      onPressed: _openAddTimeEntry,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            CupertinoIcons.clock_fill,
-                            size: 20,
+                    color: IOS26Theme.primaryColor,
+                    borderRadius: BorderRadius.circular(14),
+                    onPressed: _openAddTimeEntry,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.clock_fill,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '记录工时',
+                          style: IOS26Theme.labelLarge.copyWith(
                             color: Colors.white,
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            '记录工时',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: IOS26Theme.toolGreen,
-                      borderRadius: BorderRadius.circular(14),
-                      onPressed: _showCompleteTaskDialog,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            CupertinoIcons.check_mark_circled_solid,
-                            size: 20,
+                    color: IOS26Theme.toolGreen,
+                    borderRadius: BorderRadius.circular(14),
+                    onPressed: _showCompleteTaskDialog,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.check_mark_circled_solid,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '完成',
+                          style: IOS26Theme.labelLarge.copyWith(
                             color: Colors.white,
                           ),
-                          SizedBox(width: 6),
-                          Text(
-                            '完成',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
                 ],
               ),
             ),
@@ -370,19 +343,12 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                     children: [
                       Text(
                         entry.content.trim().isEmpty ? '（无内容）' : entry.content,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: IOS26Theme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: IOS26Theme.titleSmall,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         _formatDate(entry.workDate),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: IOS26Theme.textSecondary,
-                        ),
+                        style: IOS26Theme.bodySmall,
                       ),
                     ],
                   ),
@@ -390,9 +356,8 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                 const SizedBox(width: 12),
                 Text(
                   _minutesToHoursText(entry.minutes),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                  style: IOS26Theme.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: IOS26Theme.primaryColor,
                   ),
                 ),
@@ -646,13 +611,12 @@ class _InfoRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 14, color: IOS26Theme.textSecondary),
+          style: IOS26Theme.bodyMedium,
         ),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
+          style: IOS26Theme.bodyMedium.copyWith(
             color: IOS26Theme.textPrimary,
             fontWeight: FontWeight.w600,
           ),

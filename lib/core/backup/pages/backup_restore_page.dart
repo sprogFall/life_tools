@@ -98,19 +98,14 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   Widget _buildCardTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: IOS26Theme.textPrimary,
-      ),
+      style: IOS26Theme.titleSmall,
     );
   }
 
   Widget _buildHint(String text) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 13,
+      style: IOS26Theme.bodySmall.copyWith(
         color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
       ),
     );
@@ -137,8 +132,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               Expanded(
                 child: Text(
                   '包含敏感信息（AI Key / Token / 七牛 AKSK）',
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.textSecondary,
                   ),
@@ -165,19 +159,14 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               borderRadius: BorderRadius.circular(14),
               color: IOS26Theme.primaryColor,
               onPressed: _exportAndShare,
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(CupertinoIcons.share, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
+                  const Icon(CupertinoIcons.share, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
                   Text(
                     '导出并分享',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.24,
-                    ),
+                    style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                   ),
                 ],
               ),
@@ -191,13 +180,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               borderRadius: BorderRadius.circular(14),
               color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
               onPressed: _exportToTxtFile,
-              child: const Text(
+              child: Text(
                 '保存为 TXT 文件',
-                style: TextStyle(
+                style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.textSecondary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.24,
                 ),
               ),
             ),
@@ -210,13 +196,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               borderRadius: BorderRadius.circular(14),
               color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
               onPressed: _exportToClipboard,
-              child: const Text(
+              child: Text(
                 '导出 JSON 到剪切板',
-                style: TextStyle(
+                style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.textSecondary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.24,
                 ),
               ),
             ),
@@ -252,11 +235,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   borderRadius: BorderRadius.circular(14),
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                   onPressed: _isRestoring ? null : _pasteFromClipboard,
-                  child: const Text(
+                  child: Text(
                     '从剪切板粘贴',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    style: IOS26Theme.labelLarge.copyWith(
                       color: IOS26Theme.textSecondary,
                     ),
                   ),
@@ -269,11 +250,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   borderRadius: BorderRadius.circular(14),
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                   onPressed: _isRestoring ? null : _importFromTxtFile,
-                  child: const Text(
+                  child: Text(
                     '从 TXT 文件导入',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    style: IOS26Theme.labelLarge.copyWith(
                       color: IOS26Theme.textSecondary,
                     ),
                   ),
@@ -291,11 +270,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               onPressed: _isRestoring || _restoreController.text.isEmpty
                   ? null
                   : () => _restoreController.clear(),
-              child: const Text(
+              child: Text(
                 '清空',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.textSecondary,
                 ),
               ),
@@ -311,14 +288,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               onPressed: _isRestoring ? null : _confirmAndRestore,
               child: _isRestoring
                   ? const CupertinoActivityIndicator(radius: 9, color: Colors.white)
-                  : const Text(
+                  : Text(
                       '开始还原（覆盖本地）',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.24,
-                      ),
+                      style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
                     ),
             ),
           ),

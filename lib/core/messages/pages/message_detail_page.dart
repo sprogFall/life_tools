@@ -25,8 +25,7 @@ class MessageDetailPage extends StatelessWidget {
               return Center(
                 child: Text(
                   '消息不存在或已被删除',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: IOS26Theme.bodyMedium.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
                   ),
                 ),
@@ -43,28 +42,19 @@ class MessageDetailPage extends StatelessWidget {
                     children: [
                       Text(
                         message.title.trim().isEmpty ? '消息' : message.title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: IOS26Theme.textPrimary,
-                        ),
+                        style: IOS26Theme.headlineSmall,
                       ),
                       const SizedBox(height: 10),
                       Text(
                         _formatTime(message.createdAt),
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: IOS26Theme.bodySmall.copyWith(
                           color: IOS26Theme.textTertiary,
                         ),
                       ),
                       const SizedBox(height: 14),
                       Text(
                         message.body,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.35,
-                          color: IOS26Theme.textPrimary,
-                        ),
+                        style: IOS26Theme.bodyLarge.copyWith(height: 1.35),
                       ),
                     ],
                   ),
@@ -76,19 +66,17 @@ class MessageDetailPage extends StatelessWidget {
                     color: IOS26Theme.primaryColor,
                     borderRadius: BorderRadius.circular(14),
                     onPressed: () => MessageNavigation.open(context, message),
-                    child: const Text(
+                    child: Text(
                       '前往工具',
-                      style: TextStyle(
+                      style: IOS26Theme.labelLarge.copyWith(
                         color: Colors.white,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   )
                 else
                   Text(
                     '该消息未提供可跳转的工具路由',
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: IOS26Theme.bodySmall.copyWith(
                       color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
                     ),
                   ),
