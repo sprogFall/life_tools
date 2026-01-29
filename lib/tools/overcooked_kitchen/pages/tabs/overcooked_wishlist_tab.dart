@@ -203,7 +203,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
           if (_loading && _wishes.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 36),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CupertinoActivityIndicator()),
             )
           else if (_wishes.isEmpty)
             Padding(

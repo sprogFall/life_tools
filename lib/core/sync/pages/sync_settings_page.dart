@@ -404,14 +404,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   color: IOS26Theme.primaryColor,
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                      ? const CupertinoActivityIndicator(radius: 9, color: Colors.white)
                       : const Text(
                           '立即同步',
                           style: TextStyle(

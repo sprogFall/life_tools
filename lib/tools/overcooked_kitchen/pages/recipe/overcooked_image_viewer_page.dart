@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -104,7 +105,7 @@ class _DiskPreferredImageView extends StatelessWidget {
       future: objStore.ensureCachedFile(key: objectKey),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CupertinoActivityIndicator());
         }
         if (snapshot.hasError) {
           final errMsg = snapshot.error is ObjStoreNotConfiguredException
@@ -151,7 +152,7 @@ class _NetworkImageView extends StatelessWidget {
       future: objStore.resolveUri(key: objectKey),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CupertinoActivityIndicator());
         }
         if (snapshot.hasError) {
           final errMsg = snapshot.error is ObjStoreNotConfiguredException
@@ -182,16 +183,8 @@ class _NetworkImageView extends StatelessWidget {
                 fit: BoxFit.contain,
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
-                  final value = progress.expectedTotalBytes == null
-                      ? null
-                      : progress.cumulativeBytesLoaded /
-                            progress.expectedTotalBytes!;
-                  return Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(value: value),
-                    ),
+                  return const Center(
+                    child: CupertinoActivityIndicator(radius: 12),
                   );
                 },
                 errorBuilder: (context, error, stackTrace) {

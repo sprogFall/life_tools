@@ -130,10 +130,11 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
           ),
           child: Row(
             children: [
-              IconButton(
+              CupertinoButton(
+                padding: EdgeInsets.zero,
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
+                child: const Icon(
+                  CupertinoIcons.back,
                   color: IOS26Theme.primaryColor,
                   size: 20,
                 ),
@@ -215,7 +216,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
           icon: Icon(CupertinoIcons.calendar),
           label: '日历',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.casino_rounded), label: '扭蛋'),
+        BottomNavigationBarItem(icon: Icon(CupertinoIcons.shuffle), label: '扭蛋'),
       ],
     );
   }

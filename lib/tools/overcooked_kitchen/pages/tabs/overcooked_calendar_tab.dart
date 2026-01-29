@@ -139,7 +139,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.only(top: 12),
-                    child: CircularProgressIndicator(),
+                    child: CupertinoActivityIndicator(),
                   ),
                 )
               else

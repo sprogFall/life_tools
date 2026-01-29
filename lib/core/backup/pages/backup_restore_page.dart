@@ -310,14 +310,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               color: IOS26Theme.toolRed.withValues(alpha: 0.9),
               onPressed: _isRestoring ? null : _confirmAndRestore,
               child: _isRestoring
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                  ? const CupertinoActivityIndicator(radius: 9, color: Colors.white)
                   : const Text(
                       '开始还原（覆盖本地）',
                       style: TextStyle(

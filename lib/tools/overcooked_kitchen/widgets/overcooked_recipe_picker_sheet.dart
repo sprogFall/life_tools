@@ -176,8 +176,9 @@ class _OvercookedRecipePickerSheetState
                   )
                 : ListView.separated(
                     itemCount: filtered.length,
-                    separatorBuilder: (_, index) => Divider(
-                      height: 1,
+                    separatorBuilder: (_, index) => Container(
+                      height: 0.5,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
                       color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                     ),
                     itemBuilder: (context, index) {

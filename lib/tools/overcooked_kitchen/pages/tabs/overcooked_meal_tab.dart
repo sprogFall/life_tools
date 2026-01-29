@@ -208,7 +208,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
           if (_loading && _meals.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 36),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CupertinoActivityIndicator()),
             )
           else if (_meals.isEmpty)
             Padding(

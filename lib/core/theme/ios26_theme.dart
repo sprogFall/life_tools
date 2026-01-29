@@ -33,6 +33,62 @@ class IOS26Theme {
   static const Color toolPurple = Color(0xFF5856D6);
   static const Color toolPink = Color(0xFFFF2D55);
 
+  // ==================== 间距规范 ====================
+  static const double spacingXs = 4;
+  static const double spacingSm = 8;
+  static const double spacingMd = 12;
+  static const double spacingLg = 16;
+  static const double spacingXl = 20;
+  static const double spacingXxl = 28;
+  static const double spacingXxxl = 36;
+
+  // ==================== 圆角规范 ====================
+  static const double radiusSm = 8;
+  static const double radiusMd = 12;
+  static const double radiusLg = 16;
+  static const double radiusXl = 20;
+  static const double radiusXxl = 24;
+  static const double radiusFull = 999;
+
+  // ==================== 文本样式静态访问器 ====================
+  static TextTheme get _textTheme => lightTheme.textTheme;
+
+  /// 大标题 (34pt, w700) - 用于页面主标题、品牌名称
+  static TextStyle get displayLarge => _textTheme.displayLarge!;
+
+  /// 次级大标题 (28pt, w700)
+  static TextStyle get displayMedium => _textTheme.displayMedium!;
+
+  /// 页面标题 (28pt, w600) - 用于导航栏大标题
+  static TextStyle get headlineLarge => _textTheme.headlineLarge!;
+
+  /// 卡片标题 (22pt, w600) - 用于卡片组标题
+  static TextStyle get headlineMedium => _textTheme.headlineMedium!;
+
+  /// 小标题 (20pt, w600)
+  static TextStyle get headlineSmall => _textTheme.headlineSmall!;
+
+  /// 列表项标题 (17pt, w600) - 用于列表项、卡片标题
+  static TextStyle get titleLarge => _textTheme.titleLarge!;
+
+  /// 次级标题 (16pt, w600)
+  static TextStyle get titleMedium => _textTheme.titleMedium!;
+
+  /// 小标题 (15pt, w600) - 用于小节标题
+  static TextStyle get titleSmall => _textTheme.titleSmall!;
+
+  /// 正文 (17pt, w400) - 主要阅读文本
+  static TextStyle get bodyLarge => _textTheme.bodyLarge!;
+
+  /// 次级正文 (15pt, w400) - 次要说明文本
+  static TextStyle get bodyMedium => _textTheme.bodyMedium!;
+
+  /// 辅助文本 (13pt, w400) - 提示、标注
+  static TextStyle get bodySmall => _textTheme.bodySmall!;
+
+  /// 按钮文本 (15pt, w500) - 用于按钮、链接
+  static TextStyle get labelLarge => _textTheme.labelLarge!;
+
   /// 获取主题数据
   static ThemeData get lightTheme {
     return ThemeData(
@@ -245,10 +301,11 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
               child: Row(
                 children: [
                   if (showBackButton)
-                    IconButton(
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
                       onPressed: onBackPressed ?? () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
+                      child: const Icon(
+                        CupertinoIcons.back,
                         color: IOS26Theme.primaryColor,
                         size: 20,
                       ),

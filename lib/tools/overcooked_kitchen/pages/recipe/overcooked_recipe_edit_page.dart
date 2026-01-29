@@ -142,7 +142,8 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         title: widget.initial == null ? '新建菜谱' : '编辑菜谱',
         showBackButton: true,
         actions: [
-          TextButton(
+          CupertinoButton(
+            padding: EdgeInsets.zero,
             onPressed: _saving ? null : _save,
             child: Text(
               _saving ? '保存中…' : '保存',
@@ -164,11 +165,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               child: Container(
                 color: Colors.black.withValues(alpha: 0.15),
                 alignment: Alignment.center,
-                child: const SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2.4),
-                ),
+                child: const CupertinoActivityIndicator(radius: 14),
               ),
             ),
         ],
@@ -508,7 +505,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           const Center(
             child: Padding(
               padding: EdgeInsets.only(top: 10),
-              child: CircularProgressIndicator(),
+              child: CupertinoActivityIndicator(),
             ),
           ),
         if (_typeTags.isEmpty &&

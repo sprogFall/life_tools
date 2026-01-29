@@ -77,23 +77,26 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
           showBackButton: true,
           onBackPressed: () => Navigator.pop(context, _changed),
           actions: [
-            IconButton(
+            CupertinoButton(
+              padding: EdgeInsets.zero,
               onPressed: _openEdit,
-              icon: const Icon(
+              child: const Icon(
                 CupertinoIcons.pencil,
                 color: IOS26Theme.primaryColor,
               ),
             ),
-            IconButton(
+            CupertinoButton(
+              padding: EdgeInsets.zero,
               onPressed: _openConsume,
-              icon: const Icon(
+              child: const Icon(
                 CupertinoIcons.minus_circle,
                 color: IOS26Theme.primaryColor,
               ),
             ),
-            IconButton(
+            CupertinoButton(
+              padding: EdgeInsets.zero,
               onPressed: _confirmDelete,
-              icon: const Icon(
+              child: const Icon(
                 CupertinoIcons.delete,
                 color: IOS26Theme.toolRed,
               ),

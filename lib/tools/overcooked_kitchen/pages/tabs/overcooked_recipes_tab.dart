@@ -83,7 +83,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
           if (_loading && _recipes.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 36),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CupertinoActivityIndicator()),
             )
           else if (filtered.isEmpty)
             Padding(
@@ -134,7 +134,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                 child: Row(
                   children: [
                     const Icon(
-                      Icons.casino_rounded,
+                      CupertinoIcons.shuffle,
                       size: 18,
                       color: IOS26Theme.toolOrange,
                     ),
@@ -225,9 +225,9 @@ class _RecipeCard extends StatelessWidget {
       borderRadius: 18,
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: onTap,
         child: Row(
           children: [
             SizedBox(

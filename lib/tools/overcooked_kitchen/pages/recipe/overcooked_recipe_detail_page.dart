@@ -112,8 +112,8 @@ class _OvercookedRecipeDetailPageState
         title: '菜谱详情',
         showBackButton: true,
         actions: [
-          IconButton(
-            tooltip: '编辑',
+          CupertinoButton(
+            padding: EdgeInsets.zero,
             onPressed: recipe == null
                 ? null
                 : () async {
@@ -128,13 +128,13 @@ class _OvercookedRecipeDetailPageState
                     if (!mounted) return;
                     await _refresh();
                   },
-            icon: const Icon(
+            child: const Icon(
               CupertinoIcons.pencil,
               color: IOS26Theme.primaryColor,
             ),
           ),
-          IconButton(
-            tooltip: '删除',
+          CupertinoButton(
+            padding: EdgeInsets.zero,
             onPressed: recipe == null
                 ? null
                 : () async {
@@ -151,12 +151,12 @@ class _OvercookedRecipeDetailPageState
                     if (!context.mounted) return;
                     Navigator.pop(context);
                   },
-            icon: const Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
+            child: const Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
           ),
         ],
       ),
       body: _loading && recipe == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CupertinoActivityIndicator())
           : recipe == null
           ? const Center(
               child: Text(
