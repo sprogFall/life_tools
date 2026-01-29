@@ -114,7 +114,7 @@ class _DiskPreferredImageView extends StatelessWidget {
           return Center(
             child: Text(
               errMsg,
-              style: const TextStyle(color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodyMedium,
             ),
           );
         }
@@ -161,16 +161,16 @@ class _NetworkImageView extends StatelessWidget {
           return Center(
             child: Text(
               errMsg,
-              style: const TextStyle(color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodyMedium,
             ),
           );
         }
         final uriText = snapshot.data?.trim();
         if (uriText == null || uriText.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               '图片不存在',
-              style: TextStyle(color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodyMedium,
             ),
           );
         }
@@ -188,10 +188,10 @@ class _NetworkImageView extends StatelessWidget {
                   );
                 },
                 errorBuilder: (context, error, stackTrace) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       '图片加载失败',
-                      style: TextStyle(color: IOS26Theme.textSecondary),
+                      style: IOS26Theme.bodyMedium,
                     ),
                   );
                 },

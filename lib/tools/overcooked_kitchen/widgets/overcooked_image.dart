@@ -105,10 +105,7 @@ class OvercookedImageByKey extends StatelessWidget {
             )
           : Text(
               text ?? '无图片',
-              style: const TextStyle(
-                fontSize: 12,
-                color: IOS26Theme.textSecondary,
-              ),
+              style: IOS26Theme.bodySmall.copyWith(fontSize: 12),
             ),
     );
   }

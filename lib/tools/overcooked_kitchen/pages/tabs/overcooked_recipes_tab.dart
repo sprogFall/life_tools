@@ -91,10 +91,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
               child: Center(
                 child: Text(
                   _recipes.isEmpty ? '暂无菜谱，点右上角 + 新建' : '没有匹配的菜谱',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: IOS26Theme.textSecondary,
-                  ),
+                  style: IOS26Theme.bodyMedium,
                 ),
               ),
             )
@@ -139,10 +136,10 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                       color: IOS26Theme.toolOrange,
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        '不知道吃什么？去扭蛋机抽一抽',
-                        style: TextStyle(
+                        '??????????????',
+                        style: IOS26Theme.bodyMedium.copyWith(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: IOS26Theme.textPrimary,
@@ -152,7 +149,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       onPressed: widget.onJumpToGacha,
-                      child: const Text('去抽取'),
+                      child: Text('???', style: IOS26Theme.labelLarge),
                     ),
                   ],
                 ),
@@ -166,20 +163,18 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
   Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
-            '菜谱',
-            style: TextStyle(
-              fontSize: 22,
+            '??',
+            style: IOS26Theme.headlineMedium.copyWith(
               fontWeight: FontWeight.w700,
-              color: IOS26Theme.textPrimary,
             ),
           ),
         ),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           color: IOS26Theme.primaryColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
           onPressed: () async {
             final repo = context.read<OvercookedRepository>();
             await Navigator.of(context).push(
@@ -190,9 +185,12 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
             if (!mounted) return;
             await _refresh();
           },
-          child: const Text(
-            '+ 新建',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          child: Text(
+            '+ ??',
+            style: IOS26Theme.labelLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -248,10 +246,8 @@ class _RecipeCard extends StatelessWidget {
                     recipe.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: IOS26Theme.titleMedium.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: IOS26Theme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -277,7 +273,7 @@ class _RecipeCard extends StatelessWidget {
                           ),
                           child: Text(
                             typeText,
-                            style: const TextStyle(
+                            style: IOS26Theme.bodySmall.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: IOS26Theme.toolPurple,
@@ -289,7 +285,7 @@ class _RecipeCard extends StatelessWidget {
                       if (cookCount > 0)
                         Text(
                           '做过$cookCount次',
-                          style: TextStyle(
+                          style: IOS26Theme.bodySmall.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: IOS26Theme.textSecondary.withValues(
@@ -307,7 +303,7 @@ class _RecipeCard extends StatelessWidget {
                         const SizedBox(width: 2),
                         Text(
                           avgRating.toStringAsFixed(1),
-                          style: TextStyle(
+                          style: IOS26Theme.bodySmall.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: IOS26Theme.toolOrange,
@@ -322,7 +318,7 @@ class _RecipeCard extends StatelessWidget {
                       recipe.intro.trim(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: IOS26Theme.bodySmall.copyWith(
                         fontSize: 12,
                         height: 1.25,
                         color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
