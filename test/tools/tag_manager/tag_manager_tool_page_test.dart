@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:life_tools/core/tags/built_in_tag_categories.dart';
 import 'package:life_tools/core/tags/models/tag_category.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
@@ -37,6 +38,7 @@ void main() {
         );
         repository = TagRepository.withDatabase(db);
         service = TagService(repository: repository);
+        BuiltInTagCategories.registerAll(service);
       });
       addTearDown(() async {
         await tester.runAsync(() async => db.close());
@@ -71,17 +73,15 @@ void main() {
     testWidgets('支持按工具分类查看标签（不再提供“全部”入口）', (tester) async {
       final deps = await createTagService(tester);
       await tester.runAsync(() async {
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '紧急',
-          toolIds: const ['work_log'],
+          toolId: 'work_log',
+          categoryId: 'affiliation',
         );
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '采购',
-          toolIds: const ['stockpile_assistant'],
-        );
-        await deps.repository.createTag(
-          name: '复盘',
-          toolIds: const ['work_log', 'stockpile_assistant'],
+          toolId: 'stockpile_assistant',
+          categoryId: 'item_type',
         );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');
@@ -94,10 +94,9 @@ void main() {
       // 默认应选中首个工具（work_log），且不应再出现“全部”
       expect(find.text('全部'), findsNothing);
 
-      // 工具视图应切换为“类别列表”，默认至少包含“默认”类别
-      expect(find.text('默认'), findsOneWidget);
+      // 工具视图应切换为“类别列表”，展示该工具注册的分类
+      expect(find.text('归属'), findsOneWidget);
       expect(find.text('紧急'), findsOneWidget);
-      expect(find.text('复盘'), findsOneWidget);
       expect(find.text('采购'), findsNothing);
 
       await tester.tap(
@@ -105,22 +104,23 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('默认'), findsOneWidget);
+      expect(find.text('物品类型'), findsOneWidget);
       expect(find.text('采购'), findsOneWidget);
-      expect(find.text('复盘'), findsOneWidget);
       expect(find.text('紧急'), findsNothing);
     });
 
     testWidgets('传入 initialToolId 时默认按工具筛选', (tester) async {
       final deps = await createTagService(tester);
       await tester.runAsync(() async {
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '紧急',
-          toolIds: const ['work_log'],
+          toolId: 'work_log',
+          categoryId: 'affiliation',
         );
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '采购',
-          toolIds: const ['stockpile_assistant'],
+          toolId: 'stockpile_assistant',
+          categoryId: 'item_type',
         );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');
@@ -131,7 +131,7 @@ void main() {
       );
       await pumpUntilFound(tester, find.text('紧急'));
 
-      expect(find.text('默认'), findsOneWidget);
+      expect(find.text('归属'), findsOneWidget);
       expect(find.text('紧急'), findsOneWidget);
       expect(find.text('采购'), findsNothing);
     });
@@ -140,13 +140,15 @@ void main() {
       final deps = await createTagService(tester);
       late int id1;
       await tester.runAsync(() async {
-        id1 = await deps.repository.createTag(
+        id1 = await deps.repository.createTagForToolCategory(
           name: '紧急',
-          toolIds: const ['work_log'],
+          toolId: 'work_log',
+          categoryId: 'affiliation',
         );
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '采购',
-          toolIds: const ['stockpile_assistant'],
+          toolId: 'stockpile_assistant',
+          categoryId: 'item_type',
         );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');
@@ -169,9 +171,10 @@ void main() {
       final deps = await createTagService(tester);
       late int id;
       await tester.runAsync(() async {
-        id = await deps.repository.createTag(
+        id = await deps.repository.createTagForToolCategory(
           name: '紧急',
-          toolIds: const ['work_log'],
+          toolId: 'work_log',
+          categoryId: 'affiliation',
         );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');
@@ -183,15 +186,17 @@ void main() {
       await pumpUntilFound(tester, find.byKey(ValueKey('tag-item-$id')));
 
       await tester.tap(
-        find.byKey(const ValueKey('tag-category-manage-work_log-default')),
+        find.byKey(const ValueKey('tag-category-manage-work_log-affiliation')),
       );
       await tester.pump();
       await pumpUntilFound(
         tester,
-        find.byKey(ValueKey('tag-remove-work_log-default-$id')),
+        find.byKey(ValueKey('tag-remove-work_log-affiliation-$id')),
       );
 
-      await tester.tap(find.byKey(ValueKey('tag-remove-work_log-default-$id')));
+      await tester.tap(
+        find.byKey(ValueKey('tag-remove-work_log-affiliation-$id')),
+      );
       await tester.pump();
       await pumpUntilFound(tester, find.text('确认删除'));
 
@@ -216,9 +221,10 @@ void main() {
       ]);
       await tester.runAsync(() async {
         // 预置一条标签并提前刷新缓存，避免 TagManagerToolPage 在测试结束后仍发起异步查询。
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '占位',
-          toolIds: const ['work_log'],
+          toolId: 'work_log',
+          categoryId: 'priority',
         );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');
@@ -247,9 +253,10 @@ void main() {
       ]);
       await tester.runAsync(() async {
         // 预置数据并提前刷新缓存，避免页面构建后仍触发异步查询影响测试稳定性。
-        await deps.repository.createTag(
+        await deps.repository.createTagForToolCategory(
           name: '占位',
-          toolIds: const ['work_log'],
+          toolId: 'work_log',
+          categoryId: 'priority',
         );
         await deps.service.refreshAll();
         await deps.service.refreshToolTags('work_log');

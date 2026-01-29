@@ -196,9 +196,10 @@ void main() {
         ),
       );
 
-      final tagId = await tagRepository.createTag(
+      final tagId = await tagRepository.createTagForToolCategory(
         name: '冷藏',
-        toolIds: const ['stockpile_assistant'],
+        toolId: 'stockpile_assistant',
+        categoryId: 'location',
       );
 
       await tagRepository.setTagsForStockItem(itemId, [tagId]);

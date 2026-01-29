@@ -78,15 +78,17 @@ void main() {
     });
 
     test('当天愿望单会写入首页消息并推送系统通知（内容含食材/酱料汇总）', () async {
-      final ingredientId = await tagRepository.createTag(
+      final ingredientId = await tagRepository.createTagForToolCategory(
         name: '鸡蛋',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'ingredient',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final sauceId = await tagRepository.createTag(
+      final sauceId = await tagRepository.createTagForToolCategory(
         name: '盐',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'sauce',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );

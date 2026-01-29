@@ -26,9 +26,10 @@ void main() {
       final sourceTags = TagRepository.withDatabase(sourceDb);
       final sourceWorkLog = WorkLogRepository.withDatabase(sourceDb);
 
-      final urgentId = await sourceTags.createTag(
+      final urgentId = await sourceTags.createTagForToolCategory(
         name: '紧急',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
       final taskId = await sourceWorkLog.createTask(
         WorkTask.create(
@@ -88,7 +89,7 @@ void main() {
       await targetDb.close();
     });
 
-    test('标签导出/导入应保留 tool_tags.category_id；缺失时默认填充', () async {
+    test('标签导出/导入应保留 tool_tags.category_id；缺失时应报错', () async {
       final sourceDb = await openDatabase(
         inMemoryDatabasePath,
         version: DatabaseSchema.version,
@@ -142,13 +143,10 @@ void main() {
       final targetTags = TagRepository.withDatabase(targetDb);
       final provider2 = TagSyncProvider(repository: targetTags);
 
-      await provider2.importData(legacyPayload);
-
-      final restored = await targetTags.listTagsForToolWithCategory('work_log');
-      final restoredById = {
-        for (final it in restored) it.tag.id!: it.categoryId,
-      };
-      expect(restoredById[priorityId], TagRepository.defaultCategoryId);
+      await expectLater(
+        () => provider2.importData(legacyPayload),
+        throwsArgumentError,
+      );
 
       await targetDb.close();
     });

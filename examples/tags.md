@@ -1,7 +1,7 @@
 # 标签公共接口示例
 本项目已在 `lib/main.dart` 通过 Provider 全局注入 `TagService`，业务侧（页面/工具/服务）可直接通过 `context.read<TagService>()` 获取并调用。
 
-## 0)（可选）为工具注册「标签分类」
+## 0) 为工具注册「标签分类」（必需）
 标签管理已支持「工具 -> 分类 -> 标签」的结构；分类由工具通过公共方法注册产生：
 
 ```dart
@@ -16,7 +16,7 @@ context.read<TagService>().registerToolTagCategories('work_log', const [
 ]);
 ```
 
-- 如果工具不调用注册：该工具在标签管理中只会显示 1 个默认分类（`default` / “默认”），并兼容旧数据。
+- 工具必须注册分类；后续所有「工具标签」的新增/查询都需要带上分类（`categoryId`）。
 - `createHint` 会用于「标签管理 -> 该工具 -> 该分类 -> 添加标签」时输入框的灰色提示；不传时默认用 `${分类名}标签`（显示为 `如：${分类名}标签`）。
 
 ## 1) 查询某个工具当前可用的标签
@@ -32,7 +32,7 @@ for (final t in tags) {
 }
 ```
 
-## 1.1)（新增）在业务页面直接新增标签（可选分类）
+## 1.1) 在业务页面直接新增标签（必须指定分类）
 用于在某个工具页面内“边用边补标签”，无需跳转到「标签管理」：
 
 ```dart
@@ -41,11 +41,8 @@ import 'package:life_tools/core/tags/tag_service.dart';
 
 final tagService = context.read<TagService>();
 
-// 写入默认分类（default）
-await tagService.createTagForTool(toolId: 'work_log', name: '紧急');
-
 // 写入指定分类（工具需先注册该分类）
-await tagService.createTagForTool(
+await tagService.createTagForToolCategory(
   toolId: 'work_log',
   categoryId: 'priority',
   name: '重要',
@@ -93,4 +90,4 @@ final tasks = await repository.listTasks(tagIds: [1, 2]);
 ## 4) 导入/导出（备份/还原）说明
 - `tag_manager`：导出/导入 `tags` 与 `tool_tags`
 - `work_log`：额外导出/导入 `task_tags`（任务-标签关联）
-  - `tool_tags` 里包含 `category_id` 与 `sort_index`；旧备份若缺失会在导入时自动补默认值（`default` / `0`）。
+  - `tool_tags` 里包含 `category_id` 与 `sort_index`；导入时要求 `category_id` 必填。

@@ -8,7 +8,6 @@ import '../../../core/registry/tool_registry.dart';
 import '../../../core/tags/models/tag_in_tool_category.dart';
 import '../../../core/tags/models/tag_with_tools.dart';
 import '../../../core/tags/models/tag_category.dart';
-import '../../../core/tags/tag_repository.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../pages/home_page.dart';
@@ -328,13 +327,10 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     };
 
     final registered = service.categoriesForTool(widget.toolId);
-    final classificationEnabled = registered.length > 1;
     final categories = _buildCategories(registered, items);
     final tagsByCategory = <String, List<TagInToolCategory>>{};
     for (final item in items) {
-      final key = classificationEnabled
-          ? item.categoryId
-          : TagRepository.defaultCategoryId;
+      final key = item.categoryId;
       tagsByCategory.putIfAbsent(key, () => []).add(item);
     }
 
@@ -515,13 +511,6 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
     List<TagCategory> registered,
     List<TagInToolCategory> items,
   ) {
-    if (registered.length == 1 &&
-        registered.first.id == TagRepository.defaultCategoryId) {
-      return const [
-        _CategoryView(id: TagRepository.defaultCategoryId, name: '默认'),
-      ];
-    }
-
     final seen = <String>{for (final c in registered) c.id};
 
     final extra = <_CategoryView>[];

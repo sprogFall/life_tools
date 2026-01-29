@@ -34,15 +34,17 @@ void main() {
     });
 
     test('按类型随机抽取：每个类型最多一份且必须匹配类型', () async {
-      final typeA = await tagRepository.createTag(
+      final typeA = await tagRepository.createTagForToolCategory(
         name: '主菜',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final typeB = await tagRepository.createTag(
+      final typeB = await tagRepository.createTagForToolCategory(
         name: '汤',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
@@ -100,15 +102,17 @@ void main() {
     });
 
     test('某类型没有可抽取菜谱时，会跳过该类型', () async {
-      final typeA = await tagRepository.createTag(
+      final typeA = await tagRepository.createTagForToolCategory(
         name: '主菜',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final typeB = await tagRepository.createTag(
+      final typeB = await tagRepository.createTagForToolCategory(
         name: '甜品',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
@@ -136,15 +140,17 @@ void main() {
     });
 
     test('支持为每个类型指定抽取数量（同类型尽量不重复）', () async {
-      final typeA = await tagRepository.createTag(
+      final typeA = await tagRepository.createTagForToolCategory(
         name: '主菜',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final typeB = await tagRepository.createTag(
+      final typeB = await tagRepository.createTagForToolCategory(
         name: '汤',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );

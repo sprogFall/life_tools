@@ -28,26 +28,10 @@ class TagService extends ChangeNotifier {
 
   List<TagCategory> categoriesForTool(String toolId) {
     final normalized = toolId.trim();
-    if (normalized.isEmpty) {
-      return const [
-        TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
-      ];
-    }
+    if (normalized.isEmpty) return const [];
     final registered = _categoriesByToolId[normalized];
-    if (registered == null || registered.isEmpty) {
-      return const [
-        TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
-      ];
-    }
-    final hasDefault = registered.any(
-      (e) => e.id == TagRepository.defaultCategoryId,
-    );
-    return hasDefault
-        ? List.unmodifiable(registered)
-        : List.unmodifiable([
-            const TagCategory(id: TagRepository.defaultCategoryId, name: '默认'),
-            ...registered,
-          ]);
+    if (registered == null || registered.isEmpty) return const [];
+    return List.unmodifiable(registered);
   }
 
   void registerToolTagCategories(String toolId, List<TagCategory> categories) {
@@ -125,27 +109,6 @@ class TagService extends ChangeNotifier {
     return id;
   }
 
-  /// 便捷新增：为某个工具（可选分类）新增标签。
-  /// - 未传 / 空分类时默认写入 `TagRepository.defaultCategoryId`
-  /// - 完成后会刷新 allTags 与该工具的缓存
-  Future<int> createTagForTool({
-    required String toolId,
-    String? categoryId,
-    required String name,
-    int? color,
-  }) {
-    final normalizedCategoryId =
-        (categoryId == null || categoryId.trim().isEmpty)
-        ? TagRepository.defaultCategoryId
-        : categoryId.trim();
-    return createTagForToolCategory(
-      toolId: toolId,
-      categoryId: normalizedCategoryId,
-      name: name,
-      color: color,
-    );
-  }
-
   Future<void> renameTag({required int tagId, required String name}) async {
     await _repository.renameTag(tagId: tagId, name: name);
     await refreshAll();
@@ -159,9 +122,10 @@ class TagService extends ChangeNotifier {
     final normalizedToolId = toolId.trim();
     if (normalizedToolId.isEmpty) return const [];
 
-    final normalizedCategoryId = categoryId.trim().isEmpty
-        ? TagRepository.defaultCategoryId
-        : categoryId.trim();
+    final normalizedCategoryId = categoryId.trim();
+    if (normalizedCategoryId.isEmpty) {
+      throw ArgumentError('listTagsForToolCategory 需要 categoryId');
+    }
 
     if (refresh) {
       await refreshToolTags(normalizedToolId);
@@ -174,35 +138,6 @@ class TagService extends ChangeNotifier {
         .where((e) => e.categoryId == normalizedCategoryId)
         .map((e) => e.tag)
         .toList(growable: false);
-  }
-
-  Future<int> createTag({
-    required String name,
-    required List<String> toolIds,
-    int? color,
-  }) async {
-    final id = await _repository.createTag(
-      name: name,
-      toolIds: toolIds,
-      color: color,
-    );
-    await refreshAll();
-    return id;
-  }
-
-  Future<void> updateTag({
-    required int tagId,
-    required String name,
-    required List<String> toolIds,
-    int? color,
-  }) async {
-    await _repository.updateTag(
-      tagId: tagId,
-      name: name,
-      toolIds: toolIds,
-      color: color,
-    );
-    await refreshAll();
   }
 
   Future<void> deleteTag(int tagId) async {
@@ -259,9 +194,10 @@ class TagService extends ChangeNotifier {
     final normalizedToolId = toolId.trim();
     if (normalizedToolId.isEmpty) return;
 
-    final normalizedCategoryId = categoryId.trim().isEmpty
-        ? TagRepository.defaultCategoryId
-        : categoryId.trim();
+    final normalizedCategoryId = categoryId.trim();
+    if (normalizedCategoryId.isEmpty) {
+      throw ArgumentError('reorderToolCategoryTags 需要 categoryId');
+    }
 
     final current = _tagsByToolId[normalizedToolId];
     if (current == null || current.isEmpty) {
@@ -323,27 +259,5 @@ class TagService extends ChangeNotifier {
     } catch (_) {
       await refreshToolTags(normalizedToolId);
     }
-  }
-
-  /// 启动期迁移：将某工具下的“默认”分类标签迁移到更明确的分类。
-  /// 返回迁移条数；如迁移发生，会刷新该工具的 toolTag 缓存。
-  Future<int> migrateToolDefaultCategoryTo({
-    required String toolId,
-    required String toCategoryId,
-  }) async {
-    final normalizedToolId = toolId.trim();
-    final normalizedCategoryId = toCategoryId.trim();
-    if (normalizedToolId.isEmpty) return 0;
-    if (normalizedCategoryId.isEmpty) return 0;
-
-    final migrated = await _repository.migrateToolTagCategory(
-      toolId: normalizedToolId,
-      fromCategoryId: TagRepository.defaultCategoryId,
-      toCategoryId: normalizedCategoryId,
-    );
-    if (migrated > 0) {
-      await refreshToolTags(normalizedToolId);
-    }
-    return migrated;
   }
 }

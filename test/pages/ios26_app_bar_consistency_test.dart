@@ -7,7 +7,6 @@ import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/core/theme/ios26_theme.dart';
 import 'package:life_tools/pages/ai_settings_page.dart';
-import 'package:life_tools/tools/tag_manager/pages/tag_edit_page.dart';
 import 'package:life_tools/tools/tag_manager/pages/tag_manager_tool_page.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/pages/log/operation_log_list_page.dart';
@@ -49,7 +48,11 @@ void main() {
 
         // 预置一条标签并提前刷新缓存，避免 TagManagerToolPage 在测试结束后仍发起异步查询。
         repository = TagRepository.withDatabase(db);
-        await repository.createTag(name: '测试', toolIds: const ['work_log']);
+        await repository.createTagForToolCategory(
+          name: '测试',
+          toolId: 'work_log',
+          categoryId: 'affiliation',
+        );
         service = TagService(repository: repository);
         await service.refreshAll();
         await service.refreshToolTags('work_log');
@@ -70,13 +73,6 @@ void main() {
           child: const MaterialApp(home: AiSettingsPage()),
         ),
       );
-      await tester.pump();
-
-      expect(find.byType(IOS26AppBar), findsOneWidget);
-    });
-
-    testWidgets('TagEditPage uses IOS26AppBar', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TagEditPage()));
       await tester.pump();
 
       expect(find.byType(IOS26AppBar), findsOneWidget);

@@ -33,13 +33,15 @@ void main() {
     });
 
     test('按单个标签筛选任务（任意匹配）', () async {
-      final urgentId = await tagRepository.createTag(
+      final urgentId = await tagRepository.createTagForToolCategory(
         name: '紧急',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
-      final routineId = await tagRepository.createTag(
+      final routineId = await tagRepository.createTagForToolCategory(
         name: '例行',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
 
       final a = await repository.createTask(

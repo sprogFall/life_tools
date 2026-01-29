@@ -27,9 +27,7 @@ import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'pages/home_page.dart';
 import 'tools/overcooked_kitchen/services/overcooked_reminder_service.dart';
-import 'tools/stockpile_assistant/stockpile_constants.dart';
 import 'tools/stockpile_assistant/services/stockpile_reminder_service.dart';
-import 'tools/work_log/work_log_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -212,19 +210,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           create: (_) {
             final service = TagService();
             BuiltInTagCategories.registerAll(service);
-            // 启动期迁移：把历史“默认”分类迁移到更明确的分类（不阻塞启动）。
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Future<void>(() async {
-                await service.migrateToolDefaultCategoryTo(
-                  toolId: WorkLogConstants.toolId,
-                  toCategoryId: WorkLogTagCategories.affiliation,
-                );
-                await service.migrateToolDefaultCategoryTo(
-                  toolId: StockpileConstants.toolId,
-                  toCategoryId: StockpileTagCategories.itemType,
-                );
-              });
-            });
             return service;
           },
         ),

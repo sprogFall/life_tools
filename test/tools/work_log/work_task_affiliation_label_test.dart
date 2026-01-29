@@ -50,7 +50,11 @@ void main() {
           onUpgrade: DatabaseSchema.onUpgrade,
         );
         tagRepository = TagRepository.withDatabase(db);
-        await tagRepository.createTag(name: '项目A', toolIds: const ['work_log']);
+        await tagRepository.createTagForToolCategory(
+          name: '项目A',
+          toolId: 'work_log',
+          categoryId: 'affiliation',
+        );
         service = WorkLogService(
           repository: FakeWorkLogRepository(),
           tagRepository: tagRepository,

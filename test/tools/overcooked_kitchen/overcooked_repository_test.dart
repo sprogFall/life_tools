@@ -33,21 +33,24 @@ void main() {
     });
 
     test('可以创建并读取菜谱（含标签与口味）', () async {
-      final typeId = await tagRepository.createTag(
+      final typeId = await tagRepository.createTagForToolCategory(
         name: '家常菜',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final ingredientId = await tagRepository.createTag(
+      final ingredientId = await tagRepository.createTagForToolCategory(
         name: '鸡腿肉',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'ingredient',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final sauceId = await tagRepository.createTag(
+      final sauceId = await tagRepository.createTagForToolCategory(
         name: '生抽',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'sauce',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
@@ -217,15 +220,17 @@ void main() {
     });
 
     test('厨房日历：按“类型去重”的每日做菜量统计', () async {
-      final t1 = await tagRepository.createTag(
+      final t1 = await tagRepository.createTagForToolCategory(
         name: '快手菜',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );
-      final t2 = await tagRepository.createTag(
+      final t2 = await tagRepository.createTagForToolCategory(
         name: '汤',
-        toolIds: const ['overcooked_kitchen'],
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
         color: null,
         now: DateTime(2026, 1, 1, 9),
       );

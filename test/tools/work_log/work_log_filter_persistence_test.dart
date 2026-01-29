@@ -33,9 +33,10 @@ void main() {
     });
 
     test('应自动清理不存在的标签筛选条件并回写到 SharedPreferences', () async {
-      final validId = await tagRepository.createTag(
+      final validId = await tagRepository.createTagForToolCategory(
         name: '标签1',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: DateTime(2026, 1, 1),
       );
 

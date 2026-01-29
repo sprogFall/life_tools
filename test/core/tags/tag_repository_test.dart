@@ -33,9 +33,10 @@ void main() {
     });
 
     test('创建标签后可按工具查询', () async {
-      final id = await tagRepository.createTag(
+      final id = await tagRepository.createTagForToolCategory(
         name: '紧急',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
 
       final workLogTags = await tagRepository.listTagsForTool('work_log');
@@ -45,82 +46,35 @@ void main() {
       expect(incomeTags, isEmpty);
     });
 
-    test('按工具查询可包含分类信息（默认分类/自定义分类）', () async {
+    test('按工具查询可包含分类信息', () async {
       final priorityId = await tagRepository.createTagForToolCategory(
         name: '紧急',
         toolId: 'work_log',
         categoryId: 'priority',
       );
-      final defaultId = await tagRepository.createTag(
+      final affiliationId = await tagRepository.createTagForToolCategory(
         name: '例行',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
 
       final items = await tagRepository.listTagsForToolWithCategory('work_log');
       final byId = {for (final it in items) it.tag.id!: it.categoryId};
 
       expect(byId[priorityId], 'priority');
-      expect(byId[defaultId], TagRepository.defaultCategoryId);
-    });
-
-    test('标签可关联多个工具并可更新', () async {
-      final id = await tagRepository.createTag(
-        name: '复盘',
-        toolIds: const ['work_log', 'review'],
-      );
-
-      var tags = await tagRepository.listAllTagsWithTools();
-      final before = tags.singleWhere((t) => t.tag.id == id);
-      expect(before.toolIds.toSet(), {'work_log', 'review'});
-
-      await tagRepository.updateTag(
-        tagId: id,
-        name: '复盘&总结',
-        toolIds: const ['review'],
-      );
-
-      tags = await tagRepository.listAllTagsWithTools();
-      final after = tags.singleWhere((t) => t.tag.id == id);
-      expect(after.tag.name, '复盘&总结');
-      expect(after.toolIds.toSet(), {'review'});
-    });
-
-    test('updateTag 更新关联工具时应保留已有分类', () async {
-      final id = await tagRepository.createTagForToolCategory(
-        name: '紧急',
-        toolId: 'work_log',
-        categoryId: 'priority',
-      );
-
-      await tagRepository.updateTag(
-        tagId: id,
-        name: '紧急',
-        toolIds: const ['work_log', 'review'],
-      );
-
-      final links = await db.query(
-        'tool_tags',
-        where: 'tag_id = ?',
-        whereArgs: [id],
-        orderBy: 'tool_id ASC',
-      );
-      final byTool = {
-        for (final row in links)
-          row['tool_id'] as String: row['category_id'] as String?,
-      };
-
-      expect(byTool['work_log'], 'priority');
-      expect(byTool['review'], TagRepository.defaultCategoryId);
+      expect(byId[affiliationId], 'affiliation');
     });
 
     test('任务可设置标签并可查询', () async {
-      final urgentId = await tagRepository.createTag(
+      final urgentId = await tagRepository.createTagForToolCategory(
         name: '紧急',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
-      final routineId = await tagRepository.createTag(
+      final routineId = await tagRepository.createTagForToolCategory(
         name: '例行',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
 
       final taskId = await workLogRepository.createTask(
@@ -141,9 +95,10 @@ void main() {
     });
 
     test('删除标签会级联清理任务关联', () async {
-      final urgentId = await tagRepository.createTag(
+      final urgentId = await tagRepository.createTagForToolCategory(
         name: '紧急',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
       );
 
       final taskId = await workLogRepository.createTask(
@@ -166,23 +121,26 @@ void main() {
     });
 
     test('创建新标签应自动追加到排序末尾', () async {
-      final firstId = await tagRepository.createTag(
+      final firstId = await tagRepository.createTagForToolCategory(
         name: 'B',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: DateTime(2026, 1, 1, 10),
       );
-      await tagRepository.createTag(
+      await tagRepository.createTagForToolCategory(
         name: 'A',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: DateTime(2026, 1, 1, 11),
       );
 
       // 先手动设置排序（模拟用户拖拽过）
       await tagRepository.reorderTags([firstId], now: DateTime(2026, 1, 1, 12));
 
-      final newId = await tagRepository.createTag(
+      final newId = await tagRepository.createTagForToolCategory(
         name: 'C',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: DateTime(2026, 1, 1, 13),
       );
 
@@ -201,19 +159,22 @@ void main() {
       final t1 = DateTime(2026, 1, 1, 10);
       final t2 = DateTime(2026, 1, 2, 10);
 
-      final a = await tagRepository.createTag(
+      final a = await tagRepository.createTagForToolCategory(
         name: 'A',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: t1,
       );
-      final b = await tagRepository.createTag(
+      final b = await tagRepository.createTagForToolCategory(
         name: 'B',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: t1,
       );
-      final c = await tagRepository.createTag(
+      final c = await tagRepository.createTagForToolCategory(
         name: 'C',
-        toolIds: const ['work_log'],
+        toolId: 'work_log',
+        categoryId: 'affiliation',
         now: t1,
       );
 

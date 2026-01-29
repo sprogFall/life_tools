@@ -15,30 +15,11 @@ class _ToolTagLink {
 class TagRepository {
   final Future<Database> _database;
 
-  static const String defaultCategoryId = 'default';
-
   TagRepository({DatabaseHelper? dbHelper})
     : _database = (dbHelper ?? DatabaseHelper.instance).database;
 
   TagRepository.withDatabase(Database database)
     : _database = Future.value(database);
-
-  Future<int> createTag({
-    required String name,
-    required List<String> toolIds,
-    int? color,
-    DateTime? now,
-  }) async {
-    return _createTagInternal(
-      name: name,
-      toolLinks: [
-        for (final toolId in _dedupeToolIds(toolIds))
-          _ToolTagLink(toolId: toolId, categoryId: defaultCategoryId),
-      ],
-      color: color,
-      now: now,
-    );
-  }
 
   Future<int> createTagForToolCategory({
     required String name,
@@ -51,9 +32,10 @@ class TagRepository {
     if (normalizedToolId.isEmpty) {
       throw ArgumentError('createTagForToolCategory 需要 toolId');
     }
-    final normalizedCategoryId = categoryId.trim().isEmpty
-        ? defaultCategoryId
-        : categoryId.trim();
+    final normalizedCategoryId = categoryId.trim();
+    if (normalizedCategoryId.isEmpty) {
+      throw ArgumentError('createTagForToolCategory 需要 categoryId');
+    }
 
     return _createTagInternal(
       name: name,
@@ -66,77 +48,6 @@ class TagRepository {
       color: color,
       now: now,
     );
-  }
-
-  Future<void> updateTag({
-    required int tagId,
-    required String name,
-    required List<String> toolIds,
-    int? color,
-    DateTime? now,
-  }) async {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) {
-      throw ArgumentError('updateTag 需要 name');
-    }
-    if (toolIds.isEmpty) {
-      throw ArgumentError('updateTag 需要至少选择 1 个工具');
-    }
-
-    final time = now ?? DateTime.now();
-    final db = await _database;
-    await db.transaction((txn) async {
-      final existingLinks = await txn.query(
-        'tool_tags',
-        columns: const ['tool_id', 'category_id', 'sort_index'],
-        where: 'tag_id = ?',
-        whereArgs: [tagId],
-      );
-      final linkByTool = <String, ({String categoryId, int sortIndex})>{};
-      for (final row in existingLinks) {
-        final toolId = row['tool_id'] as String;
-        final raw = row['category_id'] as String?;
-        final normalized = raw?.trim();
-        final categoryId = (normalized == null || normalized.isEmpty)
-            ? defaultCategoryId
-            : normalized;
-        final sortIndex = (row['sort_index'] as int?) ?? 0;
-        linkByTool[toolId] = (categoryId: categoryId, sortIndex: sortIndex);
-      }
-
-      final updated = await txn.update(
-        'tags',
-        {
-          'name': trimmed,
-          'color': color,
-          'updated_at': time.millisecondsSinceEpoch,
-        },
-        where: 'id = ?',
-        whereArgs: [tagId],
-      );
-      if (updated <= 0) {
-        throw StateError('未找到要更新的标签: id=$tagId');
-      }
-
-      await txn.delete('tool_tags', where: 'tag_id = ?', whereArgs: [tagId]);
-      for (final toolId in _dedupeToolIds(toolIds)) {
-        final existing = linkByTool[toolId];
-        final categoryId = existing?.categoryId ?? defaultCategoryId;
-        final sortIndex =
-            existing?.sortIndex ??
-            await _nextToolTagSortIndex(
-              txn,
-              toolId: toolId,
-              categoryId: categoryId,
-            );
-        await txn.insert('tool_tags', {
-          'tool_id': toolId,
-          'tag_id': tagId,
-          'category_id': categoryId,
-          'sort_index': sortIndex,
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
-      }
-    });
   }
 
   Future<void> renameTag({
@@ -192,9 +103,10 @@ class TagRepository {
     if (normalizedToolId.isEmpty) {
       throw ArgumentError('reorderToolCategoryTags 需要 toolId');
     }
-    final normalizedCategoryId = categoryId.trim().isEmpty
-        ? defaultCategoryId
-        : categoryId.trim();
+    final normalizedCategoryId = categoryId.trim();
+    if (normalizedCategoryId.isEmpty) {
+      throw ArgumentError('reorderToolCategoryTags 需要 categoryId');
+    }
 
     final ids = _dedupeInts(tagIds).toList();
     if (ids.isEmpty) return;
@@ -239,65 +151,6 @@ ORDER BY tt.category_id ASC, tt.sort_index ASC, t.name COLLATE NOCASE ASC
     return results.map((e) => Tag.fromMap(e)).toList();
   }
 
-  /// 将某个工具下的标签从一个分类迁移到另一个分类（仅修改 tool_tags）。
-  ///
-  /// 主要用于：早期只有“默认”分类时，后续引入更明确的分类后做无感升级。
-  /// 返回迁移的条数。
-  Future<int> migrateToolTagCategory({
-    required String toolId,
-    required String fromCategoryId,
-    required String toCategoryId,
-  }) async {
-    final normalizedToolId = toolId.trim();
-    if (normalizedToolId.isEmpty) {
-      throw ArgumentError('migrateToolTagCategory 需要 toolId');
-    }
-    final from = fromCategoryId.trim().isEmpty
-        ? defaultCategoryId
-        : fromCategoryId.trim();
-    final to = toCategoryId.trim().isEmpty
-        ? defaultCategoryId
-        : toCategoryId.trim();
-    if (from == to) return 0;
-
-    final db = await _database;
-    return db.transaction((txn) async {
-      final maxRows = await txn.rawQuery(
-        '''
-SELECT MAX(sort_index) AS max_sort_index
-FROM tool_tags
-WHERE tool_id = ? AND category_id = ?
-''',
-        [normalizedToolId, to],
-      );
-      var nextSortIndex = ((maxRows.first['max_sort_index'] as int?) ?? -1) + 1;
-
-      final rows = await txn.rawQuery(
-        '''
-SELECT tag_id, sort_index
-FROM tool_tags
-WHERE tool_id = ? AND category_id = ?
-ORDER BY sort_index ASC, tag_id ASC
-''',
-        [normalizedToolId, from],
-      );
-      if (rows.isEmpty) return 0;
-
-      var migrated = 0;
-      for (final row in rows) {
-        final tagId = row['tag_id'] as int;
-        final updated = await txn.update(
-          'tool_tags',
-          {'category_id': to, 'sort_index': nextSortIndex++},
-          where: 'tool_id = ? AND tag_id = ? AND category_id = ?',
-          whereArgs: [normalizedToolId, tagId, from],
-        );
-        if (updated > 0) migrated += 1;
-      }
-      return migrated;
-    });
-  }
-
   Future<List<TagInToolCategory>> listTagsForToolWithCategory(
     String toolId,
   ) async {
@@ -318,9 +171,7 @@ ORDER BY tt.category_id ASC, tt.sort_index ASC, t.name COLLATE NOCASE ASC
 
     return results.map((row) {
       final raw = row['category_id'] as String?;
-      final categoryId = (raw == null || raw.trim().isEmpty)
-          ? defaultCategoryId
-          : raw.trim();
+      final categoryId = raw?.trim() ?? '';
       return TagInToolCategory(tag: Tag.fromMap(row), categoryId: categoryId);
     }).toList();
   }
@@ -431,9 +282,24 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
       for (final tag in tags) {
         await txn.insert('tags', tag);
       }
-      for (final link in toolTags) {
+      for (int i = 0; i < toolTags.length; i++) {
+        final link = toolTags[i];
         final normalized = Map<String, dynamic>.from(link);
-        normalized['category_id'] ??= defaultCategoryId;
+        final toolId = (normalized['tool_id'] as String?)?.trim() ?? '';
+        if (toolId.isEmpty) {
+          throw ArgumentError(
+            'importTagsFromServer: tool_tags[$i].tool_id 不能为空',
+          );
+        }
+        normalized['tool_id'] = toolId;
+
+        final categoryId = (normalized['category_id'] as String?)?.trim() ?? '';
+        if (categoryId.isEmpty) {
+          throw ArgumentError(
+            'importTagsFromServer: tool_tags[$i].category_id 不能为空',
+          );
+        }
+        normalized['category_id'] = categoryId;
         normalized['sort_index'] ??= 0;
         await txn.insert(
           'tool_tags',
@@ -452,10 +318,10 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
   }) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
-      throw ArgumentError('createTag 需要 name');
+      throw ArgumentError('createTagForToolCategory 需要 name');
     }
     if (toolLinks.isEmpty) {
-      throw ArgumentError('createTag 需要至少选择 1 个工具');
+      throw ArgumentError('createTagForToolCategory 需要至少 1 个 toolLink');
     }
 
     final time = now ?? DateTime.now();
@@ -562,15 +428,6 @@ WHERE tool_id = ? AND category_id = ?
       entityTable: 'stock_items',
       links: links,
     );
-  }
-
-  static Iterable<String> _dedupeToolIds(Iterable<String> ids) sync* {
-    final seen = <String>{};
-    for (final raw in ids) {
-      final trimmed = raw.trim();
-      if (trimmed.isEmpty) continue;
-      if (seen.add(trimmed)) yield trimmed;
-    }
   }
 
   static Iterable<int> _dedupeInts(Iterable<int> values) sync* {
