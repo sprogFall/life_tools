@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/core/messages/message_repository.dart';
+import 'package:life_tools/core/messages/message_service.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/core/theme/ios26_theme.dart';
 import 'package:life_tools/pages/ai_settings_page.dart';
+import 'package:life_tools/pages/home_page.dart';
+import 'package:life_tools/tools/stockpile_assistant/pages/stockpile_tool_page.dart';
+import 'package:life_tools/tools/stockpile_assistant/services/stockpile_service.dart';
 import 'package:life_tools/tools/tag_manager/pages/tag_manager_tool_page.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/pages/log/operation_log_list_page.dart';
@@ -63,6 +69,28 @@ void main() {
       return service;
     }
 
+    Future<MessageService> createMessageService(WidgetTester tester) async {
+      late Database db;
+      late MessageService messageService;
+      await tester.runAsync(() async {
+        db = await openDatabase(
+          inMemoryDatabasePath,
+          version: DatabaseSchema.version,
+          onConfigure: DatabaseSchema.onConfigure,
+          onCreate: DatabaseSchema.onCreate,
+          onUpgrade: DatabaseSchema.onUpgrade,
+        );
+        messageService = MessageService(
+          repository: MessageRepository.withDatabase(db),
+        );
+        await messageService.init();
+      });
+      addTearDown(() async {
+        await tester.runAsync(() async => db.close());
+      });
+      return messageService;
+    }
+
     testWidgets('AiSettingsPage uses IOS26AppBar', (tester) async {
       final aiConfigService = AiConfigService();
       await aiConfigService.init();
@@ -72,6 +100,40 @@ void main() {
           value: aiConfigService,
           child: const MaterialApp(home: AiSettingsPage()),
         ),
+      );
+      await tester.pump();
+
+      expect(find.byType(IOS26AppBar), findsOneWidget);
+    });
+
+    testWidgets('HomePage uses IOS26AppBar', (tester) async {
+      final settingsService = SettingsService();
+      final messageService = await createMessageService(tester);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SettingsService>.value(
+              value: settingsService,
+            ),
+            ChangeNotifierProvider<MessageService>.value(
+              value: messageService,
+            ),
+          ],
+          child: const MaterialApp(home: HomePage()),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(IOS26AppBar), findsOneWidget);
+    });
+
+    testWidgets('StockpileToolPage uses IOS26AppBar', (tester) async {
+      final service = StockpileService();
+      addTearDown(service.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(home: StockpileToolPage(service: service)),
       );
       await tester.pump();
 

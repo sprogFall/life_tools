@@ -352,7 +352,7 @@ class _TagSelectChip extends StatelessWidget {
       ),
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        minimumSize: const Size(44, 44),
+        minimumSize: IOS26Theme.minimumTapSize,
         pressedOpacity: 0.7,
         onPressed: onPressed,
         child: Text(

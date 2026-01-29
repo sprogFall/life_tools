@@ -102,6 +102,14 @@ dart format .
 
 详细规范请查看：`examples/ui.md`
 
+### iOS 26 统一规范（补充）
+
+- 文本样式：业务代码禁止硬编码 `TextStyle(...)`，统一使用 `IOS26Theme` 的文本样式访问器（`displayLarge` / `headlineMedium` / `titleLarge` / `titleMedium` / `titleSmall` / `bodyLarge` / `bodyMedium` / `bodySmall` / `labelLarge`）。
+- 间距与圆角：统一使用 `IOS26Theme.spacingXxx` 与 `IOS26Theme.radiusXxx` 常量。
+- 组件统一：加载使用 `CupertinoActivityIndicator`；按钮使用 `CupertinoButton`；图标使用 `CupertinoIcons`；避免 `TextButton` / `IconButton` / `InkWell` / `CircularProgressIndicator` / `Divider` 等 Material 组件（如有必要需在代码注释说明原因）。
+- AppBar：页面统一使用 `IOS26AppBar`；首页使用 `IOS26AppBar.home(onSettingsPressed: ...)`；当 `IOS26AppBar` 放在 `SafeArea` 内时必须设置 `useSafeArea: false` 避免重复内边距。
+- 交互尺寸：图标/导航类按钮的 `CupertinoButton` 必须设置 `minimumSize: IOS26Theme.minimumTapSize`，并按需保持 `padding: EdgeInsets.zero`。
+
 ## 安全与隐私规范（补充）
 
 1. **敏感信息最小暴露**：

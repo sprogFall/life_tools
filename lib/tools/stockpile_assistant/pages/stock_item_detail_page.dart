@@ -79,6 +79,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
           actions: [
             CupertinoButton(
               padding: EdgeInsets.zero,
+              minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _openEdit,
               child: const Icon(
                 CupertinoIcons.pencil,
@@ -87,6 +88,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
+              minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _openConsume,
               child: const Icon(
                 CupertinoIcons.minus_circle,
@@ -95,6 +97,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
+              minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _confirmDelete,
               child: const Icon(
                 CupertinoIcons.delete,

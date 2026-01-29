@@ -773,7 +773,7 @@ class _CategoryHeader extends StatelessWidget {
         Expanded(
           child: CupertinoButton(
             padding: EdgeInsets.zero,
-            minimumSize: const Size(44, 44),
+            minimumSize: IOS26Theme.minimumTapSize,
             pressedOpacity: 0.7,
             onPressed: onToggleExpanded,
             child: Row(
@@ -920,7 +920,7 @@ class _TagChip extends StatelessWidget {
       ),
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        minimumSize: const Size(44, 44),
+        minimumSize: IOS26Theme.minimumTapSize,
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(999),
         onPressed: onTap,

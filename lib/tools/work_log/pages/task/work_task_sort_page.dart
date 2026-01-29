@@ -342,7 +342,7 @@ class _TaskSortRow extends StatelessWidget {
           CupertinoButton(
             key: ValueKey('task-pin-$taskId'),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            minimumSize: const Size(44, 44),
+            minimumSize: IOS26Theme.minimumTapSize,
             onPressed: taskId == null ? null : onTogglePin,
             child: Icon(pinIcon, size: 20, color: pinColor),
           ),

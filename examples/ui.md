@@ -21,6 +21,54 @@
 - `IOS26Theme.toolPurple` - 工具紫（#5856D6）
 - `IOS26Theme.toolPink` - 工具粉（#FF2D55）
 
+## 文本样式（统一使用 IOS26Theme）
+
+业务代码禁止硬编码 `TextStyle(...)`，统一使用 `IOS26Theme` 文本样式访问器：
+
+- `IOS26Theme.displayLarge` - 34pt, w700：页面主标题/品牌名
+- `IOS26Theme.headlineMedium` - 22pt, w600：卡片组标题
+- `IOS26Theme.titleLarge` - 17pt, w600：列表项/卡片标题
+- `IOS26Theme.titleMedium` - 16pt, w600：次级标题
+- `IOS26Theme.titleSmall` - 15pt, w600：小节标题
+- `IOS26Theme.bodyLarge` - 17pt, w400：正文
+- `IOS26Theme.bodyMedium` - 15pt, w400：次要正文
+- `IOS26Theme.bodySmall` - 13pt, w400：辅助说明
+- `IOS26Theme.labelLarge` - 15pt, w500：按钮文字
+
+```dart
+Text('标题', style: IOS26Theme.titleLarge);
+Text('正文', style: IOS26Theme.bodyLarge);
+Text('提示', style: IOS26Theme.bodySmall);
+```
+
+## 间距与圆角规范
+
+**间距：** `IOS26Theme.spacingXs/Sm/Md/Lg/Xl/Xxl/Xxxl`  
+**圆角：** `IOS26Theme.radiusSm/Md/Lg/Xl/Xxl/Full`
+
+```dart
+const SizedBox(height: IOS26Theme.spacingLg);
+Padding(padding: const EdgeInsets.all(IOS26Theme.spacingMd));
+BorderRadius.circular(IOS26Theme.radiusXl);
+```
+
+## 组件统一（iOS 26 风格）
+
+- 加载：`CupertinoActivityIndicator`
+- 按钮：`CupertinoButton`
+- 图标：`CupertinoIcons`
+- 禁止使用：`TextButton` / `IconButton` / `InkWell` / `CircularProgressIndicator` / `Divider` 等 Material 组件（确需保留时在代码注释说明原因）。
+
+## AppBar 规范
+
+- 常规页面统一使用 `IOS26AppBar`
+- 首页使用 `IOS26AppBar.home(onSettingsPressed: ...)`
+- 当 `IOS26AppBar` 处于 `SafeArea` 内时，必须设置 `useSafeArea: false`
+
+## 交互尺寸规范
+
+- 图标/导航类 `CupertinoButton` 必须设置：`minimumSize: IOS26Theme.minimumTapSize`
+
 ## 可复用组件（优先复用，避免重复造轮子）
 
 - `IOS26AppBar`：iOS 26 毛玻璃导航栏（支持返回按钮 / actions）
@@ -63,11 +111,11 @@ class DemoPage extends StatelessWidget {
 - 示例：AI录入页面的清空（垃圾桶）、取消（×）按钮
 
 **按钮圆角：**
-- 统一使用 `BorderRadius.circular(14)` 保持 iOS 26 风格
+- 优先使用 `IOS26Theme.radiusMd` 或 `IOS26Theme.radiusLg`
 
 **按钮内边距：**
-- 主要按钮：`EdgeInsets.symmetric(vertical: 14)`
-- 图标按钮：`EdgeInsets.symmetric(horizontal: 16, vertical: 14)`
+- 主要按钮：`EdgeInsets.symmetric(vertical: IOS26Theme.spacingLg)`
+- 图标按钮：`EdgeInsets.symmetric(horizontal: IOS26Theme.spacingLg, vertical: IOS26Theme.spacingLg)`
 
 ## 表单字段标题规范
 

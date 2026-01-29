@@ -114,6 +114,7 @@ class _OvercookedRecipeDetailPageState
         actions: [
           CupertinoButton(
             padding: EdgeInsets.zero,
+            minimumSize: IOS26Theme.minimumTapSize,
             onPressed: recipe == null
                 ? null
                 : () async {
@@ -135,6 +136,7 @@ class _OvercookedRecipeDetailPageState
           ),
           CupertinoButton(
             padding: EdgeInsets.zero,
+            minimumSize: IOS26Theme.minimumTapSize,
             onPressed: recipe == null
                 ? null
                 : () async {

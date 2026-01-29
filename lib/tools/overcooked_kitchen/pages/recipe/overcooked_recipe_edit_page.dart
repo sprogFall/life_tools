@@ -144,6 +144,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         actions: [
           CupertinoButton(
             padding: EdgeInsets.zero,
+            minimumSize: IOS26Theme.minimumTapSize,
             onPressed: _saving ? null : _save,
             child: Text(
               _saving ? '保存中…' : '保存',

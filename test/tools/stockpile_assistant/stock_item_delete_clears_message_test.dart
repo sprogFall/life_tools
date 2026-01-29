@@ -103,8 +103,11 @@ void main() {
       }
       expect(find.byType(CupertinoActivityIndicator), findsNothing);
 
-      final deleteButton = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, CupertinoIcons.delete),
+      final deleteButton = tester.widget<CupertinoButton>(
+        find.ancestor(
+          of: find.byIcon(CupertinoIcons.delete),
+          matching: find.byType(CupertinoButton),
+        ),
       );
       deleteButton.onPressed!.call();
       await tester.pump();

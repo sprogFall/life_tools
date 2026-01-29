@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -122,9 +120,45 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
             SafeArea(
               child: Column(
                 children: [
-                  _StockpileAppBar(
-                    onHome: () => _navigateToHome(context),
-                    onAdd: _openCreateItem,
+                  IOS26AppBar(
+                    title: '囤货助手',
+                    useSafeArea: false,
+                    leading: CupertinoButton(
+                      padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                      minimumSize: IOS26Theme.minimumTapSize,
+                      onPressed: () => _navigateToHome(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.home,
+                            color: IOS26Theme.primaryColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '首页',
+                            style: TextStyle(
+                              fontSize: 17,
+                              color: IOS26Theme.primaryColor,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      CupertinoButton(
+                        padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                        minimumSize: IOS26Theme.minimumTapSize,
+                        onPressed: _openCreateItem,
+                        child: const Icon(
+                          CupertinoIcons.add,
+                          color: IOS26Theme.primaryColor,
+                          size: 24,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   _buildSegmented(),
@@ -648,78 +682,3 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   }
 }
 
-class _StockpileAppBar extends StatelessWidget {
-  final VoidCallback onHome;
-  final VoidCallback onAdd;
-
-  const _StockpileAppBar({required this.onHome, required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: IOS26Theme.glassColor,
-            border: Border(
-              bottom: BorderSide(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: onHome,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      CupertinoIcons.home,
-                      color: IOS26Theme.primaryColor,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '首页',
-                      style: TextStyle(
-                        fontSize: 17,
-                        color: IOS26Theme.primaryColor,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Expanded(
-                child: Text(
-                  '囤货助手',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.41,
-                    color: IOS26Theme.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: onAdd,
-                child: const Icon(
-                  CupertinoIcons.add,
-                  color: IOS26Theme.primaryColor,
-                  size: 24,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

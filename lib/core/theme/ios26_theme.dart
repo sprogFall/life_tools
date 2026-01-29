@@ -50,6 +50,9 @@ class IOS26Theme {
   static const double radiusXxl = 24;
   static const double radiusFull = 999;
 
+  // ==================== 交互尺寸规范 ====================
+  static const Size minimumTapSize = Size(44, 44);
+
   // ==================== 文本样式静态访问器 ====================
   static TextTheme get _textTheme => lightTheme.textTheme;
 
@@ -260,12 +263,17 @@ class GlassContainer extends StatelessWidget {
 }
 
 /// iOS 26 风格的导航栏
+enum _IOS26AppBarVariant { standard, home }
+
 class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final Widget? leading;
   final bool showBackButton;
   final VoidCallback? onBackPressed;
+  final VoidCallback? onSettingsPressed;
+  final bool useSafeArea;
+  final _IOS26AppBarVariant _variant;
 
   const IOS26AppBar({
     super.key,
@@ -274,69 +282,122 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showBackButton = false,
     this.onBackPressed,
-  });
+    this.useSafeArea = true,
+  }) : onSettingsPressed = null,
+       _variant = _IOS26AppBarVariant.standard;
+
+  const IOS26AppBar.home({
+    super.key,
+    required this.title,
+    this.onSettingsPressed,
+  }) : actions = null,
+       leading = null,
+       showBackButton = false,
+       onBackPressed = null,
+       useSafeArea = false,
+       _variant = _IOS26AppBarVariant.home;
 
   @override
-  Size get preferredSize => const Size.fromHeight(56);
+  Size get preferredSize =>
+      Size.fromHeight(_variant == _IOS26AppBarVariant.home ? 64 : 56);
 
   @override
   Widget build(BuildContext context) {
+    final content = _variant == _IOS26AppBarVariant.home
+        ? _buildHomeContent(context)
+        : _buildStandardContent(context);
+    final wrapped = useSafeArea ? SafeArea(bottom: false, child: content) : content;
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          decoration: BoxDecoration(
-            color: IOS26Theme.glassColor,
-            border: Border(
-              bottom: BorderSide(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: SizedBox(
-              height: 56,
-              child: Row(
-                children: [
-                  if (showBackButton)
-                    CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: onBackPressed ?? () => Navigator.pop(context),
-                      child: const Icon(
-                        CupertinoIcons.back,
-                        color: IOS26Theme.primaryColor,
-                        size: 20,
-                      ),
-                    )
-                  else if (leading != null)
-                    leading!
-                  else
-                    const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.41,
-                        color: IOS26Theme.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
+          decoration: _variant == _IOS26AppBarVariant.home
+              ? null
+              : BoxDecoration(
+                  color: IOS26Theme.glassColor,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+                      width: 0.5,
                     ),
                   ),
-                  if (actions != null)
-                    ...actions!
-                  else
-                    const SizedBox(width: 48),
-                ],
+                ),
+          child: wrapped,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStandardContent(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      child: Row(
+        children: [
+          if (showBackButton)
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: IOS26Theme.minimumTapSize,
+              onPressed: onBackPressed ?? () => Navigator.pop(context),
+              child: const Icon(
+                CupertinoIcons.back,
+                color: IOS26Theme.primaryColor,
+                size: 20,
+              ),
+            )
+          else if (leading != null)
+            leading!
+          else
+            const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: IOS26Theme.titleLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          if (actions != null)
+            ...actions!
+          else
+            const SizedBox(width: 48),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHomeContent(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: IOS26Theme.spacingXl,
+        vertical: IOS26Theme.spacingMd,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: IOS26Theme.displayLarge),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: IOS26Theme.minimumTapSize,
+            onPressed: onSettingsPressed,
+            child: Container(
+              padding: const EdgeInsets.all(IOS26Theme.spacingMd),
+              decoration: BoxDecoration(
+                color: IOS26Theme.glassColor,
+                borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+                border: Border.all(
+                  color: IOS26Theme.glassBorderColor,
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                CupertinoIcons.gear,
+                color: IOS26Theme.textSecondary,
+                size: 22,
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -573,7 +634,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                     CupertinoButton(
                       key: widget.buttonKey,
                       padding: EdgeInsets.zero,
-                      minimumSize: const Size(44, 44),
+                      minimumSize: IOS26Theme.minimumTapSize,
                       pressedOpacity: 0.7,
                       onPressed: widget.loading ? null : _commit,
                       child: widget.loading
@@ -589,7 +650,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
               : CupertinoButton(
                   key: widget.buttonKey,
                   padding: EdgeInsets.zero,
-                  minimumSize: const Size(44, 44),
+                  minimumSize: IOS26Theme.minimumTapSize,
                   pressedOpacity: 0.7,
                   onPressed: widget.loading ? null : _expand,
                   child: widget.loading

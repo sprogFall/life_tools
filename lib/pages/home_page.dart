@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -72,7 +71,10 @@ class HomePage extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                _buildAppBar(context),
+                IOS26AppBar.home(
+                  title: '小蜜',
+                  onSettingsPressed: () => _showSettingsSheet(context),
+                ),
                 Expanded(
                   child: Consumer2<SettingsService, MessageService>(
                     builder: (context, settings, messageService, child) {
@@ -90,50 +92,6 @@ class HomePage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '小蜜',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.37,
-                  color: IOS26Theme.textPrimary,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _showSettingsSheet(context),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: IOS26Theme.glassColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: IOS26Theme.glassBorderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.gear,
-                    color: IOS26Theme.textSecondary,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

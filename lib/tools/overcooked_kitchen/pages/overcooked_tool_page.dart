@@ -132,6 +132,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
             children: [
               CupertinoButton(
                 padding: EdgeInsets.zero,
+                minimumSize: IOS26Theme.minimumTapSize,
                 onPressed: () => Navigator.pop(context),
                 child: const Icon(
                   CupertinoIcons.back,
