@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/ios26_theme.dart';
+import '../../widgets/ios26_sheet_header.dart';
 import '../models/tag.dart';
 
 class TagPickerResult {
@@ -291,29 +292,11 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      child: Row(
-        children: [
-          CupertinoButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          Expanded(
-            child: Text(
-              widget.title,
-              textAlign: TextAlign.center,
-              style: IOS26Theme.titleMedium,
-            ),
-          ),
-          CupertinoButton(
-            key: ValueKey('${widget.keyPrefix}-done'),
-            onPressed: () =>
-                Navigator.pop(context, widget.buildResult(_selected, _changed)),
-            child: const Text('完成'),
-          ),
-        ],
-      ),
+    return IOS26SheetHeader(
+      title: widget.title,
+      doneKey: ValueKey('${widget.keyPrefix}-done'),
+      onDone: () =>
+          Navigator.pop(context, widget.buildResult(_selected, _changed)),
     );
   }
 }

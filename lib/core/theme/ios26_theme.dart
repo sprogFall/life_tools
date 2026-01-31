@@ -329,39 +329,33 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildStandardContent(BuildContext context) {
+    final hasActions = actions != null && actions!.isNotEmpty;
     return SizedBox(
       height: 56,
-      child: Row(
-        children: [
-          if (showBackButton)
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: IOS26Theme.minimumTapSize,
-              onPressed: onBackPressed ?? () => Navigator.pop(context),
-              child: const Icon(
-                CupertinoIcons.back,
-                color: IOS26Theme.primaryColor,
-                size: 20,
-              ),
-            )
-          else if (leading != null)
-            leading!
-          else
-            const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              style: IOS26Theme.titleLarge,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          if (actions != null)
-            ...actions!
-          else
-            const SizedBox(width: 48),
-        ],
+      child: NavigationToolbar(
+        centerMiddle: true,
+        leading: showBackButton
+            ? CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: IOS26Theme.minimumTapSize,
+                onPressed: onBackPressed ?? () => Navigator.pop(context),
+                child: const Icon(
+                  CupertinoIcons.back,
+                  color: IOS26Theme.primaryColor,
+                  size: 20,
+                ),
+              )
+            : (leading ?? SizedBox(width: IOS26Theme.minimumTapSize.width)),
+        middle: Text(
+          title,
+          style: IOS26Theme.titleLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        trailing: hasActions
+            ? Row(mainAxisSize: MainAxisSize.min, children: actions!)
+            : SizedBox(width: IOS26Theme.minimumTapSize.width),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/obj_store/obj_store_service.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_sheet_header.dart';
 import '../models/overcooked_recipe.dart';
 import '../repository/overcooked_repository.dart';
 import 'overcooked_image.dart';
@@ -252,27 +253,9 @@ class _OvercookedRecipePickerSheetState
   }
 
   Widget _header(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      child: Row(
-        children: [
-          CupertinoButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          Expanded(
-            child: Text(
-              widget.title,
-              textAlign: TextAlign.center,
-              style: IOS26Theme.titleMedium,
-            ),
-          ),
-          CupertinoButton(
-            onPressed: () => Navigator.pop(context, _selected),
-            child: const Text('完成'),
-          ),
-        ],
-      ),
+    return IOS26SheetHeader(
+      title: widget.title,
+      onDone: () => Navigator.pop(context, _selected),
     );
   }
 }

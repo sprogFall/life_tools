@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -101,7 +99,11 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
             SafeArea(
               child: Column(
                 children: [
-                  _buildAppBar(context),
+                  IOS26AppBar(
+                    title: OvercookedConstants.toolName,
+                    showBackButton: true,
+                    useSafeArea: false,
+                  ),
                   Expanded(child: _buildBody()),
                 ],
               ),
@@ -109,49 +111,6 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
           ],
         ),
         bottomNavigationBar: _buildBottomNav(),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-          decoration: BoxDecoration(
-            color: IOS26Theme.glassColor,
-            border: Border(
-              bottom: BorderSide(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: IOS26Theme.minimumTapSize,
-                onPressed: () => Navigator.pop(context),
-                child: const Icon(
-                  CupertinoIcons.back,
-                  color: IOS26Theme.primaryColor,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  OvercookedConstants.toolName,
-                  style: IOS26Theme.headlineSmall,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(width: 44),
-            ],
-          ),
-        ),
       ),
     );
   }
