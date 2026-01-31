@@ -409,7 +409,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                               : IOS26Theme.titleMedium,
                         ),
                       ),
-                      if (badge != null) badge,
+                      ...?(badge == null ? null : [badge]),
                     ],
                   ),
                   SizedBox(height: compact ? 4 : 6),

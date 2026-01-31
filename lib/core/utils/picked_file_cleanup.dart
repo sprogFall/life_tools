@@ -28,7 +28,7 @@ List<String> buildPickedFileCleanupDirPaths({
   final raw = <String>[
     temporaryDirPath,
     ...externalCacheDirPaths,
-    if (externalStorageDirPath != null) externalStorageDirPath,
+    ...?(externalStorageDirPath == null ? null : [externalStorageDirPath]),
   ];
 
   final out = <String>{};
