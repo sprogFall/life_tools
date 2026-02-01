@@ -1,0 +1,75 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'Honey';
+
+  @override
+  String get common_confirm => 'Confirm';
+
+  @override
+  String get common_cancel => 'Cancel';
+
+  @override
+  String get common_delete => 'Delete';
+
+  @override
+  String get common_save => 'Save';
+
+  @override
+  String get common_loading => 'Loading...';
+
+  @override
+  String get tool_management_title => 'Tool Management';
+
+  @override
+  String get tool_stockpile_name => 'Stockpile Assistant';
+
+  @override
+  String get tool_overcooked_name => 'Overcooked Kitchen';
+
+  @override
+  String get tool_work_log_name => 'Work Log';
+}
+
+/// The translations for English, as used in the United States (`en_US`).
+class AppLocalizationsEnUs extends AppLocalizationsEn {
+  AppLocalizationsEnUs() : super('en_US');
+
+  @override
+  String get appTitle => 'Honey';
+
+  @override
+  String get common_confirm => 'Confirm';
+
+  @override
+  String get common_cancel => 'Cancel';
+
+  @override
+  String get common_delete => 'Delete';
+
+  @override
+  String get common_save => 'Save';
+
+  @override
+  String get common_loading => 'Loading...';
+
+  @override
+  String get tool_management_title => 'Tool Management';
+
+  @override
+  String get tool_stockpile_name => 'Stockpile Assistant';
+
+  @override
+  String get tool_overcooked_name => 'Overcooked Kitchen';
+
+  @override
+  String get tool_work_log_name => 'Work Log';
+}

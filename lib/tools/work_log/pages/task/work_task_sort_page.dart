@@ -74,10 +74,7 @@ class _WorkTaskSortPageState extends State<WorkTaskSortPage> {
                           height: 18,
                           child: CupertinoActivityIndicator(radius: 9),
                         )
-                      : Text(
-                          '保存',
-                          style: IOS26Theme.labelLarge,
-                        ),
+                      : Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -232,10 +229,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          title,
-          style: IOS26Theme.titleSmall,
-        ),
+        Text(title, style: IOS26Theme.titleSmall),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

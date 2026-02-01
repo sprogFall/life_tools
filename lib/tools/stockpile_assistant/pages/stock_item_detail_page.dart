@@ -116,12 +116,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
   }
 
   Widget _buildNotFound() {
-    return Center(
-      child: Text(
-        '未找到该物品（可能已删除）',
-        style: IOS26Theme.bodyMedium,
-      ),
-    );
+    return Center(child: Text('未找到该物品（可能已删除）', style: IOS26Theme.bodyMedium));
   }
 
   Widget _buildContent(StockItem item) {
@@ -151,10 +146,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                item.name,
-                style: IOS26Theme.headlineSmall,
-              ),
+              Text(item.name, style: IOS26Theme.headlineSmall),
               const SizedBox(height: 10),
               _kv('物品类型', typeNames.isEmpty ? '无' : typeNames.join('、')),
               if (location.isNotEmpty) _kv('位置', location),
@@ -183,27 +175,18 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                 ),
               if (item.note.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
-                Text(
-                  item.note,
-                  style: IOS26Theme.bodyMedium,
-                ),
+                Text(item.note, style: IOS26Theme.bodyMedium),
               ],
             ],
           ),
         ),
         const SizedBox(height: 14),
-        Text(
-          '消耗记录',
-          style: IOS26Theme.titleMedium,
-        ),
+        Text('消耗记录', style: IOS26Theme.titleMedium),
         const SizedBox(height: 10),
         if (_logs.isEmpty)
           GlassContainer(
             padding: const EdgeInsets.all(14),
-            child: Text(
-              '暂无消耗记录',
-              style: IOS26Theme.bodyMedium,
-            ),
+            child: Text('暂无消耗记录', style: IOS26Theme.bodyMedium),
           )
         else
           for (final log in _logs) _buildLogRow(log),
@@ -216,13 +199,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
       padding: const EdgeInsets.only(top: 6),
       child: Row(
         children: [
-          SizedBox(
-            width: 72,
-            child: Text(
-              k,
-              style: IOS26Theme.bodySmall,
-            ),
-          ),
+          SizedBox(width: 72, child: Text(k, style: IOS26Theme.bodySmall)),
           Expanded(
             child: Text(
               v,
@@ -263,10 +240,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
                 ),
                 if (log.note.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(
-                    log.note,
-                    style: IOS26Theme.bodySmall,
-                  ),
+                  Text(log.note, style: IOS26Theme.bodySmall),
                 ],
               ],
             ),

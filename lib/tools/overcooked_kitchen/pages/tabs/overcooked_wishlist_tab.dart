@@ -124,12 +124,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
         children: [
           Row(
             children: [
-            Expanded(
-              child: Text(
-                '愿望单',
-                style: IOS26Theme.headlineMedium,
-              ),
-            ),
+              Expanded(child: Text('愿望单', style: IOS26Theme.headlineMedium)),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -163,10 +158,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '准备清单（自动汇总）',
-                  style: IOS26Theme.titleSmall,
-                ),
+                Text('准备清单（自动汇总）', style: IOS26Theme.titleSmall),
                 const SizedBox(height: 10),
                 Text(
                   '主料：$ingredientText',

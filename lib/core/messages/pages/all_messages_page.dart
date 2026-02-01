@@ -112,10 +112,7 @@ class _MessageListItem extends StatelessWidget {
                 _ReadTag(isRead: message.isRead),
                 const Spacer(),
                 if (MessageNavigation.canOpen(message))
-                  Text(
-                    '前往工具',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  Text('前往工具', style: IOS26Theme.labelLarge),
               ],
             ),
           ],

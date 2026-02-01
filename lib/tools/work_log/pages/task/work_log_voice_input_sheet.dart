@@ -146,7 +146,11 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(CupertinoIcons.sparkles, size: 18, color: Colors.white),
+                const Icon(
+                  CupertinoIcons.sparkles,
+                  size: 18,
+                  color: Colors.white,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '提交给AI',

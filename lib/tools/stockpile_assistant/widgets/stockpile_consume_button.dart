@@ -28,9 +28,7 @@ class StockpileConsumeButton extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             '消耗',
-            style: IOS26Theme.labelLarge.copyWith(
-              color: IOS26Theme.toolOrange,
-            ),
+            style: IOS26Theme.labelLarge.copyWith(color: IOS26Theme.toolOrange),
           ),
         ],
       ),

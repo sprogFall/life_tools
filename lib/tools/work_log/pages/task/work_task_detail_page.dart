@@ -174,15 +174,9 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    task.title,
-                    style: IOS26Theme.headlineSmall,
-                  ),
+                  Text(task.title, style: IOS26Theme.headlineSmall),
                   const SizedBox(height: 16),
-                  Text(
-                    '任务信息',
-                    style: IOS26Theme.titleSmall,
-                  ),
+                  Text('任务信息', style: IOS26Theme.titleSmall),
                   const SizedBox(height: 12),
                   _InfoRow(label: '状态', value: _statusLabel(task.status)),
                   const SizedBox(height: 8),
@@ -212,19 +206,13 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(
-                  '工时记录',
-                  style: IOS26Theme.titleSmall,
-                ),
+                Text('工时记录', style: IOS26Theme.titleSmall),
                 const Spacer(),
                 if (canAddTimeEntry)
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: _openAddTimeEntry,
-                    child: Text(
-                      '添加',
-                      style: IOS26Theme.labelLarge,
-                    ),
+                    child: Text('添加', style: IOS26Theme.labelLarge),
                   ),
               ],
             ),
@@ -258,55 +246,55 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                     flex: 3,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                    color: IOS26Theme.primaryColor,
-                    borderRadius: BorderRadius.circular(14),
-                    onPressed: _openAddTimeEntry,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          CupertinoIcons.clock_fill,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '记录工时',
-                          style: IOS26Theme.labelLarge.copyWith(
+                      color: IOS26Theme.primaryColor,
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: _openAddTimeEntry,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.clock_fill,
+                            size: 20,
                             color: Colors.white,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            '记录工时',
+                            style: IOS26Theme.labelLarge.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                    color: IOS26Theme.toolGreen,
-                    borderRadius: BorderRadius.circular(14),
-                    onPressed: _showCompleteTaskDialog,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          CupertinoIcons.check_mark_circled_solid,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '完成',
-                          style: IOS26Theme.labelLarge.copyWith(
+                      color: IOS26Theme.toolGreen,
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: _showCompleteTaskDialog,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.check_mark_circled_solid,
+                            size: 20,
                             color: Colors.white,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Text(
+                            '完成',
+                            style: IOS26Theme.labelLarge.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 ],
               ),
             ),
@@ -609,10 +597,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          label,
-          style: IOS26Theme.bodyMedium,
-        ),
+        Text(label, style: IOS26Theme.bodyMedium),
         const Spacer(),
         Text(
           value,

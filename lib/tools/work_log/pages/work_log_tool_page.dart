@@ -216,10 +216,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                   color: IOS26Theme.primaryColor,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'AI录入',
-                  style: IOS26Theme.labelLarge,
-                ),
+                Text('AI录入', style: IOS26Theme.labelLarge),
               ],
             ),
           ),

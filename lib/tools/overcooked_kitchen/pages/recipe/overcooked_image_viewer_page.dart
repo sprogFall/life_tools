@@ -111,12 +111,7 @@ class _DiskPreferredImageView extends StatelessWidget {
           final errMsg = snapshot.error is ObjStoreNotConfiguredException
               ? '未配置资源存储'
               : '图片加载失败';
-          return Center(
-            child: Text(
-              errMsg,
-              style: IOS26Theme.bodyMedium,
-            ),
-          );
+          return Center(child: Text(errMsg, style: IOS26Theme.bodyMedium));
         }
         final f = snapshot.data;
         if (f == null || !f.existsSync()) {
@@ -158,21 +153,11 @@ class _NetworkImageView extends StatelessWidget {
           final errMsg = snapshot.error is ObjStoreNotConfiguredException
               ? '未配置资源存储'
               : '图片加载失败';
-          return Center(
-            child: Text(
-              errMsg,
-              style: IOS26Theme.bodyMedium,
-            ),
-          );
+          return Center(child: Text(errMsg, style: IOS26Theme.bodyMedium));
         }
         final uriText = snapshot.data?.trim();
         if (uriText == null || uriText.isEmpty) {
-          return Center(
-            child: Text(
-              '图片不存在',
-              style: IOS26Theme.bodyMedium,
-            ),
-          );
+          return Center(child: Text('图片不存在', style: IOS26Theme.bodyMedium));
         }
 
         final uri = Uri.tryParse(uriText);
@@ -189,10 +174,7 @@ class _NetworkImageView extends StatelessWidget {
                 },
                 errorBuilder: (context, error, stackTrace) {
                   return Center(
-                    child: Text(
-                      '图片加载失败',
-                      style: IOS26Theme.bodyMedium,
-                    ),
+                    child: Text('图片加载失败', style: IOS26Theme.bodyMedium),
                   );
                 },
               );

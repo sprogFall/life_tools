@@ -96,10 +96,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     vertical: 8,
                   ),
                   onPressed: _saveConfig,
-                  child: Text(
-                    '保存',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -131,10 +128,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildCardTitle(String title) {
-    return Text(
-      title,
-      style: IOS26Theme.titleSmall,
-    );
+    return Text(title, style: IOS26Theme.titleSmall);
   }
 
   Widget _buildHint(String text) {
@@ -395,7 +389,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   color: IOS26Theme.primaryColor,
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
-                      ? const CupertinoActivityIndicator(radius: 9, color: Colors.white)
+                      ? const CupertinoActivityIndicator(
+                          radius: 9,
+                          color: Colors.white,
+                        )
                       : Text(
                           '立即同步',
                           style: IOS26Theme.labelLarge.copyWith(

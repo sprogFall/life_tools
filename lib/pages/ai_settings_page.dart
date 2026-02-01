@@ -64,10 +64,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: Text(
-                    '保存',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -98,10 +95,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'OpenAI 兼容配置',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('OpenAI 兼容配置', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: 'Base URL',
@@ -203,10 +197,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '说明',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('说明', style: IOS26Theme.titleSmall),
           SizedBox(height: 10),
           Text(
             '1. Base URL 支持填写到域名（如 https://example.com），也支持直接填写到 /v1。\n'
@@ -225,10 +216,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '危险区',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('危险区', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

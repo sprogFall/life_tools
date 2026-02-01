@@ -163,7 +163,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           if (_saving)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: IOS26Theme.overlayColor,
                 alignment: Alignment.center,
                 child: const CupertinoActivityIndicator(radius: 14),
               ),
@@ -176,7 +176,12 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   Widget _buildBody(BuildContext context) {
     final objStore = context.read<ObjStoreService>();
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: const EdgeInsets.fromLTRB(
+        IOS26Theme.spacingLg,
+        IOS26Theme.spacingMd,
+        IOS26Theme.spacingLg,
+        IOS26Theme.spacingXxl,
+      ),
       children: [
         _fieldTitle('菜名'),
         const SizedBox(height: 8),
@@ -423,10 +428,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Text(
-              '暂无图片',
-              style: IOS26Theme.bodySmall,
-            ),
+            child: Text('暂无图片', style: IOS26Theme.bodySmall),
           )
         else
           SizedBox(
@@ -555,10 +557,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Widget _fieldTitle(String text) {
-    return Text(
-      text,
-      style: IOS26Theme.titleSmall,
-    );
+    return Text(text, style: IOS26Theme.titleSmall);
   }
 
   Widget _buildPendingImage(
@@ -579,10 +578,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       alignment: Alignment.center,
-      child: Text(
-        '暂无图片',
-        style: IOS26Theme.bodySmall,
-      ),
+      child: Text('暂无图片', style: IOS26Theme.bodySmall),
     );
   }
 

@@ -37,12 +37,7 @@ class IOS26SettingsRow extends StatelessWidget {
               child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
             ),
             const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: IOS26Theme.titleMedium,
-              ),
-            ),
+            Expanded(child: Text(title, style: IOS26Theme.titleMedium)),
             if (trailing != null) ...[
               trailing!,
             ] else ...[

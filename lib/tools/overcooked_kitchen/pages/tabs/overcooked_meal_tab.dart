@@ -110,12 +110,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
         children: [
           Row(
             children: [
-            Expanded(
-              child: Text(
-                '三餐记录',
-                style: IOS26Theme.headlineMedium,
-              ),
-            ),
+              Expanded(child: Text('三餐记录', style: IOS26Theme.headlineMedium)),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -152,10 +147,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '今日做菜量（菜谱去重）',
-                        style: IOS26Theme.bodySmall,
-                      ),
+                      Text('今日做菜量（菜谱去重）', style: IOS26Theme.bodySmall),
                       const SizedBox(height: 6),
                       Text(
                         '$distinctTypeCount',
@@ -618,10 +610,7 @@ class _MealCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              '做了什么菜（点击打分）',
-              style: IOS26Theme.bodySmall,
-            ),
+            Text('做了什么菜（点击打分）', style: IOS26Theme.bodySmall),
             const SizedBox(height: 8),
             if (recipes.isEmpty && missingRecipeCount == 0)
               Text(
@@ -652,18 +641,12 @@ class _MealCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text(
-                  '评价',
-                  style: IOS26Theme.bodySmall,
-                ),
+                Text('评价', style: IOS26Theme.bodySmall),
                 const Spacer(),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: onEditNote,
-                  child: Text(
-                    '编辑',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('编辑', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),

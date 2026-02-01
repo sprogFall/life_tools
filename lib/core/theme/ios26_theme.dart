@@ -25,6 +25,11 @@ class IOS26Theme {
   static const Color glassColor = Color(0xAAFFFFFF);
   static const Color glassBorderColor = Color(0x33FFFFFF);
 
+  // 语义化覆盖/阴影颜色
+  static const Color overlayColor = Color(0x26000000); // black 15%
+  static const Color shadowColor = Color(0x38000000); // black 22%
+  static const Color shadowColorFaint = Color(0x0A000000); // black 4%
+
   // 工具颜色
   static const Color toolBlue = Color(0xFF007AFF);
   static const Color toolOrange = Color(0xFFFF9500);
@@ -306,7 +311,9 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
     final content = _variant == _IOS26AppBarVariant.home
         ? _buildHomeContent(context)
         : _buildStandardContent(context);
-    final wrapped = useSafeArea ? SafeArea(bottom: false, child: content) : content;
+    final wrapped = useSafeArea
+        ? SafeArea(bottom: false, child: content)
+        : content;
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),

@@ -194,10 +194,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                   color: IOS26Theme.primaryColor,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'AI录入',
-                  style: IOS26Theme.labelLarge,
-                ),
+                Text('AI录入', style: IOS26Theme.labelLarge),
               ],
             ),
           ),
@@ -265,10 +262,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
 
         if (items.isEmpty) {
           return Center(
-            child: Text(
-              '暂无记录，点击右上角 + 录入',
-              style: IOS26Theme.bodyMedium,
-            ),
+            child: Text('暂无记录，点击右上角 + 录入', style: IOS26Theme.bodyMedium),
           );
         }
 
@@ -420,10 +414,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                     style: IOS26Theme.bodySmall,
                   ),
                   SizedBox(height: compact ? 2 : 4),
-                  Text(
-                    '库存：$qtyText',
-                    style: IOS26Theme.bodySmall,
-                  ),
+                  Text('库存：$qtyText', style: IOS26Theme.bodySmall),
                   if (!compact) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -471,10 +462,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        text,
-        style: IOS26Theme.bodySmall.copyWith(color: color),
-      ),
+      child: Text(text, style: IOS26Theme.bodySmall.copyWith(color: color)),
     );
   }
 

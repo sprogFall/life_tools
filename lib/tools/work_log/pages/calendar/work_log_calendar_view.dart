@@ -216,15 +216,9 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                     : null,
                 child: Row(
                   children: [
-                    Text(
-                      _formatWeekday(d),
-                      style: IOS26Theme.titleSmall,
-                    ),
+                    Text(_formatWeekday(d), style: IOS26Theme.titleSmall),
                     const SizedBox(width: 10),
-                    Text(
-                      _formatDate(d),
-                      style: IOS26Theme.bodySmall,
-                    ),
+                    Text(_formatDate(d), style: IOS26Theme.bodySmall),
                     const Spacer(),
                     if (minutes > 0)
                       Text(
@@ -277,10 +271,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Text(
-                '总计',
-                style: IOS26Theme.titleSmall,
-              ),
+              Text('总计', style: IOS26Theme.titleSmall),
               const Spacer(),
               Text(
                 total > 0 ? _minutesToHoursText(total) : '0h',
@@ -315,10 +306,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '工作内容：$content',
-                              style: IOS26Theme.titleSmall,
-                            ),
+                            Text('工作内容：$content', style: IOS26Theme.titleSmall),
                             const SizedBox(height: 6),
                             Text(
                               '任务：$taskTitle',

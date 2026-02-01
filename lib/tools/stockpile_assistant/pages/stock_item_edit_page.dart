@@ -488,10 +488,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '到期提醒',
-            style: IOS26Theme.bodySmall,
-          ),
+          Text('到期提醒', style: IOS26Theme.bodySmall),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,10 +589,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '补货提醒',
-            style: IOS26Theme.bodySmall,
-          ),
+          Text('补货提醒', style: IOS26Theme.bodySmall),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -692,10 +686,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: IOS26Theme.bodySmall,
-          ),
+          Text(title, style: IOS26Theme.bodySmall),
           SizedBox(height: compact ? 8 : 10),
           child,
         ],
@@ -710,10 +701,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: IOS26Theme.bodySmall,
-        ),
+        Text(label, style: IOS26Theme.bodySmall),
         const SizedBox(height: 6),
         child,
       ],
@@ -740,10 +728,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                 ),
               ),
             ),
-            Text(
-              value,
-              style: IOS26Theme.bodyMedium,
-            ),
+            Text(value, style: IOS26Theme.bodyMedium),
             const SizedBox(width: 6),
             const Icon(
               CupertinoIcons.chevron_right,

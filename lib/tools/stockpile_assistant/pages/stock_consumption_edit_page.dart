@@ -212,10 +212,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                 ),
               ),
             ),
-            Text(
-              value,
-              style: IOS26Theme.bodyMedium,
-            ),
+            Text(value, style: IOS26Theme.bodyMedium),
             const SizedBox(width: 6),
             const Icon(
               CupertinoIcons.chevron_right,

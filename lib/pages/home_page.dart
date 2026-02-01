@@ -117,10 +117,7 @@ class HomePage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      '消息',
-                      style: IOS26Theme.headlineSmall,
-                    ),
+                    Text('消息', style: IOS26Theme.headlineSmall),
                     const Spacer(),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
@@ -180,10 +177,7 @@ class HomePage extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           // 工具标题
-          Text(
-            '我的工具',
-            style: IOS26Theme.headlineMedium,
-          ),
+          Text('我的工具', style: IOS26Theme.headlineMedium),
           const SizedBox(height: 16),
           // 工具网格
           if (tools.isEmpty)
@@ -196,52 +190,52 @@ class HomePage extends StatelessWidget {
             )
           else
             ReorderableGridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: tools.length,
-            dragStartDelay: const Duration(milliseconds: 250),
-            dragWidgetBuilderV2: DragWidgetBuilderV2(
-              builder: (index, child, screenshot) {
-                return Transform.scale(
-                  scale: 1.03,
-                  child: Material(
-                    type: MaterialType.transparency,
-                    elevation: 10,
-                    shadowColor: Colors.black.withValues(alpha: 0.22),
-                    child: Opacity(opacity: 0.98, child: child),
-                  ),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.1,
+              ),
+              itemCount: tools.length,
+              dragStartDelay: const Duration(milliseconds: 250),
+              dragWidgetBuilderV2: DragWidgetBuilderV2(
+                builder: (index, child, screenshot) {
+                  return Transform.scale(
+                    scale: 1.03,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      elevation: 10,
+                      shadowColor: IOS26Theme.shadowColor,
+                      child: Opacity(opacity: 0.98, child: child),
+                    ),
+                  );
+                },
+              ),
+              onReorder: (oldIndex, newIndex) {
+                if (oldIndex == newIndex) return;
+                HapticFeedback.selectionClick();
+
+                final ids = tools.map((t) => t.id).toList(growable: true);
+                final moved = ids.removeAt(oldIndex);
+                ids.insert(newIndex, moved);
+                unawaited(settings.updateHomeToolOrder(ids));
+              },
+              itemBuilder: (context, index) {
+                final tool = tools[index];
+                return _IOS26ToolCard(
+                  key: ValueKey('home_tool_${tool.id}'),
+                  tool: tool,
+                  isDefault: tool.id == settings.defaultToolId,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(builder: (_) => tool.pageBuilder()),
+                    );
+                  },
                 );
               },
             ),
-            onReorder: (oldIndex, newIndex) {
-              if (oldIndex == newIndex) return;
-              HapticFeedback.selectionClick();
-
-              final ids = tools.map((t) => t.id).toList(growable: true);
-              final moved = ids.removeAt(oldIndex);
-              ids.insert(newIndex, moved);
-              unawaited(settings.updateHomeToolOrder(ids));
-            },
-            itemBuilder: (context, index) {
-              final tool = tools[index];
-              return _IOS26ToolCard(
-                key: ValueKey('home_tool_${tool.id}'),
-                tool: tool,
-                isDefault: tool.id == settings.defaultToolId,
-                onTap: () {
-                  Navigator.of(context).push(
-                    CupertinoPageRoute(builder: (_) => tool.pageBuilder()),
-                  );
-                },
-              );
-            },
-          ),
         ],
       ),
     );
@@ -453,7 +447,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                 offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: IOS26Theme.shadowColorFaint,
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -518,10 +512,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                       ),
                       const Spacer(),
                       // 名称
-                      Text(
-                        widget.tool.name,
-                        style: IOS26Theme.titleLarge,
-                      ),
+                      Text(widget.tool.name, style: IOS26Theme.titleLarge),
                       const SizedBox(height: 4),
                       // 描述
                       Text(
@@ -610,12 +601,7 @@ class _SettingsSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                children: [
-                  Text(
-                    '设置',
-                    style: IOS26Theme.headlineMedium,
-                  ),
-                ],
+                children: [Text('设置', style: IOS26Theme.headlineMedium)],
               ),
             ),
             const SizedBox(height: 20),
@@ -642,10 +628,7 @@ class _SettingsSheet extends StatelessWidget {
                           title: '工具管理',
                           value: settings.defaultToolId == null
                               ? '默认：首页'
-                              : '默认：${tools
-                                        .where((t) => t.id == settings.defaultToolId)
-                                        .firstOrNull
-                                        ?.name ?? '首页'}',
+                              : '默认：${tools.where((t) => t.id == settings.defaultToolId).firstOrNull?.name ?? '首页'}',
                           onTap: () => _openToolManagement(context),
                         ),
                         Container(

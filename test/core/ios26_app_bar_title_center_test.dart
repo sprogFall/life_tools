@@ -11,10 +11,7 @@ void main() {
     }) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            appBar: appBar,
-            body: const SizedBox.shrink(),
-          ),
+          home: Scaffold(appBar: appBar, body: const SizedBox.shrink()),
         ),
       );
       await tester.pump();
@@ -33,10 +30,7 @@ void main() {
     testWidgets('无 actions 时标题仍应居中', (tester) async {
       await pumpWithAppBar(
         tester,
-        appBar: const IOS26AppBar(
-          title: '全部消息',
-          showBackButton: true,
-        ),
+        appBar: const IOS26AppBar(title: '全部消息', showBackButton: true),
       );
 
       expectTitleCentered(tester, '全部消息');
@@ -67,4 +61,3 @@ void main() {
     });
   });
 }
-

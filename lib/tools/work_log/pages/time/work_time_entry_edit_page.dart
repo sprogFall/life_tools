@@ -71,10 +71,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: Text(
-                    '保存',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -107,15 +104,9 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '关联任务',
-            style: IOS26Theme.bodySmall,
-          ),
+          Text('关联任务', style: IOS26Theme.bodySmall),
           const SizedBox(height: 8),
-          Text(
-            widget.taskTitle!,
-            style: IOS26Theme.titleLarge,
-          ),
+          Text(widget.taskTitle!, style: IOS26Theme.titleLarge),
         ],
       ),
     );
@@ -126,18 +117,12 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Text(
-            '日期',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('日期', style: IOS26Theme.titleSmall),
           const Spacer(),
           CupertinoButton(
             padding: EdgeInsets.zero,
             onPressed: _pickDate,
-            child: Text(
-              _formatDate(_workDate),
-              style: IOS26Theme.labelLarge,
-            ),
+            child: Text(_formatDate(_workDate), style: IOS26Theme.labelLarge),
           ),
         ],
       ),
@@ -150,10 +135,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '内容与用时',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('内容与用时', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           _buildTextField(
             key: const ValueKey('time_entry_minutes_field'),

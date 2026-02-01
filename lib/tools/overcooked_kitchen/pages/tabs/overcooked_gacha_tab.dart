@@ -91,12 +91,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                '扭蛋机',
-                style: IOS26Theme.headlineMedium,
-              ),
-            ),
+            Expanded(child: Text('扭蛋机', style: IOS26Theme.headlineMedium)),
             CupertinoButton(
               key: const ValueKey('overcooked_gacha_roll_button'),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -157,10 +152,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        '每种风格抽取份数',
-                        style: IOS26Theme.bodySmall,
-                      ),
+                      child: Text('每种风格抽取份数', style: IOS26Theme.bodySmall),
                     ),
                     Text(
                       '共 $totalCount 道',
@@ -253,10 +245,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
   }
 
   Widget _fieldTitle(String text) {
-    return Text(
-      text,
-      style: IOS26Theme.titleSmall,
-    );
+    return Text(text, style: IOS26Theme.titleSmall);
   }
 
   Future<void> _pickTypes() async {
@@ -412,10 +401,7 @@ class _PickedCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            recipe.name,
-            style: IOS26Theme.titleMedium,
-          ),
+          Text(recipe.name, style: IOS26Theme.titleMedium),
           if (type != null && type.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
@@ -485,10 +471,7 @@ class _TypeCountRow extends StatelessWidget {
             onPressed: () => onChanged?.call(c - 1),
           ),
           const SizedBox(width: 10),
-          Text(
-            '$c',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('$c', style: IOS26Theme.titleSmall),
           const SizedBox(width: 10),
           _iconButton(
             icon: CupertinoIcons.add,

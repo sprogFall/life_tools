@@ -87,12 +87,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                '厨房日历',
-                style: IOS26Theme.headlineMedium,
-              ),
-            ),
+            Expanded(child: Text('厨房日历', style: IOS26Theme.headlineMedium)),
             _monthButton(
               icon: CupertinoIcons.chevron_left,
               onPressed: () => widget.onMonthChanged(
@@ -119,10 +114,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '热力图（按"菜谱去重"的每日做菜量）',
-                style: IOS26Theme.titleSmall,
-              ),
+              Text('热力图（按"菜谱去重"的每日做菜量）', style: IOS26Theme.titleSmall),
               const SizedBox(height: 10),
               _weekdayHeader(),
               const SizedBox(height: 10),
@@ -255,10 +247,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
         color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(
-        text,
-        style: IOS26Theme.titleSmall,
-      ),
+      child: Text(text, style: IOS26Theme.titleSmall),
     );
   }
 

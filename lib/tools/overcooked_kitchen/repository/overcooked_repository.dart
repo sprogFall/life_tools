@@ -26,6 +26,10 @@ class OvercookedRepository {
     return DateTime(year, month, day);
   }
 
+  static String _placeholders(int count) {
+    return List.filled(count, '?').join(',');
+  }
+
   Future<int> createRecipe(OvercookedRecipe recipe) async {
     final db = await _database;
     return db.transaction((txn) async {
@@ -140,30 +144,7 @@ class OvercookedRepository {
       orderBy: 'updated_at DESC, id DESC',
     );
     if (rows.isEmpty) return const [];
-
-    final ids = rows.map((e) => e['id'] as int).toList();
-    final ingredientsByRecipeId = await _listRecipeTagsForRecipes(
-      table: 'overcooked_recipe_ingredient_tags',
-      recipeIds: ids,
-    );
-    final saucesByRecipeId = await _listRecipeTagsForRecipes(
-      table: 'overcooked_recipe_sauce_tags',
-      recipeIds: ids,
-    );
-    final flavorsByRecipeId = await _listRecipeTagsForRecipes(
-      table: 'overcooked_recipe_flavor_tags',
-      recipeIds: ids,
-    );
-
-    return rows.map((row) {
-      final id = row['id'] as int;
-      return OvercookedRecipe.fromRow(
-        row,
-        ingredientTagIds: ingredientsByRecipeId[id] ?? const [],
-        sauceTagIds: saucesByRecipeId[id] ?? const [],
-        flavorTagIds: flavorsByRecipeId[id] ?? const [],
-      );
-    }).toList();
+    return _hydrateRecipesFromRows(rows);
   }
 
   Future<List<OvercookedRecipe>> listRecipesByTypeTagIds(
@@ -172,7 +153,7 @@ class OvercookedRepository {
     final ids = _dedupeInts(typeTagIds).toList();
     if (ids.isEmpty) return const [];
 
-    final placeholders = List.filled(ids.length, '?').join(',');
+    final placeholders = _placeholders(ids.length);
     final db = await _database;
     final rows = await db.rawQuery('''
 SELECT *
@@ -181,37 +162,14 @@ WHERE type_tag_id IN ($placeholders)
 ORDER BY updated_at DESC, id DESC
 ''', ids);
     if (rows.isEmpty) return const [];
-
-    final recipeIds = rows.map((e) => e['id'] as int).toList();
-    final ingredientsByRecipeId = await _listRecipeTagsForRecipes(
-      table: 'overcooked_recipe_ingredient_tags',
-      recipeIds: recipeIds,
-    );
-    final saucesByRecipeId = await _listRecipeTagsForRecipes(
-      table: 'overcooked_recipe_sauce_tags',
-      recipeIds: recipeIds,
-    );
-    final flavorsByRecipeId = await _listRecipeTagsForRecipes(
-      table: 'overcooked_recipe_flavor_tags',
-      recipeIds: recipeIds,
-    );
-
-    return rows.map((row) {
-      final id = row['id'] as int;
-      return OvercookedRecipe.fromRow(
-        row,
-        ingredientTagIds: ingredientsByRecipeId[id] ?? const [],
-        sauceTagIds: saucesByRecipeId[id] ?? const [],
-        flavorTagIds: flavorsByRecipeId[id] ?? const [],
-      );
-    }).toList();
+    return _hydrateRecipesFromRows(rows);
   }
 
   Future<List<OvercookedRecipe>> listRecipesByIds(List<int> recipeIds) async {
     final ids = _dedupeInts(recipeIds).toList();
     if (ids.isEmpty) return const [];
 
-    final placeholders = List.filled(ids.length, '?').join(',');
+    final placeholders = _placeholders(ids.length);
     final db = await _database;
     final rows = await db.rawQuery('''
 SELECT *
@@ -220,29 +178,39 @@ WHERE id IN ($placeholders)
 ORDER BY updated_at DESC, id DESC
 ''', ids);
     if (rows.isEmpty) return const [];
+    return _hydrateRecipesFromRows(rows);
+  }
 
-    final foundIds = rows.map((e) => e['id'] as int).toList();
+  Future<List<OvercookedRecipe>> _hydrateRecipesFromRows(
+    List<Map<String, Object?>> rows,
+  ) async {
+    if (rows.isEmpty) return const [];
+
+    final recipeIds = rows.map((e) => e['id'] as int).toList(growable: false);
     final ingredientsByRecipeId = await _listRecipeTagsForRecipes(
       table: 'overcooked_recipe_ingredient_tags',
-      recipeIds: foundIds,
+      recipeIds: recipeIds,
     );
     final saucesByRecipeId = await _listRecipeTagsForRecipes(
       table: 'overcooked_recipe_sauce_tags',
-      recipeIds: foundIds,
+      recipeIds: recipeIds,
     );
     final flavorsByRecipeId = await _listRecipeTagsForRecipes(
       table: 'overcooked_recipe_flavor_tags',
-      recipeIds: foundIds,
+      recipeIds: recipeIds,
     );
-    return rows.map((row) {
-      final id = row['id'] as int;
-      return OvercookedRecipe.fromRow(
-        row,
-        ingredientTagIds: ingredientsByRecipeId[id] ?? const [],
-        sauceTagIds: saucesByRecipeId[id] ?? const [],
-        flavorTagIds: flavorsByRecipeId[id] ?? const [],
-      );
-    }).toList();
+
+    return rows
+        .map((row) {
+          final id = row['id'] as int;
+          return OvercookedRecipe.fromRow(
+            row,
+            ingredientTagIds: ingredientsByRecipeId[id] ?? const [],
+            sauceTagIds: saucesByRecipeId[id] ?? const [],
+            flavorTagIds: flavorsByRecipeId[id] ?? const [],
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<void> addWish({
@@ -569,64 +537,82 @@ ORDER BY m.day_key ASC
     return result;
   }
 
-  Future<List<Map<String, Object?>>> exportRecipes() async {
+  Future<List<Map<String, Object?>>> _exportTable(
+    String table, {
+    required String orderBy,
+  }) async {
     final db = await _database;
-    final rows = await db.query('overcooked_recipes', orderBy: 'id ASC');
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
+    final rows = await db.query(table, orderBy: orderBy);
+    return rows
+        .map((e) => Map<String, Object?>.from(e))
+        .toList(growable: false);
+  }
+
+  Future<List<Map<String, Object?>>> exportRecipes() async {
+    return _exportTable('overcooked_recipes', orderBy: 'id ASC');
   }
 
   Future<List<Map<String, Object?>>> exportRecipeIngredientTags() async {
-    final db = await _database;
-    final rows = await db.query(
+    return _exportTable(
       'overcooked_recipe_ingredient_tags',
       orderBy: 'recipe_id ASC, tag_id ASC',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
   Future<List<Map<String, Object?>>> exportRecipeSauceTags() async {
-    final db = await _database;
-    final rows = await db.query(
+    return _exportTable(
       'overcooked_recipe_sauce_tags',
       orderBy: 'recipe_id ASC, tag_id ASC',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
   Future<List<Map<String, Object?>>> exportRecipeFlavorTags() async {
-    final db = await _database;
-    final rows = await db.query(
+    return _exportTable(
       'overcooked_recipe_flavor_tags',
       orderBy: 'recipe_id ASC, tag_id ASC',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
   Future<List<Map<String, Object?>>> exportWishItems() async {
-    final db = await _database;
-    final rows = await db.query(
+    return _exportTable(
       'overcooked_wish_items',
       orderBy: 'day_key ASC, id ASC',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
   Future<List<Map<String, Object?>>> exportMealDays() async {
-    final db = await _database;
-    final rows = await db.query(
+    return _exportTable(
       'overcooked_meals',
       orderBy: 'day_key ASC, sort_index ASC, id ASC',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
   Future<List<Map<String, Object?>>> exportMealItems() async {
-    final db = await _database;
-    final rows = await db.query(
+    return _exportTable(
       'overcooked_meal_items',
       orderBy: 'meal_id ASC, sort_index ASC, recipe_id ASC',
     );
-    return rows.map((e) => Map<String, Object?>.from(e)).toList();
+  }
+
+  Future<void> _clearAllData(DatabaseExecutor txn) async {
+    await txn.delete('overcooked_meal_items');
+    await txn.delete('overcooked_meals');
+    await txn.delete('overcooked_wish_items');
+    await txn.delete('overcooked_recipe_ingredient_tags');
+    await txn.delete('overcooked_recipe_sauce_tags');
+    await txn.delete('overcooked_recipe_flavor_tags');
+    await txn.delete('overcooked_recipes');
+  }
+
+  Future<void> _bulkInsert(
+    DatabaseExecutor txn,
+    String table,
+    List<Map<String, dynamic>> rows, {
+    ConflictAlgorithm? conflictAlgorithm,
+  }) async {
+    for (final row in rows) {
+      await txn.insert(table, row, conflictAlgorithm: conflictAlgorithm);
+    }
   }
 
   Future<void> importFromServer({
@@ -640,51 +626,35 @@ ORDER BY m.day_key ASC
   }) async {
     final db = await _database;
     await db.transaction((txn) async {
-      await txn.delete('overcooked_meal_items');
-      await txn.delete('overcooked_meals');
-      await txn.delete('overcooked_wish_items');
-      await txn.delete('overcooked_recipe_ingredient_tags');
-      await txn.delete('overcooked_recipe_sauce_tags');
-      await txn.delete('overcooked_recipe_flavor_tags');
-      await txn.delete('overcooked_recipes');
+      await _clearAllData(txn);
 
-      for (final row in recipes) {
-        await txn.insert('overcooked_recipes', row);
-      }
-      for (final row in ingredientTags) {
-        await txn.insert(
-          'overcooked_recipe_ingredient_tags',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-      for (final row in sauceTags) {
-        await txn.insert(
-          'overcooked_recipe_sauce_tags',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-      for (final row in flavorTags) {
-        await txn.insert(
-          'overcooked_recipe_flavor_tags',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-      for (final row in wishItems) {
-        await txn.insert('overcooked_wish_items', row);
-      }
-      for (final row in meals) {
-        await txn.insert('overcooked_meals', row);
-      }
-      for (final row in mealItems) {
-        await txn.insert(
-          'overcooked_meal_items',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
+      await _bulkInsert(txn, 'overcooked_recipes', recipes);
+      await _bulkInsert(
+        txn,
+        'overcooked_recipe_ingredient_tags',
+        ingredientTags,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(
+        txn,
+        'overcooked_recipe_sauce_tags',
+        sauceTags,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(
+        txn,
+        'overcooked_recipe_flavor_tags',
+        flavorTags,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(txn, 'overcooked_wish_items', wishItems);
+      await _bulkInsert(txn, 'overcooked_meals', meals);
+      await _bulkInsert(
+        txn,
+        'overcooked_meal_items',
+        mealItems,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     });
   }
 
@@ -699,41 +669,28 @@ ORDER BY m.day_key ASC
   }) async {
     final db = await _database;
     await db.transaction((txn) async {
-      await txn.delete('overcooked_meal_items');
-      await txn.delete('overcooked_meals');
-      await txn.delete('overcooked_wish_items');
-      await txn.delete('overcooked_recipe_ingredient_tags');
-      await txn.delete('overcooked_recipe_sauce_tags');
-      await txn.delete('overcooked_recipe_flavor_tags');
-      await txn.delete('overcooked_recipes');
+      await _clearAllData(txn);
 
-      for (final row in recipes) {
-        await txn.insert('overcooked_recipes', row);
-      }
-      for (final row in ingredientTags) {
-        await txn.insert(
-          'overcooked_recipe_ingredient_tags',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-      for (final row in sauceTags) {
-        await txn.insert(
-          'overcooked_recipe_sauce_tags',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-      for (final row in flavorTags) {
-        await txn.insert(
-          'overcooked_recipe_flavor_tags',
-          row,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-      for (final row in wishItems) {
-        await txn.insert('overcooked_wish_items', row);
-      }
+      await _bulkInsert(txn, 'overcooked_recipes', recipes);
+      await _bulkInsert(
+        txn,
+        'overcooked_recipe_ingredient_tags',
+        ingredientTags,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(
+        txn,
+        'overcooked_recipe_sauce_tags',
+        sauceTags,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(
+        txn,
+        'overcooked_recipe_flavor_tags',
+        flavorTags,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(txn, 'overcooked_wish_items', wishItems);
 
       if (mealDays.isEmpty) return;
 
@@ -934,7 +891,7 @@ WHERE tool_id = ? AND category_id = ?
   }) async {
     final ids = _dedupeInts(recipeIds).toList();
     if (ids.isEmpty) return const {};
-    final placeholders = List.filled(ids.length, '?').join(',');
+    final placeholders = _placeholders(ids.length);
     final db = await _database;
     final rows = await db.rawQuery('''
 SELECT recipe_id, tag_id

@@ -160,12 +160,7 @@ class _OvercookedRecipeDetailPageState
       body: _loading && recipe == null
           ? const Center(child: CupertinoActivityIndicator())
           : recipe == null
-          ? Center(
-              child: Text(
-                '未找到菜谱',
-                style: IOS26Theme.bodySmall,
-              ),
-            )
+          ? Center(child: Text('未找到菜谱', style: IOS26Theme.bodySmall))
           : _buildContent(context, recipe),
     );
   }
@@ -210,10 +205,7 @@ class _OvercookedRecipeDetailPageState
           ),
         ),
         const SizedBox(height: 14),
-        Text(
-          recipe.name,
-          style: IOS26Theme.headlineMedium,
-        ),
+        Text(recipe.name, style: IOS26Theme.headlineMedium),
         if (typeName != null && typeName.trim().isNotEmpty) ...[
           const SizedBox(height: 8),
           _chipsRow(title: '风格', values: [typeName]),
@@ -335,10 +327,7 @@ class _OvercookedRecipeDetailPageState
   }
 
   Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: IOS26Theme.titleSmall,
-    );
+    return Text(text, style: IOS26Theme.titleSmall);
   }
 
   Widget _chipsRow({

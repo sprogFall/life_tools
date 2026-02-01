@@ -138,10 +138,7 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            '暂无可选标签',
-                            style: IOS26Theme.bodySmall,
-                          ),
+                          Text('暂无可选标签', style: IOS26Theme.bodySmall),
                           if (_canCreate) ...[
                             const SizedBox(height: 12),
                             IOS26QuickAddChip(

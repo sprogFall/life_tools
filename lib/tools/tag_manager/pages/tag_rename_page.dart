@@ -52,10 +52,7 @@ class _TagRenamePageState extends State<TagRenamePage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: Text(
-                    '保存',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -68,10 +65,7 @@ class _TagRenamePageState extends State<TagRenamePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '标签名',
-                        style: IOS26Theme.titleSmall,
-                      ),
+                      Text('标签名', style: IOS26Theme.titleSmall),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _nameController,

@@ -215,7 +215,9 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService(databaseProvider: () async => db1);
+      final settingsService = SettingsService(
+        databaseProvider: () async => db1,
+      );
       await settingsService.init();
       await settingsService.setToolHidden('overcooked_kitchen', true);
 
@@ -236,7 +238,9 @@ void main() {
       final map = jsonDecode(jsonText) as Map<String, dynamic>;
       final settings = Map<String, dynamic>.from(map['settings'] as Map);
       final hidden =
-          (settings['hidden_tool_ids'] as List?)?.whereType<String>().toList() ??
+          (settings['hidden_tool_ids'] as List?)
+              ?.whereType<String>()
+              .toList() ??
           const <String>[];
       expect(hidden, contains('overcooked_kitchen'));
 
@@ -260,7 +264,9 @@ void main() {
       );
       await objStoreConfigService2.init();
 
-      final settingsService2 = SettingsService(databaseProvider: () async => db2);
+      final settingsService2 = SettingsService(
+        databaseProvider: () async => db2,
+      );
       await settingsService2.init();
 
       final service2 = BackupRestoreService(
@@ -275,7 +281,9 @@ void main() {
 
       expect(settingsService2.hiddenToolIds, contains('overcooked_kitchen'));
       expect(
-        settingsService2.getHomeTools().any((t) => t.id == 'overcooked_kitchen'),
+        settingsService2.getHomeTools().any(
+          (t) => t.id == 'overcooked_kitchen',
+        ),
         isFalse,
       );
     });

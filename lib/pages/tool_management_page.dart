@@ -31,7 +31,9 @@ class ToolManagementPage extends StatelessWidget {
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
                         sliver: SliverToBoxAdapter(
-                          child: _HintCard(hiddenCount: settings.hiddenToolIds.length),
+                          child: _HintCard(
+                            hiddenCount: settings.hiddenToolIds.length,
+                          ),
                         ),
                       ),
                       SliverPadding(
@@ -103,10 +105,7 @@ class _DefaultToolCard extends StatelessWidget {
       padding: const EdgeInsets.all(0),
       child: Column(
         children: [
-          const _CardHeader(
-            title: '启动默认进入',
-            subtitle: '设置后，下次打开应用将直接进入该工具',
-          ),
+          const _CardHeader(title: '启动默认进入', subtitle: '设置后，下次打开应用将直接进入该工具'),
           const _Divider(),
           _DefaultToolRow(
             icon: CupertinoIcons.house,
@@ -115,11 +114,7 @@ class _DefaultToolCard extends StatelessWidget {
           ),
           for (final tool in tools) ...[
             const _Divider(),
-            _DefaultToolRow(
-              icon: tool.icon,
-              title: tool.name,
-              toolId: tool.id,
-            ),
+            _DefaultToolRow(icon: tool.icon, title: tool.name, toolId: tool.id),
           ],
         ],
       ),
@@ -179,10 +174,7 @@ class _HomeVisibilityCard extends StatelessWidget {
       padding: const EdgeInsets.all(0),
       child: Column(
         children: [
-          const _CardHeader(
-            title: '首页显示',
-            subtitle: '关闭后首页不显示该工具（不影响备份与默认进入）',
-          ),
+          const _CardHeader(title: '首页显示', subtitle: '关闭后首页不显示该工具（不影响备份与默认进入）'),
           for (final tool in tools) ...[
             const _Divider(),
             _HomeVisibilityRow(tool: tool),
@@ -242,10 +234,7 @@ class _CardHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: IOS26Theme.titleMedium,
-                ),
+                Text(title, style: IOS26Theme.titleMedium),
                 const SizedBox(height: 6),
                 Text(
                   subtitle,

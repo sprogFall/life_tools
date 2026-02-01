@@ -92,10 +92,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: Text(
-                    '保存',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -128,10 +125,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '基本信息',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('基本信息', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           _buildTextField(
             key: const ValueKey('task_title_field'),
@@ -165,10 +159,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '时间范围',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('时间范围', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           _TimeRow(
             label: '开始时间',
@@ -204,10 +195,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '任务状态',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('任务状态', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(6),
@@ -328,18 +316,12 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
             children: [
               Row(
                 children: [
-                  Text(
-                    '归属',
-                    style: IOS26Theme.titleSmall,
-                  ),
+                  Text('归属', style: IOS26Theme.titleSmall),
                   const Spacer(),
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: () => _openTagManager(context),
-                    child: Text(
-                      '管理',
-                      style: IOS26Theme.labelLarge,
-                    ),
+                    child: Text('管理', style: IOS26Theme.labelLarge),
                   ),
                 ],
               ),

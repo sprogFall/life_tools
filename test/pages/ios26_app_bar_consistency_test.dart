@@ -116,9 +116,7 @@ void main() {
             ChangeNotifierProvider<SettingsService>.value(
               value: settingsService,
             ),
-            ChangeNotifierProvider<MessageService>.value(
-              value: messageService,
-            ),
+            ChangeNotifierProvider<MessageService>.value(value: messageService),
           ],
           child: const MaterialApp(home: HomePage()),
         ),

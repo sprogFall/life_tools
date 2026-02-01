@@ -172,7 +172,10 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
           icon: Icon(CupertinoIcons.calendar),
           label: '日历',
         ),
-        BottomNavigationBarItem(icon: Icon(CupertinoIcons.shuffle), label: '扭蛋'),
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.shuffle),
+          label: '扭蛋',
+        ),
       ],
     );
   }

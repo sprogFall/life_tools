@@ -168,12 +168,7 @@ class _OvercookedRecipePickerSheetState
           const SizedBox(height: 4),
           Expanded(
             child: filtered.isEmpty
-                ? Center(
-                    child: Text(
-                      '暂无可选菜谱',
-                      style: IOS26Theme.bodySmall,
-                    ),
-                  )
+                ? Center(child: Text('暂无可选菜谱', style: IOS26Theme.bodySmall))
                 : ListView.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, index) => Container(
@@ -199,10 +194,7 @@ class _OvercookedRecipePickerSheetState
                             borderRadius: 12,
                           ),
                         ),
-                        title: Text(
-                          r.name,
-                          style: IOS26Theme.titleSmall,
-                        ),
+                        title: Text(r.name, style: IOS26Theme.titleSmall),
                         subtitle: ratingCount > 0
                             ? Row(
                                 children: [

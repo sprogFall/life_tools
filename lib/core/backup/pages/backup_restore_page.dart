@@ -96,10 +96,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   }
 
   Widget _buildCardTitle(String title) {
-    return Text(
-      title,
-      style: IOS26Theme.titleSmall,
-    );
+    return Text(title, style: IOS26Theme.titleSmall);
   }
 
   Widget _buildHint(String text) {
@@ -162,7 +159,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(CupertinoIcons.share, color: Colors.white, size: 18),
+                  const Icon(
+                    CupertinoIcons.share,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '导出并分享',
@@ -287,10 +288,15 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               color: IOS26Theme.toolRed.withValues(alpha: 0.9),
               onPressed: _isRestoring ? null : _confirmAndRestore,
               child: _isRestoring
-                  ? const CupertinoActivityIndicator(radius: 9, color: Colors.white)
+                  ? const CupertinoActivityIndicator(
+                      radius: 9,
+                      color: Colors.white,
+                    )
                   : Text(
                       '开始还原（覆盖本地）',
-                      style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                      style: IOS26Theme.labelLarge.copyWith(
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),

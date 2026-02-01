@@ -106,10 +106,7 @@ class _StatusFilterBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          Text(
-            '状态',
-            style: IOS26Theme.bodySmall,
-          ),
+          Text('状态', style: IOS26Theme.bodySmall),
           const SizedBox(width: 12),
           Expanded(
             child: SingleChildScrollView(
@@ -270,10 +267,7 @@ class _TagFilterBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: Row(
         children: [
-          Text(
-            '归属',
-            style: IOS26Theme.bodySmall,
-          ),
+          Text('归属', style: IOS26Theme.bodySmall),
           const SizedBox(width: 12),
           Expanded(
             child: SingleChildScrollView(

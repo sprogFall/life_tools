@@ -132,7 +132,9 @@ class SettingsService extends ChangeNotifier {
   Future<void> updateHomeToolOrder(List<String> newVisibleOrder) async {
     // 按“旧顺序中的可见位置”替换，从而保留隐藏工具的占位顺序。
     final current = List<String>.from(_toolOrder);
-    final visibleInCurrent = current.where((id) => !_hiddenToolIds.contains(id));
+    final visibleInCurrent = current.where(
+      (id) => !_hiddenToolIds.contains(id),
+    );
 
     final visibleSet = visibleInCurrent.toSet();
     final normalized = <String>[

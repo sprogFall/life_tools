@@ -129,10 +129,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                     vertical: 8,
                   ),
                   onPressed: () => _save(context),
-                  child: Text(
-                    '保存',
-                    style: IOS26Theme.labelLarge,
-                  ),
+                  child: Text('保存', style: IOS26Theme.labelLarge),
                 ),
               ],
             ),
@@ -175,10 +172,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '存储方式',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('存储方式', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           CupertinoSlidingSegmentedControl<ObjStoreType>(
             groupValue: _type,
@@ -221,10 +215,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '七牛云配置',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('七牛云配置', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: '空间类型',
@@ -354,10 +345,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '数据胶囊配置',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('数据胶囊配置', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           _buildLabeledField(label: '空间类型', child: _buildFixedValue('私有（固定）')),
           const SizedBox(height: 12),
@@ -454,10 +442,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '测试',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('测试', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -542,10 +527,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '说明',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('说明', style: IOS26Theme.titleSmall),
           SizedBox(height: 10),
           Text(
             '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
@@ -567,10 +549,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '危险区',
-            style: IOS26Theme.titleSmall,
-          ),
+          Text('危险区', style: IOS26Theme.titleSmall),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -617,9 +596,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       decoration: _fieldDecoration(),
       child: Text(
         value,
-        style: IOS26Theme.bodyMedium.copyWith(
-          color: IOS26Theme.textPrimary,
-        ),
+        style: IOS26Theme.bodyMedium.copyWith(color: IOS26Theme.textPrimary),
       ),
     );
   }

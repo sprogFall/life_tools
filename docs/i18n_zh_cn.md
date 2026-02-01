@@ -1,38 +1,40 @@
-# 组件中文化说明
+# 国际化（i18n）与组件中文化说明
 
 ## 修改概述
 
-本次修改将应用的公共组件（特别是日期时间选择器）配置为使用中文显示。
+本项目已启用 Flutter 国际化支持，并将应用默认 `locale` 设为 `zh_CN`，以确保公共组件（特别是日期时间选择器）默认使用中文显示。
 
 ## 修改内容
 
 ### 1. 主应用配置 (lib/main.dart)
 
-在 `MaterialApp` 中添加了国际化配置：
+在 `MaterialApp` 中添加/维护国际化配置（推荐通过 `AppLocalizations` 统一提供 delegates 与 supportedLocales）：
 
 ```dart
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 
 // ...
 
 MaterialApp(
   locale: const Locale('zh', 'CN'),
-  localizationsDelegates: const [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  supportedLocales: const [
-    Locale('zh', 'CN'),
-    Locale('en', 'US'),
-  ],
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
   // ...
 )
 ```
 
+### 1.1 本地化资源（ARB）
+
+本项目使用 ARB 存放文案资源：
+
+- 目录：`lib/l10n/`
+- 配置：`l10n.yaml`
+
+为兼容 region locale（如 `en_US`/`zh_CN`）的 fallback 机制，同时提供 base locale（`en`/`zh`）与 region locale 的 ARB 文件。
+
 ### 2. 测试辅助工具 (test/test_helpers/test_app_wrapper.dart)
 
-创建了 `TestAppWrapper` 类，为测试提供统一的国际化配置包装器。
+创建了 `TestAppWrapper` 类，为测试提供统一的国际化配置包装器（确保系统组件本地化可用）。
 
 ## 影响的组件
 
@@ -90,4 +92,4 @@ testWidgets('测试示例', (tester) async {
 
 1. 所有新建的测试文件都应该使用 `TestAppWrapper` 来包装被测试的组件
 2. 自定义的日期格式化逻辑（如日历视图中的格式化）保持不变
-3. 该配置不影响应用内自定义的中文文本（如按钮标签、标题等）
+3. i18n 基础设施已就绪，但业务中文文案的全量替换建议按模块渐进推进

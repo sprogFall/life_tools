@@ -1,5 +1,5 @@
 {
-  "@@locale": "zh",
+  "@@locale": "zh_CN",
   "appTitle": "小蜜",
   "@appTitle": {
     "description": "应用名称"
@@ -14,4 +14,3 @@
   "tool_overcooked_name": "胡闹厨房",
   "tool_work_log_name": "工作记录"
 }
-
