@@ -24,9 +24,12 @@ jobs:
 
       - name: Parse build type from commit message
         id: parse-build-type
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          MESSAGE="${{ github.event.head_commit.message }}"
-          BRANCH="${{ github.ref_name }}"
+          MESSAGE="$COMMIT_MESSAGE"
+          BRANCH="$BRANCH_NAME"
           echo "Commit message: $MESSAGE"
           echo "Branch: $BRANCH"
           
