@@ -522,7 +522,7 @@ class _DayCell extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           color: selected
               ? IOS26Theme.primaryColor.withValues(alpha: 0.12)
@@ -533,22 +533,32 @@ class _DayCell extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${date.day}',
-              style: IOS26Theme.bodySmall.copyWith(
-                fontWeight: FontWeight.w600,
-                color: textColor,
+            Padding(
+              padding: const EdgeInsets.only(left: 6, top: 4),
+              child: Text(
+                '${date.day}',
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
               ),
             ),
             const Spacer(),
             if (minutesText != null)
-              Text(
-                minutesText,
-                style: IOS26Theme.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.primaryColor,
+              Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    minutesText,
+                    style: IOS26Theme.bodySmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: IOS26Theme.primaryColor,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
               ),
+            if (minutesText != null) const SizedBox(height: 2),
           ],
         ),
       ),
