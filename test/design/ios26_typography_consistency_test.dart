@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('lib 目录不应存在业务 TextStyle 硬编码', () async {
-    final allowedFiles = <String>{'lib/core/theme/ios26_theme.dart'};
+    final allowedFiles = <String>{
+      'lib/core/theme/ios26_theme.dart',
+      'lib\\core\\theme\\ios26_theme.dart',
+    };
     final root = Directory('lib');
     final dartFiles = root
         .listSync(recursive: true)

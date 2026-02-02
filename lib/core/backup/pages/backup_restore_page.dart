@@ -15,6 +15,9 @@ import '../../services/settings_service.dart';
 import '../../sync/services/backup_restore_service.dart';
 import '../../sync/services/sync_config_service.dart';
 import '../../theme/ios26_theme.dart';
+import '../../ui/app_dialogs.dart';
+import '../../ui/app_scaffold.dart';
+import '../../ui/section_header.dart';
 import '../services/share_service.dart';
 
 class BackupRestorePage extends StatefulWidget {
@@ -37,7 +40,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     if (widget.initialJson != null && widget.initialJson!.isNotEmpty) {
       _restoreController.text = widget.initialJson!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showDialog(title: '已接收备份文件', content: '备份内容已填入，请检查后点击"开始还原"按钮。');
+        AppDialogs.showInfo(
+          context,
+          title: '已接收备份文件',
+          content: '备份内容已填入，请检查后点击"开始还原"按钮。',
+        );
       });
     }
   }
@@ -61,27 +68,24 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IOS26Theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const IOS26AppBar(title: '备份与还原', showBackButton: true),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildExportCard(),
-                    const SizedBox(height: 16),
-                    _buildRestoreCard(),
-                  ],
-                ),
+    return AppScaffold(
+      body: Column(
+        children: [
+          const IOS26AppBar(title: '备份与还原', showBackButton: true),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildExportCard(),
+                  const SizedBox(height: 16),
+                  _buildRestoreCard(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -93,10 +97,6 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       settingsService: context.read<SettingsService>(),
       objStoreConfigService: context.read<ObjStoreConfigService>(),
     );
-  }
-
-  Widget _buildCardTitle(String title) {
-    return Text(title, style: IOS26Theme.titleSmall);
   }
 
   Widget _buildHint(String text) {
@@ -114,7 +114,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('导出'),
+          const SectionHeader(title: '导出', padding: EdgeInsets.zero),
           const SizedBox(height: 10),
           _buildHint('将以下内容导出为 JSON（大数据量推荐导出为 TXT 文件）：'),
           const SizedBox(height: 6),
@@ -216,7 +216,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('还原'),
+          const SectionHeader(title: '还原', padding: EdgeInsets.zero),
           const SizedBox(height: 10),
           _buildHint('粘贴 JSON 并覆盖写入本地（请谨慎操作，建议先导出备份）。'),
           const SizedBox(height: 10),
@@ -319,11 +319,19 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       if (!mounted) return;
 
       if (result.status == ShareResultStatus.success) {
-        await _showDialog(title: '分享成功', content: '备份文件已分享');
+        await AppDialogs.showInfo(
+          context,
+          title: '分享成功',
+          content: '备份文件已分享',
+        );
       }
     } catch (e) {
       if (!mounted) return;
-      await _showDialog(title: '分享失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: '分享失败',
+        content: e.toString(),
+      );
     }
   }
 
@@ -349,13 +357,18 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       if (!mounted) return;
 
       final kb = (jsonText.length / 1024).toStringAsFixed(1);
-      await _showDialog(
+      await AppDialogs.showInfo(
+        context,
         title: '已导出',
         content: '已保存到：\n$path\n\n内容为紧凑 JSON（约 $kb KB）',
       );
     } catch (e) {
       if (!mounted) return;
-      await _showDialog(title: '导出失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: '导出失败',
+        content: e.toString(),
+      );
     }
   }
 
@@ -369,7 +382,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     if (!mounted) return;
 
     final kb = (jsonText.length / 1024).toStringAsFixed(1);
-    await _showDialog(title: '已导出', content: '紧凑 JSON 已复制到剪切板（约 $kb KB）');
+    await AppDialogs.showInfo(
+      context,
+      title: '已导出',
+      content: '紧凑 JSON 已复制到剪切板（约 $kb KB）',
+    );
   }
 
   Future<void> _pasteFromClipboard() async {
@@ -400,7 +417,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       await _restoreFromJsonText(jsonText);
     } catch (e) {
       if (!mounted) return;
-      await _showDialog(title: '导入失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: '导入失败',
+        content: e.toString(),
+      );
     }
   }
 
@@ -429,10 +450,18 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           '失败工具：${result.failedTools.keys.join("，")}',
       ].join('\n');
 
-      await _showDialog(title: '还原完成', content: summary);
+      await AppDialogs.showInfo(
+        context,
+        title: '还原完成',
+        content: summary,
+      );
     } catch (e) {
       if (!mounted) return;
-      await _showDialog(title: '还原失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: '还原失败',
+        content: e.toString(),
+      );
     } finally {
       if (mounted) setState(() => _isRestoring = false);
     }
@@ -450,47 +479,13 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   }
 
   Future<bool> _confirmRestore() async {
-    var confirmed = false;
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('确认还原？'),
-        content: const Text('该操作会覆盖本地配置与数据，建议先导出备份。'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              confirmed = true;
-              Navigator.pop(context);
-            },
-            child: const Text('继续'),
-          ),
-        ],
-      ),
-    );
-    return confirmed;
-  }
-
-  Future<void> _showDialog({
-    required String title,
-    required String content,
-  }) async {
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
+    return AppDialogs.showConfirm(
+      context,
+      title: '确认还原？',
+      content: '该操作会覆盖本地配置与数据，建议先导出备份。',
+      cancelText: '取消',
+      confirmText: '继续',
+      isDestructive: true,
     );
   }
 }

@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/tool_info.dart';
 import '../core/services/settings_service.dart';
 import '../core/theme/ios26_theme.dart';
+import '../core/ui/app_scaffold.dart';
 import '../core/widgets/ios26_settings_row.dart';
 
 class ToolManagementPage extends StatelessWidget {
@@ -15,46 +15,43 @@ class ToolManagementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IOS26Theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const IOS26AppBar(title: '工具管理', showBackButton: true),
-            Expanded(
-              child: Consumer<SettingsService>(
-                builder: (context, settings, _) {
-                  final tools = settings.getSortedTools();
-                  return CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-                        sliver: SliverToBoxAdapter(
-                          child: _HintCard(
-                            hiddenCount: settings.hiddenToolIds.length,
-                          ),
+    return AppScaffold(
+      body: Column(
+        children: [
+          const IOS26AppBar(title: '工具管理', showBackButton: true),
+          Expanded(
+            child: Consumer<SettingsService>(
+              builder: (context, settings, _) {
+                final tools = settings.getSortedTools();
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                      sliver: SliverToBoxAdapter(
+                        child: _HintCard(
+                          hiddenCount: settings.hiddenToolIds.length,
                         ),
                       ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-                        sliver: SliverToBoxAdapter(
-                          child: _DefaultToolCard(tools: tools),
-                        ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                      sliver: SliverToBoxAdapter(
+                        child: _DefaultToolCard(tools: tools),
                       ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 30),
-                        sliver: SliverToBoxAdapter(
-                          child: _HomeVisibilityCard(tools: tools),
-                        ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 30),
+                      sliver: SliverToBoxAdapter(
+                        child: _HomeVisibilityCard(tools: tools),
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -107,7 +104,7 @@ class _DefaultToolCard extends StatelessWidget {
         children: [
           const _CardHeader(title: '启动默认进入', subtitle: '设置后，下次打开应用将直接进入该工具'),
           const _Divider(),
-          _DefaultToolRow(
+          const _DefaultToolRow(
             icon: CupertinoIcons.house,
             title: '首页',
             toolId: null,

@@ -14,6 +14,7 @@ class IOS26Theme {
   // 背景色
   static const Color backgroundColor = Color(0xFFF2F2F7);
   static const Color surfaceColor = Color(0xFFFFFFFF);
+  static const Color surfaceVariant = Color(0xFFE5E5EA); // 新增：次级背景
   static const Color cardColor = Color(0xFFFFFFFF);
 
   // 文字颜色
@@ -22,12 +23,12 @@ class IOS26Theme {
   static const Color textTertiary = Color(0xFFC7C7CC);
 
   // 毛玻璃效果颜色
-  static const Color glassColor = Color(0xAAFFFFFF);
-  static const Color glassBorderColor = Color(0x33FFFFFF);
+  static const Color glassColor = Color(0xCCFFFFFF); // 提高不透明度，增强质感
+  static const Color glassBorderColor = Color(0x1A000000); // 使用黑色低透明度作为边框，适配性更好
 
   // 语义化覆盖/阴影颜色
   static const Color overlayColor = Color(0x26000000); // black 15%
-  static const Color shadowColor = Color(0x38000000); // black 22%
+  static const Color shadowColor = Color(0x1F000000); // black 12% - 调淡阴影
   static const Color shadowColorFaint = Color(0x0A000000); // black 4%
 
   // 工具颜色
@@ -96,6 +97,14 @@ class IOS26Theme {
 
   /// 按钮文本 (15pt, w500) - 用于按钮、链接
   static TextStyle get labelLarge => _textTheme.labelLarge!;
+
+  /// 标签文本 (13pt, w700) - 用于标签、小按钮
+  static TextStyle get labelSmall => const TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.08,
+    color: textPrimary,
+  );
 
   /// 获取主题数据
   static ThemeData get lightTheme {
@@ -246,6 +255,16 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: IOS26Theme.shadowColor,
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
@@ -257,7 +276,7 @@ class GlassContainer extends StatelessWidget {
               borderRadius: BorderRadius.circular(borderRadius),
               border:
                   border ??
-                  Border.all(color: IOS26Theme.glassBorderColor, width: 1),
+                  Border.all(color: IOS26Theme.glassBorderColor, width: 0.5),
             ),
             child: child,
           ),
@@ -324,7 +343,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: IOS26Theme.glassColor,
                   border: Border(
                     bottom: BorderSide(
-                      color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+                      color: IOS26Theme.glassBorderColor,
                       width: 0.5,
                     ),
                   ),
@@ -388,7 +407,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                 borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
                 border: Border.all(
                   color: IOS26Theme.glassBorderColor,
-                  width: 1,
+                  width: 0.5,
                 ),
               ),
               child: const Icon(
@@ -571,12 +590,6 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
     final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
     final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
 
-    final textStyle = const TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.w700,
-      color: IOS26Theme.textPrimary,
-    );
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth.isFinite
@@ -591,7 +604,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
         final textWidth = _measureTextWidth(
           context: context,
           text: raw,
-          style: textStyle,
+          style: IOS26Theme.labelSmall,
         );
         final desiredField = raw.trim().isEmpty
             ? minField
@@ -621,9 +634,8 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                           horizontal: 12,
                           vertical: 10,
                         ),
-                        style: textStyle,
-                        placeholderStyle: TextStyle(
-                          fontSize: 13,
+                        style: IOS26Theme.labelSmall,
+                        placeholderStyle: IOS26Theme.labelSmall.copyWith(
                           fontWeight: FontWeight.w600,
                           color: IOS26Theme.textSecondary.withValues(
                             alpha: 0.9,

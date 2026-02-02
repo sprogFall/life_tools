@@ -1,11 +1,14 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../core/ai/ai_config.dart';
+import 'package:life_tools/core/ai/ai_config.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/ai/ai_service.dart';
 import '../core/theme/ios26_theme.dart';
+import '../core/ui/app_dialogs.dart';
+import '../core/ui/app_navigator.dart';
+import '../core/ui/app_scaffold.dart';
+import '../core/ui/section_header.dart';
 
 class AiSettingsPage extends StatefulWidget {
   const AiSettingsPage({super.key});
@@ -49,42 +52,40 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IOS26Theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            IOS26AppBar(
-              title: 'AI配置',
-              showBackButton: true,
-              actions: [
-                CupertinoButton(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  onPressed: () => _save(context),
-                  child: Text('保存', style: IOS26Theme.labelLarge),
+    return AppScaffold(
+      body: Column(
+        children: [
+          IOS26AppBar(
+            title: 'AI配置',
+            showBackButton: true,
+            actions: [
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-              ],
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildConfigCard(),
-                    const SizedBox(height: 16),
-                    _buildTipsCard(),
-                    const SizedBox(height: 16),
-                    _buildDangerZoneCard(),
-                  ],
-                ),
+                onPressed: () => _save(context),
+                child: Text('保存', style: IOS26Theme.labelLarge),
+              ),
+            ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildConfigCard(),
+                  const SizedBox(height: 16),
+                  _buildTipsCard(),
+                  const SizedBox(height: 16),
+                  _buildDangerZoneCard(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -95,7 +96,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('OpenAI 兼容配置', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: 'OpenAI 兼容配置', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: 'Base URL',
@@ -197,8 +198,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('说明', style: IOS26Theme.titleSmall),
-          SizedBox(height: 10),
+          const SectionHeader(title: '说明', padding: EdgeInsets.zero),
+          const SizedBox(height: 10),
           Text(
             '1. Base URL 支持填写到域名（如 https://example.com），也支持直接填写到 /v1。\n'
             '2. 该配置用于 OpenAI 格式的 /v1/chat/completions。\n'
@@ -216,7 +217,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('危险区', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '危险区', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -272,20 +273,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     final config = _readConfigFromFields();
 
     if (!config.isValid) {
-      await showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('提示'),
-          content: const Text(
+      await AppDialogs.showInfo(
+        context,
+        title: '提示',
+        content:
             '请检查配置项：Base URL / API Key / Model 不能为空，Temperature 范围 0~2，Max Tokens > 0',
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-          ],
-        ),
       );
       return;
     }
@@ -294,18 +286,10 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     await configService.save(config);
     if (!context.mounted) return;
 
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('已保存'),
-        content: Text('当前模型：${config.model}'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
+    await AppDialogs.showInfo(
+      context,
+      title: '已保存',
+      content: '当前模型：${config.model}',
     );
   }
 
@@ -328,18 +312,10 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   Future<void> _testConnection(BuildContext context) async {
     final config = _readConfigFromFields();
     if (!config.isValid) {
-      await showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('提示'),
-          content: const Text('请先填写合法的 AI 配置，再进行测试。'),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-          ],
-        ),
+      await AppDialogs.showInfo(
+        context,
+        title: '提示',
+        content: '请先填写合法的 AI 配置，再进行测试。',
       );
       return;
     }
@@ -347,18 +323,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     setState(() => _isTesting = true);
 
     final aiService = context.read<AiService>();
-    final navigator = Navigator.of(context, rootNavigator: true);
-    showCupertinoDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const CupertinoAlertDialog(
-        title: Text('测试中'),
-        content: Padding(
-          padding: EdgeInsets.only(top: 12),
-          child: CupertinoActivityIndicator(),
-        ),
-      ),
-    );
+    // 显示 loading
+    AppDialogs.showLoading(context, title: '测试中');
 
     try {
       final text = await aiService.chatTextWithConfig(
@@ -368,35 +334,23 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       );
 
       if (!context.mounted) return;
-      if (navigator.canPop()) navigator.pop();
-      await showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('测试结果'),
-          content: Text(text),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-          ],
-        ),
+      // 关闭 loading
+      AppNavigator.pop(context);
+      
+      await AppDialogs.showInfo(
+        context,
+        title: '测试结果',
+        content: text,
       );
     } catch (e) {
       if (!context.mounted) return;
-      if (navigator.canPop()) navigator.pop();
-      await showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('测试失败'),
-          content: Text(e.toString()),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-          ],
-        ),
+      // 关闭 loading
+      AppNavigator.pop(context);
+
+      await AppDialogs.showInfo(
+        context,
+        title: '测试失败',
+        content: e.toString(),
       );
     } finally {
       if (mounted) setState(() => _isTesting = false);
@@ -407,26 +361,15 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     final configService = context.read<AiConfigService>();
     final navigator = Navigator.of(context);
 
-    final result = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('确认清除？'),
-        content: const Text('清除后将无法使用 AI 相关功能，直到重新配置。'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('清除'),
-          ),
-        ],
-      ),
+    final result = await AppDialogs.showConfirm(
+      context,
+      title: '确认清除？',
+      content: '清除后将无法使用 AI 相关功能，直到重新配置。',
+      confirmText: '清除',
+      isDestructive: true,
     );
 
-    if (result != true) return;
+    if (!result) return;
     await configService.clear();
     if (!mounted) return;
     navigator.pop();

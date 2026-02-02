@@ -8,6 +8,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../theme/ios26_theme.dart';
+import 'package:life_tools/core/ui/app_dialogs.dart';
+import 'package:life_tools/core/ui/app_scaffold.dart';
+import 'package:life_tools/core/ui/section_header.dart';
 import '../models/sync_config.dart';
 import '../services/sync_config_service.dart';
 import '../services/sync_service.dart';
@@ -81,54 +84,47 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IOS26Theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            IOS26AppBar(
-              title: '数据同步',
-              showBackButton: true,
-              actions: [
-                CupertinoButton(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  onPressed: _saveConfig,
-                  child: Text('保存', style: IOS26Theme.labelLarge),
+    return AppScaffold(
+      body: Column(
+        children: [
+          IOS26AppBar(
+            title: '数据同步',
+            showBackButton: true,
+            actions: [
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-              ],
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildNetworkCard(),
+                onPressed: _saveConfig,
+                child: Text('保存', style: IOS26Theme.labelLarge),
+              ),
+            ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildNetworkCard(),
+                  const SizedBox(height: 16),
+                  _buildBasicConfigCard(),
+                  const SizedBox(height: 16),
+                  if (_networkType == SyncNetworkType.privateWifi) ...[
+                    _buildWifiCard(),
                     const SizedBox(height: 16),
-                    _buildBasicConfigCard(),
-                    const SizedBox(height: 16),
-                    if (_networkType == SyncNetworkType.privateWifi) ...[
-                      _buildWifiCard(),
-                      const SizedBox(height: 16),
-                    ],
-                    _buildAdvancedCard(),
-                    const SizedBox(height: 16),
-                    _buildSyncActionCard(),
                   ],
-                ),
+                  _buildAdvancedCard(),
+                  const SizedBox(height: 16),
+                  _buildSyncActionCard(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildCardTitle(String title) {
-    return Text(title, style: IOS26Theme.titleSmall);
   }
 
   Widget _buildHint(String text) {
@@ -163,7 +159,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('网络类型'),
+          const SectionHeader(title: '网络类型', padding: EdgeInsets.zero),
           const SizedBox(height: 10),
           CupertinoSlidingSegmentedControl<SyncNetworkType>(
             groupValue: _networkType,
@@ -199,7 +195,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('基本配置'),
+          const SectionHeader(title: '基本配置', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: '用户 ID',
@@ -245,7 +241,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         children: [
           Row(
             children: [
-              Expanded(child: _buildCardTitle('允许的 WiFi（SSID）')),
+              const Expanded(
+                child: SectionHeader(
+                  title: '允许的 WiFi（SSID）',
+                  padding: EdgeInsets.zero,
+                ),
+              ),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -344,7 +345,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('高级选项'),
+          const SectionHeader(title: '高级选项', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -379,7 +380,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildCardTitle('同步'),
+              const SectionHeader(title: '同步', padding: EdgeInsets.zero),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -530,7 +531,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       return false;
     }
 
-    await _showDialog(
+    await AppDialogs.showInfo(
+      context,
       title: '需要定位权限',
       content: 'Android 读取当前 WiFi 名称（SSID）需要定位权限，请在系统弹窗中选择允许后再重试。',
     );
@@ -538,28 +540,13 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Future<bool> _confirmOpenAppSettings() async {
-    var ok = false;
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('权限被永久拒绝'),
-        content: const Text('请前往系统设置开启定位权限后再获取 WiFi 名称。'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            onPressed: () {
-              ok = true;
-              Navigator.pop(context);
-            },
-            child: const Text('去设置'),
-          ),
-        ],
-      ),
+    return AppDialogs.showConfirm(
+      context,
+      title: '权限被永久拒绝',
+      content: '请前往系统设置开启定位权限后再获取 WiFi 名称。',
+      cancelText: '取消',
+      confirmText: '去设置',
     );
-    return ok;
   }
 
   Future<void> _saveConfig() async {
@@ -574,7 +561,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     );
 
     if (!config.isValid) {
-      await _showDialog(
+      await AppDialogs.showInfo(
+        context,
         title: '提示',
         content: '配置不完整，请检查必填项（私网模式需至少配置 1 个 WiFi）',
       );
@@ -584,7 +572,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     await context.read<SyncConfigService>().save(config);
     if (!mounted) return;
 
-    await _showDialog(title: '已保存', content: '同步配置已更新');
+    await AppDialogs.showInfo(context, title: '已保存', content: '同步配置已更新');
   }
 
   Future<void> _performSync() async {
@@ -600,7 +588,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     final ok = await context.read<SyncService>().sync();
     if (!mounted) return;
 
-    await _showDialog(
+    await AppDialogs.showInfo(
+      context,
       title: ok ? '同步完成' : '同步失败',
       content: ok ? '已完成同步' : '请查看页面内的错误信息（便于调试）',
     );
@@ -610,71 +599,28 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     await _refreshCurrentWifi();
     if (!mounted) return;
 
-    final controller = TextEditingController(text: _currentWifiName ?? '');
-
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('添加 WiFi 名称（SSID）'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: CupertinoTextField(
-            controller: controller,
-            placeholder: '例如 MyHomeWifi',
-            decoration: _fieldDecoration(),
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            onPressed: () {
-              final normalized = WifiService.normalizeWifiName(controller.text);
-              if (normalized == null) return;
-
-              setState(() {
-                final set = <String>{
-                  ..._wifiNames
-                      .map(WifiService.normalizeWifiName)
-                      .whereType<String>(),
-                  normalized,
-                };
-                _wifiNames = set.toList()..sort();
-              });
-
-              Navigator.pop(context);
-            },
-            child: const Text('添加'),
-          ),
-        ],
-      ),
+    final name = await AppDialogs.showInput(
+      context,
+      title: '添加 WiFi 名称（SSID）',
+      placeholder: '例如 MyHomeWifi',
+      defaultValue: _currentWifiName ?? '',
+      confirmText: '添加',
     );
 
-    controller.dispose();
+    if (name == null) return;
+    final normalized = WifiService.normalizeWifiName(name);
+    if (normalized == null) return;
+
+    setState(() {
+      final set = <String>{
+        ..._wifiNames.map(WifiService.normalizeWifiName).whereType<String>(),
+        normalized,
+      };
+      _wifiNames = set.toList()..sort();
+    });
   }
 
   Future<void> _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
-  }
-
-  Future<void> _showDialog({
-    required String title,
-    required String content,
-  }) async {
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
-    );
   }
 }

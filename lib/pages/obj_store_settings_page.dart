@@ -12,6 +12,9 @@ import '../core/obj_store/obj_store_errors.dart';
 import '../core/obj_store/obj_store_secrets.dart';
 import '../core/obj_store/obj_store_service.dart';
 import '../core/theme/ios26_theme.dart';
+import '../core/ui/app_dialogs.dart';
+import '../core/ui/app_scaffold.dart';
+import '../core/ui/section_header.dart';
 
 class ObjStoreSettingsPage extends StatefulWidget {
   const ObjStoreSettingsPage({super.key});
@@ -114,54 +117,51 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IOS26Theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            IOS26AppBar(
-              title: '资源存储',
-              showBackButton: true,
-              actions: [
-                CupertinoButton(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  onPressed: () => _save(context),
-                  child: Text('保存', style: IOS26Theme.labelLarge),
+    return AppScaffold(
+      body: Column(
+        children: [
+          IOS26AppBar(
+            title: '资源存储',
+            showBackButton: true,
+            actions: [
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-              ],
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildTypeCard(),
+                onPressed: () => _save(context),
+                child: Text('保存', style: IOS26Theme.labelLarge),
+              ),
+            ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildTypeCard(),
+                  const SizedBox(height: 16),
+                  if (_type == ObjStoreType.qiniu) ...[
+                    _buildQiniuConfigCard(),
                     const SizedBox(height: 16),
-                    if (_type == ObjStoreType.qiniu) ...[
-                      _buildQiniuConfigCard(),
-                      const SizedBox(height: 16),
-                    ],
-                    if (_type == ObjStoreType.dataCapsule) ...[
-                      _buildDataCapsuleConfigCard(),
-                      const SizedBox(height: 16),
-                    ],
-                    if (_type != ObjStoreType.none) ...[
-                      _buildTestCard(),
-                      const SizedBox(height: 16),
-                    ],
-                    _buildTipsCard(),
-                    const SizedBox(height: 16),
-                    _buildDangerZoneCard(),
                   ],
-                ),
+                  if (_type == ObjStoreType.dataCapsule) ...[
+                    _buildDataCapsuleConfigCard(),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_type != ObjStoreType.none) ...[
+                    _buildTestCard(),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildTipsCard(),
+                  const SizedBox(height: 16),
+                  _buildDangerZoneCard(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -172,7 +172,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('存储方式', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '存储方式', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           CupertinoSlidingSegmentedControl<ObjStoreType>(
             groupValue: _type,
@@ -215,7 +215,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('七牛云配置', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '七牛云配置', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           _buildLabeledField(
             label: '空间类型',
@@ -345,7 +345,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('数据胶囊配置', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '数据胶囊配置', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           _buildLabeledField(label: '空间类型', child: _buildFixedValue('私有（固定）')),
           const SizedBox(height: 12),
@@ -442,7 +442,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('测试', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '测试', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -527,7 +527,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('说明', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '说明', padding: EdgeInsets.zero),
           SizedBox(height: 10),
           Text(
             '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
@@ -549,7 +549,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('危险区', style: IOS26Theme.titleSmall),
+          const SectionHeader(title: '危险区', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -617,8 +617,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
     if (_type == ObjStoreType.none) {
       await cfgService.clear();
-      if (!mounted) return;
-      await _showInfo('已清除', '已将资源存储恢复为未选择');
+      if (!context.mounted) return;
+      await AppDialogs.showInfo(context, title: '已清除', content: '已将资源存储恢复为未选择');
       return;
     }
 
@@ -636,10 +636,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       } else {
         throw StateError('Unknown ObjStoreType: $_type');
       }
-      if (!mounted) return;
-      await _showInfo('已保存', '资源存储配置已保存');
+      if (!context.mounted) return;
+      await AppDialogs.showInfo(context, title: '已保存', content: '资源存储配置已保存');
     } catch (e) {
-      await _showInfo('保存失败', e.toString());
+      if (!context.mounted) return;
+      await AppDialogs.showInfo(context, title: '保存失败', content: e.toString());
     }
   }
 
@@ -698,13 +699,15 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   Future<void> _testUpload(BuildContext context) async {
     final file = _selectedFile;
     if (file == null) {
-      await _showInfo('提示', '请先选择一个要测试上传的图片/视频文件');
+      await AppDialogs.showInfo(context, title: '提示', content: '请先选择一个要测试上传的图片/视频文件');
       return;
     }
     final service = context.read<ObjStoreService>();
     final bytes = await _readSelectedFileBytes();
+    if (!context.mounted) return;
     if (bytes == null) {
-      await _showInfo('提示', '无法读取文件内容，请重新选择');
+      // ignore: use_build_context_synchronously
+      await AppDialogs.showInfo(context, title: '提示', content: '无法读取文件内容，请重新选择');
       return;
     }
 
@@ -734,9 +737,13 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       });
       await _showObjResult(title: '上传成功', key: uploaded.key, uri: uploaded.uri);
     } on ObjStoreNotConfiguredException catch (e) {
-      await _showInfo('未配置', e.message);
+      if (!context.mounted) return;
+      // ignore: use_build_context_synchronously
+      await AppDialogs.showInfo(context, title: '未配置', content: e.message);
     } catch (e) {
-      await _showInfo('上传失败', e.toString());
+      if (!context.mounted) return;
+      // ignore: use_build_context_synchronously
+      await AppDialogs.showInfo(context, title: '上传失败', content: e.toString());
     } finally {
       if (mounted) setState(() => _isTestingUpload = false);
     }
@@ -747,7 +754,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         ? _queryKeyController.text.trim()
         : _lastUploaded?.key;
     if (key == null || key.trim().isEmpty) {
-      await _showInfo('提示', '请填写要查询的 Key');
+      await AppDialogs.showInfo(context, title: '提示', content: '请填写要查询的 Key');
       return;
     }
 
@@ -778,9 +785,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       );
       await _showQueryResult(uri: uri, ok: ok);
     } on ObjStoreNotConfiguredException catch (e) {
-      await _showInfo('未配置', e.message);
+      if (!context.mounted) return;
+      await AppDialogs.showInfo(context, title: '未配置', content: e.message);
     } catch (e) {
-      await _showInfo('查询失败', e.toString());
+      if (!context.mounted) return;
+      await AppDialogs.showInfo(context, title: '查询失败', content: e.toString());
     } finally {
       if (mounted) setState(() => _isTestingQuery = false);
     }
@@ -788,59 +797,26 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
   Future<void> _confirmAndClear(BuildContext context) async {
     final cfgService = context.read<ObjStoreConfigService>();
-    final ok = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('确认清除'),
-        content: const Text('将清除资源存储的所有配置（包括 AK/SK）'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('清除'),
-          ),
-        ],
-      ),
+    final ok = await AppDialogs.showConfirm(
+      context,
+      title: '确认清除',
+      content: '将清除资源存储的所有配置（包括 AK/SK）',
+      confirmText: '清除',
+      isDestructive: true,
     );
-    if (ok != true) return;
+    
+    if (!ok) return;
 
     await cfgService.clear();
-    if (!mounted) return;
+    if (!context.mounted) return;
     setState(() {
       _type = ObjStoreType.none;
       _selectedFile = null;
       _lastUploaded = null;
       _queryKeyController.text = '';
     });
-    await _showInfo('已清除', '资源存储配置已清除');
-  }
-
-  Future<void> _showInfo(String title, String content) async {
-    if (!mounted) return;
-    await showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text(title),
-        content: SelectableText(content),
-        actions: [
-          if (content.trim().isNotEmpty)
-            CupertinoDialogAction(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: content));
-              },
-              child: const Text('复制内容'),
-            ),
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
-    );
+    // ignore: use_build_context_synchronously
+    await AppDialogs.showInfo(context, title: '已清除', content: '资源存储配置已清除');
   }
 
   Future<void> _showObjResult({
@@ -851,6 +827,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     final safeUri = _redactSensitiveUrl(uri);
     final safeContent = 'Key: $key\nURI: $safeUri';
     if (!mounted) return;
+    
+    // 自定义弹窗逻辑太复杂，AppDialogs.showInfo 不够用，保留 showCupertinoDialog 但使用 AppDialogs 风格
     await showCupertinoDialog<void>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -865,11 +843,13 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           CupertinoDialogAction(
             onPressed: () async {
-              final ok = await _confirmCopySensitive(
+              final ok = await AppDialogs.showConfirm(
+                context,
                 title: '复制原始 URI？',
                 content: '原始 URI 可能包含签名/Token 等敏感信息，复制后请勿截图或分享。',
+                confirmText: '复制',
               );
-              if (ok != true) return;
+              if (!ok) return;
               await Clipboard.setData(
                 ClipboardData(text: 'Key: $key\nURI: $uri'),
               );
@@ -889,6 +869,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     final safeUri = _redactSensitiveUrl(uri);
     final safeContent = 'URI: $safeUri\n可访问: ${ok ? '是' : '否'}';
     if (!mounted) return;
+    
     await showCupertinoDialog<void>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -903,11 +884,13 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           CupertinoDialogAction(
             onPressed: () async {
-              final confirmed = await _confirmCopySensitive(
+              final confirmed = await AppDialogs.showConfirm(
+                context,
                 title: '复制原始 URI？',
                 content: '原始 URI 可能包含签名/Token 等敏感信息，复制后请勿截图或分享。',
+                confirmText: '复制',
               );
-              if (confirmed != true) return;
+              if (!confirmed) return;
               await Clipboard.setData(
                 ClipboardData(text: 'URI: $uri\n可访问: ${ok ? '是' : '否'}'),
               );
@@ -917,31 +900,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
             child: const Text('知道了'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool?> _confirmCopySensitive({
-    required String title,
-    required String content,
-  }) async {
-    if (!mounted) return false;
-    return showCupertinoDialog<bool>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('继续'),
           ),
         ],
       ),

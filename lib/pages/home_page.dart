@@ -17,6 +17,8 @@ import '../core/services/settings_service.dart';
 import '../core/sync/services/sync_config_service.dart';
 import '../core/sync/pages/sync_settings_page.dart';
 import '../core/theme/ios26_theme.dart';
+import '../core/ui/app_navigator.dart';
+import '../core/ui/app_scaffold.dart';
 import '../core/widgets/ios26_settings_row.dart';
 import 'ai_settings_page.dart';
 import 'obj_store_settings_page.dart';
@@ -28,67 +30,25 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: IOS26Theme.backgroundColor,
-      body: Stack(
+    return AppScaffold(
+      useSafeArea: true,
+      body: Column(
         children: [
-          // 背景渐变装饰
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    IOS26Theme.primaryColor.withValues(alpha: 0.15),
-                    IOS26Theme.primaryColor.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
+          IOS26AppBar.home(
+            title: '小蜜',
+            onSettingsPressed: () => _showSettingsSheet(context),
           ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    IOS26Theme.toolPurple.withValues(alpha: 0.1),
-                    IOS26Theme.toolPurple.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 主内容
-          SafeArea(
-            child: Column(
-              children: [
-                IOS26AppBar.home(
-                  title: '小蜜',
-                  onSettingsPressed: () => _showSettingsSheet(context),
-                ),
-                Expanded(
-                  child: Consumer2<SettingsService, MessageService>(
-                    builder: (context, settings, messageService, child) {
-                      final tools = settings.getHomeTools();
-                      return _buildContent(
-                        context,
-                        tools,
-                        settings,
-                        messageService,
-                      );
-                    },
-                  ),
-                ),
-              ],
+          Expanded(
+            child: Consumer2<SettingsService, MessageService>(
+              builder: (context, settings, messageService, child) {
+                final tools = settings.getHomeTools();
+                return _buildContent(
+                  context,
+                  tools,
+                  settings,
+                  messageService,
+                );
+              },
             ),
           ),
         ],
@@ -124,11 +84,7 @@ class HomePage extends StatelessWidget {
                       onPressed: allMessages.isEmpty
                           ? null
                           : () {
-                              Navigator.of(context).push(
-                                CupertinoPageRoute<void>(
-                                  builder: (_) => const AllMessagesPage(),
-                                ),
-                              );
+                              AppNavigator.push(context, const AllMessagesPage());
                             },
                       child: Text(
                         '全部消息',
@@ -229,9 +185,7 @@ class HomePage extends StatelessWidget {
                   tool: tool,
                   isDefault: tool.id == settings.defaultToolId,
                   onTap: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute(builder: (_) => tool.pageBuilder()),
-                    );
+                    AppNavigator.push(context, tool.pageBuilder());
                   },
                 );
               },
@@ -442,7 +396,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
             borderRadius: cardBorderRadius,
             boxShadow: [
               BoxShadow(
-                color: widget.tool.color.withValues(alpha: 0.15),
+                color: widget.tool.color.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -470,7 +424,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          widget.tool.color.withValues(alpha: 0.2),
+                          widget.tool.color.withValues(alpha: 0.15),
                           widget.tool.color.withValues(alpha: 0.0),
                         ],
                       ),
@@ -492,13 +446,13 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                             end: Alignment.bottomRight,
                             colors: [
                               widget.tool.color,
-                              widget.tool.color.withValues(alpha: 0.7),
+                              widget.tool.color.withValues(alpha: 0.75),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: widget.tool.color.withValues(alpha: 0.3),
+                              color: widget.tool.color.withValues(alpha: 0.25),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -631,26 +585,14 @@ class _SettingsSheet extends StatelessWidget {
                               : '默认：${tools.where((t) => t.id == settings.defaultToolId).firstOrNull?.name ?? '首页'}',
                           onTap: () => _openToolManagement(context),
                         ),
-                        Container(
-                          height: 0.5,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color: IOS26Theme.textTertiary.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
+                        _buildDivider(),
                         IOS26SettingsRow(
                           icon: CupertinoIcons.sparkles,
                           title: 'AI配置',
                           value: aiValue,
                           onTap: () => _openAiSettings(context),
                         ),
-                        Container(
-                          height: 0.5,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color: IOS26Theme.textTertiary.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
+                        _buildDivider(),
                         Consumer<SyncConfigService>(
                           builder: (context, syncConfig, _) {
                             return IOS26SettingsRow(
@@ -661,13 +603,7 @@ class _SettingsSheet extends StatelessWidget {
                             );
                           },
                         ),
-                        Container(
-                          height: 0.5,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color: IOS26Theme.textTertiary.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
+                        _buildDivider(),
                         Consumer<ObjStoreConfigService>(
                           builder: (context, objStore, _) {
                             final isQiniuPrivate =
@@ -697,13 +633,7 @@ class _SettingsSheet extends StatelessWidget {
                             );
                           },
                         ),
-                        Container(
-                          height: 0.5,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color: IOS26Theme.textTertiary.withValues(
-                            alpha: 0.25,
-                          ),
-                        ),
+                        _buildDivider(),
                         IOS26SettingsRow(
                           icon: CupertinoIcons.archivebox,
                           title: '备份与还原',
@@ -735,53 +665,51 @@ class _SettingsSheet extends StatelessWidget {
     );
   }
 
+  Widget _buildDivider() {
+    return Container(
+      height: 0.5,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+    );
+  }
+
   void _openToolManagement(BuildContext context) {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
+    AppNavigator.pop(context);
     Future<void>.microtask(() {
-      navigator.push(
-        CupertinoPageRoute<void>(builder: (_) => const ToolManagementPage()),
-      );
+      if (!context.mounted) return;
+      AppNavigator.push(context, const ToolManagementPage());
     });
   }
 
   void _openAiSettings(BuildContext context) {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
+    AppNavigator.pop(context);
     Future<void>.microtask(() {
-      navigator.push(
-        CupertinoPageRoute<void>(builder: (_) => const AiSettingsPage()),
-      );
+      if (!context.mounted) return;
+      AppNavigator.push(context, const AiSettingsPage());
     });
   }
 
   void _openSyncSettings(BuildContext context) {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
+    AppNavigator.pop(context);
     Future<void>.microtask(() {
-      navigator.push(
-        CupertinoPageRoute<void>(builder: (_) => const SyncSettingsPage()),
-      );
+      if (!context.mounted) return;
+      AppNavigator.push(context, const SyncSettingsPage());
     });
   }
 
   void _openBackupRestore(BuildContext context) {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
+    AppNavigator.pop(context);
     Future<void>.microtask(() {
-      navigator.push(
-        CupertinoPageRoute<void>(builder: (_) => const BackupRestorePage()),
-      );
+      if (!context.mounted) return;
+      AppNavigator.push(context, const BackupRestorePage());
     });
   }
 
   void _openObjStoreSettings(BuildContext context) {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.pop();
+    AppNavigator.pop(context);
     Future<void>.microtask(() {
-      navigator.push(
-        CupertinoPageRoute<void>(builder: (_) => const ObjStoreSettingsPage()),
-      );
+      if (!context.mounted) return;
+      AppNavigator.push(context, const ObjStoreSettingsPage());
     });
   }
 }
