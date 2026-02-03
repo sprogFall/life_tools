@@ -15,6 +15,22 @@ class UserSnapshot:
     tools_data: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class SyncRecord:
+    id: int
+    user_id: str
+    protocol_version: int
+    decision: str
+    server_time_ms: int
+    client_time_ms: int | None
+    client_updated_at_ms: int
+    server_updated_at_ms_before: int
+    server_updated_at_ms_after: int
+    server_revision_before: int
+    server_revision_after: int
+    diff: dict[str, Any]
+
+
 class SqliteSnapshotStore:
     def __init__(self, *, db_path: str) -> None:
         self._db_path = db_path
@@ -45,6 +61,30 @@ CREATE TABLE IF NOT EXISTS sync_snapshots (
   updated_server_time_ms INTEGER NOT NULL,
   last_client_time_ms INTEGER
 );
+""",
+            )
+            conn.execute(
+                """
+CREATE TABLE IF NOT EXISTS sync_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  protocol_version INTEGER NOT NULL,
+  decision TEXT NOT NULL,
+  server_time_ms INTEGER NOT NULL,
+  client_time_ms INTEGER,
+  client_updated_at_ms INTEGER NOT NULL,
+  server_updated_at_ms_before INTEGER NOT NULL,
+  server_updated_at_ms_after INTEGER NOT NULL,
+  server_revision_before INTEGER NOT NULL,
+  server_revision_after INTEGER NOT NULL,
+  diff_json TEXT NOT NULL
+);
+""",
+            )
+            conn.execute(
+                """
+CREATE INDEX IF NOT EXISTS idx_sync_records_user_id_id
+ON sync_records (user_id, id DESC);
 """,
             )
 
@@ -126,3 +166,139 @@ ON CONFLICT(user_id) DO UPDATE SET
 
         return new_revision
 
+    def add_sync_record(
+        self,
+        *,
+        user_id: str,
+        protocol_version: int,
+        decision: str,
+        server_time_ms: int,
+        client_time_ms: int | None,
+        client_updated_at_ms: int,
+        server_updated_at_ms_before: int,
+        server_updated_at_ms_after: int,
+        server_revision_before: int,
+        server_revision_after: int,
+        diff: dict[str, Any],
+    ) -> int:
+        diff_json = json.dumps(
+            diff,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+INSERT INTO sync_records (
+  user_id,
+  protocol_version,
+  decision,
+  server_time_ms,
+  client_time_ms,
+  client_updated_at_ms,
+  server_updated_at_ms_before,
+  server_updated_at_ms_after,
+  server_revision_before,
+  server_revision_after,
+  diff_json
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""",
+                (
+                    user_id,
+                    int(protocol_version),
+                    decision,
+                    int(server_time_ms),
+                    None if client_time_ms is None else int(client_time_ms),
+                    int(client_updated_at_ms),
+                    int(server_updated_at_ms_before),
+                    int(server_updated_at_ms_after),
+                    int(server_revision_before),
+                    int(server_revision_after),
+                    diff_json,
+                ),
+            )
+            conn.commit()
+            return int(cur.lastrowid)
+
+    def list_sync_records(
+        self,
+        *,
+        user_id: str,
+        limit: int,
+        before_id: int | None,
+    ) -> list[SyncRecord]:
+        effective_limit = max(1, min(int(limit), 200))
+        sql = """
+SELECT
+  id,
+  user_id,
+  protocol_version,
+  decision,
+  server_time_ms,
+  client_time_ms,
+  client_updated_at_ms,
+  server_updated_at_ms_before,
+  server_updated_at_ms_after,
+  server_revision_before,
+  server_revision_after,
+  diff_json
+FROM sync_records
+WHERE user_id = ?
+"""
+        args: list[Any] = [user_id]
+        if before_id is not None:
+            sql += " AND id < ?"
+            args.append(int(before_id))
+        sql += " ORDER BY id DESC LIMIT ?"
+        args.append(effective_limit)
+
+        with self._connect() as conn:
+            rows = conn.execute(sql, tuple(args)).fetchall()
+
+        return [self._row_to_sync_record(row) for row in rows]
+
+    def get_sync_record(self, record_id: int) -> SyncRecord | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+SELECT
+  id,
+  user_id,
+  protocol_version,
+  decision,
+  server_time_ms,
+  client_time_ms,
+  client_updated_at_ms,
+  server_updated_at_ms_before,
+  server_updated_at_ms_after,
+  server_revision_before,
+  server_revision_after,
+  diff_json
+FROM sync_records
+WHERE id = ?
+""",
+                (int(record_id),),
+            ).fetchone()
+            if row is None:
+                return None
+            return self._row_to_sync_record(row)
+
+    @staticmethod
+    def _row_to_sync_record(row: sqlite3.Row | tuple[Any, ...]) -> SyncRecord:
+        diff = json.loads(row[11]) if row[11] else {}
+        return SyncRecord(
+            id=int(row[0]),
+            user_id=str(row[1]),
+            protocol_version=int(row[2]),
+            decision=str(row[3]),
+            server_time_ms=int(row[4]),
+            client_time_ms=None if row[5] is None else int(row[5]),
+            client_updated_at_ms=int(row[6]),
+            server_updated_at_ms_before=int(row[7]),
+            server_updated_at_ms_after=int(row[8]),
+            server_revision_before=int(row[9]),
+            server_revision_after=int(row[10]),
+            diff=diff,
+        )

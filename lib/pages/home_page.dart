@@ -16,6 +16,7 @@ import '../core/obj_store/obj_store_config_service.dart';
 import '../core/services/settings_service.dart';
 import '../core/sync/services/sync_config_service.dart';
 import '../core/sync/pages/sync_settings_page.dart';
+import '../core/sync/pages/sync_records_page.dart';
 import '../core/theme/ios26_theme.dart';
 import '../core/ui/app_navigator.dart';
 import '../core/ui/app_scaffold.dart';
@@ -25,8 +26,41 @@ import 'obj_store_settings_page.dart';
 import 'tool_management_page.dart';
 
 /// 首页欢迎页面，iOS 26 风格
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  static const int _debugTapTargetCount = 6;
+  static const Duration _debugTapResetDuration = Duration(seconds: 2);
+
+  int _debugTapCount = 0;
+  Timer? _debugTapResetTimer;
+
+  @override
+  void dispose() {
+    _debugTapResetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleTitleTap() {
+    _debugTapResetTimer?.cancel();
+    _debugTapCount += 1;
+
+    if (_debugTapCount >= _debugTapTargetCount) {
+      _debugTapCount = 0;
+      HapticFeedback.lightImpact();
+      AppNavigator.push(context, const SyncRecordsPage());
+      return;
+    }
+
+    _debugTapResetTimer = Timer(_debugTapResetDuration, () {
+      _debugTapCount = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +70,7 @@ class HomePage extends StatelessWidget {
         children: [
           IOS26AppBar.home(
             title: '小蜜',
+            onTitlePressed: _handleTitleTap,
             onSettingsPressed: () => _showSettingsSheet(context),
           ),
           Expanded(

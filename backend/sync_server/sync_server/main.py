@@ -4,13 +4,14 @@ import os
 import time
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from .schemas import SyncRequestV1, SyncRequestV2, SyncResponseV1, SyncResponseV2
 from .storage import SqliteSnapshotStore
+from .sync_diff import build_tools_diff
 from .sync_logic import (
     compute_latest_updated_at_ms,
     decide_sync_v2,
@@ -80,12 +81,33 @@ def create_app(*, db_path: str) -> FastAPI:
         if snapshot is None:
             if client_is_empty:
                 return SyncResponseV1(success=True, server_time=server_time)
-            store.save_client_snapshot(
+
+            server_revision_before = 0
+            server_updated_at_before = 0
+            server_tools_before: dict[str, Any] = {}
+            diff = build_tools_diff(
+                server_tools_data=server_tools_before,
+                client_tools_data=client_tools_data,
+            )
+            new_revision = store.save_client_snapshot(
                 user_id=user_id,
                 tools_data=client_tools_data,
                 updated_at_ms=client_updated_at_ms,
                 server_time_ms=server_time,
                 client_time_ms=None,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=1,
+                decision="use_client",
+                server_time_ms=server_time,
+                client_time_ms=None,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=server_updated_at_before,
+                server_updated_at_ms_after=client_updated_at_ms,
+                server_revision_before=server_revision_before,
+                server_revision_after=new_revision,
+                diff=diff,
             )
             return SyncResponseV1(success=True, server_time=server_time)
 
@@ -100,6 +122,23 @@ def create_app(*, db_path: str) -> FastAPI:
         )
 
         if decision == "use_server":
+            diff = build_tools_diff(
+                server_tools_data=server_tools_data,
+                client_tools_data=client_tools_data,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=1,
+                decision="use_server",
+                server_time_ms=server_time,
+                client_time_ms=None,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=snapshot.updated_at_ms,
+                server_updated_at_ms_after=snapshot.updated_at_ms,
+                server_revision_before=snapshot.server_revision,
+                server_revision_after=snapshot.server_revision,
+                diff=diff,
+            )
             return SyncResponseV1(
                 success=True,
                 server_time=server_time,
@@ -107,12 +146,29 @@ def create_app(*, db_path: str) -> FastAPI:
             )
 
         if decision == "use_client":
-            store.save_client_snapshot(
+            diff = build_tools_diff(
+                server_tools_data=server_tools_data,
+                client_tools_data=client_tools_data,
+            )
+            new_revision = store.save_client_snapshot(
                 user_id=user_id,
                 tools_data=client_tools_data,
                 updated_at_ms=client_updated_at_ms,
                 server_time_ms=server_time,
                 client_time_ms=None,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=1,
+                decision="use_client",
+                server_time_ms=server_time,
+                client_time_ms=None,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=snapshot.updated_at_ms,
+                server_updated_at_ms_after=client_updated_at_ms,
+                server_revision_before=snapshot.server_revision,
+                server_revision_after=new_revision,
+                diff=diff,
             )
             return SyncResponseV1(success=True, server_time=server_time)
 
@@ -146,12 +202,29 @@ def create_app(*, db_path: str) -> FastAPI:
                 server_updated_at_ms=0,
             )
             if decision == "use_client":
+                diff = build_tools_diff(
+                    server_tools_data={},
+                    client_tools_data=client_tools_data,
+                )
                 new_revision = store.save_client_snapshot(
                     user_id=user_id,
                     tools_data=client_tools_data,
                     updated_at_ms=client_updated_at_ms,
                     server_time_ms=server_time,
                     client_time_ms=request.client_time,
+                )
+                store.add_sync_record(
+                    user_id=user_id,
+                    protocol_version=2,
+                    decision="use_client",
+                    server_time_ms=server_time,
+                    client_time_ms=request.client_time,
+                    client_updated_at_ms=client_updated_at_ms,
+                    server_updated_at_ms_before=0,
+                    server_updated_at_ms_after=client_updated_at_ms,
+                    server_revision_before=0,
+                    server_revision_after=new_revision,
+                    diff=diff,
                 )
                 return SyncResponseV2(
                     success=True,
@@ -178,6 +251,23 @@ def create_app(*, db_path: str) -> FastAPI:
         )
 
         if decision == "use_server":
+            diff = build_tools_diff(
+                server_tools_data=server_tools_data,
+                client_tools_data=client_tools_data,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=2,
+                decision="use_server",
+                server_time_ms=server_time,
+                client_time_ms=request.client_time,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=snapshot.updated_at_ms,
+                server_updated_at_ms_after=snapshot.updated_at_ms,
+                server_revision_before=snapshot.server_revision,
+                server_revision_after=snapshot.server_revision,
+                diff=diff,
+            )
             return SyncResponseV2(
                 success=True,
                 decision="use_server",
@@ -188,12 +278,29 @@ def create_app(*, db_path: str) -> FastAPI:
             )
 
         if decision == "use_client":
+            diff = build_tools_diff(
+                server_tools_data=server_tools_data,
+                client_tools_data=client_tools_data,
+            )
             new_revision = store.save_client_snapshot(
                 user_id=user_id,
                 tools_data=client_tools_data,
                 updated_at_ms=client_updated_at_ms,
                 server_time_ms=server_time,
                 client_time_ms=request.client_time,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=2,
+                decision="use_client",
+                server_time_ms=server_time,
+                client_time_ms=request.client_time,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=snapshot.updated_at_ms,
+                server_updated_at_ms_after=client_updated_at_ms,
+                server_revision_before=snapshot.server_revision,
+                server_revision_after=new_revision,
+                diff=diff,
             )
             return SyncResponseV2(
                 success=True,
@@ -210,6 +317,73 @@ def create_app(*, db_path: str) -> FastAPI:
             server_time=server_time,
             server_revision=snapshot.server_revision,
         )
+
+    @app.get("/sync/records")
+    def list_sync_records(
+        user_id: str = Query(min_length=1),
+        limit: int = Query(default=50, ge=1, le=200),
+        before_id: int | None = Query(default=None, ge=1),
+    ) -> dict[str, Any]:
+        uid = user_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        records = store.list_sync_records(user_id=uid, limit=limit, before_id=before_id)
+        items: list[dict[str, Any]] = []
+        for r in records:
+            summary = r.diff.get("summary") if isinstance(r.diff, dict) else None
+            items.append(
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "protocol_version": r.protocol_version,
+                    "decision": r.decision,
+                    "server_time": r.server_time_ms,
+                    "client_time": r.client_time_ms,
+                    "client_updated_at_ms": r.client_updated_at_ms,
+                    "server_updated_at_ms_before": r.server_updated_at_ms_before,
+                    "server_updated_at_ms_after": r.server_updated_at_ms_after,
+                    "server_revision_before": r.server_revision_before,
+                    "server_revision_after": r.server_revision_after,
+                    "diff_summary": summary or {},
+                }
+            )
+
+        next_before_id = items[-1]["id"] if len(items) == limit else None
+        return {"success": True, "records": items, "next_before_id": next_before_id}
+
+    @app.get("/sync/records/{record_id}")
+    def get_sync_record(
+        record_id: int,
+        user_id: str = Query(min_length=1),
+    ) -> dict[str, Any]:
+        uid = user_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        record = store.get_sync_record(record_id)
+        if record is None or record.user_id != uid:
+            raise HTTPException(status_code=404, detail={"message": "记录不存在"})
+
+        summary = record.diff.get("summary") if isinstance(record.diff, dict) else None
+        return {
+            "success": True,
+            "record": {
+                "id": record.id,
+                "user_id": record.user_id,
+                "protocol_version": record.protocol_version,
+                "decision": record.decision,
+                "server_time": record.server_time_ms,
+                "client_time": record.client_time_ms,
+                "client_updated_at_ms": record.client_updated_at_ms,
+                "server_updated_at_ms_before": record.server_updated_at_ms_before,
+                "server_updated_at_ms_after": record.server_updated_at_ms_after,
+                "server_revision_before": record.server_revision_before,
+                "server_revision_after": record.server_revision_after,
+                "diff_summary": summary or {},
+                "diff": record.diff,
+            },
+        }
 
     return app
 

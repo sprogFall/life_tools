@@ -11,6 +11,13 @@
 - 若双方相同：`noop`
 - **空数据保护**：客户端空库不会覆盖服务端非空快照
 
+## 同步记录（审计日志）
+
+服务端会在发生实际同步变更时记录差异与结果（`use_client`/`use_server`），`noop` 不记录。
+
+- 列表：`GET /sync/records?user_id=...&limit=50&before_id=...`
+- 详情：`GET /sync/records/{id}?user_id=...`
+
 ## 本地开发
 
 ### 1) 创建虚拟环境并安装依赖
