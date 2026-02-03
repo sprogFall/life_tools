@@ -53,20 +53,60 @@ class SyncConfig {
     final url = serverUrl.trim();
     if (url.isEmpty) return '';
 
-    final withScheme = url.contains('://') ? url : 'https://$url';
+    final hasScheme = url.contains('://');
+    final defaultScheme = hasScheme ? null : _inferDefaultScheme(url, serverPort);
+    final withScheme = hasScheme ? url : '$defaultScheme://$url';
     final parsed = Uri.tryParse(withScheme);
     if (parsed == null || parsed.host.trim().isEmpty) {
       // 回退：尽力返回旧格式（避免因为解析失败直接崩溃）
-      return url.contains('://')
-          ? '$url:$serverPort'
-          : 'https://$url:$serverPort';
+      if (hasScheme) return '$url:$serverPort';
+      return '${defaultScheme ?? "https"}://$url:$serverPort';
     }
 
-    final scheme = parsed.scheme.trim().isEmpty ? 'https' : parsed.scheme;
+    final scheme = parsed.scheme.trim().isEmpty
+        ? (defaultScheme ?? 'https')
+        : parsed.scheme;
     final port = parsed.hasPort ? parsed.port : serverPort;
     // 不携带 path/query/fragment，避免生成类似 https://host/path:443 的无效 URL
     final host = parsed.host.contains(':') ? '[${parsed.host}]' : parsed.host;
     return '$scheme://$host:$port';
+  }
+
+  static String _inferDefaultScheme(String rawUrl, int serverPort) {
+    final probe = Uri.tryParse('http://$rawUrl');
+    final host = (probe?.host.trim().isNotEmpty ?? false)
+        ? probe!.host.trim()
+        : rawUrl.split('/').first.trim();
+
+    final effectivePort = probe?.hasPort == true ? probe!.port : serverPort;
+
+    // 内网/本地默认 http，公网默认 https
+    if (_isLocalOrPrivateHost(host)) return 'http';
+
+    // 常见本地部署端口：默认按 http 处理，避免 TLS 握手错误
+    if (effectivePort == 80 || effectivePort == 8080) return 'http';
+
+    return 'https';
+  }
+
+  static bool _isLocalOrPrivateHost(String host) {
+    final lower = host.toLowerCase();
+    if (lower == 'localhost' || lower == '127.0.0.1' || lower == '::1') {
+      return true;
+    }
+
+    final parts = lower.split('.');
+    if (parts.length == 4) {
+      final a = int.tryParse(parts[0]);
+      final b = int.tryParse(parts[1]);
+      if (a == null || b == null) return false;
+
+      if (a == 10) return true;
+      if (a == 192 && b == 168) return true;
+      if (a == 172 && b >= 16 && b <= 31) return true;
+    }
+
+    return false;
   }
 
   Map<String, dynamic> toMap() => {

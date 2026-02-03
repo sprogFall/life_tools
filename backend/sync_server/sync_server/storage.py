@@ -65,6 +65,19 @@ CREATE TABLE IF NOT EXISTS sync_snapshots (
             )
             conn.execute(
                 """
+CREATE TABLE IF NOT EXISTS sync_snapshot_history (
+  user_id TEXT NOT NULL,
+  server_revision INTEGER NOT NULL,
+  updated_at_ms INTEGER NOT NULL,
+  tools_data_json TEXT NOT NULL,
+  updated_server_time_ms INTEGER NOT NULL,
+  last_client_time_ms INTEGER,
+  PRIMARY KEY (user_id, server_revision)
+);
+""",
+            )
+            conn.execute(
+                """
 CREATE TABLE IF NOT EXISTS sync_records (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL,
@@ -87,6 +100,12 @@ CREATE INDEX IF NOT EXISTS idx_sync_records_user_id_id
 ON sync_records (user_id, id DESC);
 """,
             )
+            conn.execute(
+                """
+CREATE INDEX IF NOT EXISTS idx_sync_snapshot_history_user_id_rev
+ON sync_snapshot_history (user_id, server_revision DESC);
+""",
+            )
 
     def get_snapshot(self, user_id: str) -> UserSnapshot | None:
         with self._connect() as conn:
@@ -99,6 +118,30 @@ WHERE user_id = ?
                 (user_id,),
             ).fetchone()
             if row is None:
+                return None
+            tools_data = json.loads(row[3])
+            return UserSnapshot(
+                user_id=row[0],
+                server_revision=int(row[1]),
+                updated_at_ms=int(row[2]),
+                tools_data=tools_data,
+            )
+
+    def get_snapshot_by_revision(self, user_id: str, revision: int) -> UserSnapshot | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+SELECT user_id, server_revision, updated_at_ms, tools_data_json
+FROM sync_snapshot_history
+WHERE user_id = ? AND server_revision = ?
+""",
+                (user_id, int(revision)),
+            ).fetchone()
+            if row is None:
+                # 兼容：旧库可能没有历史表数据，尽力从当前快照回退（仅当 revision 匹配）
+                current = self.get_snapshot(user_id)
+                if current is not None and current.server_revision == int(revision):
+                    return current
                 return None
             tools_data = json.loads(row[3])
             return UserSnapshot(
@@ -134,6 +177,33 @@ WHERE user_id = ?
             ).fetchone()
             current_revision = int(row[0]) if row is not None else 0
             new_revision = current_revision + 1
+
+            conn.execute(
+                """
+INSERT INTO sync_snapshot_history (
+  user_id,
+  server_revision,
+  updated_at_ms,
+  tools_data_json,
+  updated_server_time_ms,
+  last_client_time_ms
+)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(user_id, server_revision) DO UPDATE SET
+  updated_at_ms=excluded.updated_at_ms,
+  tools_data_json=excluded.tools_data_json,
+  updated_server_time_ms=excluded.updated_server_time_ms,
+  last_client_time_ms=excluded.last_client_time_ms
+""",
+                (
+                    user_id,
+                    new_revision,
+                    int(updated_at_ms),
+                    tools_data_json,
+                    int(server_time_ms),
+                    None if client_time_ms is None else int(client_time_ms),
+                ),
+            )
 
             conn.execute(
                 """

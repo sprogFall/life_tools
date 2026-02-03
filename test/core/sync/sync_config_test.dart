@@ -16,6 +16,19 @@ void main() {
       expect(cfg.fullServerUrl, 'https://sync.example.com:443');
     });
 
+    test('本地/内网地址无 scheme 时默认使用 http，避免 TLS 握手错误', () {
+      const cfg = SyncConfig(
+        userId: 'u1',
+        networkType: SyncNetworkType.public,
+        serverUrl: '127.0.0.1',
+        serverPort: 8080,
+        customHeaders: {},
+        allowedWifiNames: [],
+        autoSyncOnStartup: false,
+      );
+      expect(cfg.fullServerUrl, 'http://127.0.0.1:8080');
+    });
+
     test('有 scheme 时保留 scheme，并拼接端口（忽略 path）', () {
       const cfg = SyncConfig(
         userId: 'u1',

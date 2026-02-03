@@ -129,8 +129,25 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  /// 覆盖导入一份“服务端快照”（用于同步记录回退/排查）。
+  ///
+  /// 返回值：
+  /// - `null`：全部导入成功
+  /// - 非空字符串：存在部分工具导入失败的提示文案
+  Future<String?> applyServerSnapshot(
+    Map<String, Map<String, dynamic>> toolsData,
+  ) async {
+    _lastError = null;
+    await _distributeToolsData(toolsData);
+    notifyListeners();
+    return _lastError;
+  }
+
   static String _stringifyError(Object e) {
     final text = e.toString();
+    if (text.startsWith('SyncApiException: ')) {
+      return text.substring('SyncApiException: '.length);
+    }
     if (text.startsWith('Exception: ')) {
       return text.substring('Exception: '.length);
     }

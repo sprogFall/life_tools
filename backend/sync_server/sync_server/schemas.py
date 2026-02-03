@@ -38,3 +38,7 @@ class SyncResponseV2(BaseModel):
     server_time: int
     server_revision: int
 
+
+class RollbackRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    target_revision: int = Field(gt=0)
