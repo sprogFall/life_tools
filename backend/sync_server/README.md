@@ -18,6 +18,14 @@
 - 列表：`GET /sync/records?user_id=...&limit=50&before_id=...`
 - 详情：`GET /sync/records/{id}?user_id=...`
 
+## 历史快照与回退（防覆盖）
+
+服务端会把每次“写入服务端”的全量快照按 `server_revision` 留存，支持：
+
+- 查询某个版本快照：`GET /sync/snapshots/{revision}?user_id=...`
+- 回退服务端到历史版本（会生成新的 `server_revision`，并记录一条 `decision=rollback` 的同步记录）：
+  - `POST /sync/rollback`，body：`{"user_id":"...","target_revision":1}`
+
 ## 本地开发
 
 ### 1) 创建虚拟环境并安装依赖
@@ -48,7 +56,10 @@ export SYNC_SERVER_DB_PATH="/tmp/life_tools_sync.db"
 - `serverPort`：`8080`
 - 其他（自定义 Header / 私网 WiFi 白名单）按需配置
 
-说明：若 `serverUrl` 不带 `http://`/`https://`，客户端会默认补 `https://`，本地开发容易遇到证书问题。
+说明：客户端若 `serverUrl` 不带 `http://`/`https://`：
+- 公网地址默认补 `https://`
+- 本地/内网默认补 `http://`
+但仍建议你显式填写 scheme，避免误配导致 TLS 握手失败。
 
 ## Docker 部署（推荐）
 

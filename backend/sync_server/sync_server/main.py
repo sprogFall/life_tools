@@ -9,7 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-from .schemas import SyncRequestV1, SyncRequestV2, SyncResponseV1, SyncResponseV2
+from .schemas import (
+    RollbackRequest,
+    SyncRequestV1,
+    SyncRequestV2,
+    SyncResponseV1,
+    SyncResponseV2,
+)
 from .storage import SqliteSnapshotStore
 from .sync_diff import build_tools_diff
 from .sync_logic import (
@@ -383,6 +389,87 @@ def create_app(*, db_path: str) -> FastAPI:
                 "diff_summary": summary or {},
                 "diff": record.diff,
             },
+        }
+
+    @app.get("/sync/snapshots/{revision}")
+    def get_snapshot_by_revision(
+        revision: int,
+        user_id: str = Query(min_length=1),
+    ) -> dict[str, Any]:
+        uid = user_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+        if revision <= 0:
+            raise HTTPException(status_code=400, detail={"message": "revision 必须大于 0"})
+
+        snapshot = store.get_snapshot_by_revision(uid, revision)
+        if snapshot is None:
+            raise HTTPException(status_code=404, detail={"message": "快照不存在"})
+
+        return {
+            "success": True,
+            "snapshot": {
+                "user_id": snapshot.user_id,
+                "server_revision": snapshot.server_revision,
+                "updated_at_ms": snapshot.updated_at_ms,
+                "tools_data": snapshot.tools_data,
+            },
+        }
+
+    @app.post("/sync/rollback")
+    def rollback_to_revision(request: RollbackRequest) -> dict[str, Any]:
+        user_id = request.user_id.strip()
+        if not user_id:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        target_revision = int(request.target_revision)
+        if target_revision <= 0:
+            raise HTTPException(status_code=400, detail={"message": "target_revision 必须大于 0"})
+
+        target = store.get_snapshot_by_revision(user_id, target_revision)
+        if target is None:
+            raise HTTPException(status_code=404, detail={"message": "目标快照不存在"})
+
+        server_time = _now_ms()
+        current = store.get_snapshot(user_id)
+        server_tools_before: dict[str, Any] = {} if current is None else current.tools_data
+        server_revision_before = 0 if current is None else current.server_revision
+        server_updated_at_before = 0 if current is None else current.updated_at_ms
+
+        # 回退属于一次“变更事件”，updated_at 取服务端当前时间以确保客户端可拉取到该版本。
+        saved_updated_at_ms = max(int(target.updated_at_ms), int(server_time))
+
+        diff = build_tools_diff(
+            server_tools_data=server_tools_before,
+            client_tools_data=target.tools_data,
+        )
+        new_revision = store.save_client_snapshot(
+            user_id=user_id,
+            tools_data=target.tools_data,
+            updated_at_ms=saved_updated_at_ms,
+            server_time_ms=server_time,
+            client_time_ms=None,
+        )
+        store.add_sync_record(
+            user_id=user_id,
+            protocol_version=0,
+            decision="rollback",
+            server_time_ms=server_time,
+            client_time_ms=None,
+            client_updated_at_ms=0,
+            server_updated_at_ms_before=server_updated_at_before,
+            server_updated_at_ms_after=saved_updated_at_ms,
+            server_revision_before=server_revision_before,
+            server_revision_after=new_revision,
+            diff=diff,
+        )
+
+        return {
+            "success": True,
+            "server_time": server_time,
+            "server_revision": new_revision,
+            "restored_from_revision": target_revision,
+            "tools_data": target.tools_data,
         }
 
     return app

@@ -18,11 +18,15 @@
 
 ## 同步协议与前端（Flutter）对接地址声明
 - Flutter 客户端配置项在：`lib/core/sync/models/sync_config.dart`
-- 客户端会访问：`{serverUrl}:{serverPort}`（注意：未填写 scheme 时客户端会默认补 `https://`）
-  - 本地开发建议在客户端 `serverUrl` 填：`http://127.0.0.1` 或 `http://<局域网IP>`，避免 https 解析/证书问题
+- 客户端会访问：`{serverUrl}:{serverPort}`
+  - 若 `serverUrl` 未填写 scheme：公网地址默认补 `https://`；本地/内网（localhost/127.0.0.1/10.x/192.168.x/172.16~31）默认补 `http://`
+  - 本地开发建议显式填写：`http://127.0.0.1` 或 `http://<局域网IP>`，避免 TLS 握手错误
 - 请求路径：
   - 优先：`POST /sync/v2`
   - 回退：`POST /sync`
+  - 同步记录：`GET /sync/records`、`GET /sync/records/{id}`
+  - 历史快照：`GET /sync/snapshots/{revision}`
+  - 回退：`POST /sync/rollback`
 
 ## 后端运行与校验
 - 创建虚拟环境并安装依赖：
@@ -31,4 +35,3 @@
 - 运行测试：`.venv/bin/pytest`
 - 启动服务：`.venv/bin/uvicorn sync_server.main:app --host 0.0.0.0 --port 8080`
 </INSTRUCTIONS>
-
