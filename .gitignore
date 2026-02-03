@@ -32,6 +32,10 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+.venv/
+.pytest_cache/
+backend/sync_server/data/*.db
+backend/sync_server/data/*.sqlite*
 
 # Symbolication related
 app.*.symbols
