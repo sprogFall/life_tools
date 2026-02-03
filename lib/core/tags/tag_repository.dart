@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../database/database_helper.dart';
+import 'tag_exceptions.dart';
 import 'models/tag.dart';
 import 'models/tag_in_tool_category.dart';
 import 'models/tag_with_tools.dart';
@@ -37,17 +38,28 @@ class TagRepository {
       throw ArgumentError('createTagForToolCategory 需要 categoryId');
     }
 
-    return _createTagInternal(
-      name: name,
-      toolLinks: [
-        _ToolTagLink(
+    try {
+      return _createTagInternal(
+        name: name,
+        toolLinks: [
+          _ToolTagLink(
+            toolId: normalizedToolId,
+            categoryId: normalizedCategoryId,
+          ),
+        ],
+        color: color,
+        now: now,
+      );
+    } on DatabaseException catch (e) {
+      if (_isTagNameConflictDbError(e)) {
+        throw TagNameConflictException(
           toolId: normalizedToolId,
           categoryId: normalizedCategoryId,
-        ),
-      ],
-      color: color,
-      now: now,
-    );
+          name: name,
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> renameTag({
@@ -62,14 +74,53 @@ class TagRepository {
 
     final time = now ?? DateTime.now();
     final db = await _database;
-    final updated = await db.update(
-      'tags',
-      {'name': trimmed, 'updated_at': time.millisecondsSinceEpoch},
-      where: 'id = ?',
-      whereArgs: [tagId],
+
+    // 同工具 + 同分类下标签名唯一：重命名时需要检查该标签关联到的所有 tool/category
+    final conflicts = await db.rawQuery(
+      '''
+SELECT self.tool_id AS tool_id, self.category_id AS category_id
+FROM tool_tags self
+WHERE self.tag_id = ?
+  AND EXISTS (
+    SELECT 1
+    FROM tool_tags tt
+    INNER JOIN tags t ON t.id = tt.tag_id
+    WHERE tt.tool_id = self.tool_id
+      AND tt.category_id = self.category_id
+      AND tt.tag_id <> ?
+      AND lower(trim(t.name)) = lower(trim(?))
+  )
+LIMIT 1
+''',
+      [tagId, tagId, trimmed],
     );
-    if (updated <= 0) {
-      throw StateError('未找到要更新的标签: id=$tagId');
+    if (conflicts.isNotEmpty) {
+      final row = conflicts.first;
+      throw TagNameConflictException(
+        toolId: (row['tool_id'] as String?) ?? '',
+        categoryId: (row['category_id'] as String?) ?? '',
+        name: trimmed,
+      );
+    }
+    try {
+      final updated = await db.update(
+        'tags',
+        {'name': trimmed, 'updated_at': time.millisecondsSinceEpoch},
+        where: 'id = ?',
+        whereArgs: [tagId],
+      );
+      if (updated <= 0) {
+        throw StateError('未找到要更新的标签: id=$tagId');
+      }
+    } on DatabaseException catch (e) {
+      if (_isTagNameConflictDbError(e)) {
+        throw TagNameConflictException(
+          toolId: '',
+          categoryId: '',
+          name: trimmed,
+        );
+      }
+      rethrow;
     }
   }
 
@@ -307,6 +358,18 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
           conflictAlgorithm: ConflictAlgorithm.ignore,
         );
       }
+
+      // 修复：历史/跨端同步可能把分类写成 default，导致「归属/物品类型」看起来“丢失”。
+      await txn.execute("""
+UPDATE tool_tags
+SET category_id = 'affiliation'
+WHERE tool_id = 'work_log' AND category_id = 'default'
+""");
+      await txn.execute("""
+UPDATE tool_tags
+SET category_id = 'item_type'
+WHERE tool_id = 'stockpile_assistant' AND category_id = 'default'
+""");
     });
   }
 
@@ -327,6 +390,28 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
     final time = now ?? DateTime.now();
     final db = await _database;
     return db.transaction((txn) async {
+      // 同工具 + 同分类下标签名唯一（忽略大小写）：先查重再写入，避免抛出底层数据库错误。
+      for (final link in toolLinks) {
+        final exists = await txn.rawQuery(
+          '''
+SELECT 1
+FROM tool_tags tt
+INNER JOIN tags t ON t.id = tt.tag_id
+WHERE tt.tool_id = ? AND tt.category_id = ?
+  AND lower(trim(t.name)) = lower(trim(?))
+LIMIT 1
+''',
+          [link.toolId, link.categoryId, trimmed],
+        );
+        if (exists.isNotEmpty) {
+          throw TagNameConflictException(
+            toolId: link.toolId,
+            categoryId: link.categoryId,
+            name: trimmed,
+          );
+        }
+      }
+
       final maxSortIndexRows = await txn.rawQuery(
         'SELECT MAX(sort_index) AS max_sort_index FROM tags',
       );
@@ -347,16 +432,35 @@ ORDER BY t.sort_index ASC, t.name COLLATE NOCASE ASC
           toolId: link.toolId,
           categoryId: link.categoryId,
         );
-        await txn.insert('tool_tags', {
-          'tool_id': link.toolId,
-          'tag_id': tagId,
-          'category_id': link.categoryId,
-          'sort_index': sortIndex,
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        try {
+          await txn.insert('tool_tags', {
+            'tool_id': link.toolId,
+            'tag_id': tagId,
+            'category_id': link.categoryId,
+            'sort_index': sortIndex,
+          }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        } on DatabaseException catch (e) {
+          if (_isTagNameConflictDbError(e)) {
+            throw TagNameConflictException(
+              toolId: link.toolId,
+              categoryId: link.categoryId,
+              name: trimmed,
+            );
+          }
+          rethrow;
+        }
       }
 
       return tagId;
     });
+  }
+
+  static bool _isTagNameConflictDbError(DatabaseException e) {
+    // 触发器/约束兜底：避免把底层数据库错误直接暴露到 UI
+    final message = e.toString().toLowerCase();
+    return message.contains('tag_name_conflict') ||
+        message.contains('tag name conflict') ||
+        message.contains('unique constraint failed: tags.name');
   }
 
   static Future<int> _nextToolTagSortIndex(

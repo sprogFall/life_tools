@@ -151,6 +151,86 @@ void main() {
       await targetDb.close();
     });
 
+    test('导入标签时应自动修复 work_log/囤货助手 的 default 分类', () async {
+      final sourceDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      final sourceTags = TagRepository.withDatabase(sourceDb);
+
+      final workLogTagId = await sourceTags.createTagForToolCategory(
+        name: '项目A',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+      final stockpileTagId = await sourceTags.createTagForToolCategory(
+        name: '零食',
+        toolId: 'stockpile_assistant',
+        categoryId: 'item_type',
+      );
+
+      final provider = TagSyncProvider(repository: sourceTags);
+      final payload = await provider.exportData();
+      await sourceDb.close();
+
+      // 模拟：历史数据/跨端同步导致 category_id 被写成 default
+      final data = payload['data'] as Map<String, dynamic>;
+      final tags = (data['tags'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      final toolTags = (data['tool_tags'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      for (final link in toolTags) {
+        final toolId = link['tool_id'] as String?;
+        final tagId = link['tag_id'] as int?;
+        if (toolId == 'work_log' && tagId == workLogTagId) {
+          link['category_id'] = 'default';
+        }
+        if (toolId == 'stockpile_assistant' && tagId == stockpileTagId) {
+          link['category_id'] = 'default';
+        }
+      }
+
+      final brokenPayload = <String, dynamic>{
+        'version': 1,
+        'data': <String, dynamic>{'tags': tags, 'tool_tags': toolTags},
+      };
+
+      final targetDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      final targetTags = TagRepository.withDatabase(targetDb);
+
+      final provider2 = TagSyncProvider(repository: targetTags);
+      await provider2.importData(brokenPayload);
+
+      final workLogItems = await targetTags.listTagsForToolWithCategory(
+        'work_log',
+      );
+      final workLogById = {
+        for (final it in workLogItems) it.tag.id!: it.categoryId,
+      };
+      expect(workLogById[workLogTagId], 'affiliation');
+
+      final stockpileItems = await targetTags.listTagsForToolWithCategory(
+        'stockpile_assistant',
+      );
+      final stockpileById = {
+        for (final it in stockpileItems) it.tag.id!: it.categoryId,
+      };
+      expect(stockpileById[stockpileTagId], 'item_type');
+
+      await targetDb.close();
+    });
+
     test('工作记录导出/导入应包含任务置顶与排序字段', () async {
       final sourceDb = await openDatabase(
         inMemoryDatabasePath,

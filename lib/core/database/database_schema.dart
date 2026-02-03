@@ -3,10 +3,21 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 16;
+  static const int version = 17;
 
   static Future<void> onConfigure(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON');
+    // 说明：
+    // - 默认启用外键，保证级联删除等行为一致；
+    // - v17 迁移需要重建 tags 表，为避免迁移过程中触发外键级联/阻塞，
+    //   当检测到旧库（0 < user_version < 17）时临时关闭外键；
+    // - DatabaseHelper 会在 onOpen 统一再开启外键，避免运行期外键被关闭。
+    final rows = await db.rawQuery('PRAGMA user_version');
+    final userVersion = (rows.isEmpty ? null : rows.first.values.first) as int?;
+    if (userVersion != null && userVersion > 0 && userVersion < 17) {
+      await db.execute('PRAGMA foreign_keys = OFF');
+    } else {
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
   }
 
   static Future<void> onCreate(Database db, int version) async {
@@ -69,6 +80,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 16) {
       await _upgradeToVersion16(db);
+    }
+    if (oldVersion < 17) {
+      await _upgradeToVersion17(db);
     }
   }
 
@@ -272,8 +286,7 @@ class DatabaseSchema {
         color INTEGER,
         sort_index INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL,
-        UNIQUE(name)
+        updated_at INTEGER NOT NULL
       )
     ''');
 
@@ -307,6 +320,8 @@ class DatabaseSchema {
         'CREATE INDEX IF NOT EXISTS idx_tool_tags_tool_id_category_sort_index ON tool_tags(tool_id, category_id, sort_index)',
       );
     }
+
+    await _createTagUniquenessTriggers(db);
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS work_task_tags (
@@ -944,6 +959,168 @@ WHERE tool_id = ? AND category_id = ?
   static Future<void> _upgradeToVersion16(Database db) async {
     // v16: 添加菜谱打分表
     await _createOvercookedRatingTable(db);
+  }
+
+  static Future<void> _upgradeToVersion17(Database db) async {
+    // v17:
+    // 1) 标签名不再全局唯一，改为「同工具 + 同分类」唯一；
+    // 2) 修复历史/同步数据：work_log/stockpile_assistant 的 default 分类映射回内置分类。
+
+    // 确保标签相关表存在（兼容从更早版本直接升级）
+    await _createTagTables(db);
+
+    // 先修复分类（不会影响 tags 表结构）
+    await db.transaction((txn) async {
+      await _repairDefaultToolTagCategories(txn);
+    });
+
+    // 移除 tags.name 的全局 UNIQUE 约束（需要重建表）
+    await _recreateTagsTableWithoutGlobalUnique(db);
+
+    // 创建触发器，保证「同工具 + 同分类」下标签名唯一
+    await _createTagUniquenessTriggers(db);
+  }
+
+  static Future<void> _repairDefaultToolTagCategories(
+    DatabaseExecutor db,
+  ) async {
+    // 工作记录：历史上只有一个“标签”语义，默认应视为“归属”
+    await db.execute("""
+UPDATE tool_tags
+SET category_id = 'affiliation'
+WHERE tool_id = 'work_log' AND category_id = 'default'
+""");
+
+    // 囤货助手：历史标签默认视为“物品类型”
+    await db.execute("""
+UPDATE tool_tags
+SET category_id = 'item_type'
+WHERE tool_id = 'stockpile_assistant' AND category_id = 'default'
+""");
+  }
+
+  static Future<void> _recreateTagsTableWithoutGlobalUnique(Database db) async {
+    // 新安装已经是新结构（无 UNIQUE），这里只对旧库做兼容性重建：
+    // - 旧版 tags 表里有 UNIQUE(name)，导致不同工具不能同名。
+
+    // 判断 tags 表是否存在
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='tags'",
+    );
+    if (tables.isEmpty) return;
+
+    // 通过索引判断是否存在对 name 的唯一约束（旧版为 UNIQUE(name)）
+    // 注：UNIQUE 约束在 SQLite 中会对应 sqlite_autoindex_*，无法直接 DROP，需要重建表。
+    var hasUniqueName = false;
+    final indexList = await db.rawQuery('PRAGMA index_list(tags)');
+    for (final row in indexList) {
+      final unique = (row['unique'] as int?) ?? 0;
+      if (unique != 1) continue;
+      final indexName = row['name'] as String?;
+      if (indexName == null || indexName.trim().isEmpty) continue;
+      final escaped = indexName.replaceAll("'", "''");
+      final indexInfo = await db.rawQuery("PRAGMA index_info('$escaped')");
+      final cols = indexInfo.map((e) => e['name']).whereType<String>().toList();
+      if (cols.length == 1 && cols.single == 'name') {
+        hasUniqueName = true;
+        break;
+      }
+    }
+    if (!hasUniqueName) return;
+
+    await db.execute('PRAGMA foreign_keys = OFF');
+    try {
+      await db.transaction((txn) async {
+        // 先移除依赖 tags 的触发器，避免重建过程中出现「临时无 tags 表」导致 DDL 失败。
+        await txn.execute(
+          'DROP TRIGGER IF EXISTS trg_tool_tags_unique_name_insert',
+        );
+        await txn.execute(
+          'DROP TRIGGER IF EXISTS trg_tool_tags_unique_name_update',
+        );
+        await txn.execute('DROP TRIGGER IF EXISTS trg_tags_unique_name_update');
+
+        await txn.execute('''
+CREATE TABLE IF NOT EXISTS tags_new (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  color INTEGER,
+  sort_index INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+)
+''');
+        await txn.execute('''
+INSERT INTO tags_new (id, name, color, sort_index, created_at, updated_at)
+SELECT id, name, color, sort_index, created_at, updated_at
+FROM tags
+''');
+        await txn.execute('DROP TABLE tags');
+        await txn.execute('ALTER TABLE tags_new RENAME TO tags');
+      });
+    } finally {
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
+  }
+
+  static Future<void> _createTagUniquenessTriggers(DatabaseExecutor db) async {
+    // 触发器：保证「同工具 + 同分类」下标签名唯一（忽略大小写 + trim）
+    // 说明：SQLite 无法对跨表 join 建 UNIQUE 索引，因此使用触发器兜底一致性。
+
+    await db.execute('''
+CREATE TRIGGER IF NOT EXISTS trg_tool_tags_unique_name_insert
+BEFORE INSERT ON tool_tags
+BEGIN
+  SELECT RAISE(ABORT, 'tag_name_conflict')
+  WHERE EXISTS (
+    SELECT 1
+    FROM tool_tags tt
+    INNER JOIN tags t ON t.id = tt.tag_id
+    WHERE tt.tool_id = NEW.tool_id
+      AND tt.category_id = NEW.category_id
+      AND lower(trim(t.name)) = lower(trim((SELECT name FROM tags WHERE id = NEW.tag_id)))
+  );
+END;
+''');
+
+    await db.execute('''
+CREATE TRIGGER IF NOT EXISTS trg_tool_tags_unique_name_update
+BEFORE UPDATE OF tool_id, category_id, tag_id ON tool_tags
+BEGIN
+  SELECT RAISE(ABORT, 'tag_name_conflict')
+  WHERE EXISTS (
+    SELECT 1
+    FROM tool_tags tt
+    INNER JOIN tags t ON t.id = tt.tag_id
+    WHERE tt.tool_id = NEW.tool_id
+      AND tt.category_id = NEW.category_id
+      AND tt.rowid != OLD.rowid
+      AND lower(trim(t.name)) = lower(trim((SELECT name FROM tags WHERE id = NEW.tag_id)))
+  );
+END;
+''');
+
+    await db.execute('''
+CREATE TRIGGER IF NOT EXISTS trg_tags_unique_name_update
+BEFORE UPDATE OF name ON tags
+BEGIN
+  SELECT RAISE(ABORT, 'tag_name_conflict')
+  WHERE EXISTS (
+    SELECT 1
+    FROM tool_tags self
+    WHERE self.tag_id = OLD.id
+      AND EXISTS (
+        SELECT 1
+        FROM tool_tags tt
+        INNER JOIN tags t ON t.id = tt.tag_id
+        WHERE tt.tool_id = self.tool_id
+          AND tt.category_id = self.category_id
+          AND tt.tag_id <> OLD.id
+          AND lower(trim(t.name)) = lower(trim(NEW.name))
+      )
+  );
+END;
+''');
   }
 
   static Future<void> _createOvercookedRatingTable(DatabaseExecutor db) async {

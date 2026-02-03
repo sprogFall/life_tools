@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/core/tags/tag_exceptions.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/repository/work_log_repository.dart';
@@ -220,6 +221,81 @@ void main() {
           .map((e) => e.tag.id)
           .toList();
       expect(ordered, [c, a, b]);
+    });
+
+    test('允许不同工具下同名标签', () async {
+      final id1 = await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+      final id2 = await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'stockpile_assistant',
+        categoryId: 'item_type',
+      );
+      expect(id2, isNot(id1));
+
+      final workLogTags = await tagRepository.listTagsForTool('work_log');
+      final stockpileTags = await tagRepository.listTagsForTool(
+        'stockpile_assistant',
+      );
+      expect(workLogTags.where((t) => t.name == '紧急').length, 1);
+      expect(stockpileTags.where((t) => t.name == '紧急').length, 1);
+    });
+
+    test('同工具同分类下标签名应唯一（创建时）', () async {
+      await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+
+      await expectLater(
+        () => tagRepository.createTagForToolCategory(
+          name: '紧急',
+          toolId: 'work_log',
+          categoryId: 'affiliation',
+        ),
+        throwsA(isA<TagNameConflictException>()),
+      );
+    });
+
+    test('同工具不同分类允许同名标签', () async {
+      final id1 = await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+      final id2 = await tagRepository.createTagForToolCategory(
+        name: '紧急',
+        toolId: 'work_log',
+        categoryId: 'priority',
+      );
+      expect(id2, isNot(id1));
+    });
+
+    test('同工具同分类下标签名应唯一（重命名时）', () async {
+      final a = await tagRepository.createTagForToolCategory(
+        name: 'A',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+      final b = await tagRepository.createTagForToolCategory(
+        name: 'B',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+
+      await expectLater(
+        () => tagRepository.renameTag(tagId: b, name: 'A'),
+        throwsA(isA<TagNameConflictException>()),
+      );
+
+      // 原标签不受影响
+      final tags = await tagRepository.listTagsForTool('work_log');
+      expect(tags.any((t) => t.id == a && t.name == 'A'), isTrue);
+      expect(tags.any((t) => t.id == b && t.name == 'B'), isTrue);
     });
   });
 }

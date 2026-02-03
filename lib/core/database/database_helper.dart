@@ -8,13 +8,35 @@ class DatabaseHelper {
   static const int _databaseVersion = DatabaseSchema.version;
 
   static Database? _database;
+  static Future<Database>? _opening;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
   Future<Database> get database async {
-    _database ??= await _initDatabase();
-    return _database!;
+    final existing = _database;
+    if (existing != null) return existing;
+
+    final opening = _opening;
+    if (opening != null) return opening;
+
+    final future = _initDatabase();
+    _opening = future;
+    try {
+      final db = await future;
+      _database = db;
+      return db;
+    } catch (_) {
+      // 初始化失败时允许后续重试
+      if (identical(_opening, future)) {
+        _opening = null;
+      }
+      rethrow;
+    } finally {
+      if (_database != null && identical(_opening, future)) {
+        _opening = null;
+      }
+    }
   }
 
   Future<Database> _initDatabase() async {
@@ -27,6 +49,11 @@ class DatabaseHelper {
       onConfigure: DatabaseSchema.onConfigure,
       onCreate: DatabaseSchema.onCreate,
       onUpgrade: DatabaseSchema.onUpgrade,
+      onOpen: (db) async {
+        // 兼容升级场景：某些迁移需要在 onConfigure 阶段临时关闭外键，
+        // 这里统一在打开完成后确保外键约束启用。
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
@@ -36,6 +63,7 @@ class DatabaseHelper {
     if (db != null) {
       await db.close();
       _database = null;
+      _opening = null;
     }
   }
 }

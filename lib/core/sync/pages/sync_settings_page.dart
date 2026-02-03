@@ -106,6 +106,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildNetworkCard(),
                   const SizedBox(height: 16),
@@ -229,7 +230,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             ),
           ),
           const SizedBox(height: 10),
-          _buildHint('提示：本地部署（docker/uvicorn）通常是 http + 8080，请显式填写 http:// 避免 TLS 握手错误。'),
+          _buildHint(
+            '提示：本地部署（docker/uvicorn）通常是 http + 8080，请显式填写 http:// 避免 TLS 握手错误。',
+          ),
         ],
       ),
     );
