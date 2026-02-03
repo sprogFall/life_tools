@@ -476,7 +476,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Future<void> _refreshCurrentWifi() async {
-    final wifiService = WifiService();
+    WifiService wifiService;
+    try {
+      wifiService = context.read<WifiService>();
+    } catch (_) {
+      wifiService = WifiService();
+    }
     final status = await wifiService.getNetworkStatus();
     if (!mounted) return;
 

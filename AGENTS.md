@@ -10,7 +10,8 @@
 3. **零容忍重复**：必须复用代码，杜绝重复逻辑
 4. **中文响应**：始终使用中文进行交流和回复
 5. **改动验证要求**：
-   - 只要本次改动包含“代码/构建相关文件”（如 `lib/**`、`test/**`、平台代码 `android/**`/`ios/**`/`macos/**`/`windows/**`/`linux/**`、以及 `pubspec.yaml` 等），必须在交付前执行并通过：`flutter analyze` 与 `flutter test`
+   - 若本次改动涉及 **Flutter 侧代码/构建相关文件**（如 `lib/**`、`test/**`、平台代码 `android/**`/`ios/**`/`macos/**`/`windows/**`/`linux/**`、以及 `pubspec.yaml` 等），必须在交付前执行并通过：`flutter analyze` 与 `flutter test`
+   - 若本次改动 **仅涉及后端服务**（`backend/**`）且未改动任何 Flutter 相关目录/配置，则无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端的测试（例如：`cd backend/sync_server && .venv/bin/pytest`）
    - 若本次改动仅为“文档类变更”（如 `README.md`、`docs/**`、`examples/**`、`*.md` 等），可不执行 `flutter analyze` / `flutter test`
    - 若仅进行 Git 操作（如生成/整理 `git commit`，且未改动任何代码文件），可不执行 `flutter analyze` / `flutter test`
 
@@ -122,5 +123,6 @@ dart format .
 
 ## 提交前检查（补充）
 
-- 变更 `lib/**`、`test/**`、平台工程或 `pubspec.yaml`：必须执行并通过 `flutter analyze` 与 `flutter test`
+- 变更 Flutter 侧（`lib/**`、`test/**`、平台工程或 `pubspec.yaml`）：必须执行并通过 `flutter analyze` 与 `flutter test`
+- 仅变更后端（`backend/**`）且未改动 Flutter：无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端测试
 - 建议在提交前执行 `dart format .` 保持统一格式

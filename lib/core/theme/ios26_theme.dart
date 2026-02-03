@@ -296,6 +296,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final VoidCallback? onBackPressed;
   final VoidCallback? onSettingsPressed;
+  final VoidCallback? onTitlePressed;
   final bool useSafeArea;
   final _IOS26AppBarVariant _variant;
 
@@ -306,6 +307,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.showBackButton = false,
     this.onBackPressed,
+    this.onTitlePressed,
     this.useSafeArea = true,
   }) : onSettingsPressed = null,
        _variant = _IOS26AppBarVariant.standard;
@@ -314,6 +316,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.onSettingsPressed,
+    this.onTitlePressed,
   }) : actions = null,
        leading = null,
        showBackButton = false,
@@ -387,6 +390,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildHomeContent(BuildContext context) {
+    final titleWidget = Text(title, style: IOS26Theme.displayLarge);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: IOS26Theme.spacingXl,
@@ -395,7 +399,15 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: IOS26Theme.displayLarge),
+          onTitlePressed == null
+              ? titleWidget
+              : CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minimumSize: IOS26Theme.minimumTapSize,
+                  pressedOpacity: 1,
+                  onPressed: onTitlePressed,
+                  child: titleWidget,
+                ),
           CupertinoButton(
             padding: EdgeInsets.zero,
             minimumSize: IOS26Theme.minimumTapSize,

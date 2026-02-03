@@ -14,8 +14,10 @@ import '../core/models/tool_info.dart';
 import '../core/obj_store/obj_store_config.dart';
 import '../core/obj_store/obj_store_config_service.dart';
 import '../core/services/settings_service.dart';
+import '../core/ui/app_dialogs.dart';
 import '../core/sync/services/sync_config_service.dart';
 import '../core/sync/pages/sync_settings_page.dart';
+import '../core/sync/pages/sync_records_page.dart';
 import '../core/theme/ios26_theme.dart';
 import '../core/ui/app_navigator.dart';
 import '../core/ui/app_scaffold.dart';
@@ -25,8 +27,57 @@ import 'obj_store_settings_page.dart';
 import 'tool_management_page.dart';
 
 /// 首页欢迎页面，iOS 26 风格
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  static const int _debugTapTargetCount = 6;
+  static const Duration _debugTapResetDuration = Duration(seconds: 2);
+
+  int _debugTapCount = 0;
+  Timer? _debugTapResetTimer;
+
+  @override
+  void dispose() {
+    _debugTapResetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleTitleTap() {
+    _debugTapResetTimer?.cancel();
+    _debugTapCount += 1;
+
+    if (_debugTapCount >= _debugTapTargetCount) {
+      _debugTapCount = 0;
+      HapticFeedback.lightImpact();
+      final config = context.read<SyncConfigService>().config;
+      if (config == null || !config.isValid) {
+        AppDialogs.showConfirm(
+          context,
+          title: '同步未配置',
+          content: '请先在“数据同步”中配置服务器地址/端口与用户标识，然后再查看同步记录。',
+          cancelText: '取消',
+          confirmText: '去配置',
+        ).then((go) {
+          if (!mounted) return;
+          if (!go) return;
+          AppNavigator.push(context, const SyncSettingsPage());
+        });
+        return;
+      }
+
+      AppNavigator.push(context, const SyncRecordsPage());
+      return;
+    }
+
+    _debugTapResetTimer = Timer(_debugTapResetDuration, () {
+      _debugTapCount = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +87,7 @@ class HomePage extends StatelessWidget {
         children: [
           IOS26AppBar.home(
             title: '小蜜',
+            onTitlePressed: _handleTitleTap,
             onSettingsPressed: () => _showSettingsSheet(context),
           ),
           Expanded(

@@ -8,6 +8,7 @@ import '../models/sync_request_v2.dart';
 import '../models/sync_response_v2.dart';
 import 'sync_api_client.dart';
 import 'sync_config_service.dart';
+import 'sync_network_precheck.dart';
 import 'tool_sync_order.dart';
 import 'wifi_service.dart';
 
@@ -138,54 +139,14 @@ class SyncService extends ChangeNotifier {
 
   /// 检查网络条件
   Future<bool> _checkNetworkCondition(SyncConfig config) async {
-    final networkStatus = await _wifiService.getNetworkStatus();
-
-    if (networkStatus == NetworkStatus.offline) {
-      _lastError = '网络预检失败：当前无网络连接';
+    final error = await SyncNetworkPrecheck.check(
+      config: config,
+      wifiService: _wifiService,
+    );
+    if (error != null) {
+      _lastError = error;
       return false;
     }
-
-    // 公网模式：只要不是离线即可
-    if (config.networkType == SyncNetworkType.public) {
-      return true;
-    }
-
-    // 私网模式：必须是 WiFi 且在允许列表中
-    if (networkStatus != NetworkStatus.wifi) {
-      _lastError = '网络预检失败：私网模式下必须连接 WiFi（当前：${networkStatus.name}）';
-      return false;
-    }
-
-    final allowed = config.allowedWifiNames
-        .map(WifiService.normalizeWifiName)
-        .whereType<String>()
-        .toSet();
-
-    if (allowed.isEmpty) {
-      _lastError = '网络预检失败：私网模式未配置允许的 WiFi 列表';
-      return false;
-    }
-
-    final rawSsid = await _wifiService.getCurrentWifiName();
-    final currentSsid = WifiService.normalizeWifiName(rawSsid);
-
-    if (currentSsid == null) {
-      _lastError = [
-        '网络预检失败：已连接 WiFi，但无法获取当前 WiFi 名称（SSID）',
-        '可能原因：未授予定位权限 / 未开启定位 / 系统限制（返回 <unknown ssid>）',
-        '调试信息：networkStatus=wifi, rawSsid=${rawSsid ?? "null"}, allowed=${allowed.join("，")}',
-      ].join('\n');
-      return false;
-    }
-
-    if (!allowed.contains(currentSsid)) {
-      _lastError = [
-        '网络预检失败：当前 WiFi（$currentSsid）不在允许列表中：${allowed.join("，")}',
-        '调试信息：rawSsid=${rawSsid ?? "null"}（注意是否包含引号/空格）',
-      ].join('\n');
-      return false;
-    }
-
     return true;
   }
 

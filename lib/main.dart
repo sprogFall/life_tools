@@ -22,6 +22,7 @@ import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
 import 'core/sync/services/sync_service.dart';
+import 'core/sync/services/wifi_service.dart';
 import 'core/tags/built_in_tag_categories.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
@@ -206,6 +207,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.syncConfigService),
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
+        Provider<WifiService>(create: (_) => WifiService()),
         ChangeNotifierProvider<TagService>(
           create: (_) {
             final service = TagService();
