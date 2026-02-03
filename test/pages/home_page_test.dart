@@ -74,7 +74,12 @@ void main() {
 
       syncConfigService = SyncConfigService();
       await syncConfigService.init();
-      syncService = SyncService(configService: syncConfigService);
+      syncService = SyncService(
+        configService: syncConfigService,
+        aiConfigService: aiConfigService,
+        settingsService: mockSettingsService,
+        objStoreConfigService: objStoreConfigService,
+      );
     });
 
     Future<({Database db, MessageService messageService})> createMessageService(

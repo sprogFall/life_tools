@@ -1,4 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/ai/ai_config_service.dart';
+import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
+import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
+import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
 import 'package:life_tools/core/sync/models/sync_response.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
@@ -57,8 +61,19 @@ void main() {
         ),
       );
 
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      final settingsService = SettingsService();
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
       final service = SyncService(
         configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(
           status: NetworkStatus.wifi,
           wifiName: 'NotAllowedWifi',
@@ -87,8 +102,19 @@ void main() {
         ),
       );
 
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      final settingsService = SettingsService();
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
       final service = SyncService(
         configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(
           status: NetworkStatus.wifi,
           wifiName: null,

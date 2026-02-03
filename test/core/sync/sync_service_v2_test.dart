@@ -1,4 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/ai/ai_config.dart';
+import 'package:life_tools/core/ai/ai_config_service.dart';
+import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
+import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
+import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/interfaces/tool_sync_provider.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
 import 'package:life_tools/core/sync/models/sync_request.dart';
@@ -8,6 +13,7 @@ import 'package:life_tools/core/sync/models/sync_response_v2.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
+import 'package:life_tools/core/sync/services/app_config_updated_at.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,11 +83,21 @@ void main() {
 
   group('SyncService v2', () {
     late SyncConfigService configService;
+    late AiConfigService aiConfigService;
+    late SettingsService settingsService;
+    late ObjStoreConfigService objStoreConfigService;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       configService = SyncConfigService();
       await configService.init();
+      aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      settingsService = SettingsService();
+      objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
       await configService.save(
         const SyncConfig(
           userId: 'u1',
@@ -126,6 +142,9 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: api,
         toolProviders: [provider],
@@ -163,6 +182,9 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(NetworkStatus.mobile),
         apiClient: api,
         toolProviders: [provider],
@@ -195,6 +217,9 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: api,
         toolProviders: [provider],
@@ -236,6 +261,9 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: api,
         toolProviders: [provider],
@@ -245,6 +273,104 @@ void main() {
       expect(ok, isTrue);
       expect(api.lastRequestV1, isNotNull);
       expect(provider.importCalls, 1);
+    });
+
+    test('请求应包含 app_config 快照（与备份配置段同构）', () async {
+      final api = _FakeSyncApiClient()
+        ..v2Response = SyncResponseV2(
+          success: true,
+          decision: SyncDecision.noop,
+          serverTime: DateTime.fromMillisecondsSinceEpoch(5000),
+          serverRevision: 12,
+          toolsData: null,
+        );
+
+      await aiConfigService.save(
+        const AiConfig(
+          baseUrl: 'https://api.example.com',
+          apiKey: 'k',
+          model: 'm',
+          temperature: 0.7,
+          maxOutputTokens: 128,
+        ),
+      );
+
+      final service = SyncService(
+        configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: const [],
+      );
+
+      final ok = await service.sync();
+      expect(ok, isTrue);
+      final toolsData = api.lastRequestV2?.toolsData;
+      expect(toolsData, isNotNull);
+      expect(toolsData!.containsKey('app_config'), isTrue);
+      final app = toolsData['app_config']!;
+      expect(app['version'], 1);
+      expect((app['updated_at_ms'] as num?)?.toInt(), greaterThan(0));
+      final data = app['data'] as Map<String, dynamic>;
+      expect(data.containsKey('ai_config'), isTrue);
+      expect(data.containsKey('sync_config'), isTrue);
+      expect(data.containsKey('obj_store_config'), isTrue);
+      expect(data.containsKey('obj_store_secrets'), isTrue);
+      expect(data.containsKey('settings'), isTrue);
+    });
+
+    test('服务端返回 use_server 且包含 app_config 时，应还原配置并更新配置时间戳', () async {
+      final api = _FakeSyncApiClient()
+        ..v2Response = SyncResponseV2(
+          success: true,
+          decision: SyncDecision.useServer,
+          serverTime: DateTime.fromMillisecondsSinceEpoch(6000),
+          serverRevision: 13,
+          toolsData: const {
+            'app_config': {
+              'version': 1,
+              'updated_at_ms': 9999999999999,
+              'data': {
+                'ai_config': {
+                  'baseUrl': 'https://api.server.com',
+                  'apiKey': 'k_server',
+                  'model': 'm_server',
+                  'temperature': 0.9,
+                  'maxOutputTokens': 256,
+                },
+                'sync_config': null,
+                'obj_store_config': null,
+                'obj_store_secrets': null,
+                'settings': {
+                  'default_tool_id': null,
+                  'tool_order': [],
+                  'hidden_tool_ids': [],
+                },
+              },
+            },
+          },
+        );
+
+      final service = SyncService(
+        configService: configService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: const [],
+      );
+
+      final ok = await service.sync();
+      expect(ok, isTrue);
+      expect(aiConfigService.config?.model, 'm_server');
+      expect(aiConfigService.config?.apiKey, 'k_server');
+
+      final prefs = await SharedPreferences.getInstance();
+      final ts = prefs.getInt(AppConfigUpdatedAt.storageKey);
+      expect(ts, 9999999999999);
     });
   });
 }

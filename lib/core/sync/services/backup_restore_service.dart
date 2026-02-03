@@ -51,20 +51,9 @@ class BackupRestoreService {
                  .map((t) => t.syncProvider!),
        );
 
-  Future<String> exportAsJson({
-    bool pretty = false,
+  Future<Map<String, dynamic>> exportConfigAsMap({
     bool includeSensitive = false,
   }) async {
-    final tools = <String, Map<String, dynamic>>{};
-
-    for (final provider in toolProviders) {
-      try {
-        tools[provider.toolId] = await provider.exportData();
-      } catch (_) {
-        // 单个工具失败不影响整体导出
-      }
-    }
-
     final objStoreConfig = objStoreConfigService.config;
 
     Map<String, String>? objStoreSecretsJson;
@@ -105,10 +94,7 @@ class BackupRestoreService {
       syncConfigJson?.remove('customHeaders');
     }
 
-    final payload = <String, dynamic>{
-      'version': backupVersion,
-      'exported_at': DateTime.now().millisecondsSinceEpoch,
-      'sensitive_included': includeSensitive,
+    return <String, dynamic>{
       'ai_config': aiConfigJson,
       'sync_config': syncConfigJson,
       'obj_store_config': objStoreConfig?.toJson(),
@@ -118,6 +104,33 @@ class BackupRestoreService {
         'tool_order': settingsService.toolOrder,
         'hidden_tool_ids': settingsService.hiddenToolIds,
       },
+    };
+  }
+
+  Future<Map<String, Map<String, dynamic>>> exportToolsAsMap() async {
+    final tools = <String, Map<String, dynamic>>{};
+    for (final provider in toolProviders) {
+      try {
+        tools[provider.toolId] = await provider.exportData();
+      } catch (_) {}
+    }
+    return tools;
+  }
+
+  Future<String> exportAsJson({
+    bool pretty = false,
+    bool includeSensitive = false,
+  }) async {
+    final tools = await exportToolsAsMap();
+    final configPayload = await exportConfigAsMap(
+      includeSensitive: includeSensitive,
+    );
+
+    final payload = <String, dynamic>{
+      'version': backupVersion,
+      'exported_at': DateTime.now().millisecondsSinceEpoch,
+      'sensitive_included': includeSensitive,
+      ...configPayload,
       'tools': tools,
     };
 
@@ -141,25 +154,43 @@ class BackupRestoreService {
       throw FormatException('不支持的备份版本: $version');
     }
 
-    Map<String, dynamic>? readJsonMap(dynamic value) {
-      if (value == null) return null;
-      if (value is Map) {
-        return Map<String, dynamic>.from(value);
-      }
-      if (value is String) {
-        final text = value.trim();
-        if (text.isEmpty) return null;
-        try {
-          final decoded = jsonDecode(text);
-          if (decoded is Map) return Map<String, dynamic>.from(decoded);
-        } catch (_) {
-          return null;
-        }
-      }
-      return null;
+    await restoreConfigFromMap(decoded);
+    final toolsNode = decoded['tools'];
+    final toolsMap = toolsNode is Map
+        ? Map<String, dynamic>.from(toolsNode)
+        : null;
+
+    if (toolsMap == null) {
+      return const BackupRestoreResult(
+        importedTools: 0,
+        skippedTools: 0,
+        failedTools: {},
+      );
     }
 
-    final aiConfigMap = readJsonMap(decoded['ai_config']);
+    return _restoreToolsFromMap(toolsMap);
+  }
+
+  static Map<String, dynamic>? _readJsonMap(dynamic value) {
+    if (value == null) return null;
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    if (value is String) {
+      final text = value.trim();
+      if (text.isEmpty) return null;
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  Future<void> restoreConfigFromMap(Map<String, dynamic> decoded) async {
+    final aiConfigMap = _readJsonMap(decoded['ai_config']);
     if (aiConfigMap != null) {
       final current = aiConfigService.config;
       final next = AiConfig(
@@ -192,7 +223,7 @@ class BackupRestoreService {
       await aiConfigService.save(next);
     }
 
-    final syncConfigMap = readJsonMap(decoded['sync_config']);
+    final syncConfigMap = _readJsonMap(decoded['sync_config']);
     if (syncConfigMap != null) {
       final incoming = SyncConfig.fromMap(syncConfigMap);
       final current = syncConfigService.config;
@@ -241,12 +272,12 @@ class BackupRestoreService {
       await syncConfigService.save(merged);
     }
 
-    final objStoreConfigMap = readJsonMap(decoded['obj_store_config']);
+    final objStoreConfigMap = _readJsonMap(decoded['obj_store_config']);
     if (objStoreConfigMap != null) {
       final config = ObjStoreConfig.fromJson(objStoreConfigMap);
       if (config != null) {
         if (config.type == ObjStoreType.qiniu) {
-          final secretsMap = readJsonMap(decoded['obj_store_secrets']);
+          final secretsMap = _readJsonMap(decoded['obj_store_secrets']);
           final accessKey = (secretsMap?['accessKey'] as String?)?.trim();
           final secretKey = (secretsMap?['secretKey'] as String?)?.trim();
           if (accessKey != null &&
@@ -268,7 +299,7 @@ class BackupRestoreService {
             );
           }
         } else if (config.type == ObjStoreType.dataCapsule) {
-          final secretsMap = readJsonMap(decoded['obj_store_secrets']);
+          final secretsMap = _readJsonMap(decoded['obj_store_secrets']);
           final accessKey = (secretsMap?['accessKey'] as String?)?.trim();
           final secretKey = (secretsMap?['secretKey'] as String?)?.trim();
           if (accessKey != null &&
@@ -326,20 +357,11 @@ class BackupRestoreService {
         await settingsService.setDefaultTool(defaultToolId);
       }
     }
+  }
 
-    final toolsNode = decoded['tools'];
-    final toolsMap = toolsNode is Map
-        ? Map<String, dynamic>.from(toolsNode)
-        : null;
-
-    if (toolsMap == null) {
-      return const BackupRestoreResult(
-        importedTools: 0,
-        skippedTools: 0,
-        failedTools: {},
-      );
-    }
-
+  Future<BackupRestoreResult> _restoreToolsFromMap(
+    Map<String, dynamic> toolsMap,
+  ) async {
     final providersById = {for (final p in toolProviders) p.toolId: p};
 
     var imported = 0;

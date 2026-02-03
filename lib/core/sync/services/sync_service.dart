@@ -1,11 +1,16 @@
 import 'package:flutter/foundation.dart';
 
+import '../../ai/ai_config_service.dart';
+import '../../obj_store/obj_store_config_service.dart';
 import '../../registry/tool_registry.dart';
+import '../../services/settings_service.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import '../models/sync_request.dart';
 import '../models/sync_request_v2.dart';
 import '../models/sync_response_v2.dart';
+import 'app_config_sync_provider.dart';
+import 'backup_restore_service.dart';
 import 'sync_api_client.dart';
 import 'sync_config_service.dart';
 import 'sync_network_precheck.dart';
@@ -38,6 +43,9 @@ class SyncService extends ChangeNotifier {
 
   SyncService({
     required SyncConfigService configService,
+    required AiConfigService aiConfigService,
+    required SettingsService settingsService,
+    required ObjStoreConfigService objStoreConfigService,
     WifiService? wifiService,
     SyncApiClient? apiClient,
     Iterable<ToolSyncProvider>? toolProviders,
@@ -45,11 +53,43 @@ class SyncService extends ChangeNotifier {
        _wifiService = wifiService ?? WifiService(),
        _apiClient = apiClient ?? SyncApiClient(),
        _toolProviders = List<ToolSyncProvider>.unmodifiable(
-         toolProviders ??
-             ToolRegistry.instance.tools
-                 .where((t) => t.supportSync)
-                 .map((t) => t.syncProvider!),
+         _buildToolProviders(
+           aiConfigService: aiConfigService,
+           syncConfigService: configService,
+           settingsService: settingsService,
+           objStoreConfigService: objStoreConfigService,
+           toolProviders: toolProviders,
+         ),
        );
+
+  static List<ToolSyncProvider> _buildToolProviders({
+    required AiConfigService aiConfigService,
+    required SyncConfigService syncConfigService,
+    required SettingsService settingsService,
+    required ObjStoreConfigService objStoreConfigService,
+    Iterable<ToolSyncProvider>? toolProviders,
+  }) {
+    final baseProviders =
+        toolProviders ??
+        ToolRegistry.instance.tools
+            .where((t) => t.supportSync)
+            .map((t) => t.syncProvider!);
+
+    final base = List<ToolSyncProvider>.from(baseProviders);
+
+    final backupRestoreService = BackupRestoreService(
+      aiConfigService: aiConfigService,
+      syncConfigService: syncConfigService,
+      settingsService: settingsService,
+      objStoreConfigService: objStoreConfigService,
+      toolProviders: base,
+    );
+
+    return [
+      ...base,
+      AppConfigSyncProvider(backupRestoreService: backupRestoreService),
+    ];
+  }
 
   /// 执行同步（主入口）
   Future<bool> sync() async {
@@ -217,7 +257,7 @@ class SyncService extends ChangeNotifier {
       userId: config.userId,
       clientTimeMs: DateTime.now().millisecondsSinceEpoch,
       clientState: SyncClientState(
-        clientIsEmpty: _isAllToolsEmpty(toolsData),
+        clientIsEmpty: _isAllToolsEmptyForDecision(toolsData),
         lastServerRevision: config.lastServerRevision,
       ),
       toolsData: toolsData,
@@ -253,9 +293,15 @@ class SyncService extends ChangeNotifier {
     return _SyncV2Result.success;
   }
 
-  static bool _isAllToolsEmpty(Map<String, Map<String, dynamic>> toolsData) {
-    if (toolsData.isEmpty) return true;
-    return toolsData.values.every(_isToolSnapshotEmpty);
+  static bool _isAllToolsEmptyForDecision(
+    Map<String, Map<String, dynamic>> toolsData,
+  ) {
+    final values = toolsData.entries
+        .where((e) => e.key != 'app_config')
+        .map((e) => e.value)
+        .toList(growable: false);
+    if (values.isEmpty) return true;
+    return values.every(_isToolSnapshotEmpty);
   }
 
   static bool _isToolSnapshotEmpty(Map<String, dynamic> snapshot) {

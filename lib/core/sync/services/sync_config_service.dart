@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/sync_config.dart';
+import 'app_config_updated_at.dart';
 
 /// 同步配置服务
 class SyncConfigService extends ChangeNotifier {
@@ -20,12 +21,20 @@ class SyncConfigService extends ChangeNotifier {
   Future<void> save(SyncConfig config) async {
     _config = config;
     await _prefs?.setString(_storageKey, config.toJsonString());
+    final prefs = _prefs;
+    if (prefs != null) {
+      await AppConfigUpdatedAt.touch(prefs);
+    }
     notifyListeners();
   }
 
   Future<void> clear() async {
     _config = null;
     await _prefs?.remove(_storageKey);
+    final prefs = _prefs;
+    if (prefs != null) {
+      await AppConfigUpdatedAt.touch(prefs);
+    }
     notifyListeners();
   }
 

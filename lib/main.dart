@@ -58,7 +58,12 @@ void main() async {
   final syncConfigService = SyncConfigService();
   await syncConfigService.init();
 
-  final syncService = SyncService(configService: syncConfigService);
+  final syncService = SyncService(
+    configService: syncConfigService,
+    aiConfigService: aiConfigService,
+    settingsService: settingsService,
+    objStoreConfigService: objStoreConfigService,
+  );
 
   // 自动同步（在后台静默执行，不阻塞启动）
   if (syncConfigService.config?.autoSyncOnStartup ?? false) {

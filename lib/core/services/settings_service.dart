@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 import '../models/tool_info.dart';
 import '../registry/tool_registry.dart';
+import '../sync/services/app_config_updated_at.dart';
 
 typedef DatabaseProvider = Future<Database> Function();
 
@@ -57,6 +58,13 @@ class SettingsService extends ChangeNotifier {
   Future<void> _saveHiddenToolIds() async {
     final ids = hiddenToolIds;
     await _prefs?.setStringList(_hiddenToolIdsKey, ids);
+  }
+
+  Future<void> _touchUpdatedAt() async {
+    final prefs = _prefs;
+    if (prefs != null) {
+      await AppConfigUpdatedAt.touch(prefs);
+    }
   }
 
   Future<void> _loadToolOrder() async {
@@ -126,6 +134,7 @@ class SettingsService extends ChangeNotifier {
   Future<void> updateToolOrder(List<String> newOrder) async {
     _toolOrder = _ensureTagManagerLast(newOrder);
     await _saveToolOrder();
+    await _touchUpdatedAt();
     notifyListeners();
   }
 
@@ -166,6 +175,7 @@ class SettingsService extends ChangeNotifier {
     if (!changed) return;
 
     await _saveHiddenToolIds();
+    await _touchUpdatedAt();
     notifyListeners();
   }
 
@@ -175,6 +185,7 @@ class SettingsService extends ChangeNotifier {
     if (setEquals(next, _hiddenToolIds)) return;
     _hiddenToolIds = next;
     await _saveHiddenToolIds();
+    await _touchUpdatedAt();
     notifyListeners();
   }
 
@@ -185,6 +196,7 @@ class SettingsService extends ChangeNotifier {
     } else {
       await _prefs?.setString(_defaultToolKey, toolId);
     }
+    await _touchUpdatedAt();
     notifyListeners();
   }
 

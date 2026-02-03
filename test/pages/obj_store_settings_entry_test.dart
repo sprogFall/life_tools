@@ -37,12 +37,17 @@ void main() {
 
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
-      final syncService = SyncService(configService: syncConfigService);
 
       final objStoreConfigService = ObjStoreConfigService(
         secretStore: InMemorySecretStore(),
       );
       await objStoreConfigService.init();
+      final syncService = SyncService(
+        configService: syncConfigService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+      );
 
       late Database db;
       late MessageService messageService;

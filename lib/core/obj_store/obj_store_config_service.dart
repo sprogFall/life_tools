@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../sync/services/app_config_updated_at.dart';
 import 'obj_store_config.dart';
 import 'obj_store_secrets.dart';
 import 'secret_store/secret_store.dart';
@@ -116,6 +117,10 @@ class ObjStoreConfigService extends ChangeNotifier {
       await _secretStore.delete(key: _dataCapsuleSecretKey);
     }
 
+    final prefs = _prefs;
+    if (prefs != null) {
+      await AppConfigUpdatedAt.touch(prefs);
+    }
     notifyListeners();
   }
 
@@ -128,6 +133,10 @@ class ObjStoreConfigService extends ChangeNotifier {
     await _secretStore.delete(key: _qiniuSecretKey);
     await _secretStore.delete(key: _dataCapsuleAccessKey);
     await _secretStore.delete(key: _dataCapsuleSecretKey);
+    final prefs = _prefs;
+    if (prefs != null) {
+      await AppConfigUpdatedAt.touch(prefs);
+    }
     notifyListeners();
   }
 
