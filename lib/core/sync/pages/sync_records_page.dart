@@ -11,6 +11,8 @@ import '../models/sync_record.dart';
 import '../models/sync_response_v2.dart';
 import '../services/sync_api_client.dart';
 import '../services/sync_config_service.dart';
+import '../services/sync_network_precheck.dart';
+import '../services/wifi_service.dart';
 import 'sync_settings_page.dart';
 
 class SyncRecordsPage extends StatefulWidget {
@@ -23,6 +25,7 @@ class SyncRecordsPage extends StatefulWidget {
 class _SyncRecordsPageState extends State<SyncRecordsPage> {
   final SyncApiClient _apiClient = SyncApiClient();
   final DateFormat _timeFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+  late final WifiService _wifiService;
 
   bool _loading = false;
   String? _error;
@@ -32,6 +35,11 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
   @override
   void initState() {
     super.initState();
+    try {
+      _wifiService = context.read<WifiService>();
+    } catch (_) {
+      _wifiService = WifiService();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
   }
 
@@ -50,7 +58,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     final config = context.read<SyncConfigService>().config;
     if (config == null || !config.isValid) {
       setState(() {
-        _error = '请先在“数据同步”中配置服务器地址与用户标识';
+        _error = '同步配置未设置或不完整，请先完成配置后再查看同步记录。';
       });
       return;
     }
@@ -61,6 +69,18 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     });
 
     try {
+      final precheckError = await SyncNetworkPrecheck.check(
+        config: config,
+        wifiService: _wifiService,
+      );
+      if (precheckError != null) {
+        if (!mounted) return;
+        setState(() {
+          _error = precheckError;
+        });
+        return;
+      }
+
       final result = await _apiClient.listSyncRecords(
         config: config,
         limit: 50,
@@ -74,7 +94,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = _stringifyError(e);
       });
     } finally {
       if (mounted) {
@@ -139,6 +159,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     required String serverText,
     required SyncConfig? config,
   }) {
+    final configured = config != null && config.isValid;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -152,19 +173,17 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
             '用户：${config?.userId.trim().isEmpty ?? true ? "未配置" : config!.userId}',
             style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
           ),
-          if (config == null || !config.isValid) ...[
-            const SizedBox(height: 12),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () {
-                AppNavigator.push(context, const SyncSettingsPage());
-              },
-              child: Text(
-                '去配置数据同步',
-                style: IOS26Theme.labelLarge.copyWith(color: IOS26Theme.primaryColor),
-              ),
+          const SizedBox(height: 12),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () {
+              AppNavigator.push(context, const SyncSettingsPage());
+            },
+            child: Text(
+              configured ? '同步设置' : '去配置数据同步',
+              style: IOS26Theme.labelLarge.copyWith(color: IOS26Theme.primaryColor),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -262,6 +281,7 @@ class SyncRecordDetailPage extends StatefulWidget {
 class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
   final SyncApiClient _apiClient = SyncApiClient();
   final DateFormat _timeFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+  late final WifiService _wifiService;
 
   bool _loading = false;
   String? _error;
@@ -270,6 +290,11 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
   @override
   void initState() {
     super.initState();
+    try {
+      _wifiService = context.read<WifiService>();
+    } catch (_) {
+      _wifiService = WifiService();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -295,6 +320,18 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
     });
 
     try {
+      final precheckError = await SyncNetworkPrecheck.check(
+        config: config,
+        wifiService: _wifiService,
+      );
+      if (precheckError != null) {
+        if (!mounted) return;
+        setState(() {
+          _error = precheckError;
+        });
+        return;
+      }
+
       final record = await _apiClient.getSyncRecord(
         config: config,
         id: widget.recordId,
@@ -306,7 +343,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = _stringifyError(e);
       });
     } finally {
       if (mounted) {
@@ -530,4 +567,15 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
       ),
     );
   }
+}
+
+String _stringifyError(Object e) {
+  final text = e.toString();
+  if (text.startsWith('SyncApiException: ')) {
+    return text.substring('SyncApiException: '.length);
+  }
+  if (text.startsWith('Exception: ')) {
+    return text.substring('Exception: '.length);
+  }
+  return text;
 }

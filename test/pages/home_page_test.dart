@@ -12,6 +12,8 @@ import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
+import 'package:life_tools/core/sync/models/sync_config.dart';
+import 'package:life_tools/core/sync/services/wifi_service.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,11 +22,26 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 class _RecordingNavigatorObserver extends NavigatorObserver {
   final List<Route<dynamic>> pushedRoutes = [];
 
+  int get pushedPageRoutesCount => pushedRoutes.whereType<PageRoute>().length;
+
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     pushedRoutes.add(route);
     super.didPush(route, previousRoute);
   }
+}
+
+class _FakeWifiService extends WifiService {
+  final NetworkStatus status;
+  final String? wifiName;
+
+  _FakeWifiService({required this.status, required this.wifiName});
+
+  @override
+  Future<NetworkStatus> getNetworkStatus() async => status;
+
+  @override
+  Future<String?> getCurrentWifiName() async => wifiName;
 }
 
 void main() {
@@ -102,6 +119,9 @@ void main() {
             value: syncConfigService,
           ),
           ChangeNotifierProvider<SyncService>.value(value: syncService),
+          Provider<WifiService>.value(
+            value: _FakeWifiService(status: NetworkStatus.offline, wifiName: null),
+          ),
           ChangeNotifierProvider<MessageService>.value(value: messageService),
         ],
         child: MaterialApp(home: child, navigatorObservers: navigatorObservers),
@@ -188,7 +208,7 @@ void main() {
       expect(widget.overflow, TextOverflow.ellipsis);
     });
 
-    testWidgets('连续点击标题 6 次应进入同步记录页', (tester) async {
+    testWidgets('连续点击标题 6 次未配置时应弹窗并可跳转到同步配置', (tester) async {
       final deps = await createMessageService(tester);
       final observer = _RecordingNavigatorObserver();
       await tester.pumpWidget(
@@ -199,14 +219,55 @@ void main() {
         ),
       );
 
-      final initialPushCount = observer.pushedRoutes.length;
+      final initialPagePushCount = observer.pushedPageRoutesCount;
       for (int i = 0; i < 6; i++) {
         await tester.tap(find.text('小蜜'));
         await tester.pump(const Duration(milliseconds: 16));
       }
       await tester.pumpAndSettle();
 
-      expect(observer.pushedRoutes.length, initialPushCount + 1);
+      expect(find.text('同步未配置'), findsOneWidget);
+      expect(find.text('去配置'), findsOneWidget);
+      expect(observer.pushedPageRoutesCount, initialPagePushCount);
+
+      await tester.tap(find.text('去配置'));
+      await tester.pumpAndSettle();
+      expect(observer.pushedPageRoutesCount, initialPagePushCount + 1);
+    });
+
+    testWidgets('连续点击标题 6 次已配置时应进入同步记录页', (tester) async {
+      final deps = await createMessageService(tester);
+      await syncConfigService.save(
+        const SyncConfig(
+          userId: 'u1',
+          networkType: SyncNetworkType.public,
+          serverUrl: 'http://127.0.0.1',
+          serverPort: 8080,
+          customHeaders: {},
+          allowedWifiNames: [],
+          autoSyncOnStartup: false,
+        ),
+      );
+
+      final observer = _RecordingNavigatorObserver();
+      await tester.pumpWidget(
+        wrap(
+          const HomePage(),
+          deps.messageService,
+          navigatorObservers: [observer],
+        ),
+      );
+
+      final initialPagePushCount = observer.pushedPageRoutesCount;
+      for (int i = 0; i < 6; i++) {
+        await tester.tap(find.text('小蜜'));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('同步未配置'), findsNothing);
+      expect(observer.pushedPageRoutesCount, initialPagePushCount + 1);
+      expect(find.textContaining('网络预检失败'), findsOneWidget);
     });
   });
 }
