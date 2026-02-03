@@ -211,7 +211,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             label: '服务器地址',
             child: CupertinoTextField(
               controller: _serverUrlController,
-              placeholder: '例如 sync.example.com',
+              placeholder: '例如 https://sync.example.com 或 http://127.0.0.1',
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: _fieldDecoration(),
@@ -228,6 +228,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               decoration: _fieldDecoration(),
             ),
           ),
+          const SizedBox(height: 10),
+          _buildHint('提示：本地部署（docker/uvicorn）通常是 http + 8080，请显式填写 http:// 避免 TLS 握手错误。'),
         ],
       ),
     );

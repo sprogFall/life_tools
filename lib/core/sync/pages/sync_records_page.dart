@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../theme/ios26_theme.dart';
+import '../../ui/app_dialogs.dart';
 import '../../ui/app_navigator.dart';
 import '../../ui/app_scaffold.dart';
 import '../../widgets/ios26_settings_row.dart';
@@ -11,6 +12,7 @@ import '../models/sync_record.dart';
 import '../models/sync_response_v2.dart';
 import '../services/sync_api_client.dart';
 import '../services/sync_config_service.dart';
+import '../services/sync_service.dart';
 import '../services/sync_network_precheck.dart';
 import '../services/wifi_service.dart';
 import 'sync_settings_page.dart';
@@ -203,7 +205,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Text(
-        '暂无同步记录（仅记录发生“客户端更新/服务端更新”的同步行为）',
+        '暂无同步记录（仅记录发生“客户端更新/服务端更新/回退”的同步行为）',
         style: IOS26Theme.bodyMedium.copyWith(color: IOS26Theme.textSecondary),
       ),
     );
@@ -234,6 +236,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     final directionText = switch (record.decision) {
       SyncDecision.useClient => '客户端 → 服务端',
       SyncDecision.useServer => '服务端 → 客户端',
+      SyncDecision.rollback => '回退（服务端）',
       _ => '未知',
     };
 
@@ -246,6 +249,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     final icon = switch (record.decision) {
       SyncDecision.useClient => CupertinoIcons.arrow_up_circle,
       SyncDecision.useServer => CupertinoIcons.arrow_down_circle,
+      SyncDecision.rollback => CupertinoIcons.arrow_counterclockwise_circle,
       _ => CupertinoIcons.info_circle,
     };
 
@@ -284,6 +288,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
   late final WifiService _wifiService;
 
   bool _loading = false;
+  bool _rollbackBusy = false;
   String? _error;
   SyncRecord? _record;
 
@@ -309,7 +314,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
     final config = context.read<SyncConfigService>().config;
     if (config == null || !config.isValid) {
       setState(() {
-        _error = '同步配置未设置或不完整';
+        _error = '同步配置未设置或不完整，请先完成配置后再查看同步详情。';
       });
       return;
     }
@@ -392,6 +397,8 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
                 ] else ...[
                   _buildSummaryCard(record),
                   const SizedBox(height: 16),
+                  _buildRollbackCard(record),
+                  const SizedBox(height: 16),
                   ..._buildDiffCards(record),
                 ],
               ],
@@ -406,6 +413,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
     final directionText = switch (record.decision) {
       SyncDecision.useClient => '客户端更新服务端',
       SyncDecision.useServer => '服务端更新客户端',
+      SyncDecision.rollback => '回退（服务端）',
       _ => '未知',
     };
 
@@ -438,6 +446,198 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildRollbackCard(SyncRecord record) {
+    final canRollback = record.serverRevisionBefore > 0;
+    final targetRevision = record.serverRevisionBefore;
+    final targetText = canRollback ? 'rev $targetRevision' : '无可回退版本';
+
+    return GlassContainer(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Text('回退', style: IOS26Theme.titleMedium),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Text(
+              '仅在你明确知道要恢复到哪个历史版本时使用。回退会产生新的服务端版本，并记录到同步记录。',
+              style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+            ),
+          ),
+          IOS26SettingsRow(
+            icon: CupertinoIcons.arrow_counterclockwise_circle,
+            title: '回退服务端并覆盖本地（推荐）',
+            value: targetText,
+            onTap: (!_rollbackBusy && canRollback)
+                ? () => _confirmAndRollbackServer(targetRevision)
+                : null,
+          ),
+          Container(
+            height: 0.5,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            color: IOS26Theme.textTertiary.withValues(alpha: 0.15),
+          ),
+          IOS26SettingsRow(
+            icon: CupertinoIcons.device_phone_portrait,
+            title: '仅覆盖本地（不修改服务端）',
+            value: targetText,
+            onTap: (!_rollbackBusy && canRollback)
+                ? () => _confirmAndRollbackLocal(targetRevision)
+                : null,
+          ),
+          if (_rollbackBusy) ...[
+            const SizedBox(height: 10),
+            const Center(child: CupertinoActivityIndicator()),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<SyncConfig?> _ensureReadyConfig() async {
+    final config = context.read<SyncConfigService>().config;
+    if (config == null || !config.isValid) {
+      final go = await AppDialogs.showConfirm(
+        context,
+        title: '同步未配置',
+        content: '请先完成服务器地址/端口与用户标识配置，然后再进行回退操作。',
+        cancelText: '取消',
+        confirmText: '去配置',
+      );
+      if (!mounted) return null;
+      if (go) {
+        AppNavigator.push(context, const SyncSettingsPage());
+      }
+      return null;
+    }
+
+    final precheckError = await SyncNetworkPrecheck.check(
+      config: config,
+      wifiService: _wifiService,
+    );
+    if (precheckError != null) {
+      if (!mounted) return null;
+      await AppDialogs.showInfo(
+        context,
+        title: '网络预检失败',
+        content: precheckError,
+      );
+      return null;
+    }
+
+    return config;
+  }
+
+  Future<void> _confirmAndRollbackServer(int targetRevision) async {
+    final ok = await AppDialogs.showConfirm(
+      context,
+      title: '确认回退服务端？',
+      content: '将服务端回退到 $targetRevision，并覆盖本地数据。该操作会产生新的服务端版本。',
+      cancelText: '取消',
+      confirmText: '回退',
+      isDestructive: true,
+    );
+    if (!mounted || !ok) return;
+
+    final config = await _ensureReadyConfig();
+    if (!mounted || config == null) return;
+
+    final syncService = context.read<SyncService>();
+    final configService = context.read<SyncConfigService>();
+
+    setState(() => _rollbackBusy = true);
+    try {
+      final result = await _apiClient.rollbackToRevision(
+        config: config,
+        targetRevision: targetRevision,
+      );
+      if (!mounted) return;
+
+      final applyError = await syncService.applyServerSnapshot(
+        result.toolsData,
+      );
+      await configService.updateLastSyncState(
+        time: result.serverTime,
+        serverRevision: result.serverRevision,
+      );
+
+      if (!mounted) return;
+      await AppDialogs.showInfo(
+        context,
+        title: '回退完成',
+        content: applyError == null
+            ? '已回退到 $targetRevision，并覆盖本地。新的服务端版本：${result.serverRevision}'
+            : '服务端已回退，但部分工具导入失败：\n$applyError',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await AppDialogs.showInfo(
+        context,
+        title: '回退失败',
+        content: _stringifyError(e),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _rollbackBusy = false);
+      }
+    }
+  }
+
+  Future<void> _confirmAndRollbackLocal(int targetRevision) async {
+    final ok = await AppDialogs.showConfirm(
+      context,
+      title: '确认仅回退本地？',
+      content: [
+        '将本地数据覆盖为服务端历史版本 $targetRevision，但不会修改服务端当前版本。',
+        '注意：下次同步时本地可能被服务端覆盖（建议改用“回退服务端并覆盖本地”）。',
+      ].join('\n'),
+      cancelText: '取消',
+      confirmText: '覆盖本地',
+      isDestructive: true,
+    );
+    if (!mounted || !ok) return;
+
+    final config = await _ensureReadyConfig();
+    if (!mounted || config == null) return;
+
+    final syncService = context.read<SyncService>();
+
+    setState(() => _rollbackBusy = true);
+    try {
+      final snapshot = await _apiClient.getSnapshotByRevision(
+        config: config,
+        revision: targetRevision,
+      );
+      if (!mounted) return;
+
+      final applyError = await syncService.applyServerSnapshot(
+        snapshot.toolsData,
+      );
+
+      if (!mounted) return;
+      await AppDialogs.showInfo(
+        context,
+        title: '已覆盖本地',
+        content: applyError == null ? '本地已覆盖为 $targetRevision' : '部分工具导入失败：\n$applyError',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await AppDialogs.showInfo(
+        context,
+        title: '覆盖失败',
+        content: _stringifyError(e),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _rollbackBusy = false);
+      }
+    }
   }
 
   List<Widget> _buildDiffCards(SyncRecord record) {

@@ -1,5 +1,10 @@
 /// 同步决策：本次同步以哪一端数据为准
-enum SyncDecision { useServer, useClient, noop }
+enum SyncDecision {
+  useServer,
+  useClient,
+  noop,
+  rollback, // 同步记录中用于表示“服务端回退”
+}
 
 extension SyncDecisionJson on SyncDecision {
   String toJsonValue() {
@@ -7,6 +12,7 @@ extension SyncDecisionJson on SyncDecision {
       SyncDecision.useServer => 'use_server',
       SyncDecision.useClient => 'use_client',
       SyncDecision.noop => 'noop',
+      SyncDecision.rollback => 'rollback',
     };
   }
 
@@ -16,6 +22,7 @@ extension SyncDecisionJson on SyncDecision {
       'use_server' => SyncDecision.useServer,
       'use_client' => SyncDecision.useClient,
       'noop' => SyncDecision.noop,
+      'rollback' => SyncDecision.rollback,
       _ => SyncDecision.noop,
     };
   }
