@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import os
 import sqlite3
@@ -50,7 +51,7 @@ class SqliteSnapshotStore:
         return sqlite3.connect(self._db_path, timeout=30)
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             conn.execute(
                 """
 CREATE TABLE IF NOT EXISTS sync_snapshots (
@@ -106,9 +107,10 @@ CREATE INDEX IF NOT EXISTS idx_sync_snapshot_history_user_id_rev
 ON sync_snapshot_history (user_id, server_revision DESC);
 """,
             )
+            conn.commit()
 
     def get_snapshot(self, user_id: str) -> UserSnapshot | None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             row = conn.execute(
                 """
 SELECT user_id, server_revision, updated_at_ms, tools_data_json
@@ -128,7 +130,7 @@ WHERE user_id = ?
             )
 
     def get_snapshot_by_revision(self, user_id: str, revision: int) -> UserSnapshot | None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             row = conn.execute(
                 """
 SELECT user_id, server_revision, updated_at_ms, tools_data_json
@@ -168,7 +170,7 @@ WHERE user_id = ? AND server_revision = ?
             separators=(",", ":"),
         )
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             conn.execute("BEGIN IMMEDIATE")
 
             row = conn.execute(
@@ -257,7 +259,7 @@ ON CONFLICT(user_id) DO UPDATE SET
             separators=(",", ":"),
         )
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             cur = conn.execute(
                 """
 INSERT INTO sync_records (
@@ -324,13 +326,13 @@ WHERE user_id = ?
         sql += " ORDER BY id DESC LIMIT ?"
         args.append(effective_limit)
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             rows = conn.execute(sql, tuple(args)).fetchall()
 
         return [self._row_to_sync_record(row) for row in rows]
 
     def get_sync_record(self, record_id: int) -> SyncRecord | None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             row = conn.execute(
                 """
 SELECT
