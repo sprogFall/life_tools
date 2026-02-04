@@ -67,81 +67,83 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(title: '记录消耗', showBackButton: true),
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  if (_itemName.trim().isNotEmpty)
-                    GlassContainer(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            CupertinoIcons.cube_box_fill,
-                            size: 18,
-                            color: IOS26Theme.toolGreen,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _itemName,
-                              style: IOS26Theme.titleSmall,
+      body: BackdropGroup(
+        child: _loading
+            ? const Center(child: CupertinoActivityIndicator())
+            : SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    if (_itemName.trim().isNotEmpty)
+                      GlassContainer(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              CupertinoIcons.cube_box_fill,
+                              size: 18,
+                              color: IOS26Theme.toolGreen,
                             ),
-                          ),
-                          if (_remaining != null)
-                            Text(
-                              '剩余：${StockpileFormat.num(_remaining!)}',
-                              style: IOS26Theme.bodySmall,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _itemName,
+                                style: IOS26Theme.titleSmall,
+                              ),
                             ),
-                        ],
+                            if (_remaining != null)
+                              Text(
+                                '剩余：${StockpileFormat.num(_remaining!)}',
+                                style: IOS26Theme.bodySmall,
+                              ),
+                          ],
+                        ),
+                      ),
+                    _buildInlineTextField(
+                      title: '消耗数量',
+                      child: CupertinoTextField(
+                        key: const ValueKey('stock_consumption_qty'),
+                        controller: _qtyController,
+                        placeholder: '1',
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        maxLines: 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 10,
+                        ),
+                        decoration: null,
                       ),
                     ),
-                  _buildInlineTextField(
-                    title: '消耗数量',
-                    child: CupertinoTextField(
-                      key: const ValueKey('stock_consumption_qty'),
-                      controller: _qtyController,
-                      placeholder: '1',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      maxLines: 1,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 10,
-                      ),
-                      decoration: null,
+                    const SizedBox(height: 12),
+                    _buildDateTimeRow(
+                      title: '消耗时间',
+                      value: StockpileFormat.dateTime(_consumedAt),
+                      onTap: _pickDateTime,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDateTimeRow(
-                    title: '消耗时间',
-                    value: StockpileFormat.dateTime(_consumedAt),
-                    onTap: _pickDateTime,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInlineTextField(
-                    title: '备注',
-                    child: CupertinoTextField(
-                      key: const ValueKey('stock_consumption_note'),
-                      controller: _noteController,
-                      placeholder: '可选',
-                      textInputAction: TextInputAction.done,
-                      maxLines: 1,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 10,
+                    const SizedBox(height: 12),
+                    _buildInlineTextField(
+                      title: '备注',
+                      child: CupertinoTextField(
+                        key: const ValueKey('stock_consumption_note'),
+                        controller: _noteController,
+                        placeholder: '可选',
+                        textInputAction: TextInputAction.done,
+                        maxLines: 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 10,
+                        ),
+                        decoration: null,
                       ),
-                      decoration: null,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+      ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(

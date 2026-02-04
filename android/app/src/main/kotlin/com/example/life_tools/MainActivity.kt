@@ -11,6 +11,12 @@ class MainActivity : FlutterActivity() {
     private val channelName = "life_tools/display"
     private val minModeApi = 23
 
+    override fun onResume() {
+        super.onResume()
+        // 某些机型在切后台/锁屏后会重置刷新率偏好；恢复时尽量再次请求高刷。
+        requestFrameRateSafely(90.0f)
+    }
+
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 

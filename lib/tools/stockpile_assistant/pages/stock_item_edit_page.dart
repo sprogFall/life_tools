@@ -148,109 +148,111 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
         title: isEdit ? '编辑物品' : '新增物品',
         showBackButton: true,
       ),
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  _buildFormCard(
-                    title: '名称',
-                    child: _buildTextField(
-                      key: const ValueKey('stock_item_name'),
-                      controller: _nameController,
-                      placeholder: '如：牛奶、抽纸',
-                      textInputAction: TextInputAction.next,
+      body: BackdropGroup(
+        child: _loading
+            ? const Center(child: CupertinoActivityIndicator())
+            : SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    _buildFormCard(
+                      title: '名称',
+                      child: _buildTextField(
+                        key: const ValueKey('stock_item_name'),
+                        controller: _nameController,
+                        placeholder: '如：牛奶、抽纸',
+                        textInputAction: TextInputAction.next,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildItemTypePicker(),
-                  const SizedBox(height: 12),
-                  _buildLocationPicker(),
-                  const SizedBox(height: 12),
-                  _buildFormCard(
-                    title: '数量',
-                    compact: true,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: _buildInlineLabeledField(
-                            label: '总数量',
-                            child: _buildTextField(
-                              key: const ValueKey('stock_item_total'),
-                              controller: _totalController,
-                              placeholder: '',
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              textInputAction: TextInputAction.next,
+                    const SizedBox(height: 12),
+                    _buildItemTypePicker(),
+                    const SizedBox(height: 12),
+                    _buildLocationPicker(),
+                    const SizedBox(height: 12),
+                    _buildFormCard(
+                      title: '数量',
+                      compact: true,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: _buildInlineLabeledField(
+                              label: '总数量',
+                              child: _buildTextField(
+                                key: const ValueKey('stock_item_total'),
+                                controller: _totalController,
+                                placeholder: '',
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                textInputAction: TextInputAction.next,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 1,
-                          child: _buildInlineLabeledField(
-                            label: '剩余数量',
-                            child: _buildTextField(
-                              key: const ValueKey('stock_item_remaining'),
-                              controller: _remainingController,
-                              placeholder: '',
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              textInputAction: TextInputAction.next,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 1,
+                            child: _buildInlineLabeledField(
+                              label: '剩余数量',
+                              child: _buildTextField(
+                                key: const ValueKey('stock_item_remaining'),
+                                controller: _remainingController,
+                                placeholder: '',
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                textInputAction: TextInputAction.next,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: _buildInlineLabeledField(
-                            label: '单位',
-                            child: _buildTextField(
-                              key: const ValueKey('stock_item_unit'),
-                              controller: _unitController,
-                              placeholder: '如：盒',
-                              textInputAction: TextInputAction.next,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: _buildInlineLabeledField(
+                              label: '单位',
+                              child: _buildTextField(
+                                key: const ValueKey('stock_item_unit'),
+                                controller: _unitController,
+                                placeholder: '如：盒',
+                                textInputAction: TextInputAction.next,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDateRow(
-                    title: '采购日期',
-                    value: StockpileFormat.date(_purchaseDate),
-                    onTap: () => _pickDate(
-                      initial: _purchaseDate,
-                      onSelected: (v) => setState(() => _purchaseDate = v),
+                    const SizedBox(height: 12),
+                    _buildDateRow(
+                      title: '采购日期',
+                      value: StockpileFormat.date(_purchaseDate),
+                      onTap: () => _pickDate(
+                        initial: _purchaseDate,
+                        onSelected: (v) => setState(() => _purchaseDate = v),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildExpirySection(),
-                  const SizedBox(height: 12),
-                  _buildRestockSection(),
-                  const SizedBox(height: 12),
-                  _buildFormCard(
-                    title: '备注',
-                    compact: true,
-                    child: _buildTextField(
-                      key: const ValueKey('stock_item_note'),
-                      controller: _noteController,
-                      placeholder: '可选',
-                      maxLines: 3,
-                      textInputAction: TextInputAction.newline,
+                    const SizedBox(height: 12),
+                    _buildExpirySection(),
+                    const SizedBox(height: 12),
+                    _buildRestockSection(),
+                    const SizedBox(height: 12),
+                    _buildFormCard(
+                      title: '备注',
+                      compact: true,
+                      child: _buildTextField(
+                        key: const ValueKey('stock_item_note'),
+                        controller: _noteController,
+                        placeholder: '可选',
+                        maxLines: 3,
+                        textInputAction: TextInputAction.newline,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+      ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(

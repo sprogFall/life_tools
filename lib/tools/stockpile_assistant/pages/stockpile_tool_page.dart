@@ -7,6 +7,7 @@ import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_floating_icon_button.dart';
 import '../../../pages/home_page.dart';
 import '../../work_log/pages/task/work_log_voice_input_sheet.dart';
 import '../ai/stockpile_ai_assistant.dart';
@@ -166,39 +167,13 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                   ],
                 ),
               ),
-              _buildAiEntryButton(context),
+              IOS26FloatingIconButton(
+                buttonKey: const ValueKey('stockpile_ai_input_button'),
+                icon: CupertinoIcons.sparkles,
+                semanticLabel: 'AI录入',
+                onPressed: _openAiInput,
+              ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAiEntryButton(BuildContext context) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 18,
-      child: Center(
-        child: GlassContainer(
-          borderRadius: 999,
-          padding: const EdgeInsets.all(6),
-          child: CupertinoButton(
-            key: const ValueKey('stockpile_ai_input_button'),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            onPressed: _openAiInput,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  CupertinoIcons.sparkles,
-                  size: 18,
-                  color: IOS26Theme.primaryColor,
-                ),
-                const SizedBox(width: 8),
-                Text('AI录入', style: IOS26Theme.labelLarge),
-              ],
-            ),
           ),
         ),
       ),

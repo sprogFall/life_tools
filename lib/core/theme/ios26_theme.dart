@@ -239,6 +239,7 @@ class GlassContainer extends StatelessWidget {
   final double blur;
   final Color? color;
   final Border? border;
+  final bool disableBlurDuringRouteTransition;
 
   const GlassContainer({
     super.key,
@@ -249,10 +250,41 @@ class GlassContainer extends StatelessWidget {
     this.blur = 20,
     this.color,
     this.border,
+    this.disableBlurDuringRouteTransition = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final routeAnimation = ModalRoute.of(context)?.animation;
+    if (disableBlurDuringRouteTransition && routeAnimation != null) {
+      return AnimatedBuilder(
+        animation: routeAnimation,
+        builder: (context, _) {
+          final status = routeAnimation.status;
+          final isAnimating =
+              status == AnimationStatus.forward ||
+              status == AnimationStatus.reverse;
+          return _buildWithBlur(context, isAnimating ? 0 : blur);
+        },
+      );
+    }
+
+    return _buildWithBlur(context, blur);
+  }
+
+  Widget _buildWithBlur(BuildContext context, double effectiveBlur) {
+    final inner = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: color ?? IOS26Theme.glassColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border:
+            border ??
+            Border.all(color: IOS26Theme.glassBorderColor, width: 0.5),
+      ),
+      child: child,
+    );
+
     return Container(
       margin: margin,
       decoration: BoxDecoration(
@@ -267,20 +299,15 @@ class GlassContainer extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter.grouped(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              color: color ?? IOS26Theme.glassColor,
-              borderRadius: BorderRadius.circular(borderRadius),
-              border:
-                  border ??
-                  Border.all(color: IOS26Theme.glassBorderColor, width: 0.5),
-            ),
-            child: child,
-          ),
-        ),
+        child: effectiveBlur <= 0
+            ? inner
+            : BackdropFilter.grouped(
+                filter: ImageFilter.blur(
+                  sigmaX: effectiveBlur,
+                  sigmaY: effectiveBlur,
+                ),
+                child: inner,
+              ),
       ),
     );
   }

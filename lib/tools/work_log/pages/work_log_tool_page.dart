@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/tags/tag_repository.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_floating_icon_button.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
 import '../ai/work_log_ai_intent.dart';
@@ -189,39 +190,14 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                   ],
                 ),
               ),
-              if (_tab == 0) _buildVoiceEntryButton(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVoiceEntryButton(BuildContext context) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 18,
-      child: Center(
-        child: GlassContainer(
-          borderRadius: 999,
-          padding: const EdgeInsets.all(6),
-          child: CupertinoButton(
-            key: const ValueKey('work_log_ai_input_button'),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            onPressed: _openVoiceInput,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  CupertinoIcons.sparkles,
-                  size: 18,
-                  color: IOS26Theme.primaryColor,
+              if (_tab == 0)
+                IOS26FloatingIconButton(
+                  buttonKey: const ValueKey('work_log_ai_input_button'),
+                  icon: CupertinoIcons.sparkles,
+                  semanticLabel: 'AI录入',
+                  onPressed: _openVoiceInput,
                 ),
-                const SizedBox(width: 8),
-                Text('AI录入', style: IOS26Theme.labelLarge),
-              ],
-            ),
+            ],
           ),
         ),
       ),

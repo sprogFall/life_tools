@@ -162,6 +162,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
 
+    // Android 设备可能在切后台/省电策略后回退刷新率：恢复时再尝试请求高刷。
+    if (Platform.isAndroid) {
+      Future.microtask(
+        () => DisplayRefreshRateService().tryRequestPreferredHz(90),
+      );
+    }
+
     // 日常清理：把已过期的消息（例如“愿望单提醒”）从消息中心移除
     Future.microtask(
       () => widget.messageService.purgeExpired(now: DateTime.now()),
