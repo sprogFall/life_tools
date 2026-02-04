@@ -261,7 +261,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           if (!_qiniuUseHttps) ...[
             const SizedBox(height: 8),
             Text(
-              '安全提示：HTTP 为明文传输，AK/SK/文件内容可能被截获，仅建议内网调试使用。',
+              '安全提示：HTTP 为明文传输，访问密钥/文件内容可能被截获，仅建议内网调试使用。',
               style: IOS26Theme.bodySmall.copyWith(
                 color: IOS26Theme.toolRed,
                 height: 1.4,
@@ -270,7 +270,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ],
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'AccessKey（AK）',
+            label: 'AccessKey（访问密钥）',
             child: CupertinoTextField(
               controller: _qiniuAccessKeyController,
               placeholder: '如：xxxxx',
@@ -282,7 +282,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'SecretKey（SK）',
+            label: 'SecretKey（私密密钥）',
             child: CupertinoTextField(
               controller: _qiniuSecretKeyController,
               placeholder: '如：xxxxx',
@@ -531,11 +531,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           SizedBox(height: 10),
           Text(
             '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
-            '2. 七牛云存储会在本机生成上传 Token 并直接上传到七牛。\n'
-            '3. 七牛私有空间查询会生成带签名的临时下载链接（带 e/token）。\n'
-            '4. 数据胶囊固定使用 HTTPS + 路径风格 + 私有空间，Region 固定 us-east-1；上传使用 PUT 直传，私有查询会生成带 X-Amz-* 的临时链接（默认 30 分钟）。\n'
-            '5. AK/SK 属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议由服务端下发上传凭证（uploadToken）。\n'
-            '6. 若数据胶囊配置了 Domain（自定义访问域名），私有空间建议使用与 Endpoint 同源的域名，否则可能因签名校验导致“可访问=否”。',
+            '2. 七牛云存储会在本机生成上传凭证并直接上传到七牛。\n'
+            '3. 七牛私有空间查询会生成带签名的临时下载链接。\n'
+            '4. 数据胶囊为私有空间，查询会生成带签名的临时链接（默认 30 分钟）。\n'
+            '5. 访问密钥属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议使用服务端下发的上传凭证。\n'
+            '6. 如配置了自定义访问域名，请确保与服务端配置一致，避免出现“可访问=否”。',
             style: IOS26Theme.bodySmall.copyWith(height: 1.5),
           ),
         ],
@@ -800,7 +800,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     final ok = await AppDialogs.showConfirm(
       context,
       title: '确认清除',
-      content: '将清除资源存储的所有配置（包括 AK/SK）',
+      content: '将清除资源存储的所有配置（包含密钥等敏感信息）',
       confirmText: '清除',
       isDestructive: true,
     );
@@ -846,7 +846,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               final ok = await AppDialogs.showConfirm(
                 context,
                 title: '复制原始 URI？',
-                content: '原始 URI 可能包含签名/Token 等敏感信息，复制后请勿截图或分享。',
+                content: '原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。',
                 confirmText: '复制',
               );
               if (!ok) return;
@@ -887,9 +887,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               final confirmed = await AppDialogs.showConfirm(
                 context,
                 title: '复制原始 URI？',
-                content: '原始 URI 可能包含签名/Token 等敏感信息，复制后请勿截图或分享。',
-                confirmText: '复制',
-              );
+                  content: '原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。',
+                  confirmText: '复制',
+                );
               if (!confirmed) return;
               await Clipboard.setData(
                 ClipboardData(text: 'URI: $uri\n可访问: ${ok ? '是' : '否'}'),

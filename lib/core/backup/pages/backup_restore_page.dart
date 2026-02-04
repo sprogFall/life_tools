@@ -118,7 +118,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 10),
           _buildHint('将以下内容导出为 JSON（大数据量推荐导出为 TXT 文件）：'),
           const SizedBox(height: 6),
-          _buildHint('1) AI 配置（Base URL / 模型 / 参数）'),
+          _buildHint('1) AI 配置（接口地址 / 模型 / 参数）'),
           _buildHint('2) 数据同步配置（服务器/网络模式等）'),
           _buildHint('3) 资源存储配置（七牛/本地）'),
           _buildHint('4) 工具管理（默认进入/首页显示/工具排序等应用配置）'),
@@ -128,7 +128,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
             children: [
               Expanded(
                 child: Text(
-                  '包含敏感信息（AI Key / Token / 七牛 AKSK）',
+                  '包含敏感信息（AI 密钥 / 同步令牌 / 存储密钥）',
                   style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.textSecondary,
@@ -145,8 +145,8 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 6),
           _buildHint(
             _includeSensitive
-                ? '默认已开启：导出内容会包含密钥/Token，分享前请确认接收方可信。'
-                : '已关闭：不会导出密钥/Token（更安全，导入后可在设置页重新填写）。',
+                ? '默认已开启：导出内容会包含密钥/令牌，分享前请确认接收方可信。'
+                : '已关闭：不导出密钥/令牌（更安全，导入后可在设置页重新填写）。',
           ),
           const SizedBox(height: 12),
           SizedBox(

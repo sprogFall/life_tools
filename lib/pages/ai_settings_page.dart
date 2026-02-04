@@ -99,7 +99,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           const SectionHeader(title: 'OpenAI 兼容配置', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'Base URL',
+            label: '接口地址（Base URL）',
             child: CupertinoTextField(
               key: const ValueKey('ai_baseUrl_field'),
               controller: _baseUrlController,
@@ -111,7 +111,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'API Key',
+            label: 'API 密钥（Key）',
             child: CupertinoTextField(
               key: const ValueKey('ai_apiKey_field'),
               controller: _apiKeyController,
@@ -132,7 +132,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: 'Model',
+            label: '模型（Model）',
             child: CupertinoTextField(
               key: const ValueKey('ai_model_field'),
               controller: _modelController,
@@ -146,7 +146,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
             children: [
               Expanded(
                 child: _buildLabeledField(
-                  label: 'Temperature',
+                  label: '温度（Temperature）',
                   child: CupertinoTextField(
                     key: const ValueKey('ai_temperature_field'),
                     controller: _temperatureController,
@@ -161,7 +161,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildLabeledField(
-                  label: 'Max Tokens',
+                  label: '最大输出（Max Tokens）',
                   child: CupertinoTextField(
                     key: const ValueKey('ai_maxTokens_field'),
                     controller: _maxOutputTokensController,
@@ -201,9 +201,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           const SectionHeader(title: '说明', padding: EdgeInsets.zero),
           const SizedBox(height: 10),
           Text(
-            '1. Base URL 支持填写到域名（如 https://example.com），也支持直接填写到 /v1。\n'
-            '2. 该配置用于 OpenAI 格式的 /v1/chat/completions。\n'
-            '3. API Key 将保存在本地设备（SharedPreferences）。',
+            '1. 接口地址支持填写到域名（如 https://example.com），也可直接填写到 /v1。\n'
+            '2. 当前使用 OpenAI 兼容接口：/v1/chat/completions。\n'
+            '3. API 密钥将保存在本机（SharedPreferences）。',
             style: IOS26Theme.bodySmall.copyWith(height: 1.5),
           ),
         ],
@@ -276,8 +276,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       await AppDialogs.showInfo(
         context,
         title: '提示',
-        content:
-            '请检查配置项：Base URL / API Key / Model 不能为空，Temperature 范围 0~2，Max Tokens > 0',
+        content: '请检查配置项：接口地址 / API 密钥 / 模型不能为空；温度范围 0~2；最大输出 > 0。',
       );
       return;
     }

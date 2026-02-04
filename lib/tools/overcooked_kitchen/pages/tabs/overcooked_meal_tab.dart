@@ -147,7 +147,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('今日做菜量（菜谱去重）', style: IOS26Theme.bodySmall),
+                      Text('今日做过的菜谱数', style: IOS26Theme.bodySmall),
                       const SizedBox(height: 6),
                       Text(
                         '$distinctTypeCount',

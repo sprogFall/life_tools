@@ -114,7 +114,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('热力图（按"菜谱去重"的每日做菜量）', style: IOS26Theme.titleSmall),
+              Text('热力图（每日做过的菜谱数）', style: IOS26Theme.titleSmall),
               const SizedBox(height: 10),
               _weekdayHeader(),
               const SizedBox(height: 10),

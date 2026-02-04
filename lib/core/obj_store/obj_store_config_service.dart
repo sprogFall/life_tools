@@ -65,7 +65,7 @@ class ObjStoreConfigService extends ChangeNotifier {
     if (normalized.type == ObjStoreType.qiniu) {
       if (secrets == null || !secrets.isValid) {
         if (!allowMissingSecrets) {
-          throw const FormatException('七牛云存储需要填写 AK/SK');
+          throw const FormatException('七牛云存储需要填写访问密钥');
         }
         _qiniuSecrets = null;
         await _secretStore.delete(key: _qiniuAccessKey);
@@ -88,7 +88,7 @@ class ObjStoreConfigService extends ChangeNotifier {
     } else if (normalized.type == ObjStoreType.dataCapsule) {
       if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
         if (!allowMissingSecrets) {
-          throw const FormatException('数据胶囊存储需要填写AK/SK');
+          throw const FormatException('数据胶囊存储需要填写访问密钥');
         }
         _dataCapsuleSecrets = null;
         await _secretStore.delete(key: _dataCapsuleAccessKey);

@@ -427,7 +427,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               if (lastError != null) ...[
                 const SizedBox(height: 10),
                 Text(
-                  '错误信息（便于调试）：',
+                  '错误详情：',
                   style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.toolRed,
@@ -601,7 +601,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     await AppDialogs.showInfo(
       context,
       title: ok ? '同步完成' : '同步失败',
-      content: ok ? '已完成同步' : '请查看页面内的错误信息（便于调试）',
+      content: ok ? '已完成同步' : '请查看页面内的错误详情',
     );
   }
 

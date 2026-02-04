@@ -89,7 +89,7 @@ class AiService {
   }) async {
     if (!config.isValid) {
       throw const AiNotConfiguredException(
-        'AI 配置不合法，请检查 Base URL / API Key / Model 等配置',
+        'AI 配置不合法，请检查接口地址 / API 密钥 / 模型等配置',
       );
     }
 

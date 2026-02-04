@@ -331,7 +331,7 @@ class ObjStoreService {
           );
         }
         if (secrets == null || !secrets.isValid) {
-          throw const ObjStoreNotConfiguredException('请先填写七牛云 AK/SK');
+          throw const ObjStoreNotConfiguredException('请先填写七牛云访问密钥');
         }
         final key = ObjStoreKey.generate(
           filename: filename,
@@ -374,7 +374,7 @@ class ObjStoreService {
           );
         }
         if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
-          throw const ObjStoreNotConfiguredException('请先填写数据胶囊 AK/SK');
+          throw const ObjStoreNotConfiguredException('请先填写数据胶囊访问密钥');
         }
 
         final bucket = normalizedConfig.dataCapsuleBucket!.trim();
@@ -474,7 +474,7 @@ class ObjStoreService {
         if (isHttpUrl) {
           if (!isPrivate) return trimmed;
           if (secrets == null || !secrets.isValid) {
-            throw const ObjStoreNotConfiguredException('私有空间查询需要填写七牛云 AK/SK');
+            throw const ObjStoreNotConfiguredException('私有空间查询需要填写七牛云访问密钥');
           }
 
           final objectKey = parsed.pathSegments.join('/');
@@ -496,7 +496,7 @@ class ObjStoreService {
           );
         }
         if (secrets == null || !secrets.isValid) {
-          throw const ObjStoreNotConfiguredException('私有空间查询需要填写七牛云 AK/SK');
+          throw const ObjStoreNotConfiguredException('私有空间查询需要填写七牛云访问密钥');
         }
         return _qiniuClient.buildPrivateUrl(
           domain: normalizedConfig.domain!.trim(),
@@ -530,7 +530,7 @@ class ObjStoreService {
         if (isHttpUrl) {
           if (!isPrivate) return trimmed;
           if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
-            throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊 AK/SK');
+            throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊访问密钥');
           }
           final objectKey = _extractDataCapsuleObjectKeyFromUrl(
             uri: parsed,
@@ -563,7 +563,7 @@ class ObjStoreService {
           );
         }
         if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
-          throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊 AK/SK');
+          throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊访问密钥');
         }
         return _dataCapsuleClient.buildPrivateGetUrl(
           base: base,
@@ -616,7 +616,7 @@ class ObjStoreService {
 
         if (isPrivate) {
           if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
-            throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊 AK/SK');
+            throw const ObjStoreNotConfiguredException('私有空间查询需要填写数据胶囊访问密钥');
           }
 
           final trimmed = key.trim();
