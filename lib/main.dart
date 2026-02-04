@@ -28,6 +28,7 @@ import 'core/tags/built_in_tag_categories.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
 import 'core/widgets/ios26_toast.dart';
+import 'core/widgets/startup_wrapper.dart';
 import 'pages/home_page.dart';
 import 'tools/overcooked_kitchen/services/overcooked_reminder_service.dart';
 import 'tools/stockpile_assistant/services/stockpile_reminder_service.dart';
@@ -145,10 +146,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (Platform.isAndroid || Platform.isIOS) {
       _receiveShareService.init(_handleReceivedShare);
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _triggerStartupSyncIfNeeded();
-    });
   }
 
   @override
@@ -217,29 +214,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _triggerStartupSyncIfNeeded() async {
-    if (!mounted) return;
-
-    final config = context.read<SyncConfigService>().config;
-    final shouldAutoSync = config?.autoSyncOnStartup ?? false;
-    if (!shouldAutoSync) return;
-
-    final syncService = context.read<SyncService>();
-    final toastService = context.read<ToastService>();
-
-    final ok = await syncService.sync();
-    if (!mounted) return;
-
-    if (ok) {
-      toastService.showSuccess('同步成功');
-      return;
-    }
-
-    final reason = (syncService.lastError ?? '未知原因').trim();
-    final firstLine = reason.split('\n').first.trim();
-    toastService.showError('同步失败：$firstLine');
-  }
-
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -284,7 +258,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         builder: (context, child) {
           return Stack(
             children: [
-              child ?? const SizedBox.shrink(),
+              StartupWrapper(child: child ?? const SizedBox.shrink()),
               const IOS26ToastOverlay(),
             ],
           );
