@@ -9,6 +9,7 @@ class AppScaffold extends StatelessWidget {
   final Color? backgroundColor;
   final bool useSafeArea;
   final bool withBackgroundDecor;
+  final bool withBackdropGroup;
 
   const AppScaffold({
     super.key,
@@ -17,20 +18,22 @@ class AppScaffold extends StatelessWidget {
     this.backgroundColor,
     this.useSafeArea = true,
     this.withBackgroundDecor = true,
+    this.withBackdropGroup = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final content = Stack(
+      children: [
+        if (withBackgroundDecor) ..._buildDecorations(),
+        _buildBody(),
+      ],
+    );
     return Scaffold(
       backgroundColor: backgroundColor ?? IOS26Theme.backgroundColor,
       extendBodyBehindAppBar: true, // 让背景延伸到 AppBar 下方
       appBar: appBar,
-      body: Stack(
-        children: [
-          if (withBackgroundDecor) ..._buildDecorations(),
-          _buildBody(),
-        ],
-      ),
+      body: withBackdropGroup ? BackdropGroup(child: content) : content,
     );
   }
 

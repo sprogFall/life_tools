@@ -67,128 +67,131 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       value: _service,
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
-        body: Stack(
-          children: [
-            Positioned(
-              top: -80,
-              left: -80,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      IOS26Theme.toolBlue.withValues(alpha: 0.15),
-                      IOS26Theme.toolBlue.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              right: -100,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      IOS26Theme.toolPurple.withValues(alpha: 0.12),
-                      IOS26Theme.toolPurple.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Column(
-                children: [
-                  IOS26AppBar(
-                    title: '工作记录',
-                    leading: CupertinoButton(
-                      padding: const EdgeInsets.all(8),
-                      onPressed: () => _navigateToHome(context),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            CupertinoIcons.home,
-                            color: IOS26Theme.primaryColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '首页',
-                            style: IOS26Theme.labelLarge.copyWith(
-                              color: IOS26Theme.primaryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    actions: [
-                      CupertinoButton(
-                        padding: const EdgeInsets.all(8),
-                        onPressed: _openOperationLogs,
-                        child: const Icon(
-                          CupertinoIcons.time,
-                          color: IOS26Theme.primaryColor,
-                          size: 22,
-                        ),
-                      ),
-                      if (_tab == 0)
-                        Builder(
-                          builder: (context) => CupertinoButton(
-                            key: const ValueKey('work_log_sort_button'),
-                            padding: const EdgeInsets.all(8),
-                            onPressed: () {
-                              final service = context.read<WorkLogService>();
-                              Navigator.of(context).push(
-                                CupertinoPageRoute(
-                                  builder: (_) => ChangeNotifierProvider.value(
-                                    value: service,
-                                    child: const WorkTaskSortPage(),
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Icon(
-                              CupertinoIcons.arrow_up_arrow_down,
-                              color: IOS26Theme.primaryColor,
-                              size: 22,
-                            ),
-                          ),
-                        ),
-                      CupertinoButton(
-                        padding: const EdgeInsets.all(8),
-                        onPressed: _onPressedAdd,
-                        child: const Icon(
-                          CupertinoIcons.add,
-                          color: IOS26Theme.primaryColor,
-                          size: 24,
-                        ),
-                      ),
-                    ],
-                  ),
-                  _buildPageIndicator(),
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      onPageChanged: (index) => setState(() => _tab = index),
-                      children: const [
-                        WorkTaskListView(key: ValueKey('tasks')),
-                        WorkLogCalendarView(key: ValueKey('calendar')),
+        body: BackdropGroup(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -80,
+                left: -80,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        IOS26Theme.toolBlue.withValues(alpha: 0.15),
+                        IOS26Theme.toolBlue.withValues(alpha: 0.0),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            if (_tab == 0) _buildVoiceEntryButton(context),
-          ],
+              Positioned(
+                bottom: -100,
+                right: -100,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        IOS26Theme.toolPurple.withValues(alpha: 0.12),
+                        IOS26Theme.toolPurple.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Column(
+                  children: [
+                    IOS26AppBar(
+                      title: '工作记录',
+                      leading: CupertinoButton(
+                        padding: const EdgeInsets.all(8),
+                        onPressed: () => _navigateToHome(context),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              CupertinoIcons.home,
+                              color: IOS26Theme.primaryColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '首页',
+                              style: IOS26Theme.labelLarge.copyWith(
+                                color: IOS26Theme.primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        CupertinoButton(
+                          padding: const EdgeInsets.all(8),
+                          onPressed: _openOperationLogs,
+                          child: const Icon(
+                            CupertinoIcons.time,
+                            color: IOS26Theme.primaryColor,
+                            size: 22,
+                          ),
+                        ),
+                        if (_tab == 0)
+                          Builder(
+                            builder: (context) => CupertinoButton(
+                              key: const ValueKey('work_log_sort_button'),
+                              padding: const EdgeInsets.all(8),
+                              onPressed: () {
+                                final service = context.read<WorkLogService>();
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (_) =>
+                                        ChangeNotifierProvider.value(
+                                          value: service,
+                                          child: const WorkTaskSortPage(),
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: const Icon(
+                                CupertinoIcons.arrow_up_arrow_down,
+                                color: IOS26Theme.primaryColor,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                        CupertinoButton(
+                          padding: const EdgeInsets.all(8),
+                          onPressed: _onPressedAdd,
+                          child: const Icon(
+                            CupertinoIcons.add,
+                            color: IOS26Theme.primaryColor,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    _buildPageIndicator(),
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: (index) => setState(() => _tab = index),
+                        children: const [
+                          WorkTaskListView(key: ValueKey('tasks')),
+                          WorkLogCalendarView(key: ValueKey('calendar')),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_tab == 0) _buildVoiceEntryButton(context),
+            ],
+          ),
         ),
       ),
     );
