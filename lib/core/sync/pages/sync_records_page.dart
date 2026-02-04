@@ -6,7 +6,7 @@ import '../../theme/ios26_theme.dart';
 import '../../ui/app_dialogs.dart';
 import '../../ui/app_navigator.dart';
 import '../../ui/app_scaffold.dart';
-import '../../widgets/ios26_settings_row.dart';
+import '../logic/sync_diff_presenter.dart';
 import '../models/sync_config.dart';
 import '../models/sync_record.dart';
 import '../models/sync_response_v2.dart';
@@ -236,37 +236,75 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
     final directionText = switch (record.decision) {
       SyncDecision.useClient => '客户端 → 服务端',
       SyncDecision.useServer => '服务端 → 客户端',
-      SyncDecision.rollback => '回退（服务端）',
-      _ => '未知',
+      SyncDecision.rollback => '服务端回退',
+      _ => '未知操作',
     };
 
-    final valueText = [
-      _timeFormat.format(record.serverTime),
-      if (changedTools != null) '变更工具 $changedTools',
-      if (diffItems != null) '差异 $diffItems${truncated ? "+" : ""}',
-    ].join(' · ');
+    final summaryParts = <String>[];
+    if (changedTools != null) summaryParts.add('变更工具 $changedTools');
+    if (diffItems != null) summaryParts.add('变更项 $diffItems${truncated ? "+" : ""}');
+    final summaryText = summaryParts.isEmpty ? '无主要变更' : summaryParts.join(' · ');
 
-    final icon = switch (record.decision) {
-      SyncDecision.useClient => CupertinoIcons.arrow_up_circle,
-      SyncDecision.useServer => CupertinoIcons.arrow_down_circle,
-      SyncDecision.rollback => CupertinoIcons.arrow_counterclockwise_circle,
-      _ => CupertinoIcons.info_circle,
+    final iconData = switch (record.decision) {
+      SyncDecision.useClient => CupertinoIcons.arrow_up_circle_fill,
+      SyncDecision.useServer => CupertinoIcons.arrow_down_circle_fill,
+      SyncDecision.rollback => CupertinoIcons.arrow_counterclockwise_circle_fill,
+      _ => CupertinoIcons.info_circle_fill,
+    };
+
+    final iconColor = switch (record.decision) {
+      SyncDecision.useClient => CupertinoColors.activeGreen,
+      SyncDecision.useServer => CupertinoColors.systemBlue,
+      SyncDecision.rollback => CupertinoColors.systemOrange,
+      _ => CupertinoColors.systemGrey,
     };
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: GlassContainer(
+      child: CupertinoButton(
         padding: EdgeInsets.zero,
-        child: IOS26SettingsRow(
-          icon: icon,
-          title: directionText,
-          value: valueText,
-          onTap: () {
-            AppNavigator.push(
-              context,
-              SyncRecordDetailPage(recordId: record.id),
-            );
-          },
+        onPressed: () {
+          AppNavigator.push(
+            context,
+            SyncRecordDetailPage(recordId: record.id),
+          );
+        },
+        child: GlassContainer(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(iconData, color: iconColor, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      directionText,
+                      style: IOS26Theme.titleMedium,
+                    ),
+                  ),
+                  Text(
+                    _timeFormat.format(record.serverTime),
+                    style: IOS26Theme.bodySmall.copyWith(
+                      color: IOS26Theme.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 36),
+                child: Text(
+                  summaryText,
+                  style: IOS26Theme.bodySmall.copyWith(
+                    color: IOS26Theme.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -451,7 +489,62 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
   Widget _buildRollbackCard(SyncRecord record) {
     final canRollback = record.serverRevisionBefore > 0;
     final targetRevision = record.serverRevisionBefore;
-    final targetText = canRollback ? 'rev $targetRevision' : '无可回退版本';
+    final targetText = canRollback ? '版本号 $targetRevision' : '无可恢复版本';
+
+    Widget buildOption({
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required String value,
+      required VoidCallback? onTap,
+    }) {
+      return CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: IOS26Theme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: IOS26Theme.bodySmall.copyWith(
+                        color: IOS26Theme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                value,
+                style: IOS26Theme.bodyMedium,
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                CupertinoIcons.chevron_right,
+                color: IOS26Theme.textTertiary,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return GlassContainer(
       padding: EdgeInsets.zero,
@@ -460,18 +553,19 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Text('回退', style: IOS26Theme.titleMedium),
+            child: Text('版本恢复', style: IOS26Theme.titleMedium),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
-              '仅在你明确知道要恢复到哪个历史版本时使用。回退会产生新的服务端版本，并记录到同步记录。',
+              '您可以将数据恢复到此同步记录之前的状态。',
               style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
             ),
           ),
-          IOS26SettingsRow(
+          buildOption(
             icon: CupertinoIcons.arrow_counterclockwise_circle,
-            title: '回退服务端并覆盖本地（推荐）',
+            title: '恢复到此版本',
+            subtitle: '云端和本地都将回退',
             value: targetText,
             onTap: (!_rollbackBusy && canRollback)
                 ? () => _confirmAndRollbackServer(targetRevision)
@@ -482,9 +576,10 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
             margin: const EdgeInsets.symmetric(horizontal: 16),
             color: IOS26Theme.textTertiary.withValues(alpha: 0.15),
           ),
-          IOS26SettingsRow(
+          buildOption(
             icon: CupertinoIcons.device_phone_portrait,
-            title: '仅覆盖本地（不修改服务端）',
+            title: '仅恢复本地',
+            subtitle: '仅本地预览，不影响云端',
             value: targetText,
             onTap: (!_rollbackBusy && canRollback)
                 ? () => _confirmAndRollbackLocal(targetRevision)
@@ -677,6 +772,15 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
       if (same) continue;
 
       final diffItems = (toolData['diff_items'] as List?) ?? const [];
+      
+      // Filter out length_changed
+      final filteredItems = diffItems.where((e) {
+        if (e is! Map) return false;
+        return e['change'] != 'length_changed';
+      }).toList();
+
+      if (filteredItems.isEmpty) continue;
+
       cards.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -685,17 +789,14 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(toolId, style: IOS26Theme.titleMedium),
+                Text(
+                  SyncDiffPresenter.getToolName(toolId),
+                  style: IOS26Theme.titleMedium,
+                ),
                 const SizedBox(height: 8),
-                if (diffItems.isEmpty)
-                  Text(
-                    '无可展示的差异条目（可能已截断）',
-                    style: IOS26Theme.bodySmall.copyWith(
-                      color: IOS26Theme.textSecondary,
+                ...filteredItems.take(80).map(
+                      (e) => _buildDiffLine(toolId, e),
                     ),
-                  )
-                else
-                  ...diffItems.take(80).map((e) => _buildDiffLine(e)),
               ],
             ),
           ),
@@ -708,7 +809,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
         GlassContainer(
           padding: const EdgeInsets.all(16),
           child: Text(
-            '无差异（或差异已被截断）',
+            '无实质性数据变更（仅包含被忽略的长度变化）',
             style: IOS26Theme.bodyMedium.copyWith(color: IOS26Theme.textSecondary),
           ),
         ),
@@ -718,7 +819,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
     return cards;
   }
 
-  Widget _buildDiffLine(dynamic raw) {
+  Widget _buildDiffLine(String toolId, dynamic raw) {
     if (raw is! Map) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 6),
@@ -729,41 +830,37 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
       );
     }
 
-    final path = (raw['path'] as String?) ?? '';
-    final change = (raw['change'] as String?) ?? '';
-
-    final label = switch (change) {
-      'added' => '新增',
-      'removed' => '删除',
-      'type_changed' => '类型变化',
-      'length_changed' => '长度变化',
-      'value_changed' => '值变化',
-      'list_truncated' => '列表截断',
-      'depth_truncated' => '深度截断',
-      _ => change.isEmpty ? '变化' : change,
-    };
-
-    final extra = <String>[];
-    if (change == 'length_changed') {
-      extra.add('${raw['server']} → ${raw['client']}');
-    }
-    if (change == 'type_changed') {
-      final st = raw['server_type'];
-      final ct = raw['client_type'];
-      if (st != null && ct != null) {
-        extra.add('$st → $ct');
-      }
-    }
-
-    final text = extra.isEmpty
-        ? '• [$label] $path'
-        : '• [$label] $path（${extra.join("，")}）';
+    final display = SyncDiffPresenter.formatDiffItem(toolId, raw);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Container(
+             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+             decoration: BoxDecoration(
+               color: display.color.withValues(alpha: 0.1),
+               borderRadius: BorderRadius.circular(4),
+             ),
+             child: Text(
+               display.label,
+               style: IOS26Theme.bodySmall.copyWith(
+                 color: display.color,
+                 fontSize: 10,
+               ),
+             ),
+           ),
+           const SizedBox(width: 6),
+           Expanded(
+             child: Text(
+               display.details.isNotEmpty
+                   ? '${display.path} (${display.details})'
+                   : display.path,
+               style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+             ),
+           ),
+        ],
       ),
     );
   }
