@@ -1,10 +1,7 @@
 import 'dart:async';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/obj_store/obj_store_errors.dart';
@@ -13,6 +10,7 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/utils/image_selector.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../overcooked_constants.dart';
@@ -21,13 +19,6 @@ import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_image.dart';
 import '../../widgets/overcooked_tag_picker_sheet.dart';
-
-class _PendingImage {
-  final String filename;
-  final Uint8List bytes;
-
-  const _PendingImage({required this.filename, required this.bytes});
-}
 
 class OvercookedRecipeEditPage extends StatefulWidget {
   final OvercookedRecipe? initial;
@@ -44,7 +35,6 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   final _nameController = TextEditingController();
   final _introController = TextEditingController();
   final _contentController = TextEditingController();
-  final _imagePicker = ImagePicker();
 
   bool _saving = false;
   bool _loading = false;
@@ -52,8 +42,8 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   String? _coverKey;
   List<String> _detailKeys = [];
 
-  _PendingImage? _pendingCover;
-  final List<_PendingImage> _pendingDetailImages = [];
+  PickedImageBytes? _pendingCover;
+  final List<PickedImageBytes> _pendingDetailImages = [];
 
   int? _typeTagId;
   Set<int> _ingredientTagIds = {};
@@ -561,7 +551,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Widget _buildPendingImage(
-    _PendingImage img, {
+    PickedImageBytes img, {
     required double borderRadius,
     BoxFit fit = BoxFit.cover,
   }) {
@@ -661,133 +651,17 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Future<void> _pickCover() async {
-    final picked = await _pickSingleImage();
+    final picked = await ImageSelector.pickSingle();
     if (!mounted) return;
     if (picked == null) return;
     setState(() => _pendingCover = picked);
   }
 
   Future<void> _pickDetailImages() async {
-    final picked = await _pickMultipleImages();
+    final picked = await ImageSelector.pickMulti();
     if (!mounted) return;
     if (picked.isEmpty) return;
     setState(() => _pendingDetailImages.addAll(picked));
-  }
-
-  bool get _useImagePickerForImages {
-    if (kIsWeb) return false;
-    return defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS;
-  }
-
-  Future<_PendingImage?> _pickSingleImage() async {
-    final img = _useImagePickerForImages
-        ? await _pickSingleImageByImagePicker()
-        : await _pickSingleImageByFilePicker();
-    if (img == null) return null;
-    if (img.bytes.isEmpty) return null;
-    return img;
-  }
-
-  Future<List<_PendingImage>> _pickMultipleImages() async {
-    final images = _useImagePickerForImages
-        ? await _pickMultipleImagesByImagePicker()
-        : await _pickMultipleImagesByFilePicker();
-    return images.where((e) => e.bytes.isNotEmpty).toList(growable: false);
-  }
-
-  Future<_PendingImage?> _pickSingleImageByImagePicker() async {
-    final x = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (x == null) return null;
-    final bytes = await x.readAsBytes();
-    if (bytes.isEmpty) return null;
-    return _PendingImage(filename: x.name, bytes: bytes);
-  }
-
-  Future<List<_PendingImage>> _pickMultipleImagesByImagePicker() async {
-    final list = await _imagePicker.pickMultiImage();
-    if (list.isEmpty) return const [];
-
-    final out = <_PendingImage>[];
-    for (final x in list) {
-      final bytes = await x.readAsBytes();
-      if (bytes.isEmpty) continue;
-      out.add(_PendingImage(filename: x.name, bytes: bytes));
-    }
-    return out;
-  }
-
-  Future<_PendingImage?> _pickSingleImageByFilePicker() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        withData: true,
-        type: FileType.image,
-      );
-      if (result == null || result.files.isEmpty) return null;
-
-      final file = result.files.first;
-      final bytes = await _readPickedFileBytes(file);
-      if (bytes == null || bytes.isEmpty) {
-        if (mounted) {
-          await OvercookedDialogs.showMessage(
-            context,
-            title: '提示',
-            content: '无法读取图片内容，请重新选择',
-          );
-        }
-        return null;
-      }
-      return _PendingImage(filename: file.name, bytes: bytes);
-    } finally {
-      await _cleanupFilePickerTemps();
-    }
-  }
-
-  Future<List<_PendingImage>> _pickMultipleImagesByFilePicker() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        withData: true,
-        allowMultiple: true,
-        type: FileType.image,
-      );
-      if (result == null || result.files.isEmpty) return const [];
-
-      final out = <_PendingImage>[];
-      for (final f in result.files) {
-        final bytes = await _readPickedFileBytes(f);
-        if (bytes == null || bytes.isEmpty) continue;
-        out.add(_PendingImage(filename: f.name, bytes: bytes));
-      }
-      if (out.isEmpty && mounted) {
-        await OvercookedDialogs.showMessage(
-          context,
-          title: '提示',
-          content: '无法读取图片内容，请重新选择',
-        );
-      }
-      return out;
-    } finally {
-      await _cleanupFilePickerTemps();
-    }
-  }
-
-  Future<Uint8List?> _readPickedFileBytes(PlatformFile file) async {
-    final bytes = file.bytes;
-    if (bytes != null) return bytes;
-    final path = file.path;
-    if (path == null || path.trim().isEmpty) return null;
-    try {
-      return XFile(path).readAsBytes();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> _cleanupFilePickerTemps() async {
-    if (kIsWeb) return;
-    try {
-      await FilePicker.platform.clearTemporaryFiles();
-    } catch (_) {}
   }
 
   Future<void> _openObjStoreSettings() async {
@@ -850,7 +724,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   Future<String> _uploadPendingImage({
     required ObjStoreService objStore,
-    required _PendingImage img,
+    required PickedImageBytes img,
   }) async {
     final uploaded = await objStore.uploadBytes(
       bytes: img.bytes,

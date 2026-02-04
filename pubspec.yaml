@@ -80,6 +80,7 @@ dependencies:
   timezone: ^0.10.1
   flutter_timezone: ^4.1.1
   reorderable_grid_view: ^2.2.8
+  flutter_image_compress: ^2.4.0
 
 dev_dependencies:
   flutter_test:

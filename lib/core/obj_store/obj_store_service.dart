@@ -1,8 +1,9 @@
-import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
@@ -65,13 +66,49 @@ class ObjStoreService {
       throw const ObjStoreNotConfiguredException();
     }
 
+    final compressed = await _tryCompressImage(bytes, filename);
+
     return uploadBytesWithConfig(
       config: cfg,
       secrets: _configService.qiniuSecrets,
       dataCapsuleSecrets: _configService.dataCapsuleSecrets,
-      bytes: bytes,
+      bytes: compressed,
       filename: filename,
     );
+  }
+
+  Future<Uint8List> _tryCompressImage(Uint8List bytes, String filename) async {
+    final ext = p.extension(filename).toLowerCase();
+    if (!const ['.jpg', '.jpeg', '.png', '.webp', '.heic'].contains(ext)) {
+      return bytes;
+    }
+
+    // Windows/Linux 暂不支持 flutter_image_compress，直接返回原图
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.windows ||
+            defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.fuchsia)) {
+      return bytes;
+    }
+
+    try {
+      final result = await FlutterImageCompress.compressWithList(
+        bytes,
+        minWidth: 1920,
+        minHeight: 1080,
+        quality: 80,
+      );
+      if (result.isEmpty || result.length >= bytes.length) {
+        return bytes;
+      }
+      return result;
+    } catch (e) {
+      // 压缩失败（如格式不支持）降级为原图
+      if (kDebugMode) {
+        print('Image compression failed: $e');
+      }
+      return bytes;
+    }
   }
 
   Future<String> resolveUri({required String key}) async {
