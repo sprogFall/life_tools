@@ -86,11 +86,13 @@ class StockpileAiBatchEntryView extends StatelessWidget {
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: provider.saving ? null : () => _save(context),
               child: provider.saving
-                  ? const CupertinoActivityIndicator(color: Colors.white)
+                  ? const CupertinoActivityIndicator(
+                      color: IOS26Theme.surfaceColor,
+                    )
                   : Text(
                       '保存',
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: Colors.white,
+                        color: IOS26Theme.surfaceColor,
                       ),
                     ),
             ),

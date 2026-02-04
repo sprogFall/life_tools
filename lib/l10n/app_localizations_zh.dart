@@ -27,6 +27,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get common_loading => '加载中...';
 
   @override
+  String get common_home => '首页';
+
+  @override
+  String get common_tasks => '任务';
+
+  @override
+  String get common_calendar => '日历';
+
+  @override
   String get tool_management_title => '工具管理';
 
   @override
@@ -37,6 +46,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tool_work_log_name => '工作记录';
+
+  @override
+  String get work_log_ai_entry => 'AI录入';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -62,6 +74,15 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get common_loading => '加载中...';
 
   @override
+  String get common_home => '首页';
+
+  @override
+  String get common_tasks => '任务';
+
+  @override
+  String get common_calendar => '日历';
+
+  @override
   String get tool_management_title => '工具管理';
 
   @override
@@ -72,4 +93,7 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get tool_work_log_name => '工作记录';
+
+  @override
+  String get work_log_ai_entry => 'AI录入';
 }

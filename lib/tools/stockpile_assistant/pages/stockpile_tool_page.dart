@@ -2,12 +2,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/messages/message_service.dart';
 import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/widgets/ios26_floating_icon_button.dart';
+import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../pages/home_page.dart';
 import '../../work_log/pages/task/work_log_voice_input_sheet.dart';
 import '../ai/stockpile_ai_assistant.dart';
@@ -78,6 +80,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ChangeNotifierProvider.value(
       value: _service,
       child: Scaffold(
@@ -123,29 +126,10 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                 child: Column(
                   children: [
                     IOS26AppBar(
-                      title: '囤货助手',
+                      title: l10n.tool_stockpile_name,
                       useSafeArea: false,
-                      leading: CupertinoButton(
-                        padding: const EdgeInsets.all(IOS26Theme.spacingSm),
-                        minimumSize: IOS26Theme.minimumTapSize,
+                      leading: IOS26HomeLeadingButton(
                         onPressed: () => _navigateToHome(context),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              CupertinoIcons.home,
-                              color: IOS26Theme.primaryColor,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '首页',
-                              style: IOS26Theme.labelLarge.copyWith(
-                                color: IOS26Theme.primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                       actions: [
                         CupertinoButton(

@@ -146,7 +146,7 @@ class _OvercookedRecipePickerSheetState
                         CupertinoIcons.star_fill,
                         size: 14,
                         color: _sortMode == _SortMode.ratingDesc
-                            ? Colors.white
+                            ? IOS26Theme.surfaceColor
                             : IOS26Theme.textSecondary,
                       ),
                       const SizedBox(width: 4),
@@ -155,7 +155,7 @@ class _OvercookedRecipePickerSheetState
                         style: IOS26Theme.bodySmall.copyWith(
                           fontWeight: FontWeight.w600,
                           color: _sortMode == _SortMode.ratingDesc
-                              ? Colors.white
+                              ? IOS26Theme.surfaceColor
                               : IOS26Theme.textSecondary,
                         ),
                       ),

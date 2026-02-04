@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 
 /// 测试用的应用包装器，包含国际化配置
 class TestAppWrapper extends StatelessWidget {
@@ -12,12 +12,8 @@ class TestAppWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       locale: locale ?? const Locale('zh', 'CN'),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: child,
     );
   }

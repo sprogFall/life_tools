@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/pages/work_log_tool_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_helpers/fake_work_log_repository.dart';
+import '../../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('WorkTaskListView 置顶标记', () {
@@ -36,7 +37,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repo)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repo)),
       );
       await tester.pump(const Duration(milliseconds: 600));
 

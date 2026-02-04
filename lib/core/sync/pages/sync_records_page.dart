@@ -506,7 +506,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                 decoration: BoxDecoration(
                   color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),

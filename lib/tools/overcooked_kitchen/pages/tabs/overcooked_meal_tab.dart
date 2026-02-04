@@ -121,7 +121,9 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 onPressed: _loading ? null : _addMealFlow,
                 child: Text(
                   '新增餐次',
-                  style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                  style: IOS26Theme.labelLarge.copyWith(
+                    color: IOS26Theme.surfaceColor,
+                  ),
                 ),
               ),
             ],

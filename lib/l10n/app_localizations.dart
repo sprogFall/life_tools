@@ -136,6 +136,24 @@ abstract class AppLocalizations {
   /// **'Loading...'**
   String get common_loading;
 
+  /// No description provided for @common_home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get common_home;
+
+  /// No description provided for @common_tasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get common_tasks;
+
+  /// No description provided for @common_calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get common_calendar;
+
   /// No description provided for @tool_management_title.
   ///
   /// In en, this message translates to:
@@ -159,6 +177,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Work Log'**
   String get tool_work_log_name;
+
+  /// No description provided for @work_log_ai_entry.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Entry'**
+  String get work_log_ai_entry;
 }
 
 class _AppLocalizationsDelegate

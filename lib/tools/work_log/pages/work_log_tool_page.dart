@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/tags/tag_repository.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/widgets/ios26_floating_icon_button.dart';
+import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
 import '../ai/work_log_ai_intent.dart';
@@ -64,6 +66,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ChangeNotifierProvider.value(
       value: _service,
       child: Scaffold(
@@ -109,31 +112,15 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                 child: Column(
                   children: [
                     IOS26AppBar(
-                      title: '工作记录',
-                      leading: CupertinoButton(
-                        padding: const EdgeInsets.all(8),
+                      title: l10n.tool_work_log_name,
+                      useSafeArea: false,
+                      leading: IOS26HomeLeadingButton(
                         onPressed: () => _navigateToHome(context),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              CupertinoIcons.home,
-                              color: IOS26Theme.primaryColor,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '首页',
-                              style: IOS26Theme.labelLarge.copyWith(
-                                color: IOS26Theme.primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                       actions: [
                         CupertinoButton(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                          minimumSize: IOS26Theme.minimumTapSize,
                           onPressed: _openOperationLogs,
                           child: const Icon(
                             CupertinoIcons.time,
@@ -145,7 +132,10 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                           Builder(
                             builder: (context) => CupertinoButton(
                               key: const ValueKey('work_log_sort_button'),
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(
+                                IOS26Theme.spacingSm,
+                              ),
+                              minimumSize: IOS26Theme.minimumTapSize,
                               onPressed: () {
                                 final service = context.read<WorkLogService>();
                                 Navigator.of(context).push(
@@ -166,7 +156,8 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                             ),
                           ),
                         CupertinoButton(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                          minimumSize: IOS26Theme.minimumTapSize,
                           onPressed: _onPressedAdd,
                           child: const Icon(
                             CupertinoIcons.add,
@@ -194,7 +185,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                 IOS26FloatingIconButton(
                   buttonKey: const ValueKey('work_log_ai_input_button'),
                   icon: CupertinoIcons.sparkles,
-                  semanticLabel: 'AI录入',
+                  semanticLabel: l10n.work_log_ai_entry,
                   onPressed: _openVoiceInput,
                 ),
             ],
@@ -205,14 +196,15 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
   }
 
   Widget _buildPageIndicator() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: IOS26Theme.spacingSm),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildDot(0, '任务'),
-          const SizedBox(width: 24),
-          _buildDot(1, '日历'),
+          _buildDot(0, l10n.common_tasks),
+          const SizedBox(width: IOS26Theme.spacingXl + IOS26Theme.spacingXs),
+          _buildDot(1, l10n.common_calendar),
         ],
       ),
     );

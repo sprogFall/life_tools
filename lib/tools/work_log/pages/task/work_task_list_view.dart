@@ -575,7 +575,7 @@ class _PinnedCornerMark extends StatelessWidget {
               child: Icon(
                 CupertinoIcons.pin_fill,
                 size: 11,
-                color: Colors.white,
+                color: IOS26Theme.surfaceColor,
               ),
             ),
           ),

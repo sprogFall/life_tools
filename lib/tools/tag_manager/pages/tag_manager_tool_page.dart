@@ -10,6 +10,7 @@ import '../../../core/tags/models/tag_with_tools.dart';
 import '../../../core/tags/models/tag_category.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../pages/home_page.dart';
 import 'tag_rename_page.dart';
 
@@ -66,26 +67,9 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
             children: [
               IOS26AppBar(
                 title: '标签管理',
-                leading: CupertinoButton(
-                  padding: const EdgeInsets.all(8),
+                useSafeArea: false,
+                leading: IOS26HomeLeadingButton(
                   onPressed: () => _navigateToHome(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.home,
-                        color: IOS26Theme.primaryColor,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '首页',
-                        style: IOS26Theme.labelLarge.copyWith(
-                          color: IOS26Theme.primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 actions: [
                   // 新增标签统一走「按工具 -> 分类」的入口，避免“全部”页继续走旧新增流程

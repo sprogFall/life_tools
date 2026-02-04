@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
 import '../obj_store_errors.dart';
+import '../../utils/dev_log.dart';
 
 typedef DateTimeProvider = DateTime Function();
 
@@ -281,7 +282,12 @@ class DataCapsuleClient {
   static void _cancelStreamedResponse(http.StreamedResponse resp) {
     try {
       resp.stream.listen((_) {}).cancel();
-    } catch (_) {}
+    } catch (e, st) {
+      devLog(
+        '取消 StreamedResponse 失败: ${e.runtimeType}',
+        stackTrace: st,
+      );
+    }
   }
 
   static Uri normalizeBaseUri(String base, {required bool useHttps}) {

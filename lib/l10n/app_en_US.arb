@@ -9,9 +9,12 @@
   "common_delete": "Delete",
   "common_save": "Save",
   "common_loading": "Loading...",
+  "common_home": "Home",
+  "common_tasks": "Tasks",
+  "common_calendar": "Calendar",
   "tool_management_title": "Tool Management",
   "tool_stockpile_name": "Stockpile Assistant",
   "tool_overcooked_name": "Overcooked Kitchen",
-  "tool_work_log_name": "Work Log"
+  "tool_work_log_name": "Work Log",
+  "work_log_ai_entry": "AI Entry"
 }
-

@@ -2,6 +2,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'dev_log.dart';
+
 /// 包含图片文件名和二进制数据的简单封装
 class PickedImageBytes {
   final String filename;
@@ -75,7 +77,10 @@ class ImageSelector {
       if (bytes.isEmpty) return null;
       return PickedImageBytes(filename: x.name, bytes: bytes);
     } catch (e) {
-      if (kDebugMode) print('ImageSelector pickSingle error: $e');
+      devLog(
+        'ImageSelector pickSingle error: ${e.runtimeType}',
+        error: e,
+      );
       return null;
     }
   }
@@ -99,7 +104,10 @@ class ImageSelector {
       }
       return out;
     } catch (e) {
-      if (kDebugMode) print('ImageSelector pickMulti error: $e');
+      devLog(
+        'ImageSelector pickMulti error: ${e.runtimeType}',
+        error: e,
+      );
       return const [];
     }
   }
@@ -118,7 +126,10 @@ class ImageSelector {
 
       return PickedImageBytes(filename: file.name, bytes: bytes);
     } catch (e) {
-      if (kDebugMode) print('ImageSelector pickSingle (FilePicker) error: $e');
+      devLog(
+        'ImageSelector pickSingle (FilePicker) error: ${e.runtimeType}',
+        error: e,
+      );
       return null;
     } finally {
       _cleanupFilePickerTemps();
@@ -142,7 +153,10 @@ class ImageSelector {
       }
       return out;
     } catch (e) {
-      if (kDebugMode) print('ImageSelector pickMulti (FilePicker) error: $e');
+      devLog(
+        'ImageSelector pickMulti (FilePicker) error: ${e.runtimeType}',
+        error: e,
+      );
       return const [];
     } finally {
       _cleanupFilePickerTemps();
@@ -165,6 +179,12 @@ class ImageSelector {
     if (kIsWeb) return;
     try {
       await FilePicker.platform.clearTemporaryFiles();
-    } catch (_) {}
+    } catch (e, st) {
+      devLog(
+        '清理 FilePicker 临时文件失败: ${e.runtimeType}',
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
 }

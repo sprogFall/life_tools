@@ -149,12 +149,14 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
                 const Icon(
                   CupertinoIcons.sparkles,
                   size: 18,
-                  color: Colors.white,
+                  color: IOS26Theme.surfaceColor,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '提交给AI',
-                  style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                  style: IOS26Theme.labelLarge.copyWith(
+                    color: IOS26Theme.surfaceColor,
+                  ),
                 ),
               ],
             ),

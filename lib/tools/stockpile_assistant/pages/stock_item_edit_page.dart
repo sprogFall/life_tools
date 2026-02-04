@@ -283,7 +283,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                   onPressed: _save,
                   child: Text(
                     '保存',
-                    style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                    style: IOS26Theme.labelLarge.copyWith(
+                      color: IOS26Theme.surfaceColor,
+                    ),
                   ),
                 ),
               ),

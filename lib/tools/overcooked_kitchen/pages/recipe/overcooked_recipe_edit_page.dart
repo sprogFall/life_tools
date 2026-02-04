@@ -212,7 +212,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                       child: Text(
                         '上传',
                         style: IOS26Theme.labelLarge.copyWith(
-                          color: Colors.white,
+                          color: IOS26Theme.surfaceColor,
                         ),
                       ),
                     ),
@@ -470,7 +470,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                           child: const Icon(
                             CupertinoIcons.xmark,
                             size: 14,
-                            color: Colors.white,
+                            color: IOS26Theme.surfaceColor,
                           ),
                         ),
                       ),
@@ -488,7 +488,9 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           onPressed: _saving ? null : _pickDetailImages,
           child: Text(
             '添加图片',
-            style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+            style: IOS26Theme.labelLarge.copyWith(
+              color: IOS26Theme.surfaceColor,
+            ),
           ),
         ),
         const SizedBox(height: 18),

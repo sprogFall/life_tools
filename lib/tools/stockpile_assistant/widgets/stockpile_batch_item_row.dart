@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/tags/models/tag.dart';
@@ -412,7 +411,7 @@ class StockpileBatchItemRow extends StatelessWidget {
     final borderColor = selected
         ? IOS26Theme.primaryColor
         : IOS26Theme.textTertiary.withValues(alpha: 0.4);
-    final textColor = selected ? Colors.white : IOS26Theme.textPrimary;
+    final textColor = selected ? IOS26Theme.surfaceColor : IOS26Theme.textPrimary;
     final dotColor = tag.color == null
         ? IOS26Theme.textTertiary
         : Color(tag.color!);
@@ -460,7 +459,7 @@ class StockpileBatchItemRow extends StatelessWidget {
               const Icon(
                 CupertinoIcons.check_mark_circled_solid,
                 size: 18,
-                color: Colors.white,
+                color: IOS26Theme.surfaceColor,
               ),
             ],
           ],

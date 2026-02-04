@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/tags/models/tag.dart';
@@ -102,7 +101,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               onPressed: canRoll ? _roll : null,
               child: Text(
                 '扭蛋',
-                style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                style: IOS26Theme.labelLarge.copyWith(
+                  color: IOS26Theme.surfaceColor,
+                ),
               ),
             ),
           ],
@@ -236,7 +237,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             onPressed: _loading ? null : _importToWish,
             child: Text(
               '就你了',
-              style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+              style: IOS26Theme.labelLarge.copyWith(
+                color: IOS26Theme.surfaceColor,
+              ),
             ),
           ),
         ],

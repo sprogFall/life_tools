@@ -69,7 +69,7 @@ class MessageDetailPage extends StatelessWidget {
                     child: Text(
                       '前往工具',
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: Colors.white,
+                        color: IOS26Theme.surfaceColor,
                       ),
                     ),
                   )

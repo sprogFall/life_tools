@@ -27,6 +27,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get common_loading => 'Loading...';
 
   @override
+  String get common_home => 'Home';
+
+  @override
+  String get common_tasks => 'Tasks';
+
+  @override
+  String get common_calendar => 'Calendar';
+
+  @override
   String get tool_management_title => 'Tool Management';
 
   @override
@@ -37,6 +46,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tool_work_log_name => 'Work Log';
+
+  @override
+  String get work_log_ai_entry => 'AI Entry';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -62,6 +74,15 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String get common_loading => 'Loading...';
 
   @override
+  String get common_home => 'Home';
+
+  @override
+  String get common_tasks => 'Tasks';
+
+  @override
+  String get common_calendar => 'Calendar';
+
+  @override
   String get tool_management_title => 'Tool Management';
 
   @override
@@ -72,4 +93,7 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get tool_work_log_name => 'Work Log';
+
+  @override
+  String get work_log_ai_entry => 'AI Entry';
 }

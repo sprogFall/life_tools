@@ -29,7 +29,7 @@ class IOS26SettingsRow extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(IOS26Theme.spacingSm),
               decoration: BoxDecoration(
                 color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),

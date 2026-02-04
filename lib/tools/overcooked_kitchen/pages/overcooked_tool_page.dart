@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/messages/message_service.dart';
 import '../../../core/theme/ios26_theme.dart';
-import '../overcooked_constants.dart';
+import '../../../l10n/app_localizations.dart';
 import '../repository/overcooked_repository.dart';
 import '../services/overcooked_reminder_service.dart';
 import 'tabs/overcooked_calendar_tab.dart';
@@ -56,6 +56,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return MultiProvider(
       providers: [Provider<OvercookedRepository>.value(value: _repository)],
       child: Scaffold(
@@ -101,7 +102,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
                 child: Column(
                   children: [
                     IOS26AppBar(
-                      title: OvercookedConstants.toolName,
+                      title: l10n.tool_overcooked_name,
                       showBackButton: true,
                       useSafeArea: false,
                     ),

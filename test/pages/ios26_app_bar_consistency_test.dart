@@ -26,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../test_helpers/fake_work_log_repository.dart';
+import '../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('IOS26AppBar consistency', () {
@@ -131,7 +132,7 @@ void main() {
       addTearDown(service.dispose);
 
       await tester.pumpWidget(
-        MaterialApp(home: StockpileToolPage(service: service)),
+        TestAppWrapper(child: StockpileToolPage(service: service)),
       );
       await tester.pump();
 
@@ -144,7 +145,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: service,
-          child: const MaterialApp(home: TagManagerToolPage()),
+          child: const TestAppWrapper(child: TagManagerToolPage()),
         ),
       );
       await tester.pump();
@@ -156,7 +157,7 @@ void main() {
       final repository = FakeWorkLogRepository();
 
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repository)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repository)),
       );
       await tester.pump();
 

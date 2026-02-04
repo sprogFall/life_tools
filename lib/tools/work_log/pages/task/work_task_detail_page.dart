@@ -114,9 +114,11 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             IOS26AppBar(
               title: _task?.title ?? widget.title,
               showBackButton: true,
+              useSafeArea: false,
               actions: [
                 CupertinoButton(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                  minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _task != null ? _openEditTask : null,
                   child: const Icon(
                     CupertinoIcons.pencil,
@@ -125,7 +127,8 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   ),
                 ),
                 CupertinoButton(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                  minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _showMoreOptions,
                   child: const Icon(
                     CupertinoIcons.ellipsis,
@@ -255,13 +258,13 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                           const Icon(
                             CupertinoIcons.clock_fill,
                             size: 20,
-                            color: Colors.white,
+                            color: IOS26Theme.surfaceColor,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '记录工时',
                             style: IOS26Theme.labelLarge.copyWith(
-                              color: Colors.white,
+                              color: IOS26Theme.surfaceColor,
                             ),
                           ),
                         ],
@@ -282,13 +285,13 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                           const Icon(
                             CupertinoIcons.check_mark_circled_solid,
                             size: 20,
-                            color: Colors.white,
+                            color: IOS26Theme.surfaceColor,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             '完成',
                             style: IOS26Theme.labelLarge.copyWith(
-                              color: Colors.white,
+                              color: IOS26Theme.surfaceColor,
                             ),
                           ),
                         ],
@@ -316,7 +319,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             color: IOS26Theme.toolRed,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(CupertinoIcons.delete, color: Colors.white),
+          child: const Icon(
+            CupertinoIcons.delete,
+            color: IOS26Theme.surfaceColor,
+          ),
         ),
         confirmDismiss: (_) => _confirmDeleteTimeEntry(entry),
         child: GestureDetector(

@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -161,13 +160,15 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                 children: [
                   const Icon(
                     CupertinoIcons.share,
-                    color: Colors.white,
+                    color: IOS26Theme.surfaceColor,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '导出并分享',
-                    style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                    style: IOS26Theme.labelLarge.copyWith(
+                      color: IOS26Theme.surfaceColor,
+                    ),
                   ),
                 ],
               ),
@@ -290,12 +291,12 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               child: _isRestoring
                   ? const CupertinoActivityIndicator(
                       radius: 9,
-                      color: Colors.white,
+                      color: IOS26Theme.surfaceColor,
                     )
                   : Text(
                       '开始还原（覆盖本地）',
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: Colors.white,
+                        color: IOS26Theme.surfaceColor,
                       ),
                     ),
             ),

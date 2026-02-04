@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/tools/work_log/ai/work_log_ai_assistant.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
@@ -7,6 +6,7 @@ import 'package:life_tools/tools/work_log/pages/work_log_tool_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_helpers/fake_work_log_repository.dart';
+import '../../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('WorkLog 语音 -> AI -> 预填表单', () {
@@ -23,8 +23,8 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(
+        TestAppWrapper(
+          child: WorkLogToolPage(
             repository: repository,
             aiAssistant: aiAssistant,
           ),
@@ -72,8 +72,8 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: WorkLogToolPage(
+        TestAppWrapper(
+          child: WorkLogToolPage(
             repository: repository,
             aiAssistant: aiAssistant,
           ),

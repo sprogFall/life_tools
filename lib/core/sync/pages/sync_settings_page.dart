@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -397,12 +396,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   child: syncService.isSyncing
                       ? const CupertinoActivityIndicator(
                           radius: 9,
-                          color: Colors.white,
+                          color: IOS26Theme.surfaceColor,
                         )
                       : Text(
                           '立即同步',
                           style: IOS26Theme.labelLarge.copyWith(
-                            color: Colors.white,
+                            color: IOS26Theme.surfaceColor,
                           ),
                         ),
                 ),

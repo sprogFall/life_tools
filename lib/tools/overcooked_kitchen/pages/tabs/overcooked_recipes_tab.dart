@@ -188,7 +188,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
           child: Text(
             '+ 新建',
             style: IOS26Theme.labelLarge.copyWith(
-              color: Colors.white,
+              color: IOS26Theme.surfaceColor,
               fontWeight: FontWeight.w700,
             ),
           ),

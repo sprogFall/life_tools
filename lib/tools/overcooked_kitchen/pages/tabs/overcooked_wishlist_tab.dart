@@ -135,7 +135,9 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 onPressed: _editWishes,
                 child: Text(
                   '选择菜谱',
-                  style: IOS26Theme.labelLarge.copyWith(color: Colors.white),
+                  style: IOS26Theme.labelLarge.copyWith(
+                    color: IOS26Theme.surfaceColor,
+                  ),
                 ),
               ),
             ],

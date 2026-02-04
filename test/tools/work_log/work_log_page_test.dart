@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
@@ -7,6 +6,7 @@ import 'package:life_tools/tools/work_log/pages/work_log_tool_page.dart';
 import 'package:life_tools/tools/work_log/repository/work_log_repository_base.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../test_helpers/fake_work_log_repository.dart';
+import '../../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('WorkLogToolPage', () {
@@ -19,7 +19,7 @@ void main() {
 
     testWidgets('应该展示标题与分段切换', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repository)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -30,7 +30,7 @@ void main() {
 
     testWidgets('默认应展示任务列表页入口', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repository)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -39,7 +39,7 @@ void main() {
 
     testWidgets('日历页点击右上角加号也应进入创建任务页', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repository)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -62,7 +62,7 @@ void main() {
 
     testWidgets('应该可以创建任务并在列表中显示', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repository)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -94,7 +94,7 @@ void main() {
 
     testWidgets('应该可以在任务下记录工时并查看', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: repository)),
+        TestAppWrapper(child: WorkLogToolPage(repository: repository)),
       );
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -167,7 +167,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: fake)),
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
       );
       await tester.pump(const Duration(milliseconds: 600));
 
@@ -205,7 +205,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(home: WorkLogToolPage(repository: fake)),
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
       );
       await tester.pump(const Duration(milliseconds: 600));
 

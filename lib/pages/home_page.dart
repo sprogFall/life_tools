@@ -444,7 +444,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
         onTap: widget.onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: IOS26Theme.surfaceColor,
             borderRadius: cardBorderRadius,
             boxShadow: [
               BoxShadow(
@@ -512,7 +512,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                         ),
                         child: Icon(
                           widget.tool.icon,
-                          color: Colors.white,
+                          color: IOS26Theme.surfaceColor,
                           size: 26,
                         ),
                       ),
@@ -553,14 +553,14 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                         children: [
                           const Icon(
                             CupertinoIcons.star_fill,
-                            color: Colors.white,
+                            color: IOS26Theme.surfaceColor,
                             size: 10,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '默认',
                             style: IOS26Theme.bodySmall.copyWith(
-                              color: Colors.white,
+                              color: IOS26Theme.surfaceColor,
                             ),
                           ),
                         ],

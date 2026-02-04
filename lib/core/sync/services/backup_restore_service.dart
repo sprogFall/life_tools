@@ -7,6 +7,7 @@ import '../../obj_store/obj_store_config_service.dart';
 import '../../obj_store/obj_store_secrets.dart';
 import '../../registry/tool_registry.dart';
 import '../../services/settings_service.dart';
+import '../../utils/dev_log.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import 'sync_config_service.dart';
@@ -112,7 +113,12 @@ class BackupRestoreService {
     for (final provider in toolProviders) {
       try {
         tools[provider.toolId] = await provider.exportData();
-      } catch (_) {}
+      } catch (e, st) {
+        devLog(
+          '工具 ${provider.toolId} 导出数据失败: ${e.runtimeType}',
+          stackTrace: st,
+        );
+      }
     }
     return tools;
   }

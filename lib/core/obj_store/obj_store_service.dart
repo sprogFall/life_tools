@@ -16,6 +16,7 @@ import 'data_capsule/data_capsule_client.dart';
 import 'qiniu/qiniu_client.dart';
 import 'storage/local_obj_store.dart';
 import '../utils/no_media.dart';
+import '../utils/dev_log.dart';
 
 class ObjStoreObject {
   final ObjStoreType storageType;
@@ -331,7 +332,13 @@ class ObjStoreService {
     if (tmp.existsSync()) {
       try {
         tmp.deleteSync();
-      } catch (_) {}
+      } catch (e, st) {
+        devLog(
+          '删除临时缓存文件失败（将继续写入覆盖）: ${tmp.path}',
+          error: e,
+          stackTrace: st,
+        );
+      }
     }
 
     await tmp.writeAsBytes(bytes, flush: true);

@@ -107,9 +107,32 @@ dart format .
 
 - 文本样式：业务代码禁止硬编码 `TextStyle(...)`，统一使用 `IOS26Theme` 的文本样式访问器（`displayLarge` / `headlineMedium` / `titleLarge` / `titleMedium` / `titleSmall` / `bodyLarge` / `bodyMedium` / `bodySmall` / `labelLarge`）。
 - 间距与圆角：统一使用 `IOS26Theme.spacingXxx` 与 `IOS26Theme.radiusXxx` 常量。
+- 颜色常量：业务代码禁止使用 `Colors.white` 等硬编码色值，统一使用 `IOS26Theme` 的语义化颜色（如 `IOS26Theme.surfaceColor` / `IOS26Theme.backgroundColor` / `IOS26Theme.textPrimary` 等）。
 - 组件统一：加载使用 `CupertinoActivityIndicator`；按钮使用 `CupertinoButton`；图标使用 `CupertinoIcons`；避免 `TextButton` / `IconButton` / `InkWell` / `CircularProgressIndicator` / `Divider` 等 Material 组件（如有必要需在代码注释说明原因）。
 - AppBar：页面统一使用 `IOS26AppBar`；首页使用 `IOS26AppBar.home(onSettingsPressed: ...)`；当 `IOS26AppBar` 放在 `SafeArea` 内时必须设置 `useSafeArea: false` 避免重复内边距。
 - 交互尺寸：图标/导航类按钮的 `CupertinoButton` 必须设置 `minimumSize: IOS26Theme.minimumTapSize`，并按需保持 `padding: EdgeInsets.zero`。
+
+## 代码规范（2026-02-04 代码审查沉淀）
+
+### 异常处理
+
+- 禁止空吞异常：不允许出现 `catch (_) {}`。至少使用 `devLog(...)` 记录（仅 Debug 输出），必要时给用户明确反馈（Dialog/Toast）。
+- 日志脱敏：严禁在日志/异常信息中输出密钥/令牌/自定义 Header 等敏感信息；`devLog` 的 message/error 也必须遵守。
+
+### 国际化（i18n）
+
+- UI 文案禁止硬编码：页面标题、按钮文案、空态文案等必须使用 `AppLocalizations`（优先 `common_*`，模块内使用 `xxx_*` 命名）。
+- 新增文案流程：同步更新 `lib/l10n/app_en.arb`、`lib/l10n/app_en_US.arb`、`lib/l10n/app_zh.arb`、`lib/l10n/app_zh_CN.arb`，并执行 `/opt/flutter/bin/flutter gen-l10n` 生成 Dart 文件。
+- Widget 测试统一包裹：测试中优先使用 `test/test_helpers/test_app_wrapper.dart`，避免缺少 `localizationsDelegates` 导致页面崩溃。
+
+### 样式与复用
+
+- 禁止硬编码 `EdgeInsets.all(8)`：统一替换为 `EdgeInsets.all(IOS26Theme.spacingSm)` 或更语义化的间距组合。
+- 工具页返回首页按钮复用：AppBar leading 的“首页”入口统一使用 `IOS26HomeLeadingButton`，避免重复 Row/样式/交互尺寸逻辑。
+
+### 规范守护（测试）
+
+- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`。
 
 ## 安全与隐私规范（补充）
 
