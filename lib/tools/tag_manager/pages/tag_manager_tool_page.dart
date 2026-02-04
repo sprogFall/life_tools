@@ -60,81 +60,82 @@ class _TagManagerToolPageState extends State<TagManagerToolPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            IOS26AppBar(
-              title: '标签管理',
-              leading: CupertinoButton(
-                padding: const EdgeInsets.all(8),
-                onPressed: () => _navigateToHome(context),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      CupertinoIcons.home,
-                      color: IOS26Theme.primaryColor,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '首页',
-                      style: IOS26Theme.labelLarge.copyWith(
-                        color: IOS26Theme.primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                // 新增标签统一走「按工具 -> 分类」的入口，避免“全部”页继续走旧新增流程
-              ],
-            ),
-            Expanded(
-              child: Consumer<TagService>(
-                builder: (context, service, child) {
-                  final allItems = service.allTags;
-                  final toolId = _filterToolId;
-
-                  return Column(
+      body: BackdropGroup(
+        child: SafeArea(
+          child: Column(
+            children: [
+              IOS26AppBar(
+                title: '标签管理',
+                leading: CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: () => _navigateToHome(context),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _FilterBar(
-                        selectedToolId: _filterToolId,
-                        onChanged: (toolId) {
-                          setState(() => _filterToolId = toolId);
-                          if (toolId != null && toolId.trim().isNotEmpty) {
-                            if (!service.toolLoading(toolId) &&
-                                service
-                                    .tagsForToolWithCategory(toolId)
-                                    .isEmpty) {
-                              service.refreshToolTags(toolId);
-                            }
-                          }
-                        },
+                      const Icon(
+                        CupertinoIcons.home,
+                        color: IOS26Theme.primaryColor,
+                        size: 20,
                       ),
-                      Expanded(
-                        child: toolId == null
-                            ? Center(
-                                child: Text(
-                                  '暂无可用工具',
-                                  style: IOS26Theme.bodyMedium.copyWith(
-                                    color: IOS26Theme.textSecondary.withValues(
-                                      alpha: 0.9,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : _ToolCategoryList(
-                                toolId: toolId,
-                                allItems: allItems,
-                              ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '首页',
+                        style: IOS26Theme.labelLarge.copyWith(
+                          color: IOS26Theme.primaryColor,
+                        ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ),
+                actions: [
+                  // 新增标签统一走「按工具 -> 分类」的入口，避免“全部”页继续走旧新增流程
+                ],
               ),
-            ),
-          ],
+              Expanded(
+                child: Consumer<TagService>(
+                  builder: (context, service, child) {
+                    final allItems = service.allTags;
+                    final toolId = _filterToolId;
+
+                    return Column(
+                      children: [
+                        _FilterBar(
+                          selectedToolId: _filterToolId,
+                          onChanged: (toolId) {
+                            setState(() => _filterToolId = toolId);
+                            if (toolId != null && toolId.trim().isNotEmpty) {
+                              if (!service.toolLoading(toolId) &&
+                                  service
+                                      .tagsForToolWithCategory(toolId)
+                                      .isEmpty) {
+                                service.refreshToolTags(toolId);
+                              }
+                            }
+                          },
+                        ),
+                        Expanded(
+                          child: toolId == null
+                              ? Center(
+                                  child: Text(
+                                    '暂无可用工具',
+                                    style: IOS26Theme.bodyMedium.copyWith(
+                                      color: IOS26Theme.textSecondary
+                                          .withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                )
+                              : _ToolCategoryList(
+                                  toolId: toolId,
+                                  allItems: allItems,
+                                ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

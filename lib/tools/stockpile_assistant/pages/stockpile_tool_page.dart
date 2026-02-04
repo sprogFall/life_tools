@@ -81,92 +81,94 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
       value: _service,
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
-        body: Stack(
-          children: [
-            Positioned(
-              top: -80,
-              left: -80,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      IOS26Theme.toolGreen.withValues(alpha: 0.16),
-                      IOS26Theme.toolGreen.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              right: -100,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      IOS26Theme.toolOrange.withValues(alpha: 0.12),
-                      IOS26Theme.toolOrange.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Column(
-                children: [
-                  IOS26AppBar(
-                    title: '囤货助手',
-                    useSafeArea: false,
-                    leading: CupertinoButton(
-                      padding: const EdgeInsets.all(IOS26Theme.spacingSm),
-                      minimumSize: IOS26Theme.minimumTapSize,
-                      onPressed: () => _navigateToHome(context),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            CupertinoIcons.home,
-                            color: IOS26Theme.primaryColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '首页',
-                            style: IOS26Theme.labelLarge.copyWith(
-                              color: IOS26Theme.primaryColor,
-                            ),
-                          ),
-                        ],
-                      ),
+        body: BackdropGroup(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -80,
+                left: -80,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        IOS26Theme.toolGreen.withValues(alpha: 0.16),
+                        IOS26Theme.toolGreen.withValues(alpha: 0.0),
+                      ],
                     ),
-                    actions: [
-                      CupertinoButton(
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -100,
+                right: -100,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        IOS26Theme.toolOrange.withValues(alpha: 0.12),
+                        IOS26Theme.toolOrange.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Column(
+                  children: [
+                    IOS26AppBar(
+                      title: '囤货助手',
+                      useSafeArea: false,
+                      leading: CupertinoButton(
                         padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                         minimumSize: IOS26Theme.minimumTapSize,
-                        onPressed: _openCreateItem,
-                        child: const Icon(
-                          CupertinoIcons.add,
-                          color: IOS26Theme.primaryColor,
-                          size: 24,
+                        onPressed: () => _navigateToHome(context),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              CupertinoIcons.home,
+                              color: IOS26Theme.primaryColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '首页',
+                              style: IOS26Theme.labelLarge.copyWith(
+                                color: IOS26Theme.primaryColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _buildSegmented(),
-                  const SizedBox(height: 10),
-                  Expanded(child: _buildList()),
-                ],
+                      actions: [
+                        CupertinoButton(
+                          padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                          minimumSize: IOS26Theme.minimumTapSize,
+                          onPressed: _openCreateItem,
+                          child: const Icon(
+                            CupertinoIcons.add,
+                            color: IOS26Theme.primaryColor,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildSegmented(),
+                    const SizedBox(height: 10),
+                    Expanded(child: _buildList()),
+                  ],
+                ),
               ),
-            ),
-            _buildAiEntryButton(context),
-          ],
+              _buildAiEntryButton(context),
+            ],
+          ),
         ),
       ),
     );

@@ -60,55 +60,57 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
       providers: [Provider<OvercookedRepository>.value(value: _repository)],
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
-        body: Stack(
-          children: [
-            Positioned(
-              top: -90,
-              right: -90,
-              child: Container(
-                width: 240,
-                height: 240,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      IOS26Theme.toolOrange.withValues(alpha: 0.18),
-                      IOS26Theme.toolOrange.withValues(alpha: 0.0),
-                    ],
+        body: BackdropGroup(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -90,
+                right: -90,
+                child: Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        IOS26Theme.toolOrange.withValues(alpha: 0.18),
+                        IOS26Theme.toolOrange.withValues(alpha: 0.0),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: -70,
-              left: -70,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      IOS26Theme.toolPink.withValues(alpha: 0.12),
-                      IOS26Theme.toolPink.withValues(alpha: 0.0),
-                    ],
+              Positioned(
+                bottom: -70,
+                left: -70,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        IOS26Theme.toolPink.withValues(alpha: 0.12),
+                        IOS26Theme.toolPink.withValues(alpha: 0.0),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            SafeArea(
-              child: Column(
-                children: [
-                  IOS26AppBar(
-                    title: OvercookedConstants.toolName,
-                    showBackButton: true,
-                    useSafeArea: false,
-                  ),
-                  Expanded(child: _buildBody()),
-                ],
+              SafeArea(
+                child: Column(
+                  children: [
+                    IOS26AppBar(
+                      title: OvercookedConstants.toolName,
+                      showBackButton: true,
+                      useSafeArea: false,
+                    ),
+                    Expanded(child: _buildBody()),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         bottomNavigationBar: _buildBottomNav(),
       ),

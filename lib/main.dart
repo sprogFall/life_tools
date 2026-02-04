@@ -18,6 +18,7 @@ import 'core/obj_store/qiniu/qiniu_client.dart';
 import 'core/obj_store/secret_store/prefs_secret_store.dart';
 import 'core/obj_store/storage/local_obj_store.dart';
 import 'core/notifications/local_notification_service.dart';
+import 'core/performance/display_refresh_rate_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
@@ -33,6 +34,13 @@ import 'tools/stockpile_assistant/services/stockpile_reminder_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Android 高刷屏：尽量请求 90Hz（不保证生效，系统可能按策略回退）。
+  if (Platform.isAndroid) {
+    Future.microtask(
+      () => DisplayRefreshRateService().tryRequestPreferredHz(90),
+    );
+  }
 
   // 在 Windows 平台上初始化 sqflite FFI
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {

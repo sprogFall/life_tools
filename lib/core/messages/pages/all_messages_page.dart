@@ -17,30 +17,32 @@ class AllMessagesPage extends StatelessWidget {
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: const IOS26AppBar(title: '全部消息', showBackButton: true),
       body: SafeArea(
-        child: Consumer<MessageService>(
-          builder: (context, service, _) {
-            final messages = service.messages;
-            if (messages.isEmpty) {
-              return Center(
-                child: Text(
-                  '当前暂时没有消息',
-                  style: IOS26Theme.bodyMedium.copyWith(
-                    color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
+        child: BackdropGroup(
+          child: Consumer<MessageService>(
+            builder: (context, service, _) {
+              final messages = service.messages;
+              if (messages.isEmpty) {
+                return Center(
+                  child: Text(
+                    '当前暂时没有消息',
+                    style: IOS26Theme.bodyMedium.copyWith(
+                      color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
+                    ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: messages.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return _MessageListItem(message: message);
-              },
-            );
-          },
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                itemCount: messages.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final message = messages[index];
+                  return _MessageListItem(message: message);
+                },
+              );
+            },
+          ),
         ),
       ),
     );
