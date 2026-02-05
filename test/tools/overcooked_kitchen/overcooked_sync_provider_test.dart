@@ -40,7 +40,7 @@ void main() {
 
       final day = DateTime(2026, 1, 2, 12);
       await repo1.replaceMeal(date: day, recipeIds: [recipeId], now: now);
-      final mealId = (await repo1.listMealsForDate(day)).single.id!;
+      final mealId = (await repo1.listMealsForDate(day)).single.id;
       await repo1.upsertRating(
         mealId: mealId,
         recipeId: recipeId,
@@ -104,7 +104,7 @@ void main() {
 
       final day = DateTime(2026, 1, 2, 12);
       await repo.replaceMeal(date: day, recipeIds: [recipeId], now: now);
-      final mealId = (await repo.listMealsForDate(day)).single.id!;
+      final mealId = (await repo.listMealsForDate(day)).single.id;
       await repo.upsertRating(
         mealId: mealId,
         recipeId: recipeId,
