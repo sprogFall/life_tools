@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
+import 'package:life_tools/core/sync/models/sync_force_decision.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/widgets/ios26_toast.dart';
@@ -36,7 +37,10 @@ class MockSyncService extends ChangeNotifier implements SyncService {
   set error(String? value) => _lastError = value;
 
   @override
-  Future<bool> sync() async {
+  Future<bool> sync({
+    SyncTrigger trigger = SyncTrigger.manual,
+    SyncForceDecision? forceDecision,
+  }) async {
     syncCalled = true;
     return syncResult;
   }

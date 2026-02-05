@@ -49,6 +49,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get work_log_ai_entry => 'AI Entry';
+
+  @override
+  String get sync_user_mismatch_title => 'Sync user mismatch';
+
+  @override
+  String sync_user_mismatch_content(Object localUserId, Object serverUserId) {
+    return 'Local data belongs to “$localUserId”, but current sync user is “$serverUserId”. To avoid overwriting data, choose how to proceed.';
+  }
+
+  @override
+  String get sync_user_mismatch_overwrite_local =>
+      'Overwrite local (use server)';
+
+  @override
+  String get sync_user_mismatch_overwrite_server =>
+      'Overwrite server (use local)';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -96,4 +112,20 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get work_log_ai_entry => 'AI Entry';
+
+  @override
+  String get sync_user_mismatch_title => 'Sync user mismatch';
+
+  @override
+  String sync_user_mismatch_content(Object localUserId, Object serverUserId) {
+    return 'Local data belongs to “$localUserId”, but current sync user is “$serverUserId”. To avoid overwriting data, choose how to proceed.';
+  }
+
+  @override
+  String get sync_user_mismatch_overwrite_local =>
+      'Overwrite local (use server)';
+
+  @override
+  String get sync_user_mismatch_overwrite_server =>
+      'Overwrite server (use local)';
 }

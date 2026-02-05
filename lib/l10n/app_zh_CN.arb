@@ -16,5 +16,25 @@
   "tool_stockpile_name": "囤货助手",
   "tool_overcooked_name": "胡闹厨房",
   "tool_work_log_name": "工作记录",
-  "work_log_ai_entry": "AI录入"
+  "work_log_ai_entry": "AI录入",
+  "sync_user_mismatch_title": "同步用户不匹配",
+  "@sync_user_mismatch_title": {
+    "description": "同步时检测到本地数据用户与当前同步用户不一致的提示标题"
+  },
+  "sync_user_mismatch_content": "检测到本地数据属于“{localUserId}”，但当前同步用户为“{serverUserId}”。继续同步可能会覆盖其中一端的数据，请选择处理方式。",
+  "@sync_user_mismatch_content": {
+    "description": "同步用户不匹配时的提示内容",
+    "placeholders": {
+      "localUserId": {},
+      "serverUserId": {}
+    }
+  },
+  "sync_user_mismatch_overwrite_local": "覆盖本地（使用服务端）",
+  "@sync_user_mismatch_overwrite_local": {
+    "description": "用户不匹配时选择覆盖本地数据"
+  },
+  "sync_user_mismatch_overwrite_server": "覆盖服务端（使用本地）",
+  "@sync_user_mismatch_overwrite_server": {
+    "description": "用户不匹配时选择覆盖服务端数据"
+  }
 }

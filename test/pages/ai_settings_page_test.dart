@@ -10,6 +10,7 @@ import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.da
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
+import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
@@ -37,12 +38,16 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
+      final syncLocalStateService = SyncLocalStateService();
+      await syncLocalStateService.init();
+
       final objStoreConfigService = ObjStoreConfigService(
         secretStore: InMemorySecretStore(),
       );
       await objStoreConfigService.init();
       final syncService = SyncService(
         configService: syncConfigService,
+        localStateService: syncLocalStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,

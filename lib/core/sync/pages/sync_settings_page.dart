@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -10,8 +11,10 @@ import '../../theme/ios26_theme.dart';
 import 'package:life_tools/core/ui/app_dialogs.dart';
 import 'package:life_tools/core/ui/app_scaffold.dart';
 import 'package:life_tools/core/ui/section_header.dart';
+import '../models/sync_force_decision.dart';
 import '../models/sync_config.dart';
 import '../services/sync_config_service.dart';
+import '../services/sync_local_state_service.dart';
 import '../services/sync_service.dart';
 import '../services/wifi_service.dart';
 
@@ -578,13 +581,34 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       return;
     }
 
-    await context.read<SyncConfigService>().save(config);
+    final configService = context.read<SyncConfigService>();
+    final localStateService = context.read<SyncLocalStateService>();
+    final currentUserId = configService.config?.userId.trim() ?? '';
+    if (localStateService.localUserId == null &&
+        currentUserId.isNotEmpty &&
+        currentUserId != config.userId) {
+      // 若用户在“未记录 localUserId”的历史版本基础上切换 userId，
+      // 这里先把“切换前的 userId”记为本地数据归属，避免后续误覆盖服务端。
+      await localStateService.setLocalUserId(currentUserId);
+    }
+
+    await configService.save(config);
     if (!mounted) return;
 
     await AppDialogs.showInfo(context, title: '已保存', content: '同步配置已更新');
   }
 
   Future<void> _performSync() async {
+    final syncService = context.read<SyncService>();
+    final mismatch = syncService.getUserMismatch();
+    SyncForceDecision? forceDecision;
+
+    if (mismatch != null) {
+      forceDecision = await _confirmUserMismatch(mismatch);
+      if (!mounted) return;
+      if (forceDecision == null) return;
+    }
+
     if (_networkType == SyncNetworkType.privateWifi) {
       final permissionOk = await _ensureWifiNamePermission();
       if (!mounted) return;
@@ -594,7 +618,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       if (!mounted) return;
     }
 
-    final ok = await context.read<SyncService>().sync();
+    final ok = await syncService.sync(
+      trigger: SyncTrigger.manual,
+      forceDecision: forceDecision,
+    );
     if (!mounted) return;
 
     await AppDialogs.showInfo(
@@ -602,6 +629,45 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       title: ok ? '同步完成' : '同步失败',
       content: ok ? '已完成同步' : '请查看页面内的错误详情',
     );
+  }
+
+  Future<SyncForceDecision?> _confirmUserMismatch(
+    SyncUserMismatch mismatch,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final result = await showCupertinoDialog<SyncForceDecision>(
+      context: context,
+      builder:
+          (ctx) => CupertinoAlertDialog(
+            title: Text(l10n.sync_user_mismatch_title),
+            content: Text(
+              l10n.sync_user_mismatch_content(
+                mismatch.localUserId,
+                mismatch.serverUserId,
+              ),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.common_cancel),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () =>
+                    Navigator.pop(ctx, SyncForceDecision.useServer),
+                child: Text(l10n.sync_user_mismatch_overwrite_local),
+              ),
+              CupertinoDialogAction(
+                isDestructiveAction: true,
+                onPressed: () =>
+                    Navigator.pop(ctx, SyncForceDecision.useClient),
+                child: Text(l10n.sync_user_mismatch_overwrite_server),
+              ),
+            ],
+          ),
+    );
+    return result;
   }
 
   Future<void> _addWifiName() async {

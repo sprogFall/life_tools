@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class SyncRequestV1(BaseModel):
     user_id: str = Field(min_length=1)
+    force_decision: str | None = None
     tools_data: dict[str, dict[str, Any]]
 
 
@@ -27,6 +28,7 @@ class SyncRequestV2(BaseModel):
     user_id: str = Field(min_length=1)
     client_time: int
     client_state: SyncClientState
+    force_decision: str | None = None
     tools_data: dict[str, dict[str, Any]]
 
 

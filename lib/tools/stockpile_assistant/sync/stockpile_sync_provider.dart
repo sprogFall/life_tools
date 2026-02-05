@@ -43,9 +43,11 @@ class StockpileSyncProvider implements ToolSyncProvider {
       throw Exception('数据格式错误：缺少 data 字段');
     }
 
-    final items = (dataMap['items'] as List<dynamic>?) ?? [];
-    final consumptions = (dataMap['consumptions'] as List<dynamic>?) ?? [];
-    final itemTags = (dataMap['item_tags'] as List<dynamic>?) ?? [];
+    final items = (dataMap['items'] as List<dynamic>?) ?? const [];
+    final consumptions =
+        (dataMap['consumptions'] as List<dynamic>?) ?? const [];
+    final hasItemTags = dataMap.containsKey('item_tags');
+    final itemTags = (dataMap['item_tags'] as List<dynamic>?) ?? const [];
 
     await _repository.importFromServer(
       items: items.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
@@ -54,7 +56,8 @@ class StockpileSyncProvider implements ToolSyncProvider {
           .toList(),
     );
 
-    if (version == 2 && itemTags.isNotEmpty) {
+    // 兼容：旧快照可能缺少 item_tags 字段；仅当字段存在时才覆盖导入（允许清空）。
+    if (version == 2 && hasItemTags) {
       await _tagRepository.importStockItemTagsFromServer(
         itemTags.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
       );

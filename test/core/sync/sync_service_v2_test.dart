@@ -12,6 +12,7 @@ import 'package:life_tools/core/sync/models/sync_response.dart';
 import 'package:life_tools/core/sync/models/sync_response_v2.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
+import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/sync/services/app_config_updated_at.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
@@ -83,6 +84,7 @@ void main() {
 
   group('SyncService v2', () {
     late SyncConfigService configService;
+    late SyncLocalStateService localStateService;
     late AiConfigService aiConfigService;
     late SettingsService settingsService;
     late ObjStoreConfigService objStoreConfigService;
@@ -91,6 +93,8 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       configService = SyncConfigService();
       await configService.init();
+      localStateService = SyncLocalStateService();
+      await localStateService.init();
       aiConfigService = AiConfigService();
       await aiConfigService.init();
       settingsService = SettingsService();
@@ -142,6 +146,7 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
@@ -182,6 +187,7 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
@@ -217,6 +223,7 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
@@ -261,6 +268,7 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
@@ -297,6 +305,7 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
@@ -355,6 +364,7 @@ void main() {
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,

@@ -58,10 +58,12 @@ class WorkLogSyncProvider implements ToolSyncProvider {
       throw Exception('数据格式错误：缺少data字段');
     }
 
-    final tasks = (dataMap['tasks'] as List<dynamic>?) ?? [];
-    final timeEntries = (dataMap['time_entries'] as List<dynamic>?) ?? [];
-    final taskTags = (dataMap['task_tags'] as List<dynamic>?) ?? [];
-    final operationLogs = (dataMap['operation_logs'] as List<dynamic>?) ?? [];
+    final tasks = (dataMap['tasks'] as List<dynamic>?) ?? const [];
+    final timeEntries = (dataMap['time_entries'] as List<dynamic>?) ?? const [];
+    final hasTaskTags = dataMap.containsKey('task_tags');
+    final taskTags = (dataMap['task_tags'] as List<dynamic>?) ?? const [];
+    final operationLogs =
+        (dataMap['operation_logs'] as List<dynamic>?) ?? const [];
 
     // 批量导入（使用事务确保原子性）
     await _repository.importTasksFromServer(
@@ -70,7 +72,8 @@ class WorkLogSyncProvider implements ToolSyncProvider {
     await _repository.importTimeEntriesFromServer(
       timeEntries.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
     );
-    if (taskTags.isNotEmpty) {
+    // 兼容：旧快照可能缺少 task_tags 字段；仅当字段存在时才覆盖导入（允许清空）。
+    if (hasTaskTags) {
       await _tagRepository.importWorkTaskTagsFromServer(
         taskTags.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
       );

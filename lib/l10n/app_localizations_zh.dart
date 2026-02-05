@@ -49,6 +49,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get work_log_ai_entry => 'AI录入';
+
+  @override
+  String get sync_user_mismatch_title => '同步用户不匹配';
+
+  @override
+  String sync_user_mismatch_content(Object localUserId, Object serverUserId) {
+    return '检测到本地数据属于“$localUserId”，但当前同步用户为“$serverUserId”。继续同步可能会覆盖其中一端的数据，请选择处理方式。';
+  }
+
+  @override
+  String get sync_user_mismatch_overwrite_local => '覆盖本地（使用服务端）';
+
+  @override
+  String get sync_user_mismatch_overwrite_server => '覆盖服务端（使用本地）';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -96,4 +110,18 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get work_log_ai_entry => 'AI录入';
+
+  @override
+  String get sync_user_mismatch_title => '同步用户不匹配';
+
+  @override
+  String sync_user_mismatch_content(Object localUserId, Object serverUserId) {
+    return '检测到本地数据属于“$localUserId”，但当前同步用户为“$serverUserId”。继续同步可能会覆盖其中一端的数据，请选择处理方式。';
+  }
+
+  @override
+  String get sync_user_mismatch_overwrite_local => '覆盖本地（使用服务端）';
+
+  @override
+  String get sync_user_mismatch_overwrite_server => '覆盖服务端（使用本地）';
 }

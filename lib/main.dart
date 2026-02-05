@@ -22,6 +22,7 @@ import 'core/performance/display_refresh_rate_service.dart';
 import 'core/registry/tool_registry.dart';
 import 'core/services/settings_service.dart';
 import 'core/sync/services/sync_config_service.dart';
+import 'core/sync/services/sync_local_state_service.dart';
 import 'core/sync/services/sync_service.dart';
 import 'core/sync/services/wifi_service.dart';
 import 'core/tags/built_in_tag_categories.dart';
@@ -68,8 +69,22 @@ void main() async {
   final syncConfigService = SyncConfigService();
   await syncConfigService.init();
 
+  final syncLocalStateService = SyncLocalStateService();
+  await syncLocalStateService.init();
+
+  // 升级兼容：历史版本未记录 localUserId，但若存在同步游标/时间，可推断本地数据已绑定到当前配置用户。
+  if (syncLocalStateService.localUserId == null) {
+    final cfg = syncConfigService.config;
+    final hasSyncedBefore =
+        (cfg?.lastSyncTime != null) || (cfg?.lastServerRevision != null);
+    if (hasSyncedBefore) {
+      await syncLocalStateService.setLocalUserId(cfg?.userId);
+    }
+  }
+
   final syncService = SyncService(
     configService: syncConfigService,
+    localStateService: syncLocalStateService,
     aiConfigService: aiConfigService,
     settingsService: settingsService,
     objStoreConfigService: objStoreConfigService,
@@ -104,6 +119,7 @@ void main() async {
       aiConfigService: aiConfigService,
       objStoreConfigService: objStoreConfigService,
       syncConfigService: syncConfigService,
+      syncLocalStateService: syncLocalStateService,
       syncService: syncService,
       messageService: messageService,
     ),
@@ -115,6 +131,7 @@ class MyApp extends StatefulWidget {
   final AiConfigService aiConfigService;
   final ObjStoreConfigService objStoreConfigService;
   final SyncConfigService syncConfigService;
+  final SyncLocalStateService syncLocalStateService;
   final SyncService syncService;
   final MessageService messageService;
 
@@ -124,6 +141,7 @@ class MyApp extends StatefulWidget {
     required this.aiConfigService,
     required this.objStoreConfigService,
     required this.syncConfigService,
+    required this.syncLocalStateService,
     required this.syncService,
     required this.messageService,
   });
@@ -222,6 +240,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.aiConfigService),
         ChangeNotifierProvider.value(value: widget.objStoreConfigService),
         ChangeNotifierProvider.value(value: widget.syncConfigService),
+        ChangeNotifierProvider.value(value: widget.syncLocalStateService),
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
         ChangeNotifierProvider<ToastService>(create: (_) => ToastService()),

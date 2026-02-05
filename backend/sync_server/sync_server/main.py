@@ -29,6 +29,15 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _normalize_force_decision(value: str | None) -> str | None:
+    if value is None:
+        return None
+    v = value.strip().lower()
+    if v in ("use_server", "use_client"):
+        return v
+    return None
+
+
 def create_app(*, db_path: str) -> FastAPI:
     app = FastAPI(title="life_tools sync server", version="0.1.0")
 
@@ -84,6 +93,65 @@ def create_app(*, db_path: str) -> FastAPI:
         client_updated_at_ms = compute_latest_updated_at_ms(client_tools_data)
 
         snapshot = store.get_snapshot(user_id)
+        force = _normalize_force_decision(request.force_decision)
+
+        if force == "use_client":
+            server_revision_before = snapshot.server_revision if snapshot else 0
+            server_updated_at_before = snapshot.updated_at_ms if snapshot else 0
+            server_tools_before: dict[str, Any] = snapshot.tools_data if snapshot else {}
+            diff = build_tools_diff(
+                server_tools_data=server_tools_before,
+                client_tools_data=client_tools_data,
+            )
+            new_revision = store.save_client_snapshot(
+                user_id=user_id,
+                tools_data=client_tools_data,
+                updated_at_ms=client_updated_at_ms,
+                server_time_ms=server_time,
+                client_time_ms=None,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=1,
+                decision="use_client",
+                server_time_ms=server_time,
+                client_time_ms=None,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=server_updated_at_before,
+                server_updated_at_ms_after=client_updated_at_ms,
+                server_revision_before=server_revision_before,
+                server_revision_after=new_revision,
+                diff=diff,
+            )
+            return SyncResponseV1(success=True, server_time=server_time)
+
+        if force == "use_server":
+            if snapshot is None:
+                return SyncResponseV1(success=True, server_time=server_time)
+
+            diff = build_tools_diff(
+                server_tools_data=snapshot.tools_data,
+                client_tools_data=client_tools_data,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=1,
+                decision="use_server",
+                server_time_ms=server_time,
+                client_time_ms=None,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=snapshot.updated_at_ms,
+                server_updated_at_ms_after=snapshot.updated_at_ms,
+                server_revision_before=snapshot.server_revision,
+                server_revision_after=snapshot.server_revision,
+                diff=diff,
+            )
+            return SyncResponseV1(
+                success=True,
+                server_time=server_time,
+                tools_data=snapshot.tools_data,
+            )
+
         if snapshot is None:
             if client_is_empty:
                 return SyncResponseV1(success=True, server_time=server_time)
@@ -199,6 +267,80 @@ def create_app(*, db_path: str) -> FastAPI:
         client_updated_at_ms = compute_latest_updated_at_ms(client_tools_data)
 
         snapshot = store.get_snapshot(user_id)
+        force = _normalize_force_decision(request.force_decision)
+
+        if force == "use_client":
+            server_revision_before = snapshot.server_revision if snapshot else 0
+            server_updated_at_before = snapshot.updated_at_ms if snapshot else 0
+            server_tools_before: dict[str, Any] = snapshot.tools_data if snapshot else {}
+            diff = build_tools_diff(
+                server_tools_data=server_tools_before,
+                client_tools_data=client_tools_data,
+            )
+            new_revision = store.save_client_snapshot(
+                user_id=user_id,
+                tools_data=client_tools_data,
+                updated_at_ms=client_updated_at_ms,
+                server_time_ms=server_time,
+                client_time_ms=request.client_time,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=2,
+                decision="use_client",
+                server_time_ms=server_time,
+                client_time_ms=request.client_time,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=server_updated_at_before,
+                server_updated_at_ms_after=client_updated_at_ms,
+                server_revision_before=server_revision_before,
+                server_revision_after=new_revision,
+                diff=diff,
+            )
+            return SyncResponseV2(
+                success=True,
+                decision="use_client",
+                message="forced use_client",
+                server_time=server_time,
+                server_revision=new_revision,
+            )
+
+        if force == "use_server":
+            if snapshot is None:
+                return SyncResponseV2(
+                    success=True,
+                    decision="noop",
+                    message="no snapshot",
+                    server_time=server_time,
+                    server_revision=0,
+                )
+
+            diff = build_tools_diff(
+                server_tools_data=snapshot.tools_data,
+                client_tools_data=client_tools_data,
+            )
+            store.add_sync_record(
+                user_id=user_id,
+                protocol_version=2,
+                decision="use_server",
+                server_time_ms=server_time,
+                client_time_ms=request.client_time,
+                client_updated_at_ms=client_updated_at_ms,
+                server_updated_at_ms_before=snapshot.updated_at_ms,
+                server_updated_at_ms_after=snapshot.updated_at_ms,
+                server_revision_before=snapshot.server_revision,
+                server_revision_after=snapshot.server_revision,
+                diff=diff,
+            )
+            return SyncResponseV2(
+                success=True,
+                decision="use_server",
+                message="forced use_server",
+                tools_data=snapshot.tools_data,
+                server_time=server_time,
+                server_revision=snapshot.server_revision,
+            )
+
         if snapshot is None:
             decision = decide_sync_v2(
                 client_is_empty=client_is_empty,

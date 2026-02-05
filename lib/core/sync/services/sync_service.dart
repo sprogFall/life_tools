@@ -6,6 +6,7 @@ import '../../registry/tool_registry.dart';
 import '../../services/settings_service.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
+import '../models/sync_force_decision.dart';
 import '../models/sync_request.dart';
 import '../models/sync_request_v2.dart';
 import '../models/sync_response_v2.dart';
@@ -13,6 +14,7 @@ import 'app_config_sync_provider.dart';
 import 'backup_restore_service.dart';
 import 'sync_api_client.dart';
 import 'sync_config_service.dart';
+import 'sync_local_state_service.dart';
 import 'sync_network_precheck.dart';
 import 'tool_sync_order.dart';
 import 'wifi_service.dart';
@@ -26,9 +28,23 @@ enum SyncState {
   failed, // 同步失败
 }
 
+/// 同步触发来源（用于区分自动同步与手动同步的提示文案/策略）
+enum SyncTrigger { manual, auto }
+
+class SyncUserMismatch {
+  final String localUserId;
+  final String serverUserId;
+
+  const SyncUserMismatch({
+    required this.localUserId,
+    required this.serverUserId,
+  });
+}
+
 /// 同步核心服务
 class SyncService extends ChangeNotifier {
   final SyncConfigService _configService;
+  final SyncLocalStateService _localStateService;
   final WifiService _wifiService;
   final SyncApiClient _apiClient;
   final List<ToolSyncProvider> _toolProviders;
@@ -43,6 +59,7 @@ class SyncService extends ChangeNotifier {
 
   SyncService({
     required SyncConfigService configService,
+    required SyncLocalStateService localStateService,
     required AiConfigService aiConfigService,
     required SettingsService settingsService,
     required ObjStoreConfigService objStoreConfigService,
@@ -50,6 +67,7 @@ class SyncService extends ChangeNotifier {
     SyncApiClient? apiClient,
     Iterable<ToolSyncProvider>? toolProviders,
   }) : _configService = configService,
+       _localStateService = localStateService,
        _wifiService = wifiService ?? WifiService(),
        _apiClient = apiClient ?? SyncApiClient(),
        _toolProviders = List<ToolSyncProvider>.unmodifiable(
@@ -91,8 +109,26 @@ class SyncService extends ChangeNotifier {
     ];
   }
 
+  SyncUserMismatch? getUserMismatch({SyncConfig? config}) {
+    final cfg = config ?? _configService.config;
+    if (cfg == null) return null;
+
+    final serverUserId = cfg.userId.trim();
+    if (serverUserId.isEmpty) return null;
+
+    final localUserId = _localStateService.localUserId?.trim();
+    if (localUserId == null || localUserId.isEmpty) return null;
+
+    if (localUserId == serverUserId) return null;
+
+    return SyncUserMismatch(localUserId: localUserId, serverUserId: serverUserId);
+  }
+
   /// 执行同步（主入口）
-  Future<bool> sync() async {
+  Future<bool> sync({
+    SyncTrigger trigger = SyncTrigger.manual,
+    SyncForceDecision? forceDecision,
+  }) async {
     if (_isSyncing) {
       _lastError = '同步正在进行中，请稍后';
       notifyListeners();
@@ -112,6 +148,20 @@ class SyncService extends ChangeNotifier {
         return false;
       }
 
+      final mismatch = getUserMismatch(config: config);
+      if (mismatch != null && forceDecision == null) {
+        _lastError = switch (trigger) {
+          SyncTrigger.auto =>
+            '用户不匹配，无法自动同步：本地数据用户（${mismatch.localUserId}）与当前同步用户（${mismatch.serverUserId}）不一致。\n'
+                '为避免覆盖服务端数据，请前往“数据同步”页面手动同步并选择“覆盖本地/覆盖服务端”。',
+          SyncTrigger.manual =>
+            '检测到用户不匹配：本地数据用户（${mismatch.localUserId}）与当前同步用户（${mismatch.serverUserId}）不一致。\n'
+                '为避免覆盖服务端数据，请在同步页请选择覆盖方向（覆盖本地 / 覆盖服务端）。',
+        };
+        _setState(SyncState.failed);
+        return false;
+      }
+
       // 2. 检查网络条件
       if (!await _checkNetworkCondition(config)) {
         _setState(SyncState.failed);
@@ -120,43 +170,92 @@ class SyncService extends ChangeNotifier {
 
       // 3. 收集工具数据
       _setState(SyncState.syncing);
-      final toolsData = await _collectToolsData();
+      final toolsData = (forceDecision == SyncForceDecision.useServer)
+          ? const <String, Map<String, dynamic>>{}
+          : await _collectToolsData();
 
-      if (toolsData.isEmpty) {
+      if (toolsData.isEmpty && forceDecision != SyncForceDecision.useServer) {
         // 没有工具支持同步：视为成功
         _setState(SyncState.success);
         await _configService.updateLastSyncTime(DateTime.now());
+        await _localStateService.setLocalUserId(config.userId);
         return true;
       }
 
       // 4. 调用同步 API（优先 v2，服务端不支持则回退 v1）
-      final v2Result = await _trySyncV2(config: config, toolsData: toolsData);
-      if (v2Result == _SyncV2Result.failed) {
-        return false;
-      }
-      if (v2Result == _SyncV2Result.notSupported) {
-        final request = SyncRequest(
-          userId: config.userId,
-          toolsData: toolsData,
-        );
-        final response = await _apiClient.sync(
-          config: config,
-          request: request,
-        );
+      final v2Response = await _trySyncV2(
+        config: config,
+        toolsData: toolsData,
+        forceDecision: forceDecision,
+      );
 
-        if (!response.success) {
-          _lastError = response.message ?? '同步失败';
+      if (v2Response != null) {
+        if (!v2Response.success) {
+          _lastError = v2Response.message ?? '同步失败';
           _setState(SyncState.failed);
           return false;
         }
 
-        // v1：服务端若返回 tools_data，则覆盖导入
-        if (response.toolsData != null) {
-          await _distributeToolsData(response.toolsData!);
+        if (forceDecision == SyncForceDecision.useClient &&
+            v2Response.decision == SyncDecision.useServer) {
+          _lastError = '服务端未接受“覆盖服务端”的请求（可能未升级服务端），已取消导入以保护本地数据。';
+          _setState(SyncState.failed);
+          return false;
         }
 
-        await _configService.updateLastSyncTime(response.serverTime);
+        if (v2Response.decision == SyncDecision.useServer &&
+            v2Response.toolsData != null) {
+          await _distributeToolsData(v2Response.toolsData!);
+        }
+
+        if (forceDecision == SyncForceDecision.useServer &&
+            (v2Response.decision != SyncDecision.useServer ||
+                v2Response.toolsData == null)) {
+          await _clearLocalToolsDataForOverwrite();
+        }
+
+        await _configService.updateLastSyncState(
+          time: v2Response.serverTime,
+          serverRevision: v2Response.serverRevision,
+        );
+        await _localStateService.setLocalUserId(config.userId);
+
+        _setState(SyncState.success);
+        return true;
       }
+
+      final request = SyncRequest(
+        userId: config.userId,
+        toolsData: toolsData,
+        forceDecision: forceDecision,
+      );
+      final response = await _apiClient.sync(config: config, request: request);
+
+      if (!response.success) {
+        _lastError = response.message ?? '同步失败';
+        _setState(SyncState.failed);
+        return false;
+      }
+
+      if (forceDecision == SyncForceDecision.useClient &&
+          response.toolsData != null) {
+        _lastError = '服务端未接受“覆盖服务端”的请求（可能未升级服务端），已取消导入以保护本地数据。';
+        _setState(SyncState.failed);
+        return false;
+      }
+
+      // v1：服务端若返回 tools_data，则覆盖导入
+      if (response.toolsData != null) {
+        await _distributeToolsData(response.toolsData!);
+      }
+
+      if (forceDecision == SyncForceDecision.useServer &&
+          response.toolsData == null) {
+        await _clearLocalToolsDataForOverwrite();
+      }
+
+      await _configService.updateLastSyncTime(response.serverTime);
+      await _localStateService.setLocalUserId(config.userId);
 
       _setState(SyncState.success);
       return true;
@@ -249,9 +348,10 @@ class SyncService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<_SyncV2Result> _trySyncV2({
+  Future<SyncResponseV2?> _trySyncV2({
     required SyncConfig config,
     required Map<String, Map<String, dynamic>> toolsData,
+    SyncForceDecision? forceDecision,
   }) async {
     final request = SyncRequestV2(
       userId: config.userId,
@@ -261,36 +361,59 @@ class SyncService extends ChangeNotifier {
         lastServerRevision: config.lastServerRevision,
       ),
       toolsData: toolsData,
+      forceDecision: forceDecision,
     );
 
-    SyncResponseV2 response;
     try {
-      response = await _apiClient.syncV2(config: config, request: request);
+      return await _apiClient.syncV2(config: config, request: request);
     } on SyncApiException catch (e) {
       // 服务端未实现 v2：允许回退到 v1
       if (e.statusCode == 404 || e.statusCode == 405) {
-        return _SyncV2Result.notSupported;
+        return null;
       }
       rethrow;
     }
+  }
 
-    if (!response.success) {
-      _lastError = response.message ?? '同步失败';
-      _setState(SyncState.failed);
-      return _SyncV2Result.failed;
+  Future<void> _clearLocalToolsDataForOverwrite() async {
+    final empty = <String, Map<String, dynamic>>{};
+
+    for (final provider in _toolProviders) {
+      // 覆盖本地时不清理 app_config：避免把用户刚保存的配置全部抹掉。
+      if (provider.toolId == 'app_config') continue;
+
+      try {
+        final exported = await provider.exportData();
+        empty[provider.toolId] = _emptySnapshotFromExported(exported);
+      } catch (e) {
+        debugPrint('工具 ${provider.toolId} 生成空快照失败: $e');
+      }
     }
 
-    if (response.decision == SyncDecision.useServer &&
-        response.toolsData != null) {
-      await _distributeToolsData(response.toolsData!);
+    if (empty.isEmpty) return;
+    await _distributeToolsData(empty);
+  }
+
+  static Map<String, dynamic> _emptySnapshotFromExported(
+    Map<String, dynamic> exported,
+  ) {
+    final out = <String, dynamic>{};
+
+    final version = exported['version'];
+    if (version != null) out['version'] = version;
+
+    final dataRaw = exported['data'];
+    if (dataRaw is Map) {
+      final cleared = <String, dynamic>{};
+      for (final k in dataRaw.keys) {
+        cleared[k.toString()] = null;
+      }
+      out['data'] = cleared;
+    } else {
+      out['data'] = const <String, dynamic>{};
     }
 
-    await _configService.updateLastSyncState(
-      time: response.serverTime,
-      serverRevision: response.serverRevision,
-    );
-
-    return _SyncV2Result.success;
+    return out;
   }
 
   static bool _isAllToolsEmptyForDecision(
@@ -332,5 +455,3 @@ class SyncService extends ChangeNotifier {
     super.dispose();
   }
 }
-
-enum _SyncV2Result { notSupported, success, failed }

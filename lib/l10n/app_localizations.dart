@@ -183,6 +183,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI Entry'**
   String get work_log_ai_entry;
+
+  /// Title shown when local data user does not match current sync user
+  ///
+  /// In en, this message translates to:
+  /// **'Sync user mismatch'**
+  String get sync_user_mismatch_title;
+
+  /// Message shown when local data user does not match current sync user
+  ///
+  /// In en, this message translates to:
+  /// **'Local data belongs to “{localUserId}”, but current sync user is “{serverUserId}”. To avoid overwriting data, choose how to proceed.'**
+  String sync_user_mismatch_content(Object localUserId, Object serverUserId);
+
+  /// Option to overwrite local data using server snapshot
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite local (use server)'**
+  String get sync_user_mismatch_overwrite_local;
+
+  /// Option to overwrite server data using local snapshot
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite server (use local)'**
+  String get sync_user_mismatch_overwrite_server;
 }
 
 class _AppLocalizationsDelegate

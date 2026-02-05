@@ -11,6 +11,7 @@ import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.da
 import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
+import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
@@ -50,6 +51,7 @@ void main() {
     late AiConfigService aiConfigService;
     late ObjStoreConfigService objStoreConfigService;
     late SyncConfigService syncConfigService;
+    late SyncLocalStateService syncLocalStateService;
     late SyncService syncService;
 
     setUpAll(() {
@@ -74,8 +76,13 @@ void main() {
 
       syncConfigService = SyncConfigService();
       await syncConfigService.init();
+
+      syncLocalStateService = SyncLocalStateService();
+      await syncLocalStateService.init();
+
       syncService = SyncService(
         configService: syncConfigService,
+        localStateService: syncLocalStateService,
         aiConfigService: aiConfigService,
         settingsService: mockSettingsService,
         objStoreConfigService: objStoreConfigService,
@@ -122,6 +129,9 @@ void main() {
           ),
           ChangeNotifierProvider<SyncConfigService>.value(
             value: syncConfigService,
+          ),
+          ChangeNotifierProvider<SyncLocalStateService>.value(
+            value: syncLocalStateService,
           ),
           ChangeNotifierProvider<SyncService>.value(value: syncService),
           Provider<WifiService>.value(

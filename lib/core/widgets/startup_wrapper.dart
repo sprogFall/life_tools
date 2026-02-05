@@ -42,7 +42,7 @@ class _StartupWrapperState extends State<StartupWrapper> {
       // 显示开始提示（可选，这里只提示结果）
       // toastService.show('正在自动同步...');
       
-      final success = await syncService.sync();
+      final success = await syncService.sync(trigger: SyncTrigger.auto);
       
       if (!mounted) return;
       

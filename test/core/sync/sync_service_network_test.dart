@@ -7,6 +7,7 @@ import 'package:life_tools/core/sync/models/sync_config.dart';
 import 'package:life_tools/core/sync/models/sync_response.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
+import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,9 +69,12 @@ void main() {
         secretStore: InMemorySecretStore(),
       );
       await objStoreConfigService.init();
+      final localStateService = SyncLocalStateService();
+      await localStateService.init();
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
@@ -109,9 +113,12 @@ void main() {
         secretStore: InMemorySecretStore(),
       );
       await objStoreConfigService.init();
+      final localStateService = SyncLocalStateService();
+      await localStateService.init();
 
       final service = SyncService(
         configService: configService,
+        localStateService: localStateService,
         aiConfigService: aiConfigService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
