@@ -762,6 +762,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ai_settings_clear_confirm_button => 'Clear';
+
+  @override
+  String get obj_store_settings_title => 'Object Storage';
+
+  @override
+  String get obj_store_settings_type_section_title => 'Storage Type';
+
+  @override
+  String get obj_store_settings_type_none_label => 'None';
+
+  @override
+  String get obj_store_settings_type_local_label => 'Local';
+
+  @override
+  String get obj_store_settings_type_qiniu_label => 'Qiniu';
+
+  @override
+  String get obj_store_settings_type_data_capsule_label => 'Data Capsule';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -1522,4 +1540,22 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get ai_settings_clear_confirm_button => 'Clear';
+
+  @override
+  String get obj_store_settings_title => 'Object Storage';
+
+  @override
+  String get obj_store_settings_type_section_title => 'Storage Type';
+
+  @override
+  String get obj_store_settings_type_none_label => 'None';
+
+  @override
+  String get obj_store_settings_type_local_label => 'Local';
+
+  @override
+  String get obj_store_settings_type_qiniu_label => 'Qiniu';
+
+  @override
+  String get obj_store_settings_type_data_capsule_label => 'Data Capsule';
 }

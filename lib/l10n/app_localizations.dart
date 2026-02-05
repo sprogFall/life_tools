@@ -1403,6 +1403,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get ai_settings_clear_confirm_button;
+
+  /// No description provided for @obj_store_settings_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Object Storage'**
+  String get obj_store_settings_title;
+
+  /// No description provided for @obj_store_settings_type_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Type'**
+  String get obj_store_settings_type_section_title;
+
+  /// No description provided for @obj_store_settings_type_none_label.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get obj_store_settings_type_none_label;
+
+  /// No description provided for @obj_store_settings_type_local_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get obj_store_settings_type_local_label;
+
+  /// No description provided for @obj_store_settings_type_qiniu_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Qiniu'**
+  String get obj_store_settings_type_qiniu_label;
+
+  /// No description provided for @obj_store_settings_type_data_capsule_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Capsule'**
+  String get obj_store_settings_type_data_capsule_label;
 }
 
 class _AppLocalizationsDelegate

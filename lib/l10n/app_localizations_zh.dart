@@ -738,6 +738,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get ai_settings_clear_confirm_button => '清除';
+
+  @override
+  String get obj_store_settings_title => '资源存储';
+
+  @override
+  String get obj_store_settings_type_section_title => '存储方式';
+
+  @override
+  String get obj_store_settings_type_none_label => '未选择';
+
+  @override
+  String get obj_store_settings_type_local_label => '本地存储';
+
+  @override
+  String get obj_store_settings_type_qiniu_label => '七牛云';
+
+  @override
+  String get obj_store_settings_type_data_capsule_label => '数据胶囊';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -1474,4 +1492,22 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get ai_settings_clear_confirm_button => '清除';
+
+  @override
+  String get obj_store_settings_title => '资源存储';
+
+  @override
+  String get obj_store_settings_type_section_title => '存储方式';
+
+  @override
+  String get obj_store_settings_type_none_label => '未选择';
+
+  @override
+  String get obj_store_settings_type_local_label => '本地存储';
+
+  @override
+  String get obj_store_settings_type_qiniu_label => '七牛云';
+
+  @override
+  String get obj_store_settings_type_data_capsule_label => '数据胶囊';
 }

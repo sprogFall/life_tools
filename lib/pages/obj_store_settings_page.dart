@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../core/obj_store/obj_store_config.dart';
@@ -117,11 +118,12 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       body: Column(
         children: [
           IOS26AppBar(
-            title: '资源存储',
+            title: l10n.obj_store_settings_title,
             showBackButton: true,
             actions: [
               CupertinoButton(
@@ -130,7 +132,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: () => _save(context),
-                child: Text('保存', style: IOS26Theme.labelLarge),
+                child: Text(l10n.common_save, style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -167,31 +169,35 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildTypeCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '存储方式', padding: EdgeInsets.zero),
+          SectionHeader(
+            title: l10n.obj_store_settings_type_section_title,
+            padding: EdgeInsets.zero,
+          ),
           const SizedBox(height: 12),
           CupertinoSlidingSegmentedControl<ObjStoreType>(
             groupValue: _type,
-            children: const {
+            children: {
               ObjStoreType.none: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('未选择'),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(l10n.obj_store_settings_type_none_label),
               ),
               ObjStoreType.local: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('本地存储'),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(l10n.obj_store_settings_type_local_label),
               ),
               ObjStoreType.qiniu: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('七牛云'),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(l10n.obj_store_settings_type_qiniu_label),
               ),
               ObjStoreType.dataCapsule: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('数据胶囊'),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(l10n.obj_store_settings_type_data_capsule_label),
               ),
             },
             onValueChanged: (v) {

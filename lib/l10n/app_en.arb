@@ -399,5 +399,11 @@
   "ai_settings_test_failed_title": "Test Failed",
   "ai_settings_clear_confirm_title": "Confirm clear?",
   "ai_settings_clear_confirm_content": "After clearing, AI features will be unavailable until you configure again.",
-  "ai_settings_clear_confirm_button": "Clear"
+  "ai_settings_clear_confirm_button": "Clear",
+  "obj_store_settings_title": "Object Storage",
+  "obj_store_settings_type_section_title": "Storage Type",
+  "obj_store_settings_type_none_label": "None",
+  "obj_store_settings_type_local_label": "Local",
+  "obj_store_settings_type_qiniu_label": "Qiniu",
+  "obj_store_settings_type_data_capsule_label": "Data Capsule"
 }
