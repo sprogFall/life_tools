@@ -136,6 +136,36 @@ abstract class AppLocalizations {
   /// **'Loading...'**
   String get common_loading;
 
+  /// No description provided for @common_copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get common_copy;
+
+  /// No description provided for @common_yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get common_yes;
+
+  /// No description provided for @common_no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get common_no;
+
+  /// No description provided for @common_public.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get common_public;
+
+  /// No description provided for @common_private.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get common_private;
+
   /// No description provided for @common_home.
   ///
   /// In en, this message translates to:
@@ -1439,6 +1469,432 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Data Capsule'**
   String get obj_store_settings_type_data_capsule_label;
+
+  /// No description provided for @obj_store_settings_qiniu_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Qiniu Settings'**
+  String get obj_store_settings_qiniu_section_title;
+
+  /// No description provided for @obj_store_settings_data_capsule_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Capsule Settings'**
+  String get obj_store_settings_data_capsule_section_title;
+
+  /// No description provided for @obj_store_settings_test_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get obj_store_settings_test_section_title;
+
+  /// No description provided for @obj_store_settings_tips_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get obj_store_settings_tips_section_title;
+
+  /// No description provided for @obj_store_settings_danger_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get obj_store_settings_danger_section_title;
+
+  /// No description provided for @obj_store_settings_clear_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Object Storage Settings'**
+  String get obj_store_settings_clear_button;
+
+  /// No description provided for @obj_store_settings_bucket_type_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Bucket Type'**
+  String get obj_store_settings_bucket_type_label;
+
+  /// No description provided for @obj_store_settings_protocol_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol'**
+  String get obj_store_settings_protocol_label;
+
+  /// No description provided for @obj_store_settings_protocol_https_label.
+  ///
+  /// In en, this message translates to:
+  /// **'https'**
+  String get obj_store_settings_protocol_https_label;
+
+  /// No description provided for @obj_store_settings_protocol_http_label.
+  ///
+  /// In en, this message translates to:
+  /// **'http'**
+  String get obj_store_settings_protocol_http_label;
+
+  /// No description provided for @obj_store_settings_http_security_warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Security note: HTTP is plaintext. Credentials/file contents may be intercepted; only recommended for intranet debugging.'**
+  String get obj_store_settings_http_security_warning;
+
+  /// No description provided for @obj_store_settings_access_key_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Key'**
+  String get obj_store_settings_access_key_label;
+
+  /// No description provided for @obj_store_settings_secret_key_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Key'**
+  String get obj_store_settings_secret_key_label;
+
+  /// No description provided for @obj_store_settings_access_key_ak_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Key (AK)'**
+  String get obj_store_settings_access_key_ak_label;
+
+  /// No description provided for @obj_store_settings_secret_key_sk_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Key (SK)'**
+  String get obj_store_settings_secret_key_sk_label;
+
+  /// No description provided for @obj_store_settings_bucket_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Bucket'**
+  String get obj_store_settings_bucket_label;
+
+  /// No description provided for @obj_store_settings_domain_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Domain (for building image URL)'**
+  String get obj_store_settings_domain_label;
+
+  /// No description provided for @obj_store_settings_upload_host_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Host (optional)'**
+  String get obj_store_settings_upload_host_label;
+
+  /// No description provided for @obj_store_settings_key_prefix_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Key Prefix (optional)'**
+  String get obj_store_settings_key_prefix_label;
+
+  /// No description provided for @obj_store_settings_endpoint_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint (upload/access)'**
+  String get obj_store_settings_endpoint_label;
+
+  /// No description provided for @obj_store_settings_domain_optional_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Domain (optional)'**
+  String get obj_store_settings_domain_optional_label;
+
+  /// No description provided for @obj_store_settings_region_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Region'**
+  String get obj_store_settings_region_label;
+
+  /// No description provided for @obj_store_settings_url_style_label.
+  ///
+  /// In en, this message translates to:
+  /// **'URL Style'**
+  String get obj_store_settings_url_style_label;
+
+  /// No description provided for @obj_store_settings_fixed_private_value.
+  ///
+  /// In en, this message translates to:
+  /// **'Private (Fixed)'**
+  String get obj_store_settings_fixed_private_value;
+
+  /// No description provided for @obj_store_settings_fixed_https_value.
+  ///
+  /// In en, this message translates to:
+  /// **'https (Fixed)'**
+  String get obj_store_settings_fixed_https_value;
+
+  /// No description provided for @obj_store_settings_fixed_path_style_value.
+  ///
+  /// In en, this message translates to:
+  /// **'Path Style (Fixed)'**
+  String get obj_store_settings_fixed_path_style_value;
+
+  /// No description provided for @obj_store_settings_fixed_region_value.
+  ///
+  /// In en, this message translates to:
+  /// **'{region} (Fixed)'**
+  String obj_store_settings_fixed_region_value(Object region);
+
+  /// No description provided for @obj_store_settings_placeholder_example_short.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. xxxxx'**
+  String get obj_store_settings_placeholder_example_short;
+
+  /// No description provided for @obj_store_settings_placeholder_bucket.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. my-bucket'**
+  String get obj_store_settings_placeholder_bucket;
+
+  /// No description provided for @obj_store_settings_placeholder_domain.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. cdn.example.com'**
+  String get obj_store_settings_placeholder_domain;
+
+  /// No description provided for @obj_store_settings_placeholder_upload_host.
+  ///
+  /// In en, this message translates to:
+  /// **'Default: https://upload.qiniup.com'**
+  String get obj_store_settings_placeholder_upload_host;
+
+  /// No description provided for @obj_store_settings_placeholder_endpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. s3.example.com'**
+  String get obj_store_settings_placeholder_endpoint;
+
+  /// No description provided for @obj_store_settings_placeholder_key_prefix.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. media/'**
+  String get obj_store_settings_placeholder_key_prefix;
+
+  /// No description provided for @obj_store_settings_placeholder_query.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. media/xxx.png'**
+  String get obj_store_settings_placeholder_query;
+
+  /// No description provided for @obj_store_settings_test_file_not_selected.
+  ///
+  /// In en, this message translates to:
+  /// **'No file selected'**
+  String get obj_store_settings_test_file_not_selected;
+
+  /// No description provided for @obj_store_settings_test_file_selected.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({bytes} bytes)'**
+  String obj_store_settings_test_file_selected(Object name, Object bytes);
+
+  /// No description provided for @obj_store_settings_choose_file_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose File'**
+  String get obj_store_settings_choose_file_button;
+
+  /// No description provided for @obj_store_settings_test_upload_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Upload'**
+  String get obj_store_settings_test_upload_button;
+
+  /// No description provided for @obj_store_settings_test_uploading_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing upload...'**
+  String get obj_store_settings_test_uploading_button;
+
+  /// No description provided for @obj_store_settings_test_query_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Query'**
+  String get obj_store_settings_test_query_button;
+
+  /// No description provided for @obj_store_settings_test_querying_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Querying...'**
+  String get obj_store_settings_test_querying_button;
+
+  /// No description provided for @obj_store_settings_test_upload_result.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload result:\\nKey: {key}\\nURI: {uri}'**
+  String obj_store_settings_test_upload_result(Object key, Object uri);
+
+  /// No description provided for @obj_store_settings_query_key_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Query Key / URL (supports pasting full URL)'**
+  String get obj_store_settings_query_key_label;
+
+  /// No description provided for @obj_store_settings_tips_content.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Local storage writes files to the app\'s private directory (removed on uninstall).\\n2. Qiniu uploads by generating an upload token locally and uploading directly to Qiniu.\\n3. For Qiniu private buckets, query builds a signed temporary download URL.\\n4. Data Capsule is private; query builds a signed temporary URL (default 30 minutes).\\n5. Credentials are sensitive. Recommended for personal use only; for better security, use server-issued upload tokens.\\n6. If you configure a custom domain, ensure it matches server settings to avoid “Accessible = No”.'**
+  String get obj_store_settings_tips_content;
+
+  /// No description provided for @obj_store_settings_cleared_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared'**
+  String get obj_store_settings_cleared_title;
+
+  /// No description provided for @obj_store_settings_cleared_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Object storage reset to None.'**
+  String get obj_store_settings_cleared_content;
+
+  /// No description provided for @obj_store_settings_invalid_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip'**
+  String get obj_store_settings_invalid_title;
+
+  /// No description provided for @obj_store_settings_qiniu_config_incomplete_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Qiniu config is incomplete. Check Bucket / Domain / Upload Host.'**
+  String get obj_store_settings_qiniu_config_incomplete_error;
+
+  /// No description provided for @obj_store_settings_qiniu_missing_credentials_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill Qiniu Access Key and Secret Key.'**
+  String get obj_store_settings_qiniu_missing_credentials_error;
+
+  /// No description provided for @obj_store_settings_data_capsule_config_incomplete_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Capsule config is incomplete. Check Bucket / Endpoint.'**
+  String get obj_store_settings_data_capsule_config_incomplete_error;
+
+  /// No description provided for @obj_store_settings_data_capsule_missing_credentials_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill Data Capsule Access Key (AK) and Secret Key (SK).'**
+  String get obj_store_settings_data_capsule_missing_credentials_error;
+
+  /// No description provided for @obj_store_settings_saved_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get obj_store_settings_saved_title;
+
+  /// No description provided for @obj_store_settings_saved_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Object storage settings updated.'**
+  String get obj_store_settings_saved_content;
+
+  /// No description provided for @obj_store_settings_save_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get obj_store_settings_save_failed_title;
+
+  /// No description provided for @obj_store_settings_test_upload_select_file_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose an image/video file to test upload.'**
+  String get obj_store_settings_test_upload_select_file_hint;
+
+  /// No description provided for @obj_store_settings_test_upload_read_failed_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to read file contents. Please re-select the file.'**
+  String get obj_store_settings_test_upload_read_failed_hint;
+
+  /// No description provided for @obj_store_settings_upload_success_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload succeeded'**
+  String get obj_store_settings_upload_success_title;
+
+  /// No description provided for @obj_store_settings_upload_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed'**
+  String get obj_store_settings_upload_failed_title;
+
+  /// No description provided for @obj_store_settings_test_query_key_required_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a Key (or URL) to query.'**
+  String get obj_store_settings_test_query_key_required_hint;
+
+  /// No description provided for @obj_store_settings_query_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Query failed'**
+  String get obj_store_settings_query_failed_title;
+
+  /// No description provided for @obj_store_settings_clear_confirm_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm clear?'**
+  String get obj_store_settings_clear_confirm_title;
+
+  /// No description provided for @obj_store_settings_clear_confirm_content.
+  ///
+  /// In en, this message translates to:
+  /// **'This will clear all object storage settings (including sensitive credentials).'**
+  String get obj_store_settings_clear_confirm_content;
+
+  /// No description provided for @obj_store_settings_dialog_obj_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}\\nURI: {uri}'**
+  String obj_store_settings_dialog_obj_content(Object key, Object uri);
+
+  /// No description provided for @obj_store_settings_copy_redacted_action.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Redacted'**
+  String get obj_store_settings_copy_redacted_action;
+
+  /// No description provided for @obj_store_settings_copy_original_action.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Original'**
+  String get obj_store_settings_copy_original_action;
+
+  /// No description provided for @obj_store_settings_copy_original_confirm_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy original URI?'**
+  String get obj_store_settings_copy_original_confirm_title;
+
+  /// No description provided for @obj_store_settings_copy_original_confirm_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Original URI may contain signatures/tokens. Avoid screenshots/sharing after copying.'**
+  String get obj_store_settings_copy_original_confirm_content;
+
+  /// No description provided for @obj_store_settings_query_result_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Query Result'**
+  String get obj_store_settings_query_result_title;
+
+  /// No description provided for @obj_store_settings_dialog_query_content.
+  ///
+  /// In en, this message translates to:
+  /// **'URI: {uri}\\nAccessible: {accessible}'**
+  String obj_store_settings_dialog_query_content(Object uri, Object accessible);
+
+  /// No description provided for @obj_store_settings_copy_redacted_result_action.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Redacted Result'**
+  String get obj_store_settings_copy_redacted_result_action;
+
+  /// No description provided for @obj_store_settings_copy_original_result_action.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Original Result'**
+  String get obj_store_settings_copy_original_result_action;
 }
 
 class _AppLocalizationsDelegate

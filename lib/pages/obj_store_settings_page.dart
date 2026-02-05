@@ -28,6 +28,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   ObjStoreType _type = ObjStoreType.none;
   bool _qiniuIsPrivate = false;
   bool _qiniuUseHttps = true;
+  bool _qiniuSecretVisible = false;
 
   final _qiniuAccessKeyController = TextEditingController();
   final _qiniuSecretKeyController = TextEditingController();
@@ -42,6 +43,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   final _dataCapsuleEndpointController = TextEditingController();
   final _dataCapsuleDomainController = TextEditingController();
   final _dataCapsuleKeyPrefixController = TextEditingController();
+  bool _dataCapsuleSecretVisible = false;
 
   PlatformFile? _selectedFile;
   ObjStoreObject? _lastUploaded;
@@ -128,8 +130,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             actions: [
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: IOS26Theme.spacingMd,
+                  vertical: IOS26Theme.spacingSm,
                 ),
                 onPressed: () => _save(context),
                 child: Text(l10n.common_save, style: IOS26Theme.labelLarge),
@@ -139,25 +141,25 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(IOS26Theme.spacingXl),
               child: Column(
                 children: [
                   _buildTypeCard(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: IOS26Theme.spacingLg),
                   if (_type == ObjStoreType.qiniu) ...[
                     _buildQiniuConfigCard(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: IOS26Theme.spacingLg),
                   ],
                   if (_type == ObjStoreType.dataCapsule) ...[
                     _buildDataCapsuleConfigCard(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: IOS26Theme.spacingLg),
                   ],
                   if (_type != ObjStoreType.none) ...[
                     _buildTestCard(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: IOS26Theme.spacingLg),
                   ],
                   _buildTipsCard(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: IOS26Theme.spacingLg),
                   _buildDangerZoneCard(),
                 ],
               ),
@@ -171,7 +173,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   Widget _buildTypeCard() {
     final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -179,24 +181,32 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             title: l10n.obj_store_settings_type_section_title,
             padding: EdgeInsets.zero,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           CupertinoSlidingSegmentedControl<ObjStoreType>(
             groupValue: _type,
             children: {
               ObjStoreType.none: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: IOS26Theme.spacingSm,
+                ),
                 child: Text(l10n.obj_store_settings_type_none_label),
               ),
               ObjStoreType.local: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: IOS26Theme.spacingSm,
+                ),
                 child: Text(l10n.obj_store_settings_type_local_label),
               ),
               ObjStoreType.qiniu: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: IOS26Theme.spacingSm,
+                ),
                 child: Text(l10n.obj_store_settings_type_qiniu_label),
               ),
               ObjStoreType.dataCapsule: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: IOS26Theme.spacingSm,
+                ),
                 child: Text(l10n.obj_store_settings_type_data_capsule_label),
               ),
             },
@@ -216,25 +226,33 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildQiniuConfigCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '七牛云配置', padding: EdgeInsets.zero),
-          const SizedBox(height: 12),
+          SectionHeader(
+            title: l10n.obj_store_settings_qiniu_section_title,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: '空间类型',
+            label: l10n.obj_store_settings_bucket_type_label,
             child: CupertinoSlidingSegmentedControl<bool>(
               groupValue: _qiniuIsPrivate,
-              children: const {
+              children: {
                 false: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('公有'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: IOS26Theme.spacingSm,
+                  ),
+                  child: Text(l10n.common_public),
                 ),
                 true: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('私有'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: IOS26Theme.spacingSm,
+                  ),
+                  child: Text(l10n.common_private),
                 ),
               },
               onValueChanged: (v) {
@@ -243,19 +261,23 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               },
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: '访问协议',
+            label: l10n.obj_store_settings_protocol_label,
             child: CupertinoSlidingSegmentedControl<bool>(
               groupValue: _qiniuUseHttps,
-              children: const {
+              children: {
                 true: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('https'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: IOS26Theme.spacingSm,
+                  ),
+                  child: Text(l10n.obj_store_settings_protocol_https_label),
                 ),
                 false: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('http'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: IOS26Theme.spacingSm,
+                  ),
+                  child: Text(l10n.obj_store_settings_protocol_http_label),
                 ),
               },
               onValueChanged: (v) {
@@ -265,77 +287,95 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             ),
           ),
           if (!_qiniuUseHttps) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: IOS26Theme.spacingSm),
             Text(
-              '安全提示：HTTP 为明文传输，访问密钥/文件内容可能被截获，仅建议内网调试使用。',
+              l10n.obj_store_settings_http_security_warning,
               style: IOS26Theme.bodySmall.copyWith(
                 color: IOS26Theme.toolRed,
                 height: 1.4,
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'AccessKey（访问密钥）',
+            label: l10n.obj_store_settings_access_key_label,
             child: CupertinoTextField(
               controller: _qiniuAccessKeyController,
-              placeholder: '如：xxxxx',
+              placeholder: l10n.obj_store_settings_placeholder_example_short,
               autocorrect: false,
               enableSuggestions: false,
               keyboardType: TextInputType.text,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'SecretKey（私密密钥）',
+            label: l10n.obj_store_settings_secret_key_label,
             child: CupertinoTextField(
+              key: const Key('obj_store_qiniu_secret'),
               controller: _qiniuSecretKeyController,
-              placeholder: '如：xxxxx',
+              placeholder: l10n.obj_store_settings_placeholder_example_short,
               autocorrect: false,
               enableSuggestions: false,
               keyboardType: TextInputType.text,
+              obscureText: !_qiniuSecretVisible,
+              suffixMode: OverlayVisibilityMode.always,
+              suffix: CupertinoButton(
+                key: const Key('obj_store_qiniu_secret_toggle'),
+                padding: EdgeInsets.zero,
+                minimumSize: IOS26Theme.minimumTapSize,
+                onPressed: () {
+                  setState(() => _qiniuSecretVisible = !_qiniuSecretVisible);
+                },
+                child: Icon(
+                  _qiniuSecretVisible
+                      ? CupertinoIcons.eye_slash
+                      : CupertinoIcons.eye,
+                  color: IOS26Theme.textSecondary,
+                  size: 18,
+                ),
+              ),
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'Bucket',
+            label: l10n.obj_store_settings_bucket_label,
             child: CupertinoTextField(
               controller: _qiniuBucketController,
-              placeholder: '如：my-bucket',
+              placeholder: l10n.obj_store_settings_placeholder_bucket,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: '访问域名（用于拼接图片URL）',
+            label: l10n.obj_store_settings_domain_label,
             child: CupertinoTextField(
               controller: _qiniuDomainController,
-              placeholder: '如：cdn.example.com',
+              placeholder: l10n.obj_store_settings_placeholder_domain,
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: '上传域名（可选）',
+            label: l10n.obj_store_settings_upload_host_label,
             child: CupertinoTextField(
               controller: _qiniuUploadHostController,
-              placeholder: '默认：https://upload.qiniup.com',
+              placeholder: l10n.obj_store_settings_placeholder_upload_host,
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'Key 前缀（可选）',
+            label: l10n.obj_store_settings_key_prefix_label,
             child: CupertinoTextField(
               controller: _qiniuKeyPrefixController,
-              placeholder: '如：media/',
+              placeholder: l10n.obj_store_settings_placeholder_key_prefix,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
@@ -346,93 +386,127 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildDataCapsuleConfigCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '数据胶囊配置', padding: EdgeInsets.zero),
-          const SizedBox(height: 12),
-          _buildLabeledField(label: '空间类型', child: _buildFixedValue('私有（固定）')),
-          const SizedBox(height: 12),
-          _buildLabeledField(
-            label: '访问协议',
-            child: _buildFixedValue('https（固定）'),
+          SectionHeader(
+            title: l10n.obj_store_settings_data_capsule_section_title,
+            padding: EdgeInsets.zero,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'URL 风格',
-            child: _buildFixedValue('路径风格（固定）'),
+            label: l10n.obj_store_settings_bucket_type_label,
+            child: _buildFixedValue(
+              l10n.obj_store_settings_fixed_private_value,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'AccessKey（AK）',
+            label: l10n.obj_store_settings_protocol_label,
+            child: _buildFixedValue(l10n.obj_store_settings_fixed_https_value),
+          ),
+          const SizedBox(height: IOS26Theme.spacingMd),
+          _buildLabeledField(
+            label: l10n.obj_store_settings_url_style_label,
+            child: _buildFixedValue(
+              l10n.obj_store_settings_fixed_path_style_value,
+            ),
+          ),
+          const SizedBox(height: IOS26Theme.spacingMd),
+          _buildLabeledField(
+            label: l10n.obj_store_settings_access_key_ak_label,
             child: CupertinoTextField(
               controller: _dataCapsuleAccessKeyController,
-              placeholder: '如：xxxxx',
+              placeholder: l10n.obj_store_settings_placeholder_example_short,
               autocorrect: false,
               enableSuggestions: false,
               keyboardType: TextInputType.text,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'SecretKey（SK）',
+            label: l10n.obj_store_settings_secret_key_sk_label,
             child: CupertinoTextField(
+              key: const Key('obj_store_data_capsule_secret'),
               controller: _dataCapsuleSecretKeyController,
-              placeholder: '如：xxxxx',
+              placeholder: l10n.obj_store_settings_placeholder_example_short,
               autocorrect: false,
               enableSuggestions: false,
               keyboardType: TextInputType.text,
+              obscureText: !_dataCapsuleSecretVisible,
+              suffixMode: OverlayVisibilityMode.always,
+              suffix: CupertinoButton(
+                key: const Key('obj_store_data_capsule_secret_toggle'),
+                padding: EdgeInsets.zero,
+                minimumSize: IOS26Theme.minimumTapSize,
+                onPressed: () {
+                  setState(
+                    () =>
+                        _dataCapsuleSecretVisible = !_dataCapsuleSecretVisible,
+                  );
+                },
+                child: Icon(
+                  _dataCapsuleSecretVisible
+                      ? CupertinoIcons.eye_slash
+                      : CupertinoIcons.eye,
+                  color: IOS26Theme.textSecondary,
+                  size: 18,
+                ),
+              ),
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'Bucket',
+            label: l10n.obj_store_settings_bucket_label,
             child: CupertinoTextField(
               controller: _dataCapsuleBucketController,
-              placeholder: '如：my-bucket',
+              placeholder: l10n.obj_store_settings_placeholder_bucket,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'Endpoint（上传/访问）',
+            label: l10n.obj_store_settings_endpoint_label,
             child: CupertinoTextField(
               controller: _dataCapsuleEndpointController,
-              placeholder: '如：s3.example.com',
+              placeholder: l10n.obj_store_settings_placeholder_endpoint,
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: '访问域名（可选）',
+            label: l10n.obj_store_settings_domain_optional_label,
             child: CupertinoTextField(
               controller: _dataCapsuleDomainController,
-              placeholder: '如：cdn.example.com',
+              placeholder: l10n.obj_store_settings_placeholder_domain,
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'Region',
+            label: l10n.obj_store_settings_region_label,
             child: _buildFixedValue(
-              '${ObjStoreConfig.dataCapsuleFixedRegion}（固定）',
+              l10n.obj_store_settings_fixed_region_value(
+                ObjStoreConfig.dataCapsuleFixedRegion,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildLabeledField(
-            label: 'Key 前缀（可选）',
+            label: l10n.obj_store_settings_key_prefix_label,
             child: CupertinoTextField(
               controller: _dataCapsuleKeyPrefixController,
-              placeholder: '如：media/',
+              placeholder: l10n.obj_store_settings_placeholder_key_prefix,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
@@ -443,35 +517,42 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildTestCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '测试', padding: EdgeInsets.zero),
-          const SizedBox(height: 12),
+          SectionHeader(
+            title: l10n.obj_store_settings_test_section_title,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: IOS26Theme.spacingMd),
           Row(
             children: [
               Expanded(
                 child: Text(
                   _selectedFile == null
-                      ? '未选择文件'
-                      : '${_selectedFile!.name}（${_selectedFile!.size} bytes）',
+                      ? l10n.obj_store_settings_test_file_not_selected
+                      : l10n.obj_store_settings_test_file_selected(
+                          _selectedFile!.name,
+                          _selectedFile!.size,
+                        ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: IOS26Theme.bodySmall,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: IOS26Theme.spacingMd),
               CupertinoButton(
                 color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: IOS26Theme.spacingLg,
+                  vertical: IOS26Theme.spacingMd,
                 ),
                 onPressed: _pickFile,
                 child: Text(
-                  '选择文件',
+                  l10n.obj_store_settings_choose_file_button,
                   style: IOS26Theme.labelLarge.copyWith(
                     color: IOS26Theme.textSecondary,
                   ),
@@ -479,7 +560,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
@@ -487,29 +568,36 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingUpload ? null : () => _testUpload(context),
               child: Text(
-                _isTestingUpload ? '测试上传中...' : '测试上传',
+                _isTestingUpload
+                    ? l10n.obj_store_settings_test_uploading_button
+                    : l10n.obj_store_settings_test_upload_button,
                 style: IOS26Theme.labelLarge,
               ),
             ),
           ),
           if (_lastUploaded != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: IOS26Theme.spacingMd),
             Text(
-              '上传结果：\nKey: ${_lastUploaded!.key}\nURI: ${_redactSensitiveUrl(_lastUploaded!.uri)}',
+              l10n.obj_store_settings_test_upload_result(
+                _lastUploaded!.key,
+                _redactSensitiveUrl(_lastUploaded!.uri),
+              ),
               style: IOS26Theme.bodySmall.copyWith(height: 1.4),
             ),
           ],
           const SizedBox(height: 14),
           _buildLabeledField(
-            label: '查询 Key / URL（用于测试查询/拼接URL，支持粘贴完整 URL）',
+            label: l10n.obj_store_settings_query_key_label,
             child: CupertinoTextField(
               controller: _queryKeyController,
-              placeholder: _lastUploaded?.key ?? '如：media/xxx.png',
+              placeholder:
+                  _lastUploaded?.key ??
+                  l10n.obj_store_settings_placeholder_query,
               autocorrect: false,
               decoration: _fieldDecoration(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
@@ -517,7 +605,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingQuery ? null : () => _testQuery(context),
               child: Text(
-                _isTestingQuery ? '查询中...' : '测试查询',
+                _isTestingQuery
+                    ? l10n.obj_store_settings_test_querying_button
+                    : l10n.obj_store_settings_test_query_button,
                 style: IOS26Theme.labelLarge,
               ),
             ),
@@ -528,20 +618,19 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildTipsCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '说明', padding: EdgeInsets.zero),
-          SizedBox(height: 10),
+          SectionHeader(
+            title: l10n.obj_store_settings_tips_section_title,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 10),
           Text(
-            '1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\n'
-            '2. 七牛云存储会在本机生成上传凭证并直接上传到七牛。\n'
-            '3. 七牛私有空间查询会生成带签名的临时下载链接。\n'
-            '4. 数据胶囊为私有空间，查询会生成带签名的临时链接（默认 30 分钟）。\n'
-            '5. 访问密钥属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议使用服务端下发的上传凭证。\n'
-            '6. 如配置了自定义访问域名，请确保与服务端配置一致，避免出现“可访问=否”。',
+            l10n.obj_store_settings_tips_content,
             style: IOS26Theme.bodySmall.copyWith(height: 1.5),
           ),
         ],
@@ -550,13 +639,17 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildDangerZoneCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '危险区', padding: EdgeInsets.zero),
-          const SizedBox(height: 12),
+          SectionHeader(
+            title: l10n.obj_store_settings_danger_section_title,
+            padding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: IOS26Theme.spacingMd),
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
@@ -564,7 +657,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
               child: Text(
-                '清除资源存储配置',
+                l10n.obj_store_settings_clear_button,
                 style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.toolRed,
                 ),
@@ -598,7 +691,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
 
   static Widget _buildFixedValue(String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: IOS26Theme.spacingMd,
+        vertical: IOS26Theme.spacingMd,
+      ),
       decoration: _fieldDecoration(),
       child: Text(
         value,
@@ -612,12 +708,17 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Future<void> _save(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final cfgService = context.read<ObjStoreConfigService>();
 
     if (_type == ObjStoreType.none) {
       await cfgService.clear();
       if (!context.mounted) return;
-      await AppDialogs.showInfo(context, title: '已清除', content: '已将资源存储恢复为未选择');
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_cleared_title,
+        content: l10n.obj_store_settings_cleared_content,
+      );
       return;
     }
 
@@ -627,19 +728,65 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       } else if (_type == ObjStoreType.qiniu) {
         final cfg = _readQiniuConfig();
         final secrets = _readQiniuSecrets();
+        if (!cfg.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content: l10n.obj_store_settings_qiniu_config_incomplete_error,
+          );
+          return;
+        }
+        if (!secrets.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content: l10n.obj_store_settings_qiniu_missing_credentials_error,
+          );
+          return;
+        }
         await cfgService.save(cfg, secrets: secrets);
       } else if (_type == ObjStoreType.dataCapsule) {
         final cfg = _readDataCapsuleConfig();
         final secrets = _readDataCapsuleSecrets();
+        if (!cfg.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content:
+                l10n.obj_store_settings_data_capsule_config_incomplete_error,
+          );
+          return;
+        }
+        if (!secrets.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content:
+                l10n.obj_store_settings_data_capsule_missing_credentials_error,
+          );
+          return;
+        }
         await cfgService.save(cfg, dataCapsuleSecrets: secrets);
       } else {
         throw StateError('Unknown ObjStoreType: $_type');
       }
       if (!context.mounted) return;
-      await AppDialogs.showInfo(context, title: '已保存', content: '资源存储配置已保存');
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_saved_title,
+        content: l10n.obj_store_settings_saved_content,
+      );
     } catch (e) {
       if (!context.mounted) return;
-      await AppDialogs.showInfo(context, title: '保存失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_save_failed_title,
+        content: _redactSensitiveUrl(e.toString()),
+      );
     }
   }
 
@@ -696,9 +843,14 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Future<void> _testUpload(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final file = _selectedFile;
     if (file == null) {
-      await AppDialogs.showInfo(context, title: '提示', content: '请先选择一个要测试上传的图片/视频文件');
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_invalid_title,
+        content: l10n.obj_store_settings_test_upload_select_file_hint,
+      );
       return;
     }
     final service = context.read<ObjStoreService>();
@@ -706,7 +858,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     if (!context.mounted) return;
     if (bytes == null) {
       // ignore: use_build_context_synchronously
-      await AppDialogs.showInfo(context, title: '提示', content: '无法读取文件内容，请重新选择');
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_invalid_title,
+        content: l10n.obj_store_settings_test_upload_read_failed_hint,
+      );
       return;
     }
 
@@ -721,6 +877,48 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       final dataCapsuleSecrets = _type == ObjStoreType.dataCapsule
           ? _readDataCapsuleSecrets()
           : null;
+      if (_type == ObjStoreType.qiniu) {
+        if (!config.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content: l10n.obj_store_settings_qiniu_config_incomplete_error,
+          );
+          return;
+        }
+        if (secrets == null || !secrets.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content: l10n.obj_store_settings_qiniu_missing_credentials_error,
+          );
+          return;
+        }
+      }
+      if (_type == ObjStoreType.dataCapsule) {
+        if (!config.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content:
+                l10n.obj_store_settings_data_capsule_config_incomplete_error,
+          );
+          return;
+        }
+        if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content:
+                l10n.obj_store_settings_data_capsule_missing_credentials_error,
+          );
+          return;
+        }
+      }
 
       final uploaded = await service.uploadBytesWithConfig(
         config: config,
@@ -734,26 +932,59 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
         _lastUploaded = uploaded;
         _queryKeyController.text = uploaded.key;
       });
-      await _showObjResult(title: '上传成功', key: uploaded.key, uri: uploaded.uri);
+      await _showObjResult(
+        title: l10n.obj_store_settings_upload_success_title,
+        key: uploaded.key,
+        uri: uploaded.uri,
+      );
     } on ObjStoreNotConfiguredException catch (e) {
       if (!context.mounted) return;
       // ignore: use_build_context_synchronously
-      await AppDialogs.showInfo(context, title: '未配置', content: e.message);
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.common_not_configured,
+        content: _type == ObjStoreType.qiniu
+            ? l10n.obj_store_settings_qiniu_missing_credentials_error
+            : _type == ObjStoreType.dataCapsule
+            ? l10n.obj_store_settings_data_capsule_missing_credentials_error
+            : _redactSensitiveUrl(e.toString()),
+      );
+    } on ObjStoreConfigInvalidException catch (e) {
+      if (!context.mounted) return;
+      // ignore: use_build_context_synchronously
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_invalid_title,
+        content: _type == ObjStoreType.qiniu
+            ? l10n.obj_store_settings_qiniu_config_incomplete_error
+            : _type == ObjStoreType.dataCapsule
+            ? l10n.obj_store_settings_data_capsule_config_incomplete_error
+            : _redactSensitiveUrl(e.toString()),
+      );
     } catch (e) {
       if (!context.mounted) return;
       // ignore: use_build_context_synchronously
-      await AppDialogs.showInfo(context, title: '上传失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_upload_failed_title,
+        content: _redactSensitiveUrl(e.toString()),
+      );
     } finally {
       if (mounted) setState(() => _isTestingUpload = false);
     }
   }
 
   Future<void> _testQuery(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final key = _queryKeyController.text.trim().isNotEmpty
         ? _queryKeyController.text.trim()
         : _lastUploaded?.key;
     if (key == null || key.trim().isEmpty) {
-      await AppDialogs.showInfo(context, title: '提示', content: '请填写要查询的 Key');
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_invalid_title,
+        content: l10n.obj_store_settings_test_query_key_required_hint,
+      );
       return;
     }
 
@@ -769,6 +1000,48 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       final dataCapsuleSecrets = _type == ObjStoreType.dataCapsule
           ? _readDataCapsuleSecrets()
           : null;
+      if (_type == ObjStoreType.qiniu) {
+        if (!config.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content: l10n.obj_store_settings_qiniu_config_incomplete_error,
+          );
+          return;
+        }
+        if (_qiniuIsPrivate && (secrets == null || !secrets.isValid)) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content: l10n.obj_store_settings_qiniu_missing_credentials_error,
+          );
+          return;
+        }
+      }
+      if (_type == ObjStoreType.dataCapsule) {
+        if (!config.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content:
+                l10n.obj_store_settings_data_capsule_config_incomplete_error,
+          );
+          return;
+        }
+        if (dataCapsuleSecrets == null || !dataCapsuleSecrets.isValid) {
+          await AppDialogs.showInfo(
+            // ignore: use_build_context_synchronously
+            context,
+            title: l10n.obj_store_settings_invalid_title,
+            content:
+                l10n.obj_store_settings_data_capsule_missing_credentials_error,
+          );
+          return;
+        }
+      }
 
       final uri = await service.resolveUriWithConfig(
         config: config,
@@ -785,25 +1058,49 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       await _showQueryResult(uri: uri, ok: ok);
     } on ObjStoreNotConfiguredException catch (e) {
       if (!context.mounted) return;
-      await AppDialogs.showInfo(context, title: '未配置', content: e.message);
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.common_not_configured,
+        content: _type == ObjStoreType.qiniu && _qiniuIsPrivate
+            ? l10n.obj_store_settings_qiniu_missing_credentials_error
+            : _type == ObjStoreType.dataCapsule
+            ? l10n.obj_store_settings_data_capsule_missing_credentials_error
+            : _redactSensitiveUrl(e.toString()),
+      );
+    } on ObjStoreConfigInvalidException catch (e) {
+      if (!context.mounted) return;
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_invalid_title,
+        content: _type == ObjStoreType.qiniu
+            ? l10n.obj_store_settings_qiniu_config_incomplete_error
+            : _type == ObjStoreType.dataCapsule
+            ? l10n.obj_store_settings_data_capsule_config_incomplete_error
+            : _redactSensitiveUrl(e.toString()),
+      );
     } catch (e) {
       if (!context.mounted) return;
-      await AppDialogs.showInfo(context, title: '查询失败', content: e.toString());
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.obj_store_settings_query_failed_title,
+        content: _redactSensitiveUrl(e.toString()),
+      );
     } finally {
       if (mounted) setState(() => _isTestingQuery = false);
     }
   }
 
   Future<void> _confirmAndClear(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final cfgService = context.read<ObjStoreConfigService>();
     final ok = await AppDialogs.showConfirm(
       context,
-      title: '确认清除',
-      content: '将清除资源存储的所有配置（包含密钥等敏感信息）',
-      confirmText: '清除',
+      title: l10n.obj_store_settings_clear_confirm_title,
+      content: l10n.obj_store_settings_clear_confirm_content,
+      confirmText: l10n.common_clear,
       isDestructive: true,
     );
-    
+
     if (!ok) return;
 
     await cfgService.clear();
@@ -815,7 +1112,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _queryKeyController.text = '';
     });
     // ignore: use_build_context_synchronously
-    await AppDialogs.showInfo(context, title: '已清除', content: '资源存储配置已清除');
+    await AppDialogs.showInfo(
+      context,
+      title: l10n.obj_store_settings_cleared_title,
+      content: l10n.obj_store_settings_cleared_content,
+    );
   }
 
   Future<void> _showObjResult({
@@ -823,10 +1124,15 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     required String key,
     required String uri,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final safeUri = _redactSensitiveUrl(uri);
-    final safeContent = 'Key: $key\nURI: $safeUri';
+    final safeContent = l10n.obj_store_settings_dialog_obj_content(
+      key,
+      safeUri,
+    );
+    final rawContent = l10n.obj_store_settings_dialog_obj_content(key, uri);
     if (!mounted) return;
-    
+
     // 自定义弹窗逻辑太复杂，AppDialogs.showInfo 不够用，保留 showCupertinoDialog 但使用 AppDialogs 风格
     await showCupertinoDialog<void>(
       context: context,
@@ -838,26 +1144,24 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: safeContent));
             },
-            child: const Text('复制脱敏内容'),
+            child: Text(l10n.obj_store_settings_copy_redacted_action),
           ),
           CupertinoDialogAction(
             onPressed: () async {
               final ok = await AppDialogs.showConfirm(
                 context,
-                title: '复制原始 URI？',
-                content: '原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。',
-                confirmText: '复制',
+                title: l10n.obj_store_settings_copy_original_confirm_title,
+                content: l10n.obj_store_settings_copy_original_confirm_content,
+                confirmText: l10n.common_copy,
               );
               if (!ok) return;
-              await Clipboard.setData(
-                ClipboardData(text: 'Key: $key\nURI: $uri'),
-              );
+              await Clipboard.setData(ClipboardData(text: rawContent));
             },
-            child: const Text('复制原始内容'),
+            child: Text(l10n.obj_store_settings_copy_original_action),
           ),
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
+            child: Text(l10n.common_confirm),
           ),
         ],
       ),
@@ -865,40 +1169,47 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Future<void> _showQueryResult({required String uri, required bool ok}) async {
+    final l10n = AppLocalizations.of(context)!;
     final safeUri = _redactSensitiveUrl(uri);
-    final safeContent = 'URI: $safeUri\n可访问: ${ok ? '是' : '否'}';
+    final accessibleText = ok ? l10n.common_yes : l10n.common_no;
+    final safeContent = l10n.obj_store_settings_dialog_query_content(
+      safeUri,
+      accessibleText,
+    );
+    final rawContent = l10n.obj_store_settings_dialog_query_content(
+      uri,
+      accessibleText,
+    );
     if (!mounted) return;
-    
+
     await showCupertinoDialog<void>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
-        title: const Text('查询结果'),
+        title: Text(l10n.obj_store_settings_query_result_title),
         content: SelectableText(safeContent),
         actions: [
           CupertinoDialogAction(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: safeContent));
             },
-            child: const Text('复制脱敏结果'),
+            child: Text(l10n.obj_store_settings_copy_redacted_result_action),
           ),
           CupertinoDialogAction(
             onPressed: () async {
               final confirmed = await AppDialogs.showConfirm(
                 context,
-                title: '复制原始 URI？',
-                  content: '原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。',
-                  confirmText: '复制',
-                );
-              if (!confirmed) return;
-              await Clipboard.setData(
-                ClipboardData(text: 'URI: $uri\n可访问: ${ok ? '是' : '否'}'),
+                title: l10n.obj_store_settings_copy_original_confirm_title,
+                content: l10n.obj_store_settings_copy_original_confirm_content,
+                confirmText: l10n.common_copy,
               );
+              if (!confirmed) return;
+              await Clipboard.setData(ClipboardData(text: rawContent));
             },
-            child: const Text('复制原始结果'),
+            child: Text(l10n.obj_store_settings_copy_original_result_action),
           ),
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
+            child: Text(l10n.common_confirm),
           ),
         ],
       ),

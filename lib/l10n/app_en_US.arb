@@ -9,6 +9,11 @@
   "common_delete": "Delete",
   "common_save": "Save",
   "common_loading": "Loading...",
+  "common_copy": "Copy",
+  "common_yes": "Yes",
+  "common_no": "No",
+  "common_public": "Public",
+  "common_private": "Private",
   "common_home": "Home",
   "common_tasks": "Tasks",
   "common_calendar": "Calendar",
@@ -405,5 +410,105 @@
   "obj_store_settings_type_none_label": "None",
   "obj_store_settings_type_local_label": "Local",
   "obj_store_settings_type_qiniu_label": "Qiniu",
-  "obj_store_settings_type_data_capsule_label": "Data Capsule"
+  "obj_store_settings_type_data_capsule_label": "Data Capsule",
+  "obj_store_settings_qiniu_section_title": "Qiniu Settings",
+  "obj_store_settings_data_capsule_section_title": "Data Capsule Settings",
+  "obj_store_settings_test_section_title": "Test",
+  "obj_store_settings_tips_section_title": "Notes",
+  "obj_store_settings_danger_section_title": "Danger Zone",
+  "obj_store_settings_clear_button": "Clear Object Storage Settings",
+  "obj_store_settings_bucket_type_label": "Bucket Type",
+  "obj_store_settings_protocol_label": "Protocol",
+  "obj_store_settings_protocol_https_label": "https",
+  "obj_store_settings_protocol_http_label": "http",
+  "obj_store_settings_http_security_warning": "Security note: HTTP is plaintext. Credentials/file contents may be intercepted; only recommended for intranet debugging.",
+  "obj_store_settings_access_key_label": "Access Key",
+  "obj_store_settings_secret_key_label": "Secret Key",
+  "obj_store_settings_access_key_ak_label": "Access Key (AK)",
+  "obj_store_settings_secret_key_sk_label": "Secret Key (SK)",
+  "obj_store_settings_bucket_label": "Bucket",
+  "obj_store_settings_domain_label": "Domain (for building image URL)",
+  "obj_store_settings_upload_host_label": "Upload Host (optional)",
+  "obj_store_settings_key_prefix_label": "Key Prefix (optional)",
+  "obj_store_settings_endpoint_label": "Endpoint (upload/access)",
+  "obj_store_settings_domain_optional_label": "Domain (optional)",
+  "obj_store_settings_region_label": "Region",
+  "obj_store_settings_url_style_label": "URL Style",
+  "obj_store_settings_fixed_private_value": "Private (Fixed)",
+  "obj_store_settings_fixed_https_value": "https (Fixed)",
+  "obj_store_settings_fixed_path_style_value": "Path Style (Fixed)",
+  "obj_store_settings_fixed_region_value": "{region} (Fixed)",
+  "@obj_store_settings_fixed_region_value": {
+    "placeholders": {
+      "region": {}
+    }
+  },
+  "obj_store_settings_placeholder_example_short": "e.g. xxxxx",
+  "obj_store_settings_placeholder_bucket": "e.g. my-bucket",
+  "obj_store_settings_placeholder_domain": "e.g. cdn.example.com",
+  "obj_store_settings_placeholder_upload_host": "Default: https://upload.qiniup.com",
+  "obj_store_settings_placeholder_endpoint": "e.g. s3.example.com",
+  "obj_store_settings_placeholder_key_prefix": "e.g. media/",
+  "obj_store_settings_placeholder_query": "e.g. media/xxx.png",
+  "obj_store_settings_test_file_not_selected": "No file selected",
+  "obj_store_settings_test_file_selected": "{name} ({bytes} bytes)",
+  "@obj_store_settings_test_file_selected": {
+    "placeholders": {
+      "name": {},
+      "bytes": {}
+    }
+  },
+  "obj_store_settings_choose_file_button": "Choose File",
+  "obj_store_settings_test_upload_button": "Test Upload",
+  "obj_store_settings_test_uploading_button": "Testing upload...",
+  "obj_store_settings_test_query_button": "Test Query",
+  "obj_store_settings_test_querying_button": "Querying...",
+  "obj_store_settings_test_upload_result": "Upload result:\\nKey: {key}\\nURI: {uri}",
+  "@obj_store_settings_test_upload_result": {
+    "placeholders": {
+      "key": {},
+      "uri": {}
+    }
+  },
+  "obj_store_settings_query_key_label": "Query Key / URL (supports pasting full URL)",
+  "obj_store_settings_tips_content": "1. Local storage writes files to the app's private directory (removed on uninstall).\\n2. Qiniu uploads by generating an upload token locally and uploading directly to Qiniu.\\n3. For Qiniu private buckets, query builds a signed temporary download URL.\\n4. Data Capsule is private; query builds a signed temporary URL (default 30 minutes).\\n5. Credentials are sensitive. Recommended for personal use only; for better security, use server-issued upload tokens.\\n6. If you configure a custom domain, ensure it matches server settings to avoid “Accessible = No”.",
+  "obj_store_settings_cleared_title": "Cleared",
+  "obj_store_settings_cleared_content": "Object storage reset to None.",
+  "obj_store_settings_invalid_title": "Tip",
+  "obj_store_settings_qiniu_config_incomplete_error": "Qiniu config is incomplete. Check Bucket / Domain / Upload Host.",
+  "obj_store_settings_qiniu_missing_credentials_error": "Please fill Qiniu Access Key and Secret Key.",
+  "obj_store_settings_data_capsule_config_incomplete_error": "Data Capsule config is incomplete. Check Bucket / Endpoint.",
+  "obj_store_settings_data_capsule_missing_credentials_error": "Please fill Data Capsule Access Key (AK) and Secret Key (SK).",
+  "obj_store_settings_saved_title": "Saved",
+  "obj_store_settings_saved_content": "Object storage settings updated.",
+  "obj_store_settings_save_failed_title": "Save failed",
+  "obj_store_settings_test_upload_select_file_hint": "Please choose an image/video file to test upload.",
+  "obj_store_settings_test_upload_read_failed_hint": "Failed to read file contents. Please re-select the file.",
+  "obj_store_settings_upload_success_title": "Upload succeeded",
+  "obj_store_settings_upload_failed_title": "Upload failed",
+  "obj_store_settings_test_query_key_required_hint": "Please enter a Key (or URL) to query.",
+  "obj_store_settings_query_failed_title": "Query failed",
+  "obj_store_settings_clear_confirm_title": "Confirm clear?",
+  "obj_store_settings_clear_confirm_content": "This will clear all object storage settings (including sensitive credentials).",
+  "obj_store_settings_dialog_obj_content": "Key: {key}\\nURI: {uri}",
+  "@obj_store_settings_dialog_obj_content": {
+    "placeholders": {
+      "key": {},
+      "uri": {}
+    }
+  },
+  "obj_store_settings_copy_redacted_action": "Copy Redacted",
+  "obj_store_settings_copy_original_action": "Copy Original",
+  "obj_store_settings_copy_original_confirm_title": "Copy original URI?",
+  "obj_store_settings_copy_original_confirm_content": "Original URI may contain signatures/tokens. Avoid screenshots/sharing after copying.",
+  "obj_store_settings_query_result_title": "Query Result",
+  "obj_store_settings_dialog_query_content": "URI: {uri}\\nAccessible: {accessible}",
+  "@obj_store_settings_dialog_query_content": {
+    "placeholders": {
+      "uri": {},
+      "accessible": {}
+    }
+  },
+  "obj_store_settings_copy_redacted_result_action": "Copy Redacted Result",
+  "obj_store_settings_copy_original_result_action": "Copy Original Result"
 }

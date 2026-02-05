@@ -9,6 +9,11 @@
   "common_delete": "删除",
   "common_save": "保存",
   "common_loading": "加载中...",
+  "common_copy": "复制",
+  "common_yes": "是",
+  "common_no": "否",
+  "common_public": "公有",
+  "common_private": "私有",
   "common_home": "首页",
   "common_tasks": "任务",
   "common_calendar": "日历",
@@ -405,5 +410,105 @@
   "obj_store_settings_type_none_label": "未选择",
   "obj_store_settings_type_local_label": "本地存储",
   "obj_store_settings_type_qiniu_label": "七牛云",
-  "obj_store_settings_type_data_capsule_label": "数据胶囊"
+  "obj_store_settings_type_data_capsule_label": "数据胶囊",
+  "obj_store_settings_qiniu_section_title": "七牛云配置",
+  "obj_store_settings_data_capsule_section_title": "数据胶囊配置",
+  "obj_store_settings_test_section_title": "测试",
+  "obj_store_settings_tips_section_title": "说明",
+  "obj_store_settings_danger_section_title": "危险区",
+  "obj_store_settings_clear_button": "清除资源存储配置",
+  "obj_store_settings_bucket_type_label": "空间类型",
+  "obj_store_settings_protocol_label": "访问协议",
+  "obj_store_settings_protocol_https_label": "https",
+  "obj_store_settings_protocol_http_label": "http",
+  "obj_store_settings_http_security_warning": "安全提示：HTTP 为明文传输，访问密钥/文件内容可能被截获，仅建议内网调试使用。",
+  "obj_store_settings_access_key_label": "AccessKey（访问密钥）",
+  "obj_store_settings_secret_key_label": "SecretKey（私密密钥）",
+  "obj_store_settings_access_key_ak_label": "AccessKey（AK）",
+  "obj_store_settings_secret_key_sk_label": "SecretKey（SK）",
+  "obj_store_settings_bucket_label": "Bucket",
+  "obj_store_settings_domain_label": "访问域名（用于拼接图片URL）",
+  "obj_store_settings_upload_host_label": "上传域名（可选）",
+  "obj_store_settings_key_prefix_label": "Key 前缀（可选）",
+  "obj_store_settings_endpoint_label": "Endpoint（上传/访问）",
+  "obj_store_settings_domain_optional_label": "访问域名（可选）",
+  "obj_store_settings_region_label": "Region",
+  "obj_store_settings_url_style_label": "URL 风格",
+  "obj_store_settings_fixed_private_value": "私有（固定）",
+  "obj_store_settings_fixed_https_value": "https（固定）",
+  "obj_store_settings_fixed_path_style_value": "路径风格（固定）",
+  "obj_store_settings_fixed_region_value": "{region}（固定）",
+  "@obj_store_settings_fixed_region_value": {
+    "placeholders": {
+      "region": {}
+    }
+  },
+  "obj_store_settings_placeholder_example_short": "如：xxxxx",
+  "obj_store_settings_placeholder_bucket": "如：my-bucket",
+  "obj_store_settings_placeholder_domain": "如：cdn.example.com",
+  "obj_store_settings_placeholder_upload_host": "默认：https://upload.qiniup.com",
+  "obj_store_settings_placeholder_endpoint": "如：s3.example.com",
+  "obj_store_settings_placeholder_key_prefix": "如：media/",
+  "obj_store_settings_placeholder_query": "如：media/xxx.png",
+  "obj_store_settings_test_file_not_selected": "未选择文件",
+  "obj_store_settings_test_file_selected": "{name}（{bytes} bytes）",
+  "@obj_store_settings_test_file_selected": {
+    "placeholders": {
+      "name": {},
+      "bytes": {}
+    }
+  },
+  "obj_store_settings_choose_file_button": "选择文件",
+  "obj_store_settings_test_upload_button": "测试上传",
+  "obj_store_settings_test_uploading_button": "测试上传中...",
+  "obj_store_settings_test_query_button": "测试查询",
+  "obj_store_settings_test_querying_button": "查询中...",
+  "obj_store_settings_test_upload_result": "上传结果：\\nKey: {key}\\nURI: {uri}",
+  "@obj_store_settings_test_upload_result": {
+    "placeholders": {
+      "key": {},
+      "uri": {}
+    }
+  },
+  "obj_store_settings_query_key_label": "查询 Key / URL（用于测试查询/拼接URL，支持粘贴完整 URL）",
+  "obj_store_settings_tips_content": "1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\\n2. 七牛云存储会在本机生成上传凭证并直接上传到七牛。\\n3. 七牛私有空间查询会生成带签名的临时下载链接。\\n4. 数据胶囊为私有空间，查询会生成带签名的临时链接（默认 30 分钟）。\\n5. 访问密钥属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议使用服务端下发的上传凭证。\\n6. 如配置了自定义访问域名，请确保与服务端配置一致，避免出现“可访问=否”。",
+  "obj_store_settings_cleared_title": "已清除",
+  "obj_store_settings_cleared_content": "已将资源存储恢复为未选择",
+  "obj_store_settings_invalid_title": "提示",
+  "obj_store_settings_qiniu_config_incomplete_error": "七牛云配置不完整，请检查 Bucket / 访问域名 / 上传域名",
+  "obj_store_settings_qiniu_missing_credentials_error": "请填写七牛云 AccessKey / SecretKey",
+  "obj_store_settings_data_capsule_config_incomplete_error": "数据胶囊配置不完整，请检查 Bucket / Endpoint",
+  "obj_store_settings_data_capsule_missing_credentials_error": "请填写数据胶囊 AccessKey（AK）/ SecretKey（SK）",
+  "obj_store_settings_saved_title": "已保存",
+  "obj_store_settings_saved_content": "资源存储配置已保存",
+  "obj_store_settings_save_failed_title": "保存失败",
+  "obj_store_settings_test_upload_select_file_hint": "请先选择一个要测试上传的图片/视频文件",
+  "obj_store_settings_test_upload_read_failed_hint": "无法读取文件内容，请重新选择",
+  "obj_store_settings_upload_success_title": "上传成功",
+  "obj_store_settings_upload_failed_title": "上传失败",
+  "obj_store_settings_test_query_key_required_hint": "请填写要查询的 Key",
+  "obj_store_settings_query_failed_title": "查询失败",
+  "obj_store_settings_clear_confirm_title": "确认清除",
+  "obj_store_settings_clear_confirm_content": "将清除资源存储的所有配置（包含密钥等敏感信息）",
+  "obj_store_settings_dialog_obj_content": "Key: {key}\\nURI: {uri}",
+  "@obj_store_settings_dialog_obj_content": {
+    "placeholders": {
+      "key": {},
+      "uri": {}
+    }
+  },
+  "obj_store_settings_copy_redacted_action": "复制脱敏内容",
+  "obj_store_settings_copy_original_action": "复制原始内容",
+  "obj_store_settings_copy_original_confirm_title": "复制原始 URI？",
+  "obj_store_settings_copy_original_confirm_content": "原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。",
+  "obj_store_settings_query_result_title": "查询结果",
+  "obj_store_settings_dialog_query_content": "URI: {uri}\\n可访问: {accessible}",
+  "@obj_store_settings_dialog_query_content": {
+    "placeholders": {
+      "uri": {},
+      "accessible": {}
+    }
+  },
+  "obj_store_settings_copy_redacted_result_action": "复制脱敏结果",
+  "obj_store_settings_copy_original_result_action": "复制原始结果"
 }
