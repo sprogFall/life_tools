@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../sync/models/sync_config.dart';
 import '../sync/services/sync_service.dart';
 import '../sync/services/sync_config_service.dart';
+import '../sync/services/sync_network_precheck.dart';
 import 'ios26_toast.dart';
 
 /// 启动任务包装器
@@ -49,10 +51,16 @@ class _StartupWrapperState extends State<StartupWrapper> {
       if (success) {
         toastService.showSuccess('自动同步成功');
       } else {
+        final error = syncService.lastError;
+        // 启动自动同步：若仅是不满足“私网必须连 WiFi”的前置条件，则静默跳过即可。
+        if (config.networkType == SyncNetworkType.privateWifi &&
+            SyncNetworkPrecheck.isPrivateWifiNotConnectedError(error)) {
+          return;
+        }
+
         // 如果是因为“正在同步中”返回 false，可能不需要报错？
         // 但 sync() 内部如果正在同步会返回 false 且设置 lastError。
-        final error = syncService.lastError ?? '未知错误';
-        toastService.showError('自动同步失败: $error');
+        toastService.showError('自动同步失败: ${error ?? "未知错误"}');
       }
     }
   }

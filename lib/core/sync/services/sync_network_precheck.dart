@@ -4,6 +4,14 @@ import 'wifi_service.dart';
 class SyncNetworkPrecheck {
   const SyncNetworkPrecheck._();
 
+  static const String privateWifiMustConnectWifiPrefix =
+      '网络预检失败：私网模式下必须连接 WiFi';
+
+  static bool isPrivateWifiNotConnectedError(String? error) {
+    if (error == null) return false;
+    return error.startsWith(privateWifiMustConnectWifiPrefix);
+  }
+
   /// 返回 null 表示网络条件满足；否则返回可直接展示给用户的错误文案。
   static Future<String?> check({
     required SyncConfig config,
@@ -22,7 +30,7 @@ class SyncNetworkPrecheck {
 
     // 私网模式：必须是 WiFi 且在允许列表中
     if (networkStatus != NetworkStatus.wifi) {
-      return '网络预检失败：私网模式下必须连接 WiFi（当前：${networkStatus.name}）';
+      return '$privateWifiMustConnectWifiPrefix（当前：${networkStatus.name}）';
     }
 
     final allowed = config.allowedWifiNames
@@ -55,4 +63,3 @@ class SyncNetworkPrecheck {
     return null;
   }
 }
-
