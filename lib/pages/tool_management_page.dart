@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/tool_info.dart';
@@ -15,10 +16,11 @@ class ToolManagementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       body: Column(
         children: [
-          const IOS26AppBar(title: '工具管理', showBackButton: true),
+          IOS26AppBar(title: l10n.tool_management_title, showBackButton: true),
           Expanded(
             child: Consumer<SettingsService>(
               builder: (context, settings, _) {
@@ -57,6 +59,16 @@ class ToolManagementPage extends StatelessWidget {
   }
 }
 
+String _toolName(AppLocalizations l10n, ToolInfo tool) {
+  return switch (tool.id) {
+    'work_log' => l10n.tool_work_log_name,
+    'stockpile_assistant' => l10n.tool_stockpile_name,
+    'overcooked_kitchen' => l10n.tool_overcooked_name,
+    'tag_manager' => l10n.tool_tag_manager_name,
+    _ => tool.name,
+  };
+}
+
 class _HintCard extends StatelessWidget {
   final int hiddenCount;
 
@@ -64,6 +76,7 @@ class _HintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -77,7 +90,7 @@ class _HintCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '首页长按工具卡片并拖拽可调整顺序。\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 $hiddenCount 个）。',
+              l10n.tool_management_hint_content(hiddenCount),
               style: IOS26Theme.bodySmall.copyWith(
                 height: 1.35,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
@@ -98,20 +111,28 @@ class _DefaultToolCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(0),
       child: Column(
         children: [
-          const _CardHeader(title: '启动默认进入', subtitle: '设置后，下次打开应用将直接进入该工具'),
+          _CardHeader(
+            title: l10n.tool_management_default_tool_title,
+            subtitle: l10n.tool_management_default_tool_subtitle,
+          ),
           const _Divider(),
-          const _DefaultToolRow(
+          _DefaultToolRow(
             icon: CupertinoIcons.house,
-            title: '首页',
+            title: l10n.common_home,
             toolId: null,
           ),
           for (final tool in tools) ...[
             const _Divider(),
-            _DefaultToolRow(icon: tool.icon, title: tool.name, toolId: tool.id),
+            _DefaultToolRow(
+              icon: tool.icon,
+              title: _toolName(l10n, tool),
+              toolId: tool.id,
+            ),
           ],
         ],
       ),
@@ -167,14 +188,18 @@ class _HomeVisibilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(0),
       child: Column(
         children: [
-          const _CardHeader(title: '首页显示', subtitle: '关闭后首页不显示该工具（不影响备份与默认进入）'),
+          _CardHeader(
+            title: l10n.tool_management_home_visibility_title,
+            subtitle: l10n.tool_management_home_visibility_subtitle,
+          ),
           for (final tool in tools) ...[
             const _Divider(),
-            _HomeVisibilityRow(tool: tool),
+            _HomeVisibilityRow(title: _toolName(l10n, tool), tool: tool),
           ],
         ],
       ),
@@ -183,9 +208,10 @@ class _HomeVisibilityCard extends StatelessWidget {
 }
 
 class _HomeVisibilityRow extends StatelessWidget {
+  final String title;
   final ToolInfo tool;
 
-  const _HomeVisibilityRow({required this.tool});
+  const _HomeVisibilityRow({required this.title, required this.tool});
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +220,7 @@ class _HomeVisibilityRow extends StatelessWidget {
         final visible = !settings.isToolHidden(tool.id);
         return IOS26SettingsRow(
           icon: tool.icon,
-          title: tool.name,
+          title: title,
           showChevron: false,
           trailing: IgnorePointer(
             ignoring: true,

@@ -190,6 +190,36 @@ abstract class AppLocalizations {
   /// **'Tool Management'**
   String get tool_management_title;
 
+  /// No description provided for @tool_management_hint_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press and drag tool cards on Home to reorder.\\nHere you can set the default tool on launch and choose whether to show tools on Home (hidden {hiddenCount}).'**
+  String tool_management_hint_content(Object hiddenCount);
+
+  /// No description provided for @tool_management_default_tool_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Default on Launch'**
+  String get tool_management_default_tool_title;
+
+  /// No description provided for @tool_management_default_tool_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On next launch, app will open this tool directly.'**
+  String get tool_management_default_tool_subtitle;
+
+  /// No description provided for @tool_management_home_visibility_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on Home'**
+  String get tool_management_home_visibility_title;
+
+  /// No description provided for @tool_management_home_visibility_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide to remove from Home (does not affect backup or default on launch).'**
+  String get tool_management_home_visibility_subtitle;
+
   /// No description provided for @tool_stockpile_name.
   ///
   /// In en, this message translates to:

@@ -18,6 +18,16 @@
   "common_tasks": "任务",
   "common_calendar": "日历",
   "tool_management_title": "工具管理",
+  "tool_management_hint_content": "首页长按工具卡片并拖拽可调整顺序。\\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 {hiddenCount} 个）。",
+  "@tool_management_hint_content": {
+    "placeholders": {
+      "hiddenCount": {}
+    }
+  },
+  "tool_management_default_tool_title": "启动默认进入",
+  "tool_management_default_tool_subtitle": "设置后，下次打开应用将直接进入该工具",
+  "tool_management_home_visibility_title": "首页显示",
+  "tool_management_home_visibility_subtitle": "关闭后首页不显示该工具（不影响备份与默认进入）",
   "tool_stockpile_name": "囤货助手",
   "tool_overcooked_name": "胡闹厨房",
   "tool_work_log_name": "工作记录",

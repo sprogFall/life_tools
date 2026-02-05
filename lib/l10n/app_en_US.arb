@@ -18,6 +18,16 @@
   "common_tasks": "Tasks",
   "common_calendar": "Calendar",
   "tool_management_title": "Tool Management",
+  "tool_management_hint_content": "Long-press and drag tool cards on Home to reorder.\\nHere you can set the default tool on launch and choose whether to show tools on Home (hidden {hiddenCount}).",
+  "@tool_management_hint_content": {
+    "placeholders": {
+      "hiddenCount": {}
+    }
+  },
+  "tool_management_default_tool_title": "Default on Launch",
+  "tool_management_default_tool_subtitle": "On next launch, app will open this tool directly.",
+  "tool_management_home_visibility_title": "Show on Home",
+  "tool_management_home_visibility_subtitle": "Hide to remove from Home (does not affect backup or default on launch).",
   "tool_stockpile_name": "Stockpile Assistant",
   "tool_overcooked_name": "Overcooked Kitchen",
   "tool_work_log_name": "Work Log",

@@ -54,6 +54,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tool_management_title => 'Tool Management';
 
   @override
+  String tool_management_hint_content(Object hiddenCount) {
+    return 'Long-press and drag tool cards on Home to reorder.\\nHere you can set the default tool on launch and choose whether to show tools on Home (hidden $hiddenCount).';
+  }
+
+  @override
+  String get tool_management_default_tool_title => 'Default on Launch';
+
+  @override
+  String get tool_management_default_tool_subtitle =>
+      'On next launch, app will open this tool directly.';
+
+  @override
+  String get tool_management_home_visibility_title => 'Show on Home';
+
+  @override
+  String get tool_management_home_visibility_subtitle =>
+      'Hide to remove from Home (does not affect backup or default on launch).';
+
+  @override
   String get tool_stockpile_name => 'Stockpile Assistant';
 
   @override
@@ -1091,6 +1110,25 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get tool_management_title => 'Tool Management';
+
+  @override
+  String tool_management_hint_content(Object hiddenCount) {
+    return 'Long-press and drag tool cards on Home to reorder.\\nHere you can set the default tool on launch and choose whether to show tools on Home (hidden $hiddenCount).';
+  }
+
+  @override
+  String get tool_management_default_tool_title => 'Default on Launch';
+
+  @override
+  String get tool_management_default_tool_subtitle =>
+      'On next launch, app will open this tool directly.';
+
+  @override
+  String get tool_management_home_visibility_title => 'Show on Home';
+
+  @override
+  String get tool_management_home_visibility_subtitle =>
+      'Hide to remove from Home (does not affect backup or default on launch).';
 
   @override
   String get tool_stockpile_name => 'Stockpile Assistant';

@@ -54,6 +54,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tool_management_title => '工具管理';
 
   @override
+  String tool_management_hint_content(Object hiddenCount) {
+    return '首页长按工具卡片并拖拽可调整顺序。\\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 $hiddenCount 个）。';
+  }
+
+  @override
+  String get tool_management_default_tool_title => '启动默认进入';
+
+  @override
+  String get tool_management_default_tool_subtitle => '设置后，下次打开应用将直接进入该工具';
+
+  @override
+  String get tool_management_home_visibility_title => '首页显示';
+
+  @override
+  String get tool_management_home_visibility_subtitle =>
+      '关闭后首页不显示该工具（不影响备份与默认进入）';
+
+  @override
   String get tool_stockpile_name => '囤货助手';
 
   @override
@@ -1059,6 +1077,24 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get tool_management_title => '工具管理';
+
+  @override
+  String tool_management_hint_content(Object hiddenCount) {
+    return '首页长按工具卡片并拖拽可调整顺序。\\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 $hiddenCount 个）。';
+  }
+
+  @override
+  String get tool_management_default_tool_title => '启动默认进入';
+
+  @override
+  String get tool_management_default_tool_subtitle => '设置后，下次打开应用将直接进入该工具';
+
+  @override
+  String get tool_management_home_visibility_title => '首页显示';
+
+  @override
+  String get tool_management_home_visibility_subtitle =>
+      '关闭后首页不显示该工具（不影响备份与默认进入）';
 
   @override
   String get tool_stockpile_name => '囤货助手';
