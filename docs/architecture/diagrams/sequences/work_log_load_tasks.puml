@@ -1,0 +1,62 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title 数据加载示例：WorkLog 打开页面加载任务列表（WorkLogService.loadTasks）
+
+autonumber
+skinparam shadowing false
+
+actor 用户 as User
+participant "WorkLogToolPage" as Page
+participant "WorkLogService\n(ChangeNotifier)" as Svc
+participant "SharedPreferences" as Prefs
+participant "TagRepository" as TagRepo
+participant "WorkLogRepository" as Repo
+database "SQLite\nlife_tools.db" as Db
+
+User -> Page : 打开“工作记录”
+Page -> Svc : initState()\n_service.loadTasks()
+
+Svc ->> Svc : _loadingTasks=true\nnotifyListeners()
+
+alt 首次加载（filters 未加载）
+  Svc ->> Prefs : 读取 statusFilters/tagFilters\ncustomSortEnabled
+  Prefs --> Svc : 返回已保存筛选
+end
+
+Svc ->> TagRepo : listTagsForTool('work_log')
+TagRepo ->> Db : 查询 tags/tool_tags
+Db --> TagRepo : rows
+TagRepo --> Svc : availableTags
+
+Svc ->> Repo : listTasks()（全量，用于统计）
+Repo ->> Db : SELECT work_tasks ...
+Db --> Repo : rows
+Repo --> Svc : allTasks
+
+Svc ->> Repo : listTasks(statuses, tagIds,\n limit=10, offset=0)
+Repo ->> Db : SELECT ... WHERE status IN ...\n+ tag filter + limit/offset
+Db --> Repo : rows
+Repo --> Svc : firstPage tasks
+
+loop 每个 task（用于列表展示）
+  Svc ->> Repo : getTotalMinutesForTask(taskId)
+  Repo ->> Db : SELECT SUM(minutes) ...
+  Db --> Repo : sum
+  Repo --> Svc : totalMinutes
+end
+
+Svc ->> TagRepo : listTagsForWorkTasks(taskIds)
+TagRepo ->> Db : 批量查询任务标签关联
+Db --> TagRepo : rows
+TagRepo --> Svc : taskId -> tags
+
+Svc ->> Svc : _loadingTasks=false\nnotifyListeners()
+Svc --> Page : UI rebuild\n展示列表/加载状态
+
+note right of Svc
+  性能瓶颈点（可优化空间）：
+  - getTotalMinutesForTask 可能形成 N 次查询
+  - 可考虑批量聚合查询或缓存
+end note
+
+@enduml

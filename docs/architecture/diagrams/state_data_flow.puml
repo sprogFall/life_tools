@@ -1,0 +1,80 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title life_tools 状态管理与数据流（Provider + ChangeNotifier）
+
+!pragma layout smetana
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+hide stereotype
+
+skinparam component {
+  BackgroundColor<<UI>> #E3F2FD
+  BorderColor<<UI>> #1565C0
+  BackgroundColor<<State>> #E8EAF6
+  BorderColor<<State>> #283593
+  BackgroundColor<<Service>> #F3E5F5
+  BorderColor<<Service>> #6A1B9A
+  BackgroundColor<<Data>> #E8F5E9
+  BorderColor<<Data>> #2E7D32
+  BackgroundColor<<Network>> #FFF3E0
+  BorderColor<<Network>> #EF6C00
+}
+
+left to right direction
+
+actor 用户 as User
+
+[Widget（页面/组件）\n手势/点击/输入] as Widget <<UI>>
+[Provider\nMultiProvider 注入\ncontext.read/watch] as Provider <<State>>
+[ChangeNotifier Service\n（例如 SyncService/TagService/...）] as Service <<Service>>
+[Repository\n（工具/公共 Repository）] as Repo <<Data>>
+[SQLite\nsqflite] as Sqlite <<Data>>
+[SharedPreferences\n配置/本地状态] as Prefs <<Data>>
+[FileSystem\n对象存储本地/缓存] as FS <<Data>>
+[HTTP Client\nOpenAI/Sync/ObjStore] as Http <<Network>>
+
+User --> Widget : 触发操作\n（点击/滑动/输入）
+Widget --> Provider : context.read<T>()\n调用业务方法
+Provider --> Service : method(...)
+
+Service --> Repo : 读写业务数据
+Repo --> Sqlite : SQL CRUD
+
+Service --> Prefs : 读写配置\n（*_v1 keys）
+Service --> FS : 本地文件/缓存
+Service --> Http : 异步网络请求\n（Future）
+
+Service --> Provider : notifyListeners()\n（状态变更广播）
+Provider --> Widget : watch/Consumer\n触发 rebuild
+
+note bottom of Service
+  触发条件（示例）：
+  - 用户操作：新增/编辑/删除/排序
+  - 启动任务：StartupWrapper 自动同步
+  - 定时/生命周期：恢复前台清理过期消息
+end note
+
+note bottom of Provider
+  监听机制：
+  - context.watch<T>() / Consumer<T>：依赖变更自动 rebuild
+  - context.read<T>()：只读取不监听，用于触发动作
+end note
+
+note bottom of Http
+  性能关注点：
+  - 同步/备份：全量快照导出可能较慢
+  - AI/对象存储：弱网/超时会拉长关键路径
+end note
+
+legend right
+  |= 颜色 |= 含义 |
+  |<#E3F2FD> | UI |
+  |<#E8EAF6> | 状态管理/DI |
+  |<#F3E5F5> | Service（业务编排） |
+  |<#E8F5E9> | 数据访问/存储 |
+  |<#FFF3E0> | 网络/外部集成 |
+endlegend
+
+@enduml

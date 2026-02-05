@@ -37,6 +37,9 @@ migrate_working_dir/
 backend/sync_server/data/*.db
 backend/sync_server/data/*.sqlite*
 
+# PlantUML（渲染架构图用，jar 由脚本按需下载）
+tools/plantuml/plantuml*.jar
+
 # Symbolication related
 app.*.symbols
 

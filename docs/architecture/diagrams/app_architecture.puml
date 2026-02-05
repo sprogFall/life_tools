@@ -1,0 +1,220 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title life_tools APP 架构（Flutter 客户端 + 可选同步后端）
+
+' 尽量使用内置布局引擎，降低对 graphviz(dot) 的硬依赖
+!pragma layout smetana
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam wrapWidth 220
+skinparam maxMessageSize 220
+
+hide stereotype
+
+skinparam component {
+  BackgroundColor<<UI>> #E3F2FD
+  BorderColor<<UI>> #1565C0
+
+  BackgroundColor<<State>> #E8EAF6
+  BorderColor<<State>> #283593
+
+  BackgroundColor<<Service>> #F3E5F5
+  BorderColor<<Service>> #6A1B9A
+
+  BackgroundColor<<Data>> #E8F5E9
+  BorderColor<<Data>> #2E7D32
+
+  BackgroundColor<<Network>> #FFF3E0
+  BorderColor<<Network>> #EF6C00
+
+  BackgroundColor<<Platform>> #ECEFF1
+  BorderColor<<Platform>> #455A64
+
+  BackgroundColor<<Security>> #FFEBEE
+  BorderColor<<Security>> #C62828
+
+  BackgroundColor<<Perf>> #FFFDE7
+  BorderColor<<Perf>> #F9A825
+}
+
+left to right direction
+
+actor 用户 as User
+
+package "Flutter 客户端（Dart）" {
+  package "UI 层" {
+    [MyApp / MaterialApp\nNavigator] as AppShell <<UI>>
+    [HomePage\n工具入口 / 消息入口] as Home <<UI>>
+    [工具页面\nwork_log / stockpile_assistant\n/ overcooked_kitchen / tag_manager] as ToolPages <<UI>>
+    [设置/管理页面\nAI / 资源存储 / 同步 / 备份还原] as SettingsPages <<UI>>
+    [UI 设计系统\nIOS26Theme / AppScaffold\nToast / 统一 AppBar] as UiKit <<UI>>
+  }
+
+  package "状态管理 & 依赖注入" {
+    [Provider / ChangeNotifier\nMultiProvider 注入 + 监听] as DI <<State>>
+  }
+
+  package "核心服务（业务逻辑）" {
+    [SettingsService\n工具排序/隐藏/默认工具] as SettingsSvc <<Service>>
+    [MessageService\n消息中心/去重/过期清理] as MessageSvc <<Service>>
+    [TagService\n公共标签服务] as TagSvc <<Service>>
+    [AiService\nOpenAI 兼容对话入口] as AiSvc <<Service>>
+    [ObjStoreService\n本地/七牛/数据胶囊\n上传/解析/缓存] as ObjSvc <<Service>>
+    [SyncService\n全量快照同步\nv2 优先 v1 回退] as SyncSvc <<Service>>
+    [BackupRestoreService\nJSON 导出/导入\n与同步共享快照接口] as BackupSvc <<Service>>
+    [AiConfigService\nAI 配置持久化] as AiCfg <<Service>>
+    [ObjStoreConfigService\n对象存储配置/密钥] as ObjCfg <<Service>>
+    [SyncConfigService\n同步配置] as SyncCfg <<Service>>
+    [SyncLocalStateService\n本地 userId 绑定] as SyncLocal <<Service>>
+  }
+
+  package "工具模块（Feature）" {
+    [ToolRegistry\n注册 ToolInfo + SyncProvider] as ToolRegistry <<Service>>
+    [ToolSyncProvider\n工具快照导入/导出接口] as ToolSync <<Service>>
+    [WorkLog\nRepository/Service/SyncProvider] as WorkLog <<Service>>
+    [StockpileAssistant\nRepository/Service/SyncProvider] as Stockpile <<Service>>
+    [OvercookedKitchen\nRepository/Service/SyncProvider] as Overcooked <<Service>>
+    [TagManager\nTagRepository/SyncProvider] as TagManager <<Service>>
+  }
+
+  package "数据访问层" {
+    [SQLite（sqflite）\nDatabaseHelper/Schema] as LocalDb <<Data>>
+    [Repositories\nMessage/Tag/WorkLog/Stockpile/Overcooked] as Repos <<Data>>
+    [SharedPreferences\n配置/本地状态] as Prefs <<Data>>
+    [本地文件系统\nObjStore 本地/缓存] as Files <<Data>>
+  }
+
+  package "网络/外部集成" {
+    [SyncApiClient\nHTTP JSON] as SyncClient <<Network>>
+    [OpenAiClient\nHTTP JSON] as OpenAiClient <<Network>>
+    [QiniuClient\n上传/签名 URL] as QiniuClient <<Network>>
+    [DataCapsuleClient\nS3 SigV4] as DataCapsuleClient <<Network>>
+  }
+
+  package "平台插件" {
+    [flutter_local_notifications\n+ timezone] as NotifPlugin <<Platform>>
+    [connectivity_plus\nnetwork_info_plus] as NetPlugin <<Platform>>
+    [file_picker / image_picker\nshare_plus / receive_sharing_intent] as FilePlugin <<Platform>>
+    [speech_to_text / record] as VoicePlugin <<Platform>>
+  }
+
+  package "安全控制点" {
+    [SyncNetworkPrecheck\n私网 WiFi 白名单] as SecWifi <<Security>>
+    [SyncLocalStateService\n用户不匹配保护] as SecUser <<Security>>
+    [ObjStoreService\npath.isWithin 防穿越] as SecPath <<Security>>
+    [BackupRestoreService\n敏感信息导出开关] as SecBackup <<Security>>
+    [PrefsSecretStore\n避免明文落盘（弱加密）] as SecSecrets <<Security>>
+  }
+
+  package "性能优化点" {
+    [ObjStoreService\n内存+磁盘缓存] as PerfCache <<Perf>>
+    [图片压缩（上传前）\nflutter_image_compress] as PerfCompress <<Perf>>
+    [MessageService\ndedupeKey 去重写库/通知] as PerfDedupe <<Perf>>
+    [StartupWrapper\n启动任务延迟/自动同步] as PerfStartup <<Perf>>
+  }
+}
+
+package "同步后端（可选，自建）" {
+  [sync_server（FastAPI）\n/sync /sync/v2\n/records /rollback] as SyncApi <<Network>>
+  [Sync Logic\n决策/判空/updated_at] as SyncLogic <<Network>>
+  [SnapshotStore\nSQLite sync.db] as ServerDb <<Data>>
+}
+
+package "第三方服务（可选）" {
+  [OpenAI 兼容 API] as LlmApi <<Network>>
+  [七牛云存储] as Qiniu <<Network>>
+  [数据胶囊（S3 兼容）] as DataCapsule <<Network>>
+}
+
+' ---- 主要依赖关系（只画“跨层”/“跨模块”关键箭头） ----
+User --> Home
+Home --> ToolPages
+Home --> SettingsPages
+
+AppShell --> DI
+DI --> SettingsSvc
+DI --> MessageSvc
+DI --> TagSvc
+DI --> AiSvc
+DI --> ObjSvc
+DI --> SyncSvc
+DI --> AiCfg
+DI --> ObjCfg
+DI --> SyncCfg
+DI --> SyncLocal
+
+ToolPages --> Repos
+ToolPages --> TagSvc
+ToolPages --> AiSvc
+ToolPages --> ObjSvc
+ToolPages --> MessageSvc
+SettingsPages --> BackupSvc
+SettingsPages --> SyncSvc
+SettingsPages --> AiCfg
+SettingsPages --> ObjCfg
+SettingsPages --> SyncCfg
+SettingsPages --> SettingsSvc
+
+Repos --> LocalDb
+SettingsSvc --> Prefs
+SettingsSvc --> LocalDb
+MessageSvc --> Repos
+TagSvc --> Repos
+AiCfg --> Prefs
+ObjCfg --> Prefs
+SyncCfg --> Prefs
+SyncLocal --> Prefs
+ObjSvc --> Files
+
+SyncSvc --> SecWifi
+SyncSvc --> SecUser
+SyncSvc --> ToolRegistry
+SyncSvc --> SyncClient
+SyncClient --> SyncApi
+SyncApi --> SyncLogic
+SyncLogic --> ServerDb
+
+AiSvc --> OpenAiClient
+OpenAiClient --> LlmApi
+ObjSvc --> QiniuClient
+ObjSvc --> DataCapsuleClient
+QiniuClient --> Qiniu
+DataCapsuleClient --> DataCapsule
+
+MessageSvc --> NotifPlugin
+SecWifi --> NetPlugin
+PerfCompress --> FilePlugin
+PerfStartup --> SyncSvc
+
+ToolRegistry --> WorkLog
+ToolRegistry --> Stockpile
+ToolRegistry --> Overcooked
+ToolRegistry --> TagManager
+ToolRegistry --> ToolSync
+WorkLog ..|> ToolSync
+Stockpile ..|> ToolSync
+Overcooked ..|> ToolSync
+TagManager ..|> ToolSync
+
+SecUser ..> SyncLocal
+SecPath ..> ObjSvc
+SecBackup ..> BackupSvc
+SecSecrets ..> ObjCfg
+PerfCache ..> ObjSvc
+PerfDedupe ..> MessageSvc
+
+legend right
+  |= 颜色 |= 含义 |
+  |<#E3F2FD> | UI 层 |
+  |<#E8EAF6> | 状态管理/DI |
+  |<#F3E5F5> | 业务服务层 |
+  |<#E8F5E9> | 数据访问层 |
+  |<#FFF3E0> | 网络/外部集成 |
+  |<#ECEFF1> | 平台插件 |
+  |<#FFEBEE> | 安全控制点 |
+  |<#FFFDE7> | 性能优化点 |
+endlegend
+
+@enduml

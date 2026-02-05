@@ -1,0 +1,53 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title 启动自动同步（StartupWrapper）
+
+autonumber
+skinparam shadowing false
+
+participant "MyApp\n(builder)" as App
+participant "StartupWrapper" as Startup
+participant "SyncConfigService" as SyncCfg
+participant "WifiService" as Wifi
+participant "SyncService" as Sync
+participant "ToastService" as Toast
+
+App -> Startup : build()
+Startup ->> Startup : initState()\nFuture.microtask(_performStartupTasks)
+
+Startup -> SyncCfg : 读取 config
+alt config == null 或 autoSyncOnStartup=false 或 config.isValid=false
+  Startup --> App : 不执行自动同步
+else 允许自动同步
+  Startup ->> Startup : Future.delayed(1s)\n（避开启动期资源竞争）
+
+  alt 私网模式（privateWifi）
+    Startup ->> Wifi : getNetworkStatus()
+    alt 当前非 WiFi
+      Startup --> App : 静默跳过（不污染 lastError/不弹 Toast）
+    else WiFi
+      Startup ->> Sync : sync(trigger=auto)
+    end
+  else 公网模式
+    Startup ->> Sync : sync(trigger=auto)
+  end
+
+  alt 同步成功
+    Startup -> Toast : showSuccess(...)
+  else 同步失败
+    Startup -> Sync : 读取 lastError
+    alt 私网模式 && 仅因“未连接 WiFi”失败
+      Startup --> App : 静默跳过
+    else 其它失败
+      Startup -> Toast : showError(...)
+    end
+  end
+end
+
+note over Startup
+  异步点：
+  - microtask + delayed\n避免阻塞首帧
+  - 同步本身为网络/IO 密集
+end note
+
+@enduml

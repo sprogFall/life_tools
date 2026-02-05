@@ -1,0 +1,15 @@
+' life_tools 架构图统一样式（解决中文字体缺失导致方框）
+'
+' 说明：
+' - PlantUML 渲染时依赖系统字体；若缺少 CJK 字体会显示“方框”。
+' - Debian/Ubuntu 推荐安装：fonts-noto-cjk
+'
+skinparam shadowing false
+skinparam dpi 160
+
+' 默认字体（中文优先）
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam defaultMonospacedFontName "Noto Sans Mono CJK SC"
+
+' 兜底：如果 Mono CJK 不存在，PlantUML 会回退到系统等宽字体
+

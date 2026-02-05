@@ -1,0 +1,101 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title 对象存储：上传 + 解析 + 缓存（ObjStoreService）
+
+autonumber
+skinparam shadowing false
+
+actor 用户 as User
+participant "工具页面\n（选择图片/文件）" as UI
+participant "ObjStoreService" as ObjSvc
+participant "ObjStoreConfigService" as ObjCfg
+participant "SecretStore\n（PrefsSecretStore）" as Secrets
+participant "LocalObjStore" as Local
+participant "QiniuClient" as Qiniu
+participant "DataCapsuleClient" as DC
+participant "七牛/数据胶囊\n外部存储" as Cloud
+database "本地缓存目录\n(cache/sha1.ext)" as Cache
+
+== 上传（uploadBytes） ==
+User -> UI : 选择文件
+UI ->> ObjSvc : uploadBytes(bytes, filename)
+ObjSvc -> ObjCfg : 读取 config/type\n读取 secrets（按类型）
+
+alt 未配置或 type=none
+  ObjSvc --> UI : throw ObjStoreNotConfiguredException
+else 已配置
+  ObjSvc ->> ObjSvc : _tryCompressImage(bytes, filename)\n（移动端支持）
+  alt type = local
+    ObjSvc ->> Local : saveBytes(bytes, filename)
+    Local --> ObjSvc : {key, uri=file://...}
+    ObjSvc --> UI : ObjStoreObject(key, uri)
+  else type = qiniu
+    ObjSvc -> Secrets : read(ak/sk)\n（由 ObjStoreConfigService 封装）
+    alt secrets 缺失
+      ObjSvc --> UI : throw ObjStoreNotConfiguredException
+    else secrets 存在
+      ObjSvc ->> Qiniu : uploadBytes(ak, sk, bucket,\n uploadHost, key, bytes)
+      Qiniu ->> Cloud : HTTP 上传
+      Cloud --> Qiniu : 200 OK
+      Qiniu --> ObjSvc : {key}
+      ObjSvc --> UI : ObjStoreObject(key,\n uri=public/private url)
+    end
+  else type = dataCapsule
+    ObjSvc -> Secrets : read(ak/sk)
+    alt secrets 缺失
+      ObjSvc --> UI : throw ObjStoreNotConfiguredException
+    else secrets 存在
+      ObjSvc ->> DC : putObject(ak, sk, endpoint,\n bucket, key, bytes)\n（SigV4）
+      DC ->> Cloud : HTTP PUT
+      Cloud --> DC : 2xx
+      DC --> ObjSvc : ok
+      ObjSvc --> UI : ObjStoreObject(key,\n uri=预签名 GET URL)
+    end
+  end
+end
+
+note right of ObjSvc
+  性能点：
+  - 图片压缩：降低上传带宽
+  - key 生成：避免冲突
+end note
+
+== 展示（ensureCachedFile） ==
+UI ->> ObjSvc : ensureCachedFile(key)
+ObjSvc -> ObjSvc : 1) 内存缓存命中？
+alt 命中
+  ObjSvc --> UI : return File
+else 未命中
+  ObjSvc -> Cache : 2) 磁盘缓存命中？
+  alt 命中
+    ObjSvc --> UI : return File
+  else 未命中
+    alt 数据胶囊私有 && 未提供 resolveUriWhenMiss
+      ObjSvc ->> DC : getPrivateObjectBytes(...)\n（直接用 AK/SK 取对象）
+      DC ->> Cloud : HTTP GET
+      Cloud --> DC : bytes
+      DC --> ObjSvc : bytes?
+      ObjSvc ->> Cache : 写入 cache/sha1.ext\n原子 rename
+      ObjSvc --> UI : return File?
+    else 走 resolveUri + 下载
+      ObjSvc ->> ObjSvc : resolveUri(key)\n（可能返回 file:// or http(s)://）
+      alt uri=file:// 且存在
+        ObjSvc --> UI : return File
+      else uri=http(s)://
+        ObjSvc ->> Cloud : HTTP GET（timeout）
+        Cloud --> ObjSvc : bytes
+        ObjSvc ->> Cache : 写入 cache/sha1.ext
+        ObjSvc --> UI : return File?
+      end
+    end
+  end
+end
+
+note over Cache
+  安全/隐私点：
+  - 缓存文件名使用 sha1(key)\n减少 token 变化导致的重复下载
+  - 本地文件读取有 path.isWithin\n防止 ../ 路径穿越
+  - cache 目录写入 .nomedia\n减少被系统相册扫描
+end note
+
+@enduml

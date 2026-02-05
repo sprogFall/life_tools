@@ -1,0 +1,51 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title AI 对话调用链（AiService.chatText）
+
+autonumber
+skinparam shadowing false
+
+actor 用户 as User
+participant "工具页面\n（例如 WorkLog/Stockpile）" as ToolUI
+participant "AiService" as AiSvc
+participant "AiConfigService" as AiCfg
+participant "OpenAiClient" as Client
+participant "OpenAI 兼容 API\n（BaseUrl/v1/chat/completions）" as Api
+
+User -> ToolUI : 点击“AI 生成/解析”
+ToolUI ->> AiSvc : chatText(prompt, systemPrompt?,\n history?, responseFormat, timeout)
+
+AiSvc -> AiCfg : 读取 config
+alt 未配置或 config.isValid=false
+  AiSvc --> ToolUI : throw AiNotConfiguredException\n（UI 负责提示用户去设置页）
+else 配置合法
+  AiSvc -> AiSvc : 组装 messages\n(system + history + user)
+  AiSvc ->> Client : chatCompletions(config, request)
+  Client ->> Api : HTTP POST（Bearer + JSON body）
+  alt HTTP 非 2xx
+    Api --> Client : error(statusCode, body)
+    Client --> ToolUI : throw AiApiException\n（message 从 error.message 提取）
+  else 200 OK
+    Api --> Client : JSON {choices[0].message.content}
+    alt content 缺失
+      Client --> ToolUI : throw AiApiException\n“响应缺少 content”
+    else content 存在
+      Client --> AiSvc : AiChatResult(text)
+      AiSvc --> ToolUI : return text
+    end
+  end
+end
+
+note right of Client
+  安全点：
+  - API Key 仅通过 Header 发送
+  - 业务/日志避免输出密钥
+end note
+
+note over Api
+  性能瓶颈点：
+  - 网络 RTT + 模型推理耗时
+  - max_tokens/response_format 会影响耗时
+end note
+
+@enduml

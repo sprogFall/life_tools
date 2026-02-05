@@ -1,0 +1,80 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title 备份/还原（分享导出 + 分享接收导入）
+
+autonumber
+skinparam shadowing false
+
+actor 用户 as User
+participant "BackupRestorePage" as Page
+participant "BackupRestoreService" as Svc
+participant "ToolSnapshotExporter" as Exporter
+participant "ToolSyncProvider（多个）" as Providers
+participant "AiConfigService\nSyncConfigService\nSettingsService\nObjStoreConfigService" as CfgSvcs
+participant "ShareService" as Share
+participant "ReceiveShareService" as Receive
+participant "系统分享面板/文件系统" as OS
+
+== 导出（Export） ==
+User -> Page : 打开“备份与还原”
+User -> Page : 开启/关闭“包含敏感信息”
+User -> Page : 点击“导出并分享”
+Page ->> Svc : exportAsJson(includeSensitive)
+
+Svc ->> Exporter : exportAll(toolProviders)
+loop 每个 ToolSyncProvider
+  Exporter ->> Providers : exportData()
+end
+Exporter --> Svc : tools_data（全量快照）
+
+Svc ->> CfgSvcs : exportConfigAsMap(includeSensitive)
+note right of Svc
+  includeSensitive=false 时：
+  - ai_config.apiKey 会被移除
+  - sync_config.customHeaders 会被移除
+  - obj_store_secrets 不导出
+end note
+
+Svc --> Page : 返回 JSON 文本
+Page ->> Share : shareBackup(json, fileName)
+Share ->> OS : 写入临时文件\nShare.shareXFiles(...)
+OS --> User : 选择分享目标
+
+note over Exporter
+  性能瓶颈点：
+  - 全量快照导出可能较慢
+  - JSON 文本可能较大（分享/粘贴受限）
+end note
+
+== 导入（Restore） ==
+User -> OS : 从外部分享备份文件到 App
+OS ->> Receive : getMediaStream / getInitialMedia
+Receive ->> OS : 读取 .txt/.json 内容
+Receive --> Page : initialJson（通过 MyApp 导航打开页面）
+
+User -> Page : 点击“开始还原”
+Page ->> Svc : restoreFromJson(jsonText)
+
+alt JSON 为空/格式非法
+  Svc --> Page : throw FormatException\n（UI 展示错误）
+else JSON 合法
+  Svc -> Svc : 校验 version==backupVersion(1)
+  alt 版本不支持
+    Svc --> Page : throw FormatException\n“不支持的备份版本”
+  else 版本支持
+    Svc ->> CfgSvcs : restoreConfigFromMap(decoded)\n（按 containsKey 合并）
+    Svc ->> Providers : importData(snapshot)\n（tag_manager 优先）
+    alt 部分工具导入失败
+      Svc --> Page : 返回结果\nfailedTools 不为空
+    else 全部成功
+      Svc --> Page : 返回结果\nimportedTools=N
+    end
+  end
+end
+
+note over Providers
+  导入顺序策略：
+  - tag_manager 优先导入\n避免其它工具的标签关联缺失
+end note
+
+@enduml

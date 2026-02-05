@@ -1,0 +1,92 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title 同步主流程（v2 优先 / v1 回退）
+
+autonumber
+skinparam shadowing false
+
+actor 触发方 as Trigger
+participant "UI\n（StartupWrapper / 同步设置页）" as UI
+participant "SyncService" as Sync
+participant "SyncConfigService" as SyncCfg
+participant "SyncLocalStateService" as LocalState
+participant "SyncNetworkPrecheck" as Precheck
+participant "WifiService" as Wifi
+participant "ToolSnapshotExporter" as Exporter
+participant "ToolSyncProvider（多个）" as ToolProviders
+participant "SyncApiClient" as Api
+participant "sync_server（FastAPI）" as Server
+database "sync.db（SQLite）" as ServerDb
+
+Trigger -> UI : 点击“同步” / 启动自动同步
+UI ->> Sync : sync(trigger, forceDecision?)
+
+Sync -> SyncCfg : 读取 config
+alt 配置缺失/不合法
+  Sync --> UI : return false\nlastError=“同步配置未设置或不完整”
+else 配置合法
+  Sync -> LocalState : 读取 localUserId
+  alt localUserId 与 serverUserId 不一致 且未指定 forceDecision
+    Sync --> UI : return false\nlastError=“用户不匹配，需手动选择覆盖方向”
+  else 用户一致或已强制
+    Sync ->> Precheck : check(config, wifiService)
+    Precheck ->> Wifi : getNetworkStatus()
+    alt 私网模式 && 非 WiFi
+      Precheck --> Sync : error\n（静默跳过或提示）
+      Sync --> UI : return false
+    else 网络满足
+      Precheck ->> Wifi : getCurrentWifiName()
+      alt SSID 不可得/不在白名单
+        Precheck --> Sync : error\n（可直接展示给用户）
+        Sync --> UI : return false
+      else 预检通过
+        Sync ->> Exporter : exportAll(providers)
+        loop 每个 ToolSyncProvider
+          Exporter ->> ToolProviders : exportData()
+          alt 导出失败/缺少 data 字段
+            Exporter --> Sync : throw Exception\n（取消本次同步）
+          end
+        end
+
+        note right of Exporter
+          性能瓶颈点：
+          - 全量快照导出：CPU/IO\n（工具数据量大时明显）
+          - 建议：必要时评估 per-tool 元信息/增量
+        end note
+
+        Sync ->> Api : syncV2(config, request)\n（/sync/v2, timeout=120s）
+        Api ->> Server : POST /sync/v2
+        Server -> ServerDb : 读取/保存用户快照\nrevision 自增（use_client）
+        Server --> Api : SyncResponseV2\n(decision, tools_data?, server_revision)
+        alt 服务端不支持 v2（404/405）
+          Api --> Sync : 抛 SyncApiException(404/405)
+          Sync ->> Api : sync(config, request)\n（回退 /sync）
+          Api ->> Server : POST /sync
+          Server -> ServerDb : 读取/保存快照
+          Server --> Api : SyncResponseV1\n(tools_data?)
+        end
+
+        alt decision = use_server（需要覆盖导入）
+          Sync ->> ToolProviders : importData(snapshot)\n（tag_manager 优先）
+          alt 某工具导入失败
+            Sync -> Sync : devLog + lastError=“部分工具数据导入失败”
+          end
+        else decision = use_client / noop
+          Sync -> Sync : 不导入 tools_data\n（仅更新游标/时间）
+        end
+
+        Sync ->> SyncCfg : updateLastSyncState(time, serverRevision)
+        Sync ->> LocalState : setLocalUserId(config.userId)
+        Sync --> UI : return true
+      end
+    end
+  end
+end
+
+note over Sync
+  异常处理节点：
+  - SyncApiException：会转为更友好文案（TLS/地址等）
+  - importData 异常：记录后继续其它工具，避免全盘失败
+end note
+
+@enduml

@@ -1,0 +1,201 @@
+@startuml
+!include docs/architecture/diagrams/_style.puml
+title life_tools 公共接口关系图（核心 Service / Interface）
+
+!pragma layout smetana
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide stereotype
+
+skinparam class {
+  BackgroundColor<<Service>> #F3E5F5
+  BorderColor<<Service>> #6A1B9A
+  BackgroundColor<<Data>> #E8F5E9
+  BorderColor<<Data>> #2E7D32
+  BackgroundColor<<Network>> #FFF3E0
+  BorderColor<<Network>> #EF6C00
+  BackgroundColor<<Platform>> #ECEFF1
+  BorderColor<<Platform>> #455A64
+}
+
+interface ToolSyncProvider <<Service>> {
+  +toolId: String
+  +exportData(): Future<Map>
+  +importData(snapshot: Map): Future<void>
+}
+
+interface AppNotificationService <<Platform>> {
+  +init(): Future<void>
+  +showMessage(title, body): Future<void>
+  +scheduleMessage(id, title, body, scheduledAt): Future<void>
+  +cancel(id): Future<void>
+}
+
+interface SecretStore <<Data>> {
+  +write(key, value): Future<void>
+  +read(key): Future<String?>
+  +delete(key): Future<void>
+}
+
+class AiConfigService <<Service>> {
+  +config: AiConfig?
+  +init(): Future<void>
+  +save(config): Future<void>
+  +clear(): Future<void>
+}
+
+class OpenAiClient <<Network>> {
+  +chatCompletions(config, request): Future<AiChatResult>
+}
+
+class AiService <<Service>> {
+  +chat(messages, ...): Future<AiChatResult>
+  +chatText(prompt, ...): Future<String>
+}
+
+class ObjStoreConfigService <<Service>> {
+  +config: ObjStoreConfig?
+  +qiniuSecrets: ObjStoreQiniuSecrets?
+  +dataCapsuleSecrets: ObjStoreDataCapsuleSecrets?
+  +init(): Future<void>
+  +save(config, ...): Future<void>
+  +clear(): Future<void>
+}
+
+class PrefsSecretStore <<Data>>
+
+class LocalObjStore <<Data>> {
+  +saveBytes(bytes, filename): Future<...>
+  +resolveUri(key): Future<String?>
+}
+
+class QiniuClient <<Network>> {
+  +uploadBytes(...): Future<...>
+  +buildPublicUrl(...): String
+  +buildPrivateUrl(...): String
+}
+
+class DataCapsuleClient <<Network>> {
+  +putObject(...): Future<void>
+  +buildPrivateGetUrl(...): String
+  +probePublicUrl(url): Future<bool>
+}
+
+class ObjStoreService <<Service>> {
+  +uploadBytes(bytes, filename): Future<ObjStoreObject>
+  +resolveUri(key): Future<String>
+  +ensureCachedFile(key, ...): Future<File?>
+}
+
+class SyncConfigService <<Service>> {
+  +config: SyncConfig?
+  +init(): Future<void>
+  +save(config): Future<void>
+}
+
+class SyncLocalStateService <<Service>> {
+  +localUserId: String?
+  +init(): Future<void>
+  +setLocalUserId(userId): Future<void>
+}
+
+class WifiService <<Service>> {
+  +getNetworkStatus(): Future<NetworkStatus>
+  +getCurrentWifiName(): Future<String?>
+}
+
+class SyncApiClient <<Network>> {
+  +sync(...): Future<SyncResponse>
+  +syncV2(...): Future<SyncResponseV2>
+  +listSyncRecords(...): Future<SyncRecordsResult>
+  +rollbackToRevision(...): Future<SyncRollbackResult>
+}
+
+class ToolSnapshotExporter <<Service>> {
+  {static} +exportAll(providers, ...): Future<Map>
+}
+
+class SyncService <<Service>> {
+  +sync(trigger, forceDecision): Future<bool>
+  +applyServerSnapshot(toolsData): Future<String?>
+}
+
+class SettingsService <<Service>> {
+  +defaultToolId: String?
+  +updateHomeToolOrder(ids): Future<void>
+  +setDefaultTool(id): Future<void>
+}
+
+class BackupRestoreService <<Service>> {
+  {static} +backupVersion: int
+  +exportAsJson(includeSensitive): Future<String>
+  +restoreFromJson(jsonText): Future<BackupRestoreResult>
+}
+
+class MessageRepository <<Data>>
+class MessageService <<Service>> {
+  +messages: List<AppMessage>
+  +upsertMessage(...): Future<int?>
+  +purgeExpired(now): Future<int>
+}
+
+class LocalNotificationService <<Platform>>
+
+class TagRepository <<Data>>
+class TagService <<Service>> {
+  +refreshAll(): Future<void>
+  +refreshToolTags(toolId): Future<void>
+}
+
+class AppConfigSyncProvider <<Service>>
+class WorkLogSyncProvider <<Service>>
+class StockpileSyncProvider <<Service>>
+class OvercookedSyncProvider <<Service>>
+class TagSyncProvider <<Service>>
+
+' ---- 依赖关系 ----
+AiService --> AiConfigService
+AiService --> OpenAiClient
+
+ObjStoreConfigService --> SecretStore
+PrefsSecretStore ..|> SecretStore
+ObjStoreService --> ObjStoreConfigService
+ObjStoreService --> LocalObjStore
+ObjStoreService --> QiniuClient
+ObjStoreService --> DataCapsuleClient
+
+MessageService --> MessageRepository
+MessageService --> AppNotificationService
+LocalNotificationService ..|> AppNotificationService
+
+TagService --> TagRepository
+
+SyncService --> SyncConfigService
+SyncService --> SyncLocalStateService
+SyncService --> WifiService
+SyncService --> SyncApiClient
+SyncService --> ToolSnapshotExporter
+SyncService --> ToolSyncProvider
+BackupRestoreService --> ToolSnapshotExporter
+BackupRestoreService --> ToolSyncProvider
+BackupRestoreService --> AiConfigService
+BackupRestoreService --> SyncConfigService
+BackupRestoreService --> SettingsService
+BackupRestoreService --> ObjStoreConfigService
+
+AppConfigSyncProvider ..|> ToolSyncProvider
+WorkLogSyncProvider ..|> ToolSyncProvider
+StockpileSyncProvider ..|> ToolSyncProvider
+OvercookedSyncProvider ..|> ToolSyncProvider
+TagSyncProvider ..|> ToolSyncProvider
+
+legend right
+  |= 颜色 |= 含义 |
+  |<#F3E5F5> | 业务服务层（Service/接口） |
+  |<#E8F5E9> | 数据访问/存储（Repository/Store） |
+  |<#FFF3E0> | 网络/外部集成（Client） |
+  |<#ECEFF1> | 平台插件/系统能力 |
+endlegend
+
+@enduml
