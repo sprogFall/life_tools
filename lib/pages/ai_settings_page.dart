@@ -106,7 +106,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               placeholder: 'https://api.openai.com/v1',
               keyboardType: TextInputType.url,
               autocorrect: false,
-              decoration: _fieldDecoration(),
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
           ),
           const SizedBox(height: 12),
@@ -118,7 +118,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               placeholder: 'sk-...',
               obscureText: !_showApiKey,
               autocorrect: false,
-              decoration: _fieldDecoration(),
+              decoration: IOS26Theme.textFieldDecoration(),
               suffix: CupertinoButton(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 onPressed: () => setState(() => _showApiKey = !_showApiKey),
@@ -138,7 +138,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               controller: _modelController,
               placeholder: 'gpt-4o-mini',
               autocorrect: false,
-              decoration: _fieldDecoration(),
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
           ),
           const SizedBox(height: 12),
@@ -154,7 +154,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: _fieldDecoration(),
+                    decoration: IOS26Theme.textFieldDecoration(),
                   ),
                 ),
               ),
@@ -167,7 +167,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     controller: _maxOutputTokensController,
                     placeholder: '1024',
                     keyboardType: TextInputType.number,
-                    decoration: _fieldDecoration(),
+                    decoration: IOS26Theme.textFieldDecoration(),
                   ),
                 ),
               ),
@@ -255,17 +255,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
         const SizedBox(height: 6),
         child,
       ],
-    );
-  }
-
-  static BoxDecoration _fieldDecoration() {
-    return BoxDecoration(
-      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-        width: 0.5,
-      ),
     );
   }
 

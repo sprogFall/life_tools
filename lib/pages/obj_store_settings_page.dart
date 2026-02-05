@@ -602,14 +602,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   static BoxDecoration _fieldDecoration() {
-    return BoxDecoration(
-      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-        width: 0.5,
-      ),
-    );
+    return IOS26Theme.textFieldDecoration();
   }
 
   Future<void> _save(BuildContext context) async {

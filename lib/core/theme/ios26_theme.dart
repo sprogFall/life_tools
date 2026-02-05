@@ -55,9 +55,22 @@ class IOS26Theme {
   static const double radiusXl = 20;
   static const double radiusXxl = 24;
   static const double radiusFull = 999;
+  static const double radiusFormField = 14;
 
   // ==================== 交互尺寸规范 ====================
   static const Size minimumTapSize = Size(44, 44);
+
+  /// 统一的表单文本输入框装饰（用于 CupertinoTextField.decoration）。
+  static BoxDecoration textFieldDecoration({double? radius}) {
+    return BoxDecoration(
+      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(radius ?? IOS26Theme.radiusFormField),
+      border: Border.all(
+        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+        width: 0.5,
+      ),
+    );
+  }
 
   // ==================== 文本样式静态访问器 ====================
   static TextTheme get _textTheme => lightTheme.textTheme;

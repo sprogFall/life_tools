@@ -15,6 +15,7 @@ import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -139,7 +140,13 @@ void main() {
           ),
           ChangeNotifierProvider<MessageService>.value(value: messageService),
         ],
-        child: MaterialApp(home: child, navigatorObservers: navigatorObservers),
+        child: MaterialApp(
+          locale: const Locale('zh', 'CN'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: child,
+          navigatorObservers: navigatorObservers,
+        ),
       );
     }
 

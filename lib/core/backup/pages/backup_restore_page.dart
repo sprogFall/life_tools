@@ -5,6 +5,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -39,10 +40,12 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     if (widget.initialJson != null && widget.initialJson!.isNotEmpty) {
       _restoreController.text = widget.initialJson!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         AppDialogs.showInfo(
           context,
-          title: '已接收备份文件',
-          content: '备份内容已填入，请检查后点击"开始还原"按钮。',
+          title: l10n.backup_received_title,
+          content: l10n.backup_received_content,
         );
       });
     }
@@ -54,23 +57,16 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     super.dispose();
   }
 
-  static BoxDecoration _fieldDecoration() {
-    return BoxDecoration(
-      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-        width: 0.5,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       body: Column(
         children: [
-          const IOS26AppBar(title: '备份与还原', showBackButton: true),
+          IOS26AppBar(
+            title: l10n.backup_restore_title,
+            showBackButton: true,
+          ),
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -108,26 +104,23 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   }
 
   Widget _buildExportCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '导出', padding: EdgeInsets.zero),
+          SectionHeader(title: l10n.common_export, padding: EdgeInsets.zero),
           const SizedBox(height: 10),
-          _buildHint('将以下内容导出为 JSON（大数据量推荐导出为 TXT 文件）：'),
+          _buildHint(l10n.backup_export_hint_intro),
           const SizedBox(height: 6),
-          _buildHint('1) AI 配置（接口地址 / 模型 / 参数）'),
-          _buildHint('2) 数据同步配置（服务器/网络模式等）'),
-          _buildHint('3) 资源存储配置（七牛/本地）'),
-          _buildHint('4) 工具管理（默认进入/首页显示/工具排序等应用配置）'),
-          _buildHint('5) 各工具数据（通过 ToolSyncProvider 导出）'),
+          _buildHint(l10n.backup_export_hint_items),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  '包含敏感信息（AI 密钥 / 同步令牌 / 存储密钥）',
+                  l10n.backup_include_sensitive_label,
                   style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.textSecondary,
@@ -144,8 +137,8 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 6),
           _buildHint(
             _includeSensitive
-                ? '默认已开启：导出内容会包含密钥/令牌，分享前请确认接收方可信。'
-                : '已关闭：不导出密钥/令牌（更安全，导入后可在设置页重新填写）。',
+                ? l10n.backup_include_sensitive_on_hint
+                : l10n.backup_include_sensitive_off_hint,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -165,7 +158,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '导出并分享',
+                    l10n.backup_export_share_button,
                     style: IOS26Theme.labelLarge.copyWith(
                       color: IOS26Theme.surfaceColor,
                     ),
@@ -183,7 +176,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
               onPressed: _exportToTxtFile,
               child: Text(
-                '保存为 TXT 文件',
+                l10n.backup_export_save_txt_button,
                 style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.textSecondary,
                 ),
@@ -199,7 +192,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
               onPressed: _exportToClipboard,
               child: Text(
-                '导出 JSON 到剪切板',
+                l10n.backup_export_copy_clipboard_button,
                 style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.textSecondary,
                 ),
@@ -212,21 +205,22 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   }
 
   Widget _buildRestoreCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '还原', padding: EdgeInsets.zero),
+          SectionHeader(title: l10n.common_restore, padding: EdgeInsets.zero),
           const SizedBox(height: 10),
-          _buildHint('粘贴 JSON 并覆盖写入本地（请谨慎操作，建议先导出备份）。'),
+          _buildHint(l10n.backup_restore_hint),
           const SizedBox(height: 10),
           CupertinoTextField(
             controller: _restoreController,
-            placeholder: '在此粘贴备份 JSON…',
+            placeholder: l10n.backup_restore_placeholder,
             maxLines: 8,
             autocorrect: false,
-            decoration: _fieldDecoration(),
+            decoration: IOS26Theme.textFieldDecoration(),
           ),
           const SizedBox(height: 12),
           Row(
@@ -238,7 +232,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                   onPressed: _isRestoring ? null : _pasteFromClipboard,
                   child: Text(
-                    '从剪切板粘贴',
+                    l10n.backup_restore_paste_button,
                     style: IOS26Theme.labelLarge.copyWith(
                       color: IOS26Theme.textSecondary,
                     ),
@@ -253,7 +247,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                   onPressed: _isRestoring ? null : _importFromTxtFile,
                   child: Text(
-                    '从 TXT 文件导入',
+                    l10n.backup_restore_import_txt_button,
                     style: IOS26Theme.labelLarge.copyWith(
                       color: IOS26Theme.textSecondary,
                     ),
@@ -273,7 +267,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   ? null
                   : () => _restoreController.clear(),
               child: Text(
-                '清空',
+                l10n.common_clear,
                 style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.textSecondary,
                 ),
@@ -294,7 +288,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                       color: IOS26Theme.surfaceColor,
                     )
                   : Text(
-                      '开始还原（覆盖本地）',
+                      l10n.backup_restore_start_button,
                       style: IOS26Theme.labelLarge.copyWith(
                         color: IOS26Theme.surfaceColor,
                       ),
@@ -308,6 +302,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   Future<void> _exportAndShare() async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       final service = _buildService(context);
       final jsonText = await service.exportAsJson(
         pretty: false,
@@ -322,15 +317,16 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       if (result.status == ShareResultStatus.success) {
         await AppDialogs.showInfo(
           context,
-          title: '分享成功',
-          content: '备份文件已分享',
+          title: l10n.backup_share_success_title,
+          content: l10n.backup_share_success_content,
         );
       }
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       await AppDialogs.showInfo(
         context,
-        title: '分享失败',
+        title: l10n.backup_share_failed_title,
         content: e.toString(),
       );
     }
@@ -338,6 +334,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   Future<void> _exportToTxtFile() async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       final service = _buildService(context);
       final jsonText = await service.exportAsJson(
         pretty: false,
@@ -360,20 +357,22 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       final kb = (jsonText.length / 1024).toStringAsFixed(1);
       await AppDialogs.showInfo(
         context,
-        title: '已导出',
-        content: '已保存到：\n$path\n\n内容为紧凑 JSON（约 $kb KB）',
+        title: l10n.backup_exported_title,
+        content: l10n.backup_exported_saved_content(path, kb),
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       await AppDialogs.showInfo(
         context,
-        title: '导出失败',
+        title: l10n.backup_export_failed_title,
         content: e.toString(),
       );
     }
   }
 
   Future<void> _exportToClipboard() async {
+    final l10n = AppLocalizations.of(context)!;
     final service = _buildService(context);
     final jsonText = await service.exportAsJson(
       pretty: false,
@@ -385,8 +384,8 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final kb = (jsonText.length / 1024).toStringAsFixed(1);
     await AppDialogs.showInfo(
       context,
-      title: '已导出',
-      content: '紧凑 JSON 已复制到剪切板（约 $kb KB）',
+      title: l10n.backup_exported_title,
+      content: l10n.backup_exported_copied_content(kb),
     );
   }
 
@@ -398,8 +397,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   Future<void> _importFromTxtFile() async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       final result = await FilePicker.platform.pickFiles(
-        dialogTitle: '选择备份 TXT 文件',
+        dialogTitle: l10n.backup_file_picker_title,
         type: FileType.custom,
         allowedExtensions: const ['txt', 'json'],
         withData: kIsWeb,
@@ -418,9 +418,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       await _restoreFromJsonText(jsonText);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       await AppDialogs.showInfo(
         context,
-        title: '导入失败',
+        title: l10n.backup_import_failed_title,
         content: e.toString(),
       );
     }
@@ -434,6 +435,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final text = jsonText.trim();
     if (text.isEmpty) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirmRestore();
     if (!confirmed) return;
     if (!mounted) return;
@@ -445,22 +447,23 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       if (!mounted) return;
 
       final summary = [
-        '已导入工具：${result.importedTools}',
-        '已跳过工具：${result.skippedTools}',
+        l10n.backup_restore_summary_imported(result.importedTools),
+        l10n.backup_restore_summary_skipped(result.skippedTools),
         if (result.failedTools.isNotEmpty)
-          '失败工具：${result.failedTools.keys.join("，")}',
+          l10n.backup_restore_summary_failed(result.failedTools.keys.join(', ')),
       ].join('\n');
 
       await AppDialogs.showInfo(
         context,
-        title: '还原完成',
+        title: l10n.backup_restore_complete_title,
         content: summary,
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       await AppDialogs.showInfo(
         context,
-        title: '还原失败',
+        title: l10n.backup_restore_failed_title,
         content: e.toString(),
       );
     } finally {
@@ -480,12 +483,13 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   }
 
   Future<bool> _confirmRestore() async {
+    final l10n = AppLocalizations.of(context)!;
     return AppDialogs.showConfirm(
       context,
-      title: '确认还原？',
-      content: '该操作会覆盖本地配置与数据，建议先导出备份。',
-      cancelText: '取消',
-      confirmText: '继续',
+      title: l10n.backup_confirm_restore_title,
+      content: l10n.backup_confirm_restore_content,
+      cancelText: l10n.common_cancel,
+      confirmText: l10n.common_continue,
       isDestructive: true,
     );
   }

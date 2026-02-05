@@ -73,24 +73,14 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     });
   }
 
-  static BoxDecoration _fieldDecoration() {
-    return BoxDecoration(
-      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-        width: 0.5,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       body: Column(
         children: [
           IOS26AppBar(
-            title: '数据同步',
+            title: l10n.sync_settings_title,
             showBackButton: true,
             actions: [
               CupertinoButton(
@@ -99,7 +89,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: _saveConfig,
-                child: Text('保存', style: IOS26Theme.labelLarge),
+                child: Text(l10n.common_save, style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -157,23 +147,27 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildNetworkCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '网络类型', padding: EdgeInsets.zero),
+          SectionHeader(
+            title: l10n.sync_network_type_section_title,
+            padding: EdgeInsets.zero,
+          ),
           const SizedBox(height: 10),
           CupertinoSlidingSegmentedControl<SyncNetworkType>(
             groupValue: _networkType,
-            children: const {
+            children: {
               SyncNetworkType.public: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Text('公网模式'),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Text(l10n.sync_network_public_label),
               ),
               SyncNetworkType.privateWifi: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Text('私网模式'),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Text(l10n.sync_network_private_label),
               ),
             },
             onValueChanged: (value) {
@@ -184,8 +178,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           const SizedBox(height: 10),
           _buildHint(
             _networkType == SyncNetworkType.public
-                ? '公网模式：只要有网络即可同步'
-                : '私网模式：仅允许在指定 WiFi 下同步（用于家庭/公司内网）',
+                ? l10n.sync_network_public_hint
+                : l10n.sync_network_private_hint,
           ),
         ],
       ),
@@ -193,47 +187,51 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildBasicConfigCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '基本配置', padding: EdgeInsets.zero),
+          SectionHeader(
+            title: l10n.sync_basic_section_title,
+            padding: EdgeInsets.zero,
+          ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: '用户 ID',
+            label: l10n.sync_user_id_label,
             child: CupertinoTextField(
               controller: _userIdController,
-              placeholder: '用于服务端区分用户',
+              placeholder: l10n.sync_user_id_placeholder,
               autocorrect: false,
-              decoration: _fieldDecoration(),
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: '服务器地址',
+            label: l10n.sync_server_url_label,
             child: CupertinoTextField(
               controller: _serverUrlController,
-              placeholder: '例如 https://sync.example.com 或 http://127.0.0.1',
+              placeholder: l10n.sync_server_url_placeholder,
               keyboardType: TextInputType.url,
               autocorrect: false,
-              decoration: _fieldDecoration(),
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: '端口',
+            label: l10n.sync_port_label,
             child: CupertinoTextField(
               controller: _portController,
-              placeholder: '默认 443',
+              placeholder: l10n.sync_port_placeholder,
               keyboardType: TextInputType.number,
               autocorrect: false,
-              decoration: _fieldDecoration(),
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
           ),
           const SizedBox(height: 10),
           _buildHint(
-            '提示：本地部署（docker/uvicorn）通常是 http + 8080，请显式填写 http:// 避免 TLS 握手错误。',
+            l10n.sync_server_url_tip,
           ),
         ],
       ),
@@ -241,6 +239,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildWifiCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -248,9 +247,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: SectionHeader(
-                  title: '允许的 WiFi（SSID）',
+                  title: l10n.sync_allowed_wifi_section_title,
                   padding: EdgeInsets.zero,
                 ),
               ),
@@ -282,18 +281,18 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           ),
           const SizedBox(height: 6),
           if (_currentWifiName != null)
-            _buildHint('当前 WiFi：$_currentWifiName')
+            _buildHint(l10n.sync_current_wifi_label(_currentWifiName!))
           else if (_currentWifiHint != null)
             _buildHint(_currentWifiHint!)
           else
-            _buildHint('当前 WiFi：未知（可点右侧刷新）'),
+            _buildHint(l10n.sync_current_wifi_unknown_hint),
           const SizedBox(height: 12),
           if (_wifiNames.isEmpty)
-            _buildHint('未配置允许的 WiFi 名称')
+            _buildHint(l10n.sync_allowed_wifi_empty_hint)
           else
             Column(children: _wifiNames.map(_buildWifiItem).toList()),
           const SizedBox(height: 10),
-          _buildHint('提示：SSID 区分大小写，建议不要包含引号和首尾空格'),
+          _buildHint(l10n.sync_wifi_ssid_tip),
         ],
       ),
     );
@@ -347,18 +346,22 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildAdvancedCard() {
+    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: '高级选项', padding: EdgeInsets.zero),
+          SectionHeader(
+            title: l10n.sync_advanced_section_title,
+            padding: EdgeInsets.zero,
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  '启动时自动同步',
+                  l10n.sync_auto_sync_on_startup_label,
                   style: IOS26Theme.bodyMedium.copyWith(
                     color: IOS26Theme.textPrimary,
                   ),
@@ -379,6 +382,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   Widget _buildSyncActionCard() {
     return Consumer2<SyncConfigService, SyncService>(
       builder: (context, configService, syncService, _) {
+        final l10n = AppLocalizations.of(context)!;
         final lastSyncTime = configService.config?.lastSyncTime;
         final lastError = syncService.lastError;
 
@@ -387,7 +391,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionHeader(title: '同步', padding: EdgeInsets.zero),
+              SectionHeader(
+                title: l10n.sync_section_title,
+                padding: EdgeInsets.zero,
+              ),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -402,7 +409,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                           color: IOS26Theme.surfaceColor,
                         )
                       : Text(
-                          '立即同步',
+                          l10n.sync_now_button,
                           style: IOS26Theme.labelLarge.copyWith(
                             color: IOS26Theme.surfaceColor,
                           ),
@@ -412,14 +419,16 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               const SizedBox(height: 12),
               if (lastSyncTime != null)
                 _buildHint(
-                  '上次同步：${DateFormat('yyyy-MM-dd HH:mm:ss').format(lastSyncTime)}',
+                  l10n.sync_last_sync_label(
+                    DateFormat('yyyy-MM-dd HH:mm:ss').format(lastSyncTime),
+                  ),
                 )
               else
-                _buildHint('上次同步：暂无'),
+                _buildHint(l10n.sync_last_sync_none),
               if (syncService.state == SyncState.success) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '同步成功',
+                  l10n.sync_success_label,
                   style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.toolGreen,
                     fontWeight: FontWeight.w600,
@@ -429,7 +438,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               if (lastError != null) ...[
                 const SizedBox(height: 10),
                 Text(
-                  '错误详情：',
+                  l10n.sync_error_details_label,
                   style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.toolRed,
@@ -465,7 +474,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                         color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
                         onPressed: () => _copyToClipboard(lastError),
                         child: Text(
-                          '复制错误详情',
+                          l10n.sync_copy_error_details_button,
                           style: IOS26Theme.labelLarge.copyWith(
                             color: IOS26Theme.textSecondary,
                           ),
@@ -483,6 +492,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Future<void> _refreshCurrentWifi() async {
+    final l10n = AppLocalizations.of(context)!;
     WifiService wifiService;
     try {
       wifiService = context.read<WifiService>();
@@ -495,7 +505,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     if (status != NetworkStatus.wifi) {
       setState(() {
         _currentWifiName = null;
-        _currentWifiHint = '当前网络：${status.name}（私网模式需 WiFi）';
+        _currentWifiHint = l10n.sync_current_network_hint(
+          _formatNetworkStatus(l10n, status),
+        );
       });
       return;
     }
@@ -506,7 +518,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         if (!mounted) return;
         setState(() {
           _currentWifiName = null;
-          _currentWifiHint = '无法获取 SSID：未获得定位权限（Android 读取 WiFi 名称需要定位权限）';
+          _currentWifiHint = l10n.sync_wifi_permission_hint;
         });
         return;
       }
@@ -519,9 +531,18 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     setState(() {
       _currentWifiName = normalized;
       _currentWifiHint = normalized == null
-          ? '已连接 WiFi，但无法获取 SSID（可能缺少定位权限/未开启定位/系统限制）'
+          ? l10n.sync_wifi_ssid_unavailable_hint
           : null;
     });
+  }
+
+  String _formatNetworkStatus(AppLocalizations l10n, NetworkStatus status) {
+    return switch (status) {
+      NetworkStatus.wifi => l10n.network_status_wifi,
+      NetworkStatus.mobile => l10n.network_status_mobile,
+      NetworkStatus.offline => l10n.network_status_offline,
+      NetworkStatus.unknown => l10n.network_status_unknown,
+    };
   }
 
   Future<bool> _ensureWifiNamePermission() async {
@@ -543,25 +564,28 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       return false;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     await AppDialogs.showInfo(
       context,
-      title: '需要定位权限',
-      content: 'Android 读取当前 WiFi 名称（SSID）需要定位权限，请在系统弹窗中选择允许后再重试。',
+      title: l10n.sync_location_permission_required_title,
+      content: l10n.sync_location_permission_required_content,
     );
     return false;
   }
 
   Future<bool> _confirmOpenAppSettings() async {
+    final l10n = AppLocalizations.of(context)!;
     return AppDialogs.showConfirm(
       context,
-      title: '权限被永久拒绝',
-      content: '请前往系统设置开启定位权限后再获取 WiFi 名称。',
-      cancelText: '取消',
-      confirmText: '去设置',
+      title: l10n.sync_permission_permanently_denied_title,
+      content: l10n.sync_permission_permanently_denied_content,
+      cancelText: l10n.common_cancel,
+      confirmText: l10n.common_go_settings,
     );
   }
 
   Future<void> _saveConfig() async {
+    final l10n = AppLocalizations.of(context)!;
     final config = SyncConfig(
       userId: _userIdController.text.trim(),
       networkType: _networkType,
@@ -575,8 +599,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     if (!config.isValid) {
       await AppDialogs.showInfo(
         context,
-        title: '提示',
-        content: '配置不完整，请检查必填项（私网模式需至少配置 1 个 WiFi）',
+        title: l10n.sync_config_invalid_title,
+        content: l10n.sync_config_invalid_content,
       );
       return;
     }
@@ -595,10 +619,15 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     await configService.save(config);
     if (!mounted) return;
 
-    await AppDialogs.showInfo(context, title: '已保存', content: '同步配置已更新');
+    await AppDialogs.showInfo(
+      context,
+      title: l10n.sync_config_saved_title,
+      content: l10n.sync_config_saved_content,
+    );
   }
 
   Future<void> _performSync() async {
+    final l10n = AppLocalizations.of(context)!;
     final syncService = context.read<SyncService>();
     final mismatch = syncService.getUserMismatch();
     SyncForceDecision? forceDecision;
@@ -626,8 +655,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
     await AppDialogs.showInfo(
       context,
-      title: ok ? '同步完成' : '同步失败',
-      content: ok ? '已完成同步' : '请查看页面内的错误详情',
+      title: ok ? l10n.sync_finished_title_success : l10n.sync_finished_title_failed,
+      content: ok
+          ? l10n.sync_finished_content_success
+          : l10n.sync_finished_content_failed,
     );
   }
 
@@ -674,12 +705,13 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     await _refreshCurrentWifi();
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final name = await AppDialogs.showInput(
       context,
-      title: '添加 WiFi 名称（SSID）',
-      placeholder: '例如 MyHomeWifi',
+      title: l10n.sync_add_wifi_title,
+      placeholder: l10n.sync_add_wifi_placeholder,
       defaultValue: _currentWifiName ?? '',
-      confirmText: '添加',
+      confirmText: l10n.common_add,
     );
 
     if (name == null) return;

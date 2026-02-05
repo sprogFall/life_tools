@@ -37,4 +37,333 @@
   "@sync_user_mismatch_overwrite_server": {
     "description": "Option to overwrite server data using local snapshot"
   }
+  ,
+  "common_refresh": "Refresh",
+  "common_export": "Export",
+  "common_restore": "Restore",
+  "common_clear": "Clear",
+  "common_add": "Add",
+  "common_continue": "Continue",
+  "common_load_more": "Load More",
+  "common_not_configured": "Not configured",
+  "common_go_settings": "Open Settings",
+  "network_status_wifi": "Wi‑Fi",
+  "network_status_mobile": "Mobile",
+  "network_status_offline": "Offline",
+  "network_status_unknown": "Unknown",
+  "backup_restore_title": "Backup & Restore",
+  "backup_received_title": "Backup received",
+  "backup_received_content": "Backup content has been filled in. Review it and tap \"Start Restore\".",
+  "backup_export_hint_intro": "Export the following as JSON (for large data, export as a TXT file):",
+  "backup_export_hint_items": "1) AI settings (Base URL / model / params)\\n2) Sync settings (server / network mode, etc.)\\n3) Object store settings (Qiniu / local)\\n4) Tool management (default tool / home visibility / tool order, etc.)\\n5) Tool data (exported via ToolSyncProvider)",
+  "backup_include_sensitive_label": "Include sensitive info (AI key / sync token / storage keys)",
+  "backup_include_sensitive_on_hint": "Enabled by default: the export will include keys/tokens. Only share with trusted recipients.",
+  "backup_include_sensitive_off_hint": "Disabled: keys/tokens won’t be exported (safer; you can re-enter them in Settings after restore).",
+  "backup_export_share_button": "Export & Share",
+  "backup_export_save_txt_button": "Save as TXT",
+  "backup_export_copy_clipboard_button": "Copy JSON to Clipboard",
+  "backup_restore_hint": "Paste JSON and overwrite local settings & data (be careful; export a backup first).",
+  "backup_restore_placeholder": "Paste backup JSON here…",
+  "backup_restore_paste_button": "Paste from Clipboard",
+  "backup_restore_import_txt_button": "Import from TXT",
+  "backup_restore_start_button": "Start Restore (Overwrite Local)",
+  "backup_share_success_title": "Shared",
+  "backup_share_success_content": "Backup file shared.",
+  "backup_share_failed_title": "Share failed",
+  "backup_exported_title": "Exported",
+  "backup_exported_saved_content": "Saved to:\\n{path}\\n\\nCompact JSON (~{kb} KB)",
+  "@backup_exported_saved_content": {
+    "placeholders": {
+      "path": {},
+      "kb": {}
+    }
+  },
+  "backup_export_failed_title": "Export failed",
+  "backup_exported_copied_content": "Copied compact JSON to clipboard (~{kb} KB)",
+  "@backup_exported_copied_content": {
+    "placeholders": {
+      "kb": {}
+    }
+  },
+  "backup_file_picker_title": "Select backup TXT file",
+  "backup_import_failed_title": "Import failed",
+  "backup_restore_summary_imported": "Imported tools: {count}",
+  "@backup_restore_summary_imported": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "backup_restore_summary_skipped": "Skipped tools: {count}",
+  "@backup_restore_summary_skipped": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "backup_restore_summary_failed": "Failed tools: {tools}",
+  "@backup_restore_summary_failed": {
+    "placeholders": {
+      "tools": {}
+    }
+  },
+  "backup_restore_complete_title": "Restore complete",
+  "backup_restore_failed_title": "Restore failed",
+  "backup_confirm_restore_title": "Confirm restore?",
+  "backup_confirm_restore_content": "This will overwrite local settings and data. It’s recommended to export a backup first.",
+  "sync_settings_title": "Data Sync",
+  "sync_network_type_section_title": "Network Type",
+  "sync_network_public_label": "Public",
+  "sync_network_private_label": "Private",
+  "sync_network_public_hint": "Public: sync with any network",
+  "sync_network_private_hint": "Private: only sync on allowed Wi‑Fi (for home/company LAN)",
+  "sync_basic_section_title": "Basic Settings",
+  "sync_user_id_label": "User ID",
+  "sync_user_id_placeholder": "Used to distinguish users on server",
+  "sync_server_url_label": "Server Address",
+  "sync_server_url_placeholder": "e.g. https://sync.example.com or http://127.0.0.1",
+  "sync_port_label": "Port",
+  "sync_port_placeholder": "Default 443",
+  "sync_server_url_tip": "Tip: local deployment (docker/uvicorn) usually uses http + 8080. Add http:// explicitly to avoid TLS handshake errors.",
+  "sync_allowed_wifi_section_title": "Allowed Wi‑Fi (SSID)",
+  "sync_current_wifi_label": "Current Wi‑Fi: {ssid}",
+  "@sync_current_wifi_label": {
+    "placeholders": {
+      "ssid": {}
+    }
+  },
+  "sync_current_wifi_unknown_hint": "Current Wi‑Fi: Unknown (tap refresh)",
+  "sync_allowed_wifi_empty_hint": "No allowed Wi‑Fi configured",
+  "sync_wifi_ssid_tip": "Tip: SSID is case‑sensitive. Avoid quotes and leading/trailing spaces.",
+  "sync_advanced_section_title": "Advanced",
+  "sync_auto_sync_on_startup_label": "Auto sync on startup",
+  "sync_section_title": "Sync",
+  "sync_now_button": "Sync Now",
+  "sync_last_sync_label": "Last sync: {time}",
+  "@sync_last_sync_label": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "sync_last_sync_none": "Last sync: None",
+  "sync_success_label": "Sync succeeded",
+  "sync_error_details_label": "Error details:",
+  "sync_copy_error_details_button": "Copy error details",
+  "sync_current_network_hint": "Current network: {network} (Private requires Wi‑Fi)",
+  "@sync_current_network_hint": {
+    "placeholders": {
+      "network": {}
+    }
+  },
+  "sync_wifi_permission_hint": "Unable to read SSID: location permission not granted (Android requires location to read Wi‑Fi name).",
+  "sync_wifi_ssid_unavailable_hint": "Connected to Wi‑Fi but SSID unavailable (maybe missing location permission / location disabled / system restriction).",
+  "sync_location_permission_required_title": "Location permission required",
+  "sync_location_permission_required_content": "Android needs location permission to read current Wi‑Fi SSID. Please allow it and try again.",
+  "sync_permission_permanently_denied_title": "Permission permanently denied",
+  "sync_permission_permanently_denied_content": "Please enable location permission in system settings to read Wi‑Fi SSID.",
+  "sync_config_invalid_title": "Tip",
+  "sync_config_invalid_content": "Incomplete config. Check required fields (Private mode requires at least 1 Wi‑Fi).",
+  "sync_config_saved_title": "Saved",
+  "sync_config_saved_content": "Sync settings updated",
+  "sync_finished_title_success": "Sync complete",
+  "sync_finished_title_failed": "Sync failed",
+  "sync_finished_content_success": "Sync finished.",
+  "sync_finished_content_failed": "Please check the error details on this page.",
+  "sync_add_wifi_title": "Add Wi‑Fi name (SSID)",
+  "sync_add_wifi_placeholder": "e.g. MyHomeWifi",
+  "sync_records_title": "Sync Records",
+  "sync_details_title": "Sync Details",
+  "sync_records_config_missing_error": "Sync config is not set or incomplete. Finish setup before viewing records.",
+  "sync_details_config_missing_error": "Sync config is not set or incomplete. Finish setup before viewing details.",
+  "sync_server_label": "Server",
+  "sync_user_label": "User: {userId}",
+  "@sync_user_label": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "sync_open_settings_button": "Sync Settings",
+  "sync_go_config_button": "Configure Sync",
+  "sync_records_empty_hint": "No sync records (only records sync actions like client update / server update / rollback).",
+  "sync_direction_client_to_server": "Client → Server",
+  "sync_direction_server_to_client": "Server → Client",
+  "sync_direction_rollback": "Server rollback",
+  "sync_direction_unknown": "Unknown action",
+  "sync_summary_changed_tools": "Changed tools {count}",
+  "@sync_summary_changed_tools": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sync_summary_changed_items": "Changed items {count}{plus}",
+  "@sync_summary_changed_items": {
+    "placeholders": {
+      "count": {},
+      "plus": {}
+    }
+  },
+  "sync_summary_no_major_changes": "No major changes",
+  "sync_action_client_updates_server": "Client updates server",
+  "sync_action_server_updates_client": "Server updates client",
+  "sync_action_rollback_server": "Rollback (server)",
+  "sync_action_unknown": "Unknown",
+  "sync_details_time_label": "Time: {time}",
+  "@sync_details_time_label": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "sync_details_client_updated_at_label": "Client updated at: {ms}",
+  "@sync_details_client_updated_at_label": {
+    "placeholders": {
+      "ms": {}
+    }
+  },
+  "sync_details_server_updated_at_label": "Server updated at: {before} → {after}",
+  "@sync_details_server_updated_at_label": {
+    "placeholders": {
+      "before": {},
+      "after": {}
+    }
+  },
+  "sync_details_server_revision_label": "Server revision: {before} → {after}",
+  "@sync_details_server_revision_label": {
+    "placeholders": {
+      "before": {},
+      "after": {}
+    }
+  },
+  "sync_rollback_section_title": "Version Restore",
+  "sync_rollback_section_hint": "You can restore data to the state before this record.",
+  "sync_rollback_to_version_title": "Restore to this version",
+  "sync_rollback_to_version_subtitle": "Rollback both cloud and local",
+  "sync_rollback_local_only_title": "Restore local only",
+  "sync_rollback_local_only_subtitle": "Local preview only; does not affect cloud",
+  "sync_rollback_target_revision": "Revision {revision}",
+  "@sync_rollback_target_revision": {
+    "placeholders": {
+      "revision": {}
+    }
+  },
+  "sync_rollback_no_target": "No restorable version",
+  "sync_not_configured_title": "Sync not configured",
+  "sync_not_configured_content": "Please set server address/port and user ID before rollback.",
+  "sync_network_precheck_failed_title": "Network precheck failed",
+  "sync_confirm_rollback_server_title": "Confirm rollback server?",
+  "sync_confirm_rollback_server_content": "Rollback server to {revision} and overwrite local data. This will create a new server revision.",
+  "@sync_confirm_rollback_server_content": {
+    "placeholders": {
+      "revision": {}
+    }
+  },
+  "sync_confirm_rollback_server_confirm": "Rollback",
+  "sync_rollback_done_title": "Rollback complete",
+  "sync_rollback_done_content": "Rolled back to {revision} and overwrote local data. New server revision: {newRevision}",
+  "@sync_rollback_done_content": {
+    "placeholders": {
+      "revision": {},
+      "newRevision": {}
+    }
+  },
+  "sync_rollback_done_partial_content": "Server rolled back, but some tools failed to import:\\n{error}",
+  "@sync_rollback_done_partial_content": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sync_rollback_failed_title": "Rollback failed",
+  "sync_confirm_rollback_local_title": "Confirm local-only restore?",
+  "sync_confirm_rollback_local_content": "Local data will be overwritten with server snapshot {revision}, but the cloud current revision will not change.\\nNote: On next sync, local may be overwritten by cloud (use “Rollback server and overwrite local” instead).",
+  "@sync_confirm_rollback_local_content": {
+    "placeholders": {
+      "revision": {}
+    }
+  },
+  "sync_confirm_rollback_local_confirm": "Overwrite local",
+  "sync_overwrite_local_done_title": "Local overwritten",
+  "sync_overwrite_local_done_content": "Local overwritten to {revision}",
+  "@sync_overwrite_local_done_content": {
+    "placeholders": {
+      "revision": {}
+    }
+  },
+  "sync_overwrite_local_done_partial_content": "Some tools failed to import:\\n{error}",
+  "@sync_overwrite_local_done_partial_content": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sync_overwrite_local_failed_title": "Overwrite failed",
+  "sync_diff_none": "No diff details",
+  "sync_diff_format_error": "Diff format error",
+  "sync_diff_no_substantive": "No substantive changes (only ignored length changes)",
+  "sync_diff_unknown_item": "• Unknown diff item",
+  "tool_tag_manager_name": "Tag Manager",
+  "tool_app_config_name": "App Config",
+  "tag_category_location": "Location",
+  "tag_category_item_type": "Item type",
+  "tag_category_dish_type": "Dish type",
+  "tag_category_ingredient": "Ingredient",
+  "tag_category_sauce": "Sauce",
+  "tag_category_affiliation": "Affiliation",
+  "tag_category_flavor": "Flavor",
+  "tag_category_meal_slot": "Meal slot",
+  "sync_diff_label_added": "Added",
+  "sync_diff_label_removed": "Removed",
+  "sync_diff_label_modified": "Modified",
+  "sync_diff_label_type_changed": "Type changed",
+  "sync_diff_content_changed": "Content changed",
+  "sync_diff_added_data": "Data added",
+  "sync_diff_removed_data": "Data removed",
+  "sync_diff_detail_tag_added": "Added {toolName} {categoryName} tag: 【{tagName}】",
+  "@sync_diff_detail_tag_added": {
+    "placeholders": {
+      "toolName": {},
+      "categoryName": {},
+      "tagName": {}
+    }
+  },
+  "sync_diff_detail_tag_removed": "Removed {toolName} {categoryName} tag: 【{tagName}】",
+  "@sync_diff_detail_tag_removed": {
+    "placeholders": {
+      "toolName": {},
+      "categoryName": {},
+      "tagName": {}
+    }
+  },
+  "sync_diff_detail_named_added": "Added: 【{name}】",
+  "@sync_diff_detail_named_added": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "sync_diff_detail_named_removed": "Removed: 【{name}】",
+  "@sync_diff_detail_named_removed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "sync_diff_detail_titled_added": "Added: 【{title}】",
+  "@sync_diff_detail_titled_added": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "sync_diff_detail_titled_removed": "Removed: 【{title}】",
+  "@sync_diff_detail_titled_removed": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "sync_diff_path_item": "Item {index}",
+  "@sync_diff_path_item": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "sync_auto_sync_success_toast": "Auto sync succeeded",
+  "sync_auto_sync_failed_toast": "Auto sync failed: {error}",
+  "@sync_auto_sync_failed_toast": {
+    "placeholders": {
+      "error": {}
+    }
+  }
 }
