@@ -594,7 +594,15 @@ ORDER BY m.day_key ASC
     );
   }
 
+  Future<List<Map<String, Object?>>> exportMealItemRatings() async {
+    return _exportTable(
+      'overcooked_meal_item_ratings',
+      orderBy: 'meal_id ASC, recipe_id ASC, id ASC',
+    );
+  }
+
   Future<void> _clearAllData(DatabaseExecutor txn) async {
+    await txn.delete('overcooked_meal_item_ratings');
     await txn.delete('overcooked_meal_items');
     await txn.delete('overcooked_meals');
     await txn.delete('overcooked_wish_items');
@@ -623,6 +631,7 @@ ORDER BY m.day_key ASC
     required List<Map<String, dynamic>> wishItems,
     required List<Map<String, dynamic>> meals,
     required List<Map<String, dynamic>> mealItems,
+    List<Map<String, dynamic>> mealItemRatings = const [],
   }) async {
     final db = await _database;
     await db.transaction((txn) async {
@@ -654,6 +663,12 @@ ORDER BY m.day_key ASC
         'overcooked_meal_items',
         mealItems,
         conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _bulkInsert(
+        txn,
+        'overcooked_meal_item_ratings',
+        mealItemRatings,
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
     });
   }

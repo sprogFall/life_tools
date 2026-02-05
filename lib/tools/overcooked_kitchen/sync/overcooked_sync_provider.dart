@@ -19,6 +19,7 @@ class OvercookedSyncProvider implements ToolSyncProvider {
     final wishItems = await _repository.exportWishItems();
     final meals = await _repository.exportMealDays();
     final mealItems = await _repository.exportMealItems();
+    final mealItemRatings = await _repository.exportMealItemRatings();
 
     return {
       'version': 3,
@@ -30,6 +31,7 @@ class OvercookedSyncProvider implements ToolSyncProvider {
         'wish_items': wishItems,
         'meals': meals,
         'meal_items': mealItems,
+        'meal_item_ratings': mealItemRatings,
       },
     };
   }
@@ -61,6 +63,7 @@ class OvercookedSyncProvider implements ToolSyncProvider {
         wishItems: readList('wish_items'),
         meals: readList('meals'),
         mealItems: readList('meal_items'),
+        mealItemRatings: readList('meal_item_ratings'),
       );
       return;
     }
