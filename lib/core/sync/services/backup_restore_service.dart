@@ -110,6 +110,7 @@ class BackupRestoreService {
 
   Future<Map<String, Map<String, dynamic>>> exportToolsAsMap() async {
     final tools = <String, Map<String, dynamic>>{};
+    final failed = <String>[];
     for (final provider in toolProviders) {
       try {
         tools[provider.toolId] = await provider.exportData();
@@ -118,7 +119,12 @@ class BackupRestoreService {
           '工具 ${provider.toolId} 导出数据失败: ${e.runtimeType}',
           stackTrace: st,
         );
+        failed.add(provider.toolId);
       }
+    }
+
+    if (failed.isNotEmpty) {
+      throw Exception('工具数据导出失败：${failed.join("，")}');
     }
     return tools;
   }

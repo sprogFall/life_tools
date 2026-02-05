@@ -41,6 +41,21 @@ class _FakeToolSyncProvider implements ToolSyncProvider {
   }
 }
 
+class _ThrowingToolSyncProvider implements ToolSyncProvider {
+  @override
+  final String toolId;
+
+  _ThrowingToolSyncProvider({required this.toolId});
+
+  @override
+  Future<Map<String, dynamic>> exportData() async {
+    throw StateError('export failed');
+  }
+
+  @override
+  Future<void> importData(Map<String, dynamic> data) async {}
+}
+
 void main() {
   group('BackupRestoreService', () {
     setUpAll(() {
@@ -198,6 +213,44 @@ void main() {
       expect(sync['customHeaders'], isA<Map>());
 
       expect(map['obj_store_secrets'], isA<Map>());
+    });
+
+    test('exportAsJson 遇到任一工具导出失败时应直接报错，避免生成不完整备份', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final tool = _ThrowingToolSyncProvider(toolId: 'work_log');
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: [tool],
+      );
+
+      await expectLater(
+        service.exportAsJson(),
+        throwsA(
+          predicate(
+            (e) =>
+                e is Exception &&
+                e.toString().contains('work_log') &&
+                e.toString().contains('导出'),
+          ),
+        ),
+      );
     });
 
     test('导出/还原应包含工具管理信息（首页隐藏工具）', () async {

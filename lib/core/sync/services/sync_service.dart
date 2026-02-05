@@ -4,6 +4,7 @@ import '../../ai/ai_config_service.dart';
 import '../../obj_store/obj_store_config_service.dart';
 import '../../registry/tool_registry.dart';
 import '../../services/settings_service.dart';
+import '../../utils/dev_log.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import '../models/sync_force_decision.dart';
@@ -121,7 +122,10 @@ class SyncService extends ChangeNotifier {
 
     if (localUserId == serverUserId) return null;
 
-    return SyncUserMismatch(localUserId: localUserId, serverUserId: serverUserId);
+    return SyncUserMismatch(
+      localUserId: localUserId,
+      serverUserId: serverUserId,
+    );
   }
 
   /// 执行同步（主入口）
@@ -309,14 +313,28 @@ class SyncService extends ChangeNotifier {
   /// 收集所有工具的数据
   Future<Map<String, Map<String, dynamic>>> _collectToolsData() async {
     final result = <String, Map<String, dynamic>>{};
+    final failed = <String>[];
     for (final provider in _toolProviders) {
       try {
-        result[provider.toolId] = await provider.exportData();
-      } catch (e) {
-        debugPrint('工具 ${provider.toolId} 导出数据失败: $e');
+        final exported = await provider.exportData();
+        if (!exported.containsKey('data')) {
+          failed.add(provider.toolId);
+          devLog('工具 ${provider.toolId} 导出数据缺少 data 字段（将中止同步以保护服务端数据）');
+          continue;
+        }
+        result[provider.toolId] = exported;
+      } catch (e, st) {
+        failed.add(provider.toolId);
+        devLog(
+          '工具 ${provider.toolId} 导出数据失败: ${e.runtimeType}',
+          stackTrace: st,
+        );
       }
     }
 
+    if (failed.isNotEmpty) {
+      throw Exception('工具数据导出失败：${failed.join("，")}（为避免生成不完整快照，本次同步已取消）');
+    }
     return result;
   }
 
@@ -336,8 +354,8 @@ class SyncService extends ChangeNotifier {
 
       try {
         await provider.importData(data);
-      } catch (e) {
-        debugPrint('工具 $toolId 导入数据失败: $e');
+      } catch (e, st) {
+        devLog('工具 $toolId 导入数据失败: ${e.runtimeType}', stackTrace: st);
         _lastError ??= '部分工具数据导入失败';
       }
     }
@@ -385,8 +403,11 @@ class SyncService extends ChangeNotifier {
       try {
         final exported = await provider.exportData();
         empty[provider.toolId] = _emptySnapshotFromExported(exported);
-      } catch (e) {
-        debugPrint('工具 ${provider.toolId} 生成空快照失败: $e');
+      } catch (e, st) {
+        devLog(
+          '工具 ${provider.toolId} 生成空快照失败: ${e.runtimeType}',
+          stackTrace: st,
+        );
       }
     }
 

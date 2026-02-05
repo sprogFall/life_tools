@@ -47,6 +47,21 @@ class _FakeToolSyncProvider implements ToolSyncProvider {
   }
 }
 
+class _ThrowingToolSyncProvider implements ToolSyncProvider {
+  @override
+  final String toolId;
+
+  _ThrowingToolSyncProvider({required this.toolId});
+
+  @override
+  Future<Map<String, dynamic>> exportData() async {
+    throw StateError('export failed');
+  }
+
+  @override
+  Future<void> importData(Map<String, dynamic> data) async {}
+}
+
 class _FakeSyncApiClient extends SyncApiClient {
   SyncRequestV2? lastRequestV2;
   SyncRequest? lastRequestV1;
@@ -381,6 +396,37 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final ts = prefs.getInt(AppConfigUpdatedAt.storageKey);
       expect(ts, 9999999999999);
+    });
+
+    test('任一工具导出失败时应中止同步，避免不完整快照覆盖服务端', () async {
+      final provider = _ThrowingToolSyncProvider(toolId: 'work_log');
+
+      final api = _FakeSyncApiClient()
+        ..v2Response = SyncResponseV2(
+          success: true,
+          decision: SyncDecision.noop,
+          serverTime: DateTime.fromMillisecondsSinceEpoch(7000),
+          serverRevision: 14,
+          toolsData: null,
+        );
+
+      final service = SyncService(
+        configService: configService,
+        localStateService: localStateService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: [provider],
+      );
+
+      final ok = await service.sync();
+      expect(ok, isFalse);
+      expect(api.lastRequestV2, isNull);
+      expect(service.lastError, isNotNull);
+      expect(service.lastError!, contains('work_log'));
+      expect(service.lastError!, contains('导出'));
     });
   });
 }

@@ -4,6 +4,7 @@ import '../sync/models/sync_config.dart';
 import '../sync/services/sync_service.dart';
 import '../sync/services/sync_config_service.dart';
 import '../sync/services/sync_network_precheck.dart';
+import '../sync/services/wifi_service.dart';
 import 'ios26_toast.dart';
 
 /// 启动任务包装器
@@ -33,21 +34,37 @@ class _StartupWrapperState extends State<StartupWrapper> {
     final syncConfigService = context.read<SyncConfigService>();
     final config = syncConfigService.config;
 
-    if (config != null && config.autoSyncOnStartup) {
+    if (config != null && config.autoSyncOnStartup && config.isValid) {
       // 稍微延迟一下，避免与应用启动时的其他繁重操作争抢资源
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
+
+      // 启动自动同步：私网模式但未连接 WiFi 时直接静默跳过，避免污染 lastError/弹 Toast。
+      if (config.networkType == SyncNetworkType.privateWifi) {
+        WifiService? wifiService;
+        try {
+          wifiService = context.read<WifiService>();
+        } catch (_) {
+          wifiService = null;
+        }
+
+        if (wifiService != null) {
+          final status = await wifiService.getNetworkStatus();
+          if (!mounted) return;
+          if (status != NetworkStatus.wifi) return;
+        }
+      }
 
       final syncService = context.read<SyncService>();
       final toastService = context.read<ToastService>();
 
       // 显示开始提示（可选，这里只提示结果）
       // toastService.show('正在自动同步...');
-      
+
       final success = await syncService.sync(trigger: SyncTrigger.auto);
-      
+
       if (!mounted) return;
-      
+
       if (success) {
         toastService.showSuccess('自动同步成功');
       } else {
