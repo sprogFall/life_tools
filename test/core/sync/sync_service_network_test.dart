@@ -89,6 +89,7 @@ void main() {
       expect(ok, isFalse);
       expect(service.lastError, isNotNull);
       expect(service.lastError!, contains('WiFi'));
+      expect(service.lastError!, isNot(contains('调试信息')));
       expect(service.lastError!, isNot(contains('当前网络条件不满足同步要求')));
     });
 
@@ -134,6 +135,7 @@ void main() {
       expect(service.lastError, isNotNull);
       expect(service.lastError!, contains('无法获取'));
       expect(service.lastError!, contains('WiFi'));
+      expect(service.lastError!, isNot(contains('调试信息')));
     });
   });
 }

@@ -1,5 +1,6 @@
 import '../models/sync_config.dart';
 import 'wifi_service.dart';
+import '../../utils/dev_log.dart';
 
 class SyncNetworkPrecheck {
   const SyncNetworkPrecheck._();
@@ -46,18 +47,20 @@ class SyncNetworkPrecheck {
     final currentSsid = WifiService.normalizeWifiName(rawSsid);
 
     if (currentSsid == null) {
+      devLog(
+        '网络预检失败：无法获取 WiFi SSID（rawSsid=${rawSsid ?? "null"}，allowed=${allowed.join("，")}）',
+      );
       return [
         '网络预检失败：已连接 WiFi，但无法获取当前 WiFi 名称（SSID）',
         '可能原因：未授予定位权限 / 未开启定位 / 系统限制（返回 <unknown ssid>）',
-        '调试信息：networkStatus=wifi, rawSsid=${rawSsid ?? "null"}, allowed=${allowed.join("，")}',
       ].join('\n');
     }
 
     if (!allowed.contains(currentSsid)) {
-      return [
-        '网络预检失败：当前 WiFi（$currentSsid）不在允许列表中：${allowed.join("，")}',
-        '调试信息：rawSsid=${rawSsid ?? "null"}（注意是否包含引号/空格）',
-      ].join('\n');
+      devLog(
+        '网络预检失败：WiFi 不在允许列表（current=$currentSsid，rawSsid=${rawSsid ?? "null"}，allowed=${allowed.join("，")}）',
+      );
+      return '网络预检失败：当前 WiFi（$currentSsid）不在允许列表中，请在“允许的 WiFi”中添加后重试。';
     }
 
     return null;

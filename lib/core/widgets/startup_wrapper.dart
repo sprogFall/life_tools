@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import '../sync/models/sync_config.dart';
 import '../sync/services/sync_service.dart';
 import '../sync/services/sync_config_service.dart';
@@ -29,6 +30,7 @@ class _StartupWrapperState extends State<StartupWrapper> {
 
   Future<void> _performStartupTasks() async {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
 
     // 1. 启动时自动同步
     final syncConfigService = context.read<SyncConfigService>();
@@ -66,7 +68,7 @@ class _StartupWrapperState extends State<StartupWrapper> {
       if (!mounted) return;
 
       if (success) {
-        toastService.showSuccess('自动同步成功');
+        toastService.showSuccess(l10n.sync_auto_sync_success_toast);
       } else {
         final error = syncService.lastError;
         // 启动自动同步：若仅是不满足“私网必须连 WiFi”的前置条件，则静默跳过即可。
@@ -77,7 +79,9 @@ class _StartupWrapperState extends State<StartupWrapper> {
 
         // 如果是因为“正在同步中”返回 false，可能不需要报错？
         // 但 sync() 内部如果正在同步会返回 false 且设置 lastError。
-        toastService.showError('自动同步失败: ${error ?? "未知错误"}');
+        toastService.showError(
+          l10n.sync_auto_sync_failed_toast(error ?? l10n.network_status_unknown),
+        );
       }
     }
   }

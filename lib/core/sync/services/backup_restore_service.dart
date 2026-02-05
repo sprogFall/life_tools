@@ -7,10 +7,10 @@ import '../../obj_store/obj_store_config_service.dart';
 import '../../obj_store/obj_store_secrets.dart';
 import '../../registry/tool_registry.dart';
 import '../../services/settings_service.dart';
-import '../../utils/dev_log.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import 'sync_config_service.dart';
+import 'tool_snapshot_exporter.dart';
 import 'tool_sync_order.dart';
 
 class BackupRestoreResult {
@@ -109,24 +109,11 @@ class BackupRestoreService {
   }
 
   Future<Map<String, Map<String, dynamic>>> exportToolsAsMap() async {
-    final tools = <String, Map<String, dynamic>>{};
-    final failed = <String>[];
-    for (final provider in toolProviders) {
-      try {
-        tools[provider.toolId] = await provider.exportData();
-      } catch (e, st) {
-        devLog(
-          '工具 ${provider.toolId} 导出数据失败: ${e.runtimeType}',
-          stackTrace: st,
-        );
-        failed.add(provider.toolId);
-      }
-    }
-
-    if (failed.isNotEmpty) {
-      throw Exception('工具数据导出失败：${failed.join("，")}');
-    }
-    return tools;
+    return ToolSnapshotExporter.exportAll(
+      providers: toolProviders,
+      failureSuffix: '（为避免生成不完整备份，本次导出已取消）',
+      requireDataKey: true,
+    );
   }
 
   Future<String> exportAsJson({

@@ -253,6 +253,47 @@ void main() {
       );
     });
 
+    test('exportAsJson 工具快照缺少 data 字段时应直接报错，避免生成不完整备份', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final tool = _FakeToolSyncProvider(
+        toolId: 'work_log',
+        exportPayload: const {'version': 1},
+      );
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: [tool],
+      );
+
+      await expectLater(
+        service.exportAsJson(),
+        throwsA(
+          predicate(
+            (e) =>
+                e is Exception &&
+                e.toString().contains('work_log') &&
+                e.toString().contains('data'),
+          ),
+        ),
+      );
+    });
+
     test('导出/还原应包含工具管理信息（首页隐藏工具）', () async {
       final db1 = await openDatabase(
         inMemoryDatabasePath,

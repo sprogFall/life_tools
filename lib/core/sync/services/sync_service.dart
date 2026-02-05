@@ -17,6 +17,7 @@ import 'sync_api_client.dart';
 import 'sync_config_service.dart';
 import 'sync_local_state_service.dart';
 import 'sync_network_precheck.dart';
+import 'tool_snapshot_exporter.dart';
 import 'tool_sync_order.dart';
 import 'wifi_service.dart';
 
@@ -312,30 +313,11 @@ class SyncService extends ChangeNotifier {
 
   /// 收集所有工具的数据
   Future<Map<String, Map<String, dynamic>>> _collectToolsData() async {
-    final result = <String, Map<String, dynamic>>{};
-    final failed = <String>[];
-    for (final provider in _toolProviders) {
-      try {
-        final exported = await provider.exportData();
-        if (!exported.containsKey('data')) {
-          failed.add(provider.toolId);
-          devLog('工具 ${provider.toolId} 导出数据缺少 data 字段（将中止同步以保护服务端数据）');
-          continue;
-        }
-        result[provider.toolId] = exported;
-      } catch (e, st) {
-        failed.add(provider.toolId);
-        devLog(
-          '工具 ${provider.toolId} 导出数据失败: ${e.runtimeType}',
-          stackTrace: st,
-        );
-      }
-    }
-
-    if (failed.isNotEmpty) {
-      throw Exception('工具数据导出失败：${failed.join("，")}（为避免生成不完整快照，本次同步已取消）');
-    }
-    return result;
+    return ToolSnapshotExporter.exportAll(
+      providers: _toolProviders,
+      failureSuffix: '（为避免生成不完整快照，本次同步已取消）',
+      requireDataKey: true,
+    );
   }
 
   /// 分发服务端数据给各工具

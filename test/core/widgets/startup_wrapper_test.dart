@@ -7,6 +7,7 @@ import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
 import 'package:life_tools/core/widgets/ios26_toast.dart';
 import 'package:life_tools/core/widgets/startup_wrapper.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 // 手动 Mock
@@ -119,7 +120,12 @@ void main() {
           ChangeNotifierProvider<SyncService>.value(value: mockSyncService),
           ChangeNotifierProvider<ToastService>.value(value: mockToastService),
         ],
-        child: const MaterialApp(home: StartupWrapper(child: SizedBox())),
+        child: const MaterialApp(
+          locale: Locale('zh', 'CN'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: StartupWrapper(child: SizedBox()),
+        ),
       ),
     );
 
@@ -133,6 +139,49 @@ void main() {
 
     expect(mockSyncService.syncCalled, true);
     expect(mockToastService.lastSuccessMessage, '自动同步成功');
+  });
+
+  testWidgets('StartupWrapper 英文环境下成功提示应使用英文文案', (tester) async {
+    final mockSyncConfigService = MockSyncConfigService();
+    final config = SyncConfig(
+      userId: 'test_user',
+      networkType: SyncNetworkType.public,
+      serverUrl: 'http://localhost',
+      serverPort: 8080,
+      customHeaders: {},
+      allowedWifiNames: [],
+      autoSyncOnStartup: true,
+    );
+    mockSyncConfigService.setConfig(config);
+
+    final mockSyncService = MockSyncService();
+    mockSyncService.syncResult = true;
+
+    final mockToastService = MockToastService();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SyncConfigService>.value(
+            value: mockSyncConfigService,
+          ),
+          ChangeNotifierProvider<SyncService>.value(value: mockSyncService),
+          ChangeNotifierProvider<ToastService>.value(value: mockToastService),
+        ],
+        child: const MaterialApp(
+          locale: Locale('en', 'US'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: StartupWrapper(child: SizedBox()),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+
+    expect(mockSyncService.syncCalled, true);
+    expect(mockToastService.lastSuccessMessage, 'Auto sync succeeded');
   });
 
   testWidgets('StartupWrapper 当同步失败时应显示错误 Toast', (tester) async {
@@ -163,7 +212,12 @@ void main() {
           ChangeNotifierProvider<SyncService>.value(value: mockSyncService),
           ChangeNotifierProvider<ToastService>.value(value: mockToastService),
         ],
-        child: const MaterialApp(home: StartupWrapper(child: SizedBox())),
+        child: const MaterialApp(
+          locale: Locale('zh', 'CN'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: StartupWrapper(child: SizedBox()),
+        ),
       ),
     );
 
@@ -207,7 +261,12 @@ void main() {
             value: MockWifiService(NetworkStatus.mobile),
           ),
         ],
-        child: const MaterialApp(home: StartupWrapper(child: SizedBox())),
+        child: const MaterialApp(
+          locale: Locale('zh', 'CN'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: StartupWrapper(child: SizedBox()),
+        ),
       ),
     );
 
@@ -246,7 +305,12 @@ void main() {
           ChangeNotifierProvider<SyncService>.value(value: mockSyncService),
           ChangeNotifierProvider<ToastService>.value(value: mockToastService),
         ],
-        child: const MaterialApp(home: StartupWrapper(child: SizedBox())),
+        child: const MaterialApp(
+          locale: Locale('zh', 'CN'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: StartupWrapper(child: SizedBox()),
+        ),
       ),
     );
 
