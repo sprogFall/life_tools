@@ -72,6 +72,60 @@ class AppLocalizationsZh extends AppLocalizations {
       '关闭后首页不显示该工具（不影响备份与默认进入）';
 
   @override
+  String get home_sync_not_configured_content =>
+      '请先在“数据同步”中配置服务器地址/端口与用户标识，然后再查看同步记录。';
+
+  @override
+  String get home_sync_go_config_button => '去配置';
+
+  @override
+  String get home_messages_title => '消息';
+
+  @override
+  String get home_messages_all_button => '全部消息';
+
+  @override
+  String get home_messages_empty => '当前暂时没有新的消息';
+
+  @override
+  String home_messages_total_count(Object count) {
+    return '共 $count 条消息';
+  }
+
+  @override
+  String home_messages_unread_count(Object unread, Object total) {
+    return '未读 $unread / 共 $total 条';
+  }
+
+  @override
+  String get home_tools_title => '我的工具';
+
+  @override
+  String get home_tools_empty => '暂无可显示的工具，请到「工具管理」中开启';
+
+  @override
+  String get home_tool_default_badge => '默认';
+
+  @override
+  String get home_settings_sheet_title => '设置';
+
+  @override
+  String home_settings_default_tool_value(Object toolName) {
+    return '默认：$toolName';
+  }
+
+  @override
+  String home_obj_store_type_with_visibility(Object type, Object visibility) {
+    return '$type($visibility)';
+  }
+
+  @override
+  String get home_backup_import_export_value => '导入/导出';
+
+  @override
+  String get home_settings_sheet_tip => '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序';
+
+  @override
   String get tool_stockpile_name => '囤货助手';
 
   @override
@@ -79,6 +133,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tool_work_log_name => '工作记录';
+
+  @override
+  String get tool_work_log_desc => '日常工作管理';
+
+  @override
+  String get tool_stockpile_desc => '家庭库存与临期提醒';
+
+  @override
+  String get tool_overcooked_desc => '厨房过家家';
 
   @override
   String get work_log_ai_entry => 'AI录入';
@@ -117,6 +180,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get common_load_more => '加载更多';
+
+  @override
+  String get common_configured => '已配置';
 
   @override
   String get common_not_configured => '未配置';
@@ -581,6 +647,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tool_tag_manager_name => '标签管理';
+
+  @override
+  String get tool_tag_manager_desc => '公共标签维护';
 
   @override
   String get tool_app_config_name => '应用配置';
@@ -1097,6 +1166,60 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
       '关闭后首页不显示该工具（不影响备份与默认进入）';
 
   @override
+  String get home_sync_not_configured_content =>
+      '请先在“数据同步”中配置服务器地址/端口与用户标识，然后再查看同步记录。';
+
+  @override
+  String get home_sync_go_config_button => '去配置';
+
+  @override
+  String get home_messages_title => '消息';
+
+  @override
+  String get home_messages_all_button => '全部消息';
+
+  @override
+  String get home_messages_empty => '当前暂时没有新的消息';
+
+  @override
+  String home_messages_total_count(Object count) {
+    return '共 $count 条消息';
+  }
+
+  @override
+  String home_messages_unread_count(Object unread, Object total) {
+    return '未读 $unread / 共 $total 条';
+  }
+
+  @override
+  String get home_tools_title => '我的工具';
+
+  @override
+  String get home_tools_empty => '暂无可显示的工具，请到「工具管理」中开启';
+
+  @override
+  String get home_tool_default_badge => '默认';
+
+  @override
+  String get home_settings_sheet_title => '设置';
+
+  @override
+  String home_settings_default_tool_value(Object toolName) {
+    return '默认：$toolName';
+  }
+
+  @override
+  String home_obj_store_type_with_visibility(Object type, Object visibility) {
+    return '$type($visibility)';
+  }
+
+  @override
+  String get home_backup_import_export_value => '导入/导出';
+
+  @override
+  String get home_settings_sheet_tip => '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序';
+
+  @override
   String get tool_stockpile_name => '囤货助手';
 
   @override
@@ -1104,6 +1227,15 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get tool_work_log_name => '工作记录';
+
+  @override
+  String get tool_work_log_desc => '日常工作管理';
+
+  @override
+  String get tool_stockpile_desc => '家庭库存与临期提醒';
+
+  @override
+  String get tool_overcooked_desc => '厨房过家家';
 
   @override
   String get work_log_ai_entry => 'AI录入';
@@ -1142,6 +1274,9 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get common_load_more => '加载更多';
+
+  @override
+  String get common_configured => '已配置';
 
   @override
   String get common_not_configured => '未配置';
@@ -1606,6 +1741,9 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get tool_tag_manager_name => '标签管理';
+
+  @override
+  String get tool_tag_manager_desc => '公共标签维护';
 
   @override
   String get tool_app_config_name => '应用配置';

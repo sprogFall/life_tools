@@ -6,6 +6,7 @@ import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/tool_info.dart';
+import '../core/models/tool_info_l10n.dart';
 import '../core/services/settings_service.dart';
 import '../core/theme/ios26_theme.dart';
 import '../core/ui/app_scaffold.dart';
@@ -57,16 +58,6 @@ class ToolManagementPage extends StatelessWidget {
       ),
     );
   }
-}
-
-String _toolName(AppLocalizations l10n, ToolInfo tool) {
-  return switch (tool.id) {
-    'work_log' => l10n.tool_work_log_name,
-    'stockpile_assistant' => l10n.tool_stockpile_name,
-    'overcooked_kitchen' => l10n.tool_overcooked_name,
-    'tag_manager' => l10n.tool_tag_manager_name,
-    _ => tool.name,
-  };
 }
 
 class _HintCard extends StatelessWidget {
@@ -130,7 +121,7 @@ class _DefaultToolCard extends StatelessWidget {
             const _Divider(),
             _DefaultToolRow(
               icon: tool.icon,
-              title: _toolName(l10n, tool),
+              title: tool.displayName(l10n),
               toolId: tool.id,
             ),
           ],
@@ -199,7 +190,7 @@ class _HomeVisibilityCard extends StatelessWidget {
           ),
           for (final tool in tools) ...[
             const _Divider(),
-            _HomeVisibilityRow(title: _toolName(l10n, tool), tool: tool),
+            _HomeVisibilityRow(title: tool.displayName(l10n), tool: tool),
           ],
         ],
       ),

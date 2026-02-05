@@ -28,9 +28,49 @@
   "tool_management_default_tool_subtitle": "On next launch, app will open this tool directly.",
   "tool_management_home_visibility_title": "Show on Home",
   "tool_management_home_visibility_subtitle": "Hide to remove from Home (does not affect backup or default on launch).",
+  "home_sync_not_configured_content": "Please configure server URL/port and user id in Sync Settings before viewing sync records.",
+  "home_sync_go_config_button": "Configure",
+  "home_messages_title": "Messages",
+  "home_messages_all_button": "All messages",
+  "home_messages_empty": "No new messages right now.",
+  "home_messages_total_count": "Total {count} messages",
+  "@home_messages_total_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "home_messages_unread_count": "Unread {unread} / Total {total}",
+  "@home_messages_unread_count": {
+    "placeholders": {
+      "unread": {},
+      "total": {}
+    }
+  },
+  "home_tools_title": "My Tools",
+  "home_tools_empty": "No tools to show. Enable them in Tool Management.",
+  "home_tool_default_badge": "Default",
+  "home_settings_sheet_title": "Settings",
+  "home_settings_default_tool_value": "Default: {toolName}",
+  "@home_settings_default_tool_value": {
+    "placeholders": {
+      "toolName": {}
+    }
+  },
+  "home_obj_store_type_with_visibility": "{type} ({visibility})",
+  "@home_obj_store_type_with_visibility": {
+    "placeholders": {
+      "type": {},
+      "visibility": {}
+    }
+  },
+  "home_backup_import_export_value": "Import / Export",
+  "home_settings_sheet_tip": "Set default tool and Home visibility in Tool Management; long-press tool cards on Home to reorder.",
   "tool_stockpile_name": "Stockpile Assistant",
   "tool_overcooked_name": "Overcooked Kitchen",
   "tool_work_log_name": "Work Log",
+  "tool_work_log_desc": "Daily work tracking",
+  "tool_stockpile_desc": "Household inventory & expiry reminders",
+  "tool_overcooked_desc": "Kitchen playtime",
   "work_log_ai_entry": "AI Entry",
   "sync_user_mismatch_title": "Sync user mismatch",
   "@sync_user_mismatch_title": {
@@ -60,6 +100,7 @@
   "common_add": "Add",
   "common_continue": "Continue",
   "common_load_more": "Load More",
+  "common_configured": "Configured",
   "common_not_configured": "Not configured",
   "common_go_settings": "Open Settings",
   "network_status_wifi": "Wi‑Fi",
@@ -312,6 +353,7 @@
   "sync_diff_no_substantive": "No substantive changes (only ignored length changes)",
   "sync_diff_unknown_item": "• Unknown diff item",
   "tool_tag_manager_name": "Tag Manager",
+  "tool_tag_manager_desc": "Shared tags maintenance",
   "tool_app_config_name": "App Config",
   "tag_category_location": "Location",
   "tag_category_item_type": "Item type",

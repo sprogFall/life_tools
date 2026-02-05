@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/messages/message_repository.dart';
@@ -8,6 +8,8 @@ import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('HomePage 工具卡片', () {
@@ -47,7 +49,7 @@ void main() {
             ),
             ChangeNotifierProvider<MessageService>.value(value: messageService),
           ],
-          child: const MaterialApp(home: HomePage()),
+          child: const TestAppWrapper(child: HomePage()),
         ),
       );
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import '../core/messages/message_service.dart';
@@ -11,6 +12,7 @@ import '../core/messages/models/app_message.dart';
 import '../core/backup/pages/backup_restore_page.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/models/tool_info.dart';
+import '../core/models/tool_info_l10n.dart';
 import '../core/obj_store/obj_store_config.dart';
 import '../core/obj_store/obj_store_config_service.dart';
 import '../core/services/settings_service.dart';
@@ -54,14 +56,15 @@ class _HomePageState extends State<HomePage> {
     if (_debugTapCount >= _debugTapTargetCount) {
       _debugTapCount = 0;
       HapticFeedback.lightImpact();
+      final l10n = AppLocalizations.of(context)!;
       final config = context.read<SyncConfigService>().config;
       if (config == null || !config.isValid) {
         AppDialogs.showConfirm(
           context,
-          title: '同步未配置',
-          content: '请先在“数据同步”中配置服务器地址/端口与用户标识，然后再查看同步记录。',
-          cancelText: '取消',
-          confirmText: '去配置',
+          title: l10n.sync_not_configured_title,
+          content: l10n.home_sync_not_configured_content,
+          cancelText: l10n.common_cancel,
+          confirmText: l10n.home_sync_go_config_button,
         ).then((go) {
           if (!mounted) return;
           if (!go) return;
@@ -81,12 +84,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       useSafeArea: true,
       body: Column(
         children: [
           IOS26AppBar.home(
-            title: '小蜜',
+            title: l10n.appTitle,
             onTitlePressed: _handleTitleTap,
             onSettingsPressed: () => _showSettingsSheet(context),
           ),
@@ -94,12 +98,7 @@ class _HomePageState extends State<HomePage> {
             child: Consumer2<SettingsService, MessageService>(
               builder: (context, settings, messageService, child) {
                 final tools = settings.getHomeTools();
-                return _buildContent(
-                  context,
-                  tools,
-                  settings,
-                  messageService,
-                );
+                return _buildContent(context, tools, settings, messageService);
               },
             ),
           ),
@@ -114,6 +113,7 @@ class _HomePageState extends State<HomePage> {
     SettingsService settings,
     MessageService messageService,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final allMessages = messageService.messages;
     final unreadMessages = messageService.unreadMessages;
     return SingleChildScrollView(
@@ -129,17 +129,23 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Row(
                   children: [
-                    Text('消息', style: IOS26Theme.headlineSmall),
+                    Text(
+                      l10n.home_messages_title,
+                      style: IOS26Theme.headlineSmall,
+                    ),
                     const Spacer(),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       onPressed: allMessages.isEmpty
                           ? null
                           : () {
-                              AppNavigator.push(context, const AllMessagesPage());
+                              AppNavigator.push(
+                                context,
+                                const AllMessagesPage(),
+                              );
                             },
                       child: Text(
-                        '全部消息',
+                        l10n.home_messages_all_button,
                         style: IOS26Theme.labelLarge.copyWith(
                           color: allMessages.isEmpty
                               ? IOS26Theme.textTertiary
@@ -152,7 +158,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 12),
                 if (unreadMessages.isEmpty)
                   Text(
-                    '当前暂时没有新的消息',
+                    l10n.home_messages_empty,
                     style: IOS26Theme.bodyMedium.copyWith(
                       height: 1.3,
                       color: IOS26Theme.textSecondary.withValues(alpha: 0.75),
@@ -174,8 +180,11 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 12),
                 Text(
                   unreadMessages.isEmpty
-                      ? '共 ${allMessages.length} 条消息'
-                      : '未读 ${unreadMessages.length} / 共 ${allMessages.length} 条',
+                      ? l10n.home_messages_total_count(allMessages.length)
+                      : l10n.home_messages_unread_count(
+                          unreadMessages.length,
+                          allMessages.length,
+                        ),
                   style: IOS26Theme.bodySmall.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.75),
                   ),
@@ -185,12 +194,12 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 28),
           // 工具标题
-          Text('我的工具', style: IOS26Theme.headlineMedium),
+          Text(l10n.home_tools_title, style: IOS26Theme.headlineMedium),
           const SizedBox(height: 16),
           // 工具网格
           if (tools.isEmpty)
             Text(
-              '暂无可显示的工具，请到「工具管理」中开启',
+              l10n.home_tools_empty,
               style: IOS26Theme.bodyMedium.copyWith(
                 height: 1.4,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
@@ -432,6 +441,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cardBorderRadius = BorderRadius.circular(_cardRadius);
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -518,11 +528,14 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                       ),
                       const Spacer(),
                       // 名称
-                      Text(widget.tool.name, style: IOS26Theme.titleLarge),
+                      Text(
+                        widget.tool.displayName(l10n),
+                        style: IOS26Theme.titleLarge,
+                      ),
                       const SizedBox(height: 4),
                       // 描述
                       Text(
-                        widget.tool.description,
+                        widget.tool.displayDescription(l10n),
                         style: IOS26Theme.bodySmall.copyWith(
                           color: IOS26Theme.textSecondary.withValues(
                             alpha: 0.8,
@@ -558,7 +571,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '默认',
+                            l10n.home_tool_default_badge,
                             style: IOS26Theme.bodySmall.copyWith(
                               color: IOS26Theme.surfaceColor,
                             ),
@@ -582,6 +595,7 @@ class _SettingsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: const BoxDecoration(
         color: IOS26Theme.surfaceColor,
@@ -607,7 +621,12 @@ class _SettingsSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                children: [Text('设置', style: IOS26Theme.headlineMedium)],
+                children: [
+                  Text(
+                    l10n.home_settings_sheet_title,
+                    style: IOS26Theme.headlineMedium,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -624,23 +643,30 @@ class _SettingsSheet extends StatelessWidget {
                     final tools = settings.getSortedTools();
                     final aiValue = aiConfig.isConfigured
                         ? aiConfig.config!.model
-                        : '未配置';
+                        : l10n.common_not_configured;
+                    final defaultToolName = settings.defaultToolId == null
+                        ? l10n.common_home
+                        : tools
+                                  .where((t) => t.id == settings.defaultToolId)
+                                  .firstOrNull
+                                  ?.displayName(l10n) ??
+                              l10n.common_home;
+                    final defaultToolValue = l10n
+                        .home_settings_default_tool_value(defaultToolName);
 
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IOS26SettingsRow(
                           icon: CupertinoIcons.app,
-                          title: '工具管理',
-                          value: settings.defaultToolId == null
-                              ? '默认：首页'
-                              : '默认：${tools.where((t) => t.id == settings.defaultToolId).firstOrNull?.name ?? '首页'}',
+                          title: l10n.tool_management_title,
+                          value: defaultToolValue,
                           onTap: () => _openToolManagement(context),
                         ),
                         _buildDivider(),
                         IOS26SettingsRow(
                           icon: CupertinoIcons.sparkles,
-                          title: 'AI配置',
+                          title: l10n.ai_settings_title,
                           value: aiValue,
                           onTap: () => _openAiSettings(context),
                         ),
@@ -649,8 +675,10 @@ class _SettingsSheet extends StatelessWidget {
                           builder: (context, syncConfig, _) {
                             return IOS26SettingsRow(
                               icon: CupertinoIcons.cloud_upload,
-                              title: '数据同步',
-                              value: syncConfig.isConfigured ? '已配置' : '未配置',
+                              title: l10n.sync_settings_title,
+                              value: syncConfig.isConfigured
+                                  ? l10n.common_configured
+                                  : l10n.common_not_configured,
                               onTap: () => _openSyncSettings(context),
                             );
                           },
@@ -663,23 +691,34 @@ class _SettingsSheet extends StatelessWidget {
                             final isDataCapsulePrivate =
                                 objStore.config?.dataCapsuleIsPrivate ?? true;
                             final value = switch (objStore.selectedType) {
-                              ObjStoreType.none => '未选择',
+                              ObjStoreType.none =>
+                                l10n.obj_store_settings_type_none_label,
                               ObjStoreType.local =>
-                                objStore.isConfigured ? '本地存储' : '未配置',
+                                objStore.isConfigured
+                                    ? l10n.obj_store_settings_type_local_label
+                                    : l10n.common_not_configured,
                               ObjStoreType.qiniu =>
                                 objStore.isConfigured
-                                    ? (isQiniuPrivate ? '七牛云(私有)' : '七牛云(公有)')
-                                    : '未配置',
+                                    ? l10n.home_obj_store_type_with_visibility(
+                                        l10n.obj_store_settings_type_qiniu_label,
+                                        isQiniuPrivate
+                                            ? l10n.common_private
+                                            : l10n.common_public,
+                                      )
+                                    : l10n.common_not_configured,
                               ObjStoreType.dataCapsule =>
                                 objStore.isConfigured
-                                    ? (isDataCapsulePrivate
-                                          ? '数据胶囊(私有)'
-                                          : '数据胶囊(公有)')
-                                    : '未配置',
+                                    ? l10n.home_obj_store_type_with_visibility(
+                                        l10n.obj_store_settings_type_data_capsule_label,
+                                        isDataCapsulePrivate
+                                            ? l10n.common_private
+                                            : l10n.common_public,
+                                      )
+                                    : l10n.common_not_configured,
                             };
                             return IOS26SettingsRow(
                               icon: CupertinoIcons.photo_on_rectangle,
-                              title: '资源存储',
+                              title: l10n.obj_store_settings_title,
                               value: value,
                               onTap: () => _openObjStoreSettings(context),
                             );
@@ -688,8 +727,8 @@ class _SettingsSheet extends StatelessWidget {
                         _buildDivider(),
                         IOS26SettingsRow(
                           icon: CupertinoIcons.archivebox,
-                          title: '备份与还原',
-                          value: '导入/导出',
+                          title: l10n.backup_restore_title,
+                          value: l10n.home_backup_import_export_value,
                           onTap: () => _openBackupRestore(context),
                         ),
                       ],
@@ -703,7 +742,7 @@ class _SettingsSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序',
+                l10n.home_settings_sheet_tip,
                 style: IOS26Theme.bodySmall.copyWith(
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
                 ),

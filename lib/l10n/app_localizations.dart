@@ -220,6 +220,96 @@ abstract class AppLocalizations {
   /// **'Hide to remove from Home (does not affect backup or default on launch).'**
   String get tool_management_home_visibility_subtitle;
 
+  /// No description provided for @home_sync_not_configured_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Please configure server URL/port and user id in Sync Settings before viewing sync records.'**
+  String get home_sync_not_configured_content;
+
+  /// No description provided for @home_sync_go_config_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure'**
+  String get home_sync_go_config_button;
+
+  /// No description provided for @home_messages_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get home_messages_title;
+
+  /// No description provided for @home_messages_all_button.
+  ///
+  /// In en, this message translates to:
+  /// **'All messages'**
+  String get home_messages_all_button;
+
+  /// No description provided for @home_messages_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No new messages right now.'**
+  String get home_messages_empty;
+
+  /// No description provided for @home_messages_total_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Total {count} messages'**
+  String home_messages_total_count(Object count);
+
+  /// No description provided for @home_messages_unread_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread {unread} / Total {total}'**
+  String home_messages_unread_count(Object unread, Object total);
+
+  /// No description provided for @home_tools_title.
+  ///
+  /// In en, this message translates to:
+  /// **'My Tools'**
+  String get home_tools_title;
+
+  /// No description provided for @home_tools_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tools to show. Enable them in Tool Management.'**
+  String get home_tools_empty;
+
+  /// No description provided for @home_tool_default_badge.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get home_tool_default_badge;
+
+  /// No description provided for @home_settings_sheet_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get home_settings_sheet_title;
+
+  /// No description provided for @home_settings_default_tool_value.
+  ///
+  /// In en, this message translates to:
+  /// **'Default: {toolName}'**
+  String home_settings_default_tool_value(Object toolName);
+
+  /// No description provided for @home_obj_store_type_with_visibility.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} ({visibility})'**
+  String home_obj_store_type_with_visibility(Object type, Object visibility);
+
+  /// No description provided for @home_backup_import_export_value.
+  ///
+  /// In en, this message translates to:
+  /// **'Import / Export'**
+  String get home_backup_import_export_value;
+
+  /// No description provided for @home_settings_sheet_tip.
+  ///
+  /// In en, this message translates to:
+  /// **'Set default tool and Home visibility in Tool Management; long-press tool cards on Home to reorder.'**
+  String get home_settings_sheet_tip;
+
   /// No description provided for @tool_stockpile_name.
   ///
   /// In en, this message translates to:
@@ -237,6 +327,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Work Log'**
   String get tool_work_log_name;
+
+  /// No description provided for @tool_work_log_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily work tracking'**
+  String get tool_work_log_desc;
+
+  /// No description provided for @tool_stockpile_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Household inventory & expiry reminders'**
+  String get tool_stockpile_desc;
+
+  /// No description provided for @tool_overcooked_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Kitchen playtime'**
+  String get tool_overcooked_desc;
 
   /// No description provided for @work_log_ai_entry.
   ///
@@ -309,6 +417,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Load More'**
   String get common_load_more;
+
+  /// No description provided for @common_configured.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured'**
+  String get common_configured;
 
   /// No description provided for @common_not_configured.
   ///
@@ -1131,6 +1245,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tag Manager'**
   String get tool_tag_manager_name;
+
+  /// No description provided for @tool_tag_manager_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared tags maintenance'**
+  String get tool_tag_manager_desc;
 
   /// No description provided for @tool_app_config_name.
   ///

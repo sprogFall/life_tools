@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/database/database_schema.dart';
@@ -16,6 +15,8 @@ import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('AI设置入口', () {
@@ -82,7 +83,7 @@ void main() {
             ChangeNotifierProvider.value(value: messageService),
             ChangeNotifierProvider.value(value: objStoreConfigService),
           ],
-          child: const MaterialApp(home: HomePage()),
+          child: const TestAppWrapper(child: HomePage()),
         ),
       );
 

@@ -73,6 +73,62 @@ class AppLocalizationsEn extends AppLocalizations {
       'Hide to remove from Home (does not affect backup or default on launch).';
 
   @override
+  String get home_sync_not_configured_content =>
+      'Please configure server URL/port and user id in Sync Settings before viewing sync records.';
+
+  @override
+  String get home_sync_go_config_button => 'Configure';
+
+  @override
+  String get home_messages_title => 'Messages';
+
+  @override
+  String get home_messages_all_button => 'All messages';
+
+  @override
+  String get home_messages_empty => 'No new messages right now.';
+
+  @override
+  String home_messages_total_count(Object count) {
+    return 'Total $count messages';
+  }
+
+  @override
+  String home_messages_unread_count(Object unread, Object total) {
+    return 'Unread $unread / Total $total';
+  }
+
+  @override
+  String get home_tools_title => 'My Tools';
+
+  @override
+  String get home_tools_empty =>
+      'No tools to show. Enable them in Tool Management.';
+
+  @override
+  String get home_tool_default_badge => 'Default';
+
+  @override
+  String get home_settings_sheet_title => 'Settings';
+
+  @override
+  String home_settings_default_tool_value(Object toolName) {
+    return 'Default: $toolName';
+  }
+
+  @override
+  String home_obj_store_type_with_visibility(Object type, Object visibility) {
+    return '$type ($visibility)';
+  }
+
+  @override
+  String get home_backup_import_export_value => 'Import / Export';
+
+  @override
+  String get home_settings_sheet_tip =>
+      'Set default tool and Home visibility in Tool Management; long-press tool cards on Home to reorder.';
+
+  @override
   String get tool_stockpile_name => 'Stockpile Assistant';
 
   @override
@@ -80,6 +136,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tool_work_log_name => 'Work Log';
+
+  @override
+  String get tool_work_log_desc => 'Daily work tracking';
+
+  @override
+  String get tool_stockpile_desc => 'Household inventory & expiry reminders';
+
+  @override
+  String get tool_overcooked_desc => 'Kitchen playtime';
 
   @override
   String get work_log_ai_entry => 'AI Entry';
@@ -120,6 +185,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get common_load_more => 'Load More';
+
+  @override
+  String get common_configured => 'Configured';
 
   @override
   String get common_not_configured => 'Not configured';
@@ -604,6 +672,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tool_tag_manager_name => 'Tag Manager';
+
+  @override
+  String get tool_tag_manager_desc => 'Shared tags maintenance';
 
   @override
   String get tool_app_config_name => 'App Config';
@@ -1131,6 +1202,62 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
       'Hide to remove from Home (does not affect backup or default on launch).';
 
   @override
+  String get home_sync_not_configured_content =>
+      'Please configure server URL/port and user id in Sync Settings before viewing sync records.';
+
+  @override
+  String get home_sync_go_config_button => 'Configure';
+
+  @override
+  String get home_messages_title => 'Messages';
+
+  @override
+  String get home_messages_all_button => 'All messages';
+
+  @override
+  String get home_messages_empty => 'No new messages right now.';
+
+  @override
+  String home_messages_total_count(Object count) {
+    return 'Total $count messages';
+  }
+
+  @override
+  String home_messages_unread_count(Object unread, Object total) {
+    return 'Unread $unread / Total $total';
+  }
+
+  @override
+  String get home_tools_title => 'My Tools';
+
+  @override
+  String get home_tools_empty =>
+      'No tools to show. Enable them in Tool Management.';
+
+  @override
+  String get home_tool_default_badge => 'Default';
+
+  @override
+  String get home_settings_sheet_title => 'Settings';
+
+  @override
+  String home_settings_default_tool_value(Object toolName) {
+    return 'Default: $toolName';
+  }
+
+  @override
+  String home_obj_store_type_with_visibility(Object type, Object visibility) {
+    return '$type ($visibility)';
+  }
+
+  @override
+  String get home_backup_import_export_value => 'Import / Export';
+
+  @override
+  String get home_settings_sheet_tip =>
+      'Set default tool and Home visibility in Tool Management; long-press tool cards on Home to reorder.';
+
+  @override
   String get tool_stockpile_name => 'Stockpile Assistant';
 
   @override
@@ -1138,6 +1265,15 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get tool_work_log_name => 'Work Log';
+
+  @override
+  String get tool_work_log_desc => 'Daily work tracking';
+
+  @override
+  String get tool_stockpile_desc => 'Household inventory & expiry reminders';
+
+  @override
+  String get tool_overcooked_desc => 'Kitchen playtime';
 
   @override
   String get work_log_ai_entry => 'AI Entry';
@@ -1178,6 +1314,9 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get common_load_more => 'Load More';
+
+  @override
+  String get common_configured => 'Configured';
 
   @override
   String get common_not_configured => 'Not configured';
@@ -1662,6 +1801,9 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get tool_tag_manager_name => 'Tag Manager';
+
+  @override
+  String get tool_tag_manager_desc => 'Shared tags maintenance';
 
   @override
   String get tool_app_config_name => 'App Config';
