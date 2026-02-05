@@ -669,6 +669,99 @@ class AppLocalizationsEn extends AppLocalizations {
   String sync_auto_sync_failed_toast(Object error) {
     return 'Auto sync failed: $error';
   }
+
+  @override
+  String get ai_settings_title => 'AI Settings';
+
+  @override
+  String get ai_settings_openai_section_title => 'OpenAI-Compatible Settings';
+
+  @override
+  String get ai_settings_base_url_label => 'Base URL';
+
+  @override
+  String get ai_settings_base_url_placeholder => 'https://api.openai.com/v1';
+
+  @override
+  String get ai_settings_api_key_label => 'API Key';
+
+  @override
+  String get ai_settings_api_key_placeholder => 'sk-...';
+
+  @override
+  String get ai_settings_model_label => 'Model';
+
+  @override
+  String get ai_settings_model_placeholder => 'gpt-4o-mini';
+
+  @override
+  String get ai_settings_temperature_label => 'Temperature';
+
+  @override
+  String get ai_settings_temperature_placeholder => '0.7';
+
+  @override
+  String get ai_settings_max_tokens_label => 'Max Tokens';
+
+  @override
+  String get ai_settings_max_tokens_placeholder => '1024';
+
+  @override
+  String get ai_settings_test_button => 'Test Connection';
+
+  @override
+  String get ai_settings_testing_button => 'Testing...';
+
+  @override
+  String get ai_settings_tips_section_title => 'Notes';
+
+  @override
+  String get ai_settings_tips_content =>
+      '1. Base URL can be a domain (e.g. https://example.com) or include /v1.\\n2. Uses OpenAI-compatible endpoint: /v1/chat/completions.\\n3. API key is stored locally (SharedPreferences).';
+
+  @override
+  String get ai_settings_danger_section_title => 'Danger Zone';
+
+  @override
+  String get ai_settings_clear_button => 'Clear AI Settings';
+
+  @override
+  String get ai_settings_invalid_title => 'Tip';
+
+  @override
+  String get ai_settings_invalid_content =>
+      'Check your settings: Base URL / API Key / Model must not be empty; temperature must be 0–2; Max Tokens must be > 0.';
+
+  @override
+  String get ai_settings_saved_title => 'Saved';
+
+  @override
+  String ai_settings_saved_content(Object model) {
+    return 'Current model: $model';
+  }
+
+  @override
+  String get ai_settings_test_invalid_content =>
+      'Please enter a valid AI configuration before testing.';
+
+  @override
+  String get ai_settings_testing_loading_title => 'Testing';
+
+  @override
+  String get ai_settings_test_result_title => 'Test Result';
+
+  @override
+  String get ai_settings_test_failed_title => 'Test Failed';
+
+  @override
+  String get ai_settings_clear_confirm_title => 'Confirm clear?';
+
+  @override
+  String get ai_settings_clear_confirm_content =>
+      'After clearing, AI features will be unavailable until you configure again.';
+
+  @override
+  String get ai_settings_clear_confirm_button => 'Clear';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -1336,4 +1429,97 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String sync_auto_sync_failed_toast(Object error) {
     return 'Auto sync failed: $error';
   }
+
+  @override
+  String get ai_settings_title => 'AI Settings';
+
+  @override
+  String get ai_settings_openai_section_title => 'OpenAI-Compatible Settings';
+
+  @override
+  String get ai_settings_base_url_label => 'Base URL';
+
+  @override
+  String get ai_settings_base_url_placeholder => 'https://api.openai.com/v1';
+
+  @override
+  String get ai_settings_api_key_label => 'API Key';
+
+  @override
+  String get ai_settings_api_key_placeholder => 'sk-...';
+
+  @override
+  String get ai_settings_model_label => 'Model';
+
+  @override
+  String get ai_settings_model_placeholder => 'gpt-4o-mini';
+
+  @override
+  String get ai_settings_temperature_label => 'Temperature';
+
+  @override
+  String get ai_settings_temperature_placeholder => '0.7';
+
+  @override
+  String get ai_settings_max_tokens_label => 'Max Tokens';
+
+  @override
+  String get ai_settings_max_tokens_placeholder => '1024';
+
+  @override
+  String get ai_settings_test_button => 'Test Connection';
+
+  @override
+  String get ai_settings_testing_button => 'Testing...';
+
+  @override
+  String get ai_settings_tips_section_title => 'Notes';
+
+  @override
+  String get ai_settings_tips_content =>
+      '1. Base URL can be a domain (e.g. https://example.com) or include /v1.\\n2. Uses OpenAI-compatible endpoint: /v1/chat/completions.\\n3. API key is stored locally (SharedPreferences).';
+
+  @override
+  String get ai_settings_danger_section_title => 'Danger Zone';
+
+  @override
+  String get ai_settings_clear_button => 'Clear AI Settings';
+
+  @override
+  String get ai_settings_invalid_title => 'Tip';
+
+  @override
+  String get ai_settings_invalid_content =>
+      'Check your settings: Base URL / API Key / Model must not be empty; temperature must be 0–2; Max Tokens must be > 0.';
+
+  @override
+  String get ai_settings_saved_title => 'Saved';
+
+  @override
+  String ai_settings_saved_content(Object model) {
+    return 'Current model: $model';
+  }
+
+  @override
+  String get ai_settings_test_invalid_content =>
+      'Please enter a valid AI configuration before testing.';
+
+  @override
+  String get ai_settings_testing_loading_title => 'Testing';
+
+  @override
+  String get ai_settings_test_result_title => 'Test Result';
+
+  @override
+  String get ai_settings_test_failed_title => 'Test Failed';
+
+  @override
+  String get ai_settings_clear_confirm_title => 'Confirm clear?';
+
+  @override
+  String get ai_settings_clear_confirm_content =>
+      'After clearing, AI features will be unavailable until you configure again.';
+
+  @override
+  String get ai_settings_clear_confirm_button => 'Clear';
 }

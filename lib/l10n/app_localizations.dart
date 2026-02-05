@@ -1229,6 +1229,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto sync failed: {error}'**
   String sync_auto_sync_failed_toast(Object error);
+
+  /// No description provided for @ai_settings_title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Settings'**
+  String get ai_settings_title;
+
+  /// No description provided for @ai_settings_openai_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI-Compatible Settings'**
+  String get ai_settings_openai_section_title;
+
+  /// No description provided for @ai_settings_base_url_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Base URL'**
+  String get ai_settings_base_url_label;
+
+  /// No description provided for @ai_settings_base_url_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'https://api.openai.com/v1'**
+  String get ai_settings_base_url_placeholder;
+
+  /// No description provided for @ai_settings_api_key_label.
+  ///
+  /// In en, this message translates to:
+  /// **'API Key'**
+  String get ai_settings_api_key_label;
+
+  /// No description provided for @ai_settings_api_key_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'sk-...'**
+  String get ai_settings_api_key_placeholder;
+
+  /// No description provided for @ai_settings_model_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get ai_settings_model_label;
+
+  /// No description provided for @ai_settings_model_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'gpt-4o-mini'**
+  String get ai_settings_model_placeholder;
+
+  /// No description provided for @ai_settings_temperature_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature'**
+  String get ai_settings_temperature_label;
+
+  /// No description provided for @ai_settings_temperature_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'0.7'**
+  String get ai_settings_temperature_placeholder;
+
+  /// No description provided for @ai_settings_max_tokens_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Tokens'**
+  String get ai_settings_max_tokens_label;
+
+  /// No description provided for @ai_settings_max_tokens_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'1024'**
+  String get ai_settings_max_tokens_placeholder;
+
+  /// No description provided for @ai_settings_test_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Connection'**
+  String get ai_settings_test_button;
+
+  /// No description provided for @ai_settings_testing_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get ai_settings_testing_button;
+
+  /// No description provided for @ai_settings_tips_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get ai_settings_tips_section_title;
+
+  /// No description provided for @ai_settings_tips_content.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Base URL can be a domain (e.g. https://example.com) or include /v1.\\n2. Uses OpenAI-compatible endpoint: /v1/chat/completions.\\n3. API key is stored locally (SharedPreferences).'**
+  String get ai_settings_tips_content;
+
+  /// No description provided for @ai_settings_danger_section_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get ai_settings_danger_section_title;
+
+  /// No description provided for @ai_settings_clear_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear AI Settings'**
+  String get ai_settings_clear_button;
+
+  /// No description provided for @ai_settings_invalid_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip'**
+  String get ai_settings_invalid_title;
+
+  /// No description provided for @ai_settings_invalid_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your settings: Base URL / API Key / Model must not be empty; temperature must be 0–2; Max Tokens must be > 0.'**
+  String get ai_settings_invalid_content;
+
+  /// No description provided for @ai_settings_saved_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get ai_settings_saved_title;
+
+  /// No description provided for @ai_settings_saved_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Current model: {model}'**
+  String ai_settings_saved_content(Object model);
+
+  /// No description provided for @ai_settings_test_invalid_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid AI configuration before testing.'**
+  String get ai_settings_test_invalid_content;
+
+  /// No description provided for @ai_settings_testing_loading_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing'**
+  String get ai_settings_testing_loading_title;
+
+  /// No description provided for @ai_settings_test_result_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Result'**
+  String get ai_settings_test_result_title;
+
+  /// No description provided for @ai_settings_test_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Failed'**
+  String get ai_settings_test_failed_title;
+
+  /// No description provided for @ai_settings_clear_confirm_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm clear?'**
+  String get ai_settings_clear_confirm_title;
+
+  /// No description provided for @ai_settings_clear_confirm_content.
+  ///
+  /// In en, this message translates to:
+  /// **'After clearing, AI features will be unavailable until you configure again.'**
+  String get ai_settings_clear_confirm_content;
+
+  /// No description provided for @ai_settings_clear_confirm_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get ai_settings_clear_confirm_button;
 }
 
 class _AppLocalizationsDelegate

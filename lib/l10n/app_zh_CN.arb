@@ -365,5 +365,39 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "ai_settings_title": "AI配置",
+  "ai_settings_openai_section_title": "OpenAI 兼容配置",
+  "ai_settings_base_url_label": "接口地址（Base URL）",
+  "ai_settings_base_url_placeholder": "https://api.openai.com/v1",
+  "ai_settings_api_key_label": "API 密钥（Key）",
+  "ai_settings_api_key_placeholder": "sk-...",
+  "ai_settings_model_label": "模型（Model）",
+  "ai_settings_model_placeholder": "gpt-4o-mini",
+  "ai_settings_temperature_label": "温度（Temperature）",
+  "ai_settings_temperature_placeholder": "0.7",
+  "ai_settings_max_tokens_label": "最大输出（Max Tokens）",
+  "ai_settings_max_tokens_placeholder": "1024",
+  "ai_settings_test_button": "测试连接",
+  "ai_settings_testing_button": "测试中...",
+  "ai_settings_tips_section_title": "说明",
+  "ai_settings_tips_content": "1. 接口地址支持填写到域名（如 https://example.com），也可直接填写到 /v1。\\n2. 当前使用 OpenAI 兼容接口：/v1/chat/completions。\\n3. API 密钥将保存在本机（SharedPreferences）。",
+  "ai_settings_danger_section_title": "危险区",
+  "ai_settings_clear_button": "清除AI配置",
+  "ai_settings_invalid_title": "提示",
+  "ai_settings_invalid_content": "请检查配置项：接口地址 / API 密钥 / 模型不能为空；温度范围 0~2；最大输出 > 0。",
+  "ai_settings_saved_title": "已保存",
+  "ai_settings_saved_content": "当前模型：{model}",
+  "@ai_settings_saved_content": {
+    "placeholders": {
+      "model": {}
+    }
+  },
+  "ai_settings_test_invalid_content": "请先填写合法的 AI 配置，再进行测试。",
+  "ai_settings_testing_loading_title": "测试中",
+  "ai_settings_test_result_title": "测试结果",
+  "ai_settings_test_failed_title": "测试失败",
+  "ai_settings_clear_confirm_title": "确认清除？",
+  "ai_settings_clear_confirm_content": "清除后将无法使用 AI 相关功能，直到重新配置。",
+  "ai_settings_clear_confirm_button": "清除"
 }

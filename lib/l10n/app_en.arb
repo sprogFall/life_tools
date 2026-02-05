@@ -365,5 +365,39 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "ai_settings_title": "AI Settings",
+  "ai_settings_openai_section_title": "OpenAI-Compatible Settings",
+  "ai_settings_base_url_label": "Base URL",
+  "ai_settings_base_url_placeholder": "https://api.openai.com/v1",
+  "ai_settings_api_key_label": "API Key",
+  "ai_settings_api_key_placeholder": "sk-...",
+  "ai_settings_model_label": "Model",
+  "ai_settings_model_placeholder": "gpt-4o-mini",
+  "ai_settings_temperature_label": "Temperature",
+  "ai_settings_temperature_placeholder": "0.7",
+  "ai_settings_max_tokens_label": "Max Tokens",
+  "ai_settings_max_tokens_placeholder": "1024",
+  "ai_settings_test_button": "Test Connection",
+  "ai_settings_testing_button": "Testing...",
+  "ai_settings_tips_section_title": "Notes",
+  "ai_settings_tips_content": "1. Base URL can be a domain (e.g. https://example.com) or include /v1.\\n2. Uses OpenAI-compatible endpoint: /v1/chat/completions.\\n3. API key is stored locally (SharedPreferences).",
+  "ai_settings_danger_section_title": "Danger Zone",
+  "ai_settings_clear_button": "Clear AI Settings",
+  "ai_settings_invalid_title": "Tip",
+  "ai_settings_invalid_content": "Check your settings: Base URL / API Key / Model must not be empty; temperature must be 0–2; Max Tokens must be > 0.",
+  "ai_settings_saved_title": "Saved",
+  "ai_settings_saved_content": "Current model: {model}",
+  "@ai_settings_saved_content": {
+    "placeholders": {
+      "model": {}
+    }
+  },
+  "ai_settings_test_invalid_content": "Please enter a valid AI configuration before testing.",
+  "ai_settings_testing_loading_title": "Testing",
+  "ai_settings_test_result_title": "Test Result",
+  "ai_settings_test_failed_title": "Test Failed",
+  "ai_settings_clear_confirm_title": "Confirm clear?",
+  "ai_settings_clear_confirm_content": "After clearing, AI features will be unavailable until you configure again.",
+  "ai_settings_clear_confirm_button": "Clear"
 }

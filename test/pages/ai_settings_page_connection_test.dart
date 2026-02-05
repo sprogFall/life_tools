@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../test_helpers/fake_openai_client.dart';
+import '../test_helpers/test_app_wrapper.dart';
 
 void main() {
   group('AiSettingsPage 测试连接', () {
@@ -31,7 +32,7 @@ void main() {
             ChangeNotifierProvider.value(value: configService),
             Provider<AiService>.value(value: aiService),
           ],
-          child: const MaterialApp(home: AiSettingsPage()),
+          child: const TestAppWrapper(child: AiSettingsPage()),
         ),
       );
 
