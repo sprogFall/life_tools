@@ -99,7 +99,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: aiConfigService,
-          child: const TestAppWrapper(child: AiSettingsPage()),
+          child: const MaterialApp(home: AiSettingsPage()),
         ),
       );
       await tester.pump();
@@ -119,7 +119,7 @@ void main() {
             ),
             ChangeNotifierProvider<MessageService>.value(value: messageService),
           ],
-          child: const TestAppWrapper(child: HomePage()),
+          child: const MaterialApp(home: HomePage()),
         ),
       );
       await tester.pump();

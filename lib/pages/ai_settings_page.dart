@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
 import 'package:life_tools/core/ai/ai_config.dart';
-import 'package:life_tools/l10n/app_localizations.dart';
 import '../core/ai/ai_config_service.dart';
 import '../core/ai/ai_service.dart';
 import '../core/theme/ios26_theme.dart';
@@ -53,12 +52,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       body: Column(
         children: [
           IOS26AppBar(
-            title: l10n.ai_settings_title,
+            title: 'AI配置',
             showBackButton: true,
             actions: [
               CupertinoButton(
@@ -67,7 +65,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: () => _save(context),
-                child: Text(l10n.common_save, style: IOS26Theme.labelLarge),
+                child: Text('保存', style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -93,23 +91,19 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildConfigCard() {
-    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: l10n.ai_settings_openai_section_title,
-            padding: EdgeInsets.zero,
-          ),
+          const SectionHeader(title: 'OpenAI 兼容配置', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: l10n.ai_settings_base_url_label,
+            label: '接口地址（Base URL）',
             child: CupertinoTextField(
               key: const ValueKey('ai_baseUrl_field'),
               controller: _baseUrlController,
-              placeholder: l10n.ai_settings_base_url_placeholder,
+              placeholder: 'https://api.openai.com/v1',
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: IOS26Theme.textFieldDecoration(),
@@ -117,11 +111,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: l10n.ai_settings_api_key_label,
+            label: 'API 密钥（Key）',
             child: CupertinoTextField(
               key: const ValueKey('ai_apiKey_field'),
               controller: _apiKeyController,
-              placeholder: l10n.ai_settings_api_key_placeholder,
+              placeholder: 'sk-...',
               obscureText: !_showApiKey,
               autocorrect: false,
               decoration: IOS26Theme.textFieldDecoration(),
@@ -138,11 +132,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           ),
           const SizedBox(height: 12),
           _buildLabeledField(
-            label: l10n.ai_settings_model_label,
+            label: '模型（Model）',
             child: CupertinoTextField(
               key: const ValueKey('ai_model_field'),
               controller: _modelController,
-              placeholder: l10n.ai_settings_model_placeholder,
+              placeholder: 'gpt-4o-mini',
               autocorrect: false,
               decoration: IOS26Theme.textFieldDecoration(),
             ),
@@ -152,11 +146,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
             children: [
               Expanded(
                 child: _buildLabeledField(
-                  label: l10n.ai_settings_temperature_label,
+                  label: '温度（Temperature）',
                   child: CupertinoTextField(
                     key: const ValueKey('ai_temperature_field'),
                     controller: _temperatureController,
-                    placeholder: l10n.ai_settings_temperature_placeholder,
+                    placeholder: '0.7',
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -167,11 +161,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildLabeledField(
-                  label: l10n.ai_settings_max_tokens_label,
+                  label: '最大输出（Max Tokens）',
                   child: CupertinoTextField(
                     key: const ValueKey('ai_maxTokens_field'),
                     controller: _maxOutputTokensController,
-                    placeholder: l10n.ai_settings_max_tokens_placeholder,
+                    placeholder: '1024',
                     keyboardType: TextInputType.number,
                     decoration: IOS26Theme.textFieldDecoration(),
                   ),
@@ -188,9 +182,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTesting ? null : () => _testConnection(context),
               child: Text(
-                _isTesting
-                    ? l10n.ai_settings_testing_button
-                    : l10n.ai_settings_test_button,
+                _isTesting ? '测试中...' : '测试连接',
                 style: IOS26Theme.labelLarge,
               ),
             ),
@@ -201,19 +193,17 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildTipsCard() {
-    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: l10n.ai_settings_tips_section_title,
-            padding: EdgeInsets.zero,
-          ),
+          const SectionHeader(title: '说明', padding: EdgeInsets.zero),
           const SizedBox(height: 10),
           Text(
-            l10n.ai_settings_tips_content,
+            '1. 接口地址支持填写到域名（如 https://example.com），也可直接填写到 /v1。\n'
+            '2. 当前使用 OpenAI 兼容接口：/v1/chat/completions。\n'
+            '3. API 密钥将保存在本机（SharedPreferences）。',
             style: IOS26Theme.bodySmall.copyWith(height: 1.5),
           ),
         ],
@@ -222,16 +212,12 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildDangerZoneCard() {
-    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: l10n.ai_settings_danger_section_title,
-            padding: EdgeInsets.zero,
-          ),
+          const SectionHeader(title: '危险区', padding: EdgeInsets.zero),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -240,7 +226,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
               child: Text(
-                l10n.ai_settings_clear_button,
+                '清除AI配置',
                 style: IOS26Theme.labelLarge.copyWith(
                   color: IOS26Theme.toolRed,
                 ),
@@ -273,14 +259,13 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Future<void> _save(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
     final config = _readConfigFromFields();
 
     if (!config.isValid) {
       await AppDialogs.showInfo(
         context,
-        title: l10n.ai_settings_invalid_title,
-        content: l10n.ai_settings_invalid_content,
+        title: '提示',
+        content: '请检查配置项：接口地址 / API 密钥 / 模型不能为空；温度范围 0~2；最大输出 > 0。',
       );
       return;
     }
@@ -291,8 +276,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
     await AppDialogs.showInfo(
       context,
-      title: l10n.ai_settings_saved_title,
-      content: l10n.ai_settings_saved_content(config.model),
+      title: '已保存',
+      content: '当前模型：${config.model}',
     );
   }
 
@@ -313,13 +298,12 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Future<void> _testConnection(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
     final config = _readConfigFromFields();
     if (!config.isValid) {
       await AppDialogs.showInfo(
         context,
-        title: l10n.ai_settings_invalid_title,
-        content: l10n.ai_settings_test_invalid_content,
+        title: '提示',
+        content: '请先填写合法的 AI 配置，再进行测试。',
       );
       return;
     }
@@ -328,7 +312,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
     final aiService = context.read<AiService>();
     // 显示 loading
-    AppDialogs.showLoading(context, title: l10n.ai_settings_testing_loading_title);
+    AppDialogs.showLoading(context, title: '测试中');
 
     try {
       final text = await aiService.chatTextWithConfig(
@@ -343,7 +327,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       
       await AppDialogs.showInfo(
         context,
-        title: l10n.ai_settings_test_result_title,
+        title: '测试结果',
         content: text,
       );
     } catch (e) {
@@ -353,7 +337,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
       await AppDialogs.showInfo(
         context,
-        title: l10n.ai_settings_test_failed_title,
+        title: '测试失败',
         content: e.toString(),
       );
     } finally {
@@ -362,16 +346,14 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Future<void> _confirmAndClear(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
     final configService = context.read<AiConfigService>();
     final navigator = Navigator.of(context);
 
     final result = await AppDialogs.showConfirm(
       context,
-      title: l10n.ai_settings_clear_confirm_title,
-      content: l10n.ai_settings_clear_confirm_content,
-      cancelText: l10n.common_cancel,
-      confirmText: l10n.ai_settings_clear_confirm_button,
+      title: '确认清除？',
+      content: '清除后将无法使用 AI 相关功能，直到重新配置。',
+      confirmText: '清除',
       isDestructive: true,
     );
 

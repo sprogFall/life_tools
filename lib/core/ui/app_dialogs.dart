@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:life_tools/l10n/app_localizations.dart';
 import '../theme/ios26_theme.dart';
 
 /// 统一弹窗管理器
@@ -11,10 +10,8 @@ class AppDialogs {
     BuildContext context, {
     required String title,
     required String content,
-    String? buttonText,
+    String buttonText = '知道了',
   }) {
-    final l10n = AppLocalizations.of(context);
-    final resolvedButtonText = buttonText ?? l10n?.common_confirm ?? '知道了';
     return showCupertinoDialog<void>(
       context: context,
       builder:
@@ -24,7 +21,7 @@ class AppDialogs {
             actions: [
               CupertinoDialogAction(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text(resolvedButtonText),
+                child: Text(buttonText),
               ),
             ],
           ),
@@ -36,13 +33,10 @@ class AppDialogs {
     BuildContext context, {
     required String title,
     required String content,
-    String? cancelText,
-    String? confirmText,
+    String cancelText = '取消',
+    String confirmText = '确定',
     bool isDestructive = false,
   }) async {
-    final l10n = AppLocalizations.of(context);
-    final resolvedCancelText = cancelText ?? l10n?.common_cancel ?? '取消';
-    final resolvedConfirmText = confirmText ?? l10n?.common_confirm ?? '确定';
     final result = await showCupertinoDialog<bool>(
       context: context,
       builder:
@@ -52,12 +46,12 @@ class AppDialogs {
             actions: [
               CupertinoDialogAction(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text(resolvedCancelText),
+                child: Text(cancelText),
               ),
               CupertinoDialogAction(
                 isDestructiveAction: isDestructive,
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(resolvedConfirmText),
+                child: Text(confirmText),
               ),
             ],
           ),
@@ -72,12 +66,9 @@ class AppDialogs {
     String? content,
     String? placeholder,
     String? defaultValue,
-    String? cancelText,
-    String? confirmText,
+    String cancelText = '取消',
+    String confirmText = '确定',
   }) async {
-    final l10n = AppLocalizations.of(context);
-    final resolvedCancelText = cancelText ?? l10n?.common_cancel ?? '取消';
-    final resolvedConfirmText = confirmText ?? l10n?.common_confirm ?? '确定';
     final controller = TextEditingController(text: defaultValue);
     return showCupertinoDialog<String>(
       context: context,
@@ -101,11 +92,11 @@ class AppDialogs {
             actions: [
               CupertinoDialogAction(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text(resolvedCancelText),
+                child: Text(cancelText),
               ),
               CupertinoDialogAction(
                 onPressed: () => Navigator.pop(ctx, controller.text),
-                child: Text(resolvedConfirmText),
+                child: Text(confirmText),
               ),
             ],
           ),
@@ -134,15 +125,13 @@ class AppDialogs {
 
   /// 显示加载中弹窗
   /// 返回一个用于关闭弹窗的回调函数
-  static void showLoading(BuildContext context, {String? title}) {
-    final l10n = AppLocalizations.of(context);
-    final resolvedTitle = title ?? l10n?.common_loading ?? '加载中...';
+  static void showLoading(BuildContext context, {String title = '加载中...'}) {
     showCupertinoDialog<void>(
       context: context,
       barrierDismissible: false,
       builder:
           (ctx) => CupertinoAlertDialog(
-            title: Text(resolvedTitle),
+            title: Text(title),
             content: const Padding(
               padding: EdgeInsets.only(top: 12),
               child: CupertinoActivityIndicator(),

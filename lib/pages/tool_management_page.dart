@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/tool_info.dart';
-import '../core/models/tool_info_l10n.dart';
 import '../core/services/settings_service.dart';
 import '../core/theme/ios26_theme.dart';
 import '../core/ui/app_scaffold.dart';
@@ -17,11 +15,10 @@ class ToolManagementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return AppScaffold(
       body: Column(
         children: [
-          IOS26AppBar(title: l10n.tool_management_title, showBackButton: true),
+          const IOS26AppBar(title: '工具管理', showBackButton: true),
           Expanded(
             child: Consumer<SettingsService>(
               builder: (context, settings, _) {
@@ -67,7 +64,6 @@ class _HintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -81,7 +77,7 @@ class _HintCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              l10n.tool_management_hint_content(hiddenCount),
+              '首页长按工具卡片并拖拽可调整顺序。\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 $hiddenCount 个）。',
               style: IOS26Theme.bodySmall.copyWith(
                 height: 1.35,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.95),
@@ -102,28 +98,20 @@ class _DefaultToolCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(0),
       child: Column(
         children: [
-          _CardHeader(
-            title: l10n.tool_management_default_tool_title,
-            subtitle: l10n.tool_management_default_tool_subtitle,
-          ),
+          const _CardHeader(title: '启动默认进入', subtitle: '设置后，下次打开应用将直接进入该工具'),
           const _Divider(),
-          _DefaultToolRow(
+          const _DefaultToolRow(
             icon: CupertinoIcons.house,
-            title: l10n.common_home,
+            title: '首页',
             toolId: null,
           ),
           for (final tool in tools) ...[
             const _Divider(),
-            _DefaultToolRow(
-              icon: tool.icon,
-              title: tool.displayName(l10n),
-              toolId: tool.id,
-            ),
+            _DefaultToolRow(icon: tool.icon, title: tool.name, toolId: tool.id),
           ],
         ],
       ),
@@ -179,18 +167,14 @@ class _HomeVisibilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return GlassContainer(
       padding: const EdgeInsets.all(0),
       child: Column(
         children: [
-          _CardHeader(
-            title: l10n.tool_management_home_visibility_title,
-            subtitle: l10n.tool_management_home_visibility_subtitle,
-          ),
+          const _CardHeader(title: '首页显示', subtitle: '关闭后首页不显示该工具（不影响备份与默认进入）'),
           for (final tool in tools) ...[
             const _Divider(),
-            _HomeVisibilityRow(title: tool.displayName(l10n), tool: tool),
+            _HomeVisibilityRow(tool: tool),
           ],
         ],
       ),
@@ -199,10 +183,9 @@ class _HomeVisibilityCard extends StatelessWidget {
 }
 
 class _HomeVisibilityRow extends StatelessWidget {
-  final String title;
   final ToolInfo tool;
 
-  const _HomeVisibilityRow({required this.title, required this.tool});
+  const _HomeVisibilityRow({required this.tool});
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +194,7 @@ class _HomeVisibilityRow extends StatelessWidget {
         final visible = !settings.isToolHidden(tool.id);
         return IOS26SettingsRow(
           icon: tool.icon,
-          title: title,
+          title: tool.name,
           showChevron: false,
           trailing: IgnorePointer(
             ignoring: true,

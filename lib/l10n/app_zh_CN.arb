@@ -9,68 +9,13 @@
   "common_delete": "删除",
   "common_save": "保存",
   "common_loading": "加载中...",
-  "common_copy": "复制",
-  "common_yes": "是",
-  "common_no": "否",
-  "common_public": "公有",
-  "common_private": "私有",
   "common_home": "首页",
   "common_tasks": "任务",
   "common_calendar": "日历",
   "tool_management_title": "工具管理",
-  "tool_management_hint_content": "首页长按工具卡片并拖拽可调整顺序。\\n这里可设置启动默认进入工具，并选择是否在首页显示（已隐藏 {hiddenCount} 个）。",
-  "@tool_management_hint_content": {
-    "placeholders": {
-      "hiddenCount": {}
-    }
-  },
-  "tool_management_default_tool_title": "启动默认进入",
-  "tool_management_default_tool_subtitle": "设置后，下次打开应用将直接进入该工具",
-  "tool_management_home_visibility_title": "首页显示",
-  "tool_management_home_visibility_subtitle": "关闭后首页不显示该工具（不影响备份与默认进入）",
-  "home_sync_not_configured_content": "请先在“数据同步”中配置服务器地址/端口与用户标识，然后再查看同步记录。",
-  "home_sync_go_config_button": "去配置",
-  "home_messages_title": "消息",
-  "home_messages_all_button": "全部消息",
-  "home_messages_empty": "当前暂时没有新的消息",
-  "home_messages_total_count": "共 {count} 条消息",
-  "@home_messages_total_count": {
-    "placeholders": {
-      "count": {}
-    }
-  },
-  "home_messages_unread_count": "未读 {unread} / 共 {total} 条",
-  "@home_messages_unread_count": {
-    "placeholders": {
-      "unread": {},
-      "total": {}
-    }
-  },
-  "home_tools_title": "我的工具",
-  "home_tools_empty": "暂无可显示的工具，请到「工具管理」中开启",
-  "home_tool_default_badge": "默认",
-  "home_settings_sheet_title": "设置",
-  "home_settings_default_tool_value": "默认：{toolName}",
-  "@home_settings_default_tool_value": {
-    "placeholders": {
-      "toolName": {}
-    }
-  },
-  "home_obj_store_type_with_visibility": "{type}({visibility})",
-  "@home_obj_store_type_with_visibility": {
-    "placeholders": {
-      "type": {},
-      "visibility": {}
-    }
-  },
-  "home_backup_import_export_value": "导入/导出",
-  "home_settings_sheet_tip": "在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序",
   "tool_stockpile_name": "囤货助手",
   "tool_overcooked_name": "胡闹厨房",
   "tool_work_log_name": "工作记录",
-  "tool_work_log_desc": "日常工作管理",
-  "tool_stockpile_desc": "家庭库存与临期提醒",
-  "tool_overcooked_desc": "厨房过家家",
   "work_log_ai_entry": "AI录入",
   "sync_user_mismatch_title": "同步用户不匹配",
   "@sync_user_mismatch_title": {
@@ -100,7 +45,6 @@
   "common_add": "添加",
   "common_continue": "继续",
   "common_load_more": "加载更多",
-  "common_configured": "已配置",
   "common_not_configured": "未配置",
   "common_go_settings": "去设置",
   "network_status_wifi": "WiFi",
@@ -353,7 +297,6 @@
   "sync_diff_no_substantive": "无实质性数据变更（仅包含被忽略的长度变化）",
   "sync_diff_unknown_item": "• 未知差异项",
   "tool_tag_manager_name": "标签管理",
-  "tool_tag_manager_desc": "公共标签维护",
   "tool_app_config_name": "应用配置",
   "tag_category_location": "位置",
   "tag_category_item_type": "物品类型",
@@ -422,145 +365,5 @@
     "placeholders": {
       "error": {}
     }
-  },
-  "ai_settings_title": "AI配置",
-  "ai_settings_openai_section_title": "OpenAI 兼容配置",
-  "ai_settings_base_url_label": "接口地址（Base URL）",
-  "ai_settings_base_url_placeholder": "https://api.openai.com/v1",
-  "ai_settings_api_key_label": "API 密钥（Key）",
-  "ai_settings_api_key_placeholder": "sk-...",
-  "ai_settings_model_label": "模型（Model）",
-  "ai_settings_model_placeholder": "gpt-4o-mini",
-  "ai_settings_temperature_label": "温度（Temperature）",
-  "ai_settings_temperature_placeholder": "0.7",
-  "ai_settings_max_tokens_label": "最大输出（Max Tokens）",
-  "ai_settings_max_tokens_placeholder": "1024",
-  "ai_settings_test_button": "测试连接",
-  "ai_settings_testing_button": "测试中...",
-  "ai_settings_tips_section_title": "说明",
-  "ai_settings_tips_content": "1. 接口地址支持填写到域名（如 https://example.com），也可直接填写到 /v1。\\n2. 当前使用 OpenAI 兼容接口：/v1/chat/completions。\\n3. API 密钥将保存在本机（SharedPreferences）。",
-  "ai_settings_danger_section_title": "危险区",
-  "ai_settings_clear_button": "清除AI配置",
-  "ai_settings_invalid_title": "提示",
-  "ai_settings_invalid_content": "请检查配置项：接口地址 / API 密钥 / 模型不能为空；温度范围 0~2；最大输出 > 0。",
-  "ai_settings_saved_title": "已保存",
-  "ai_settings_saved_content": "当前模型：{model}",
-  "@ai_settings_saved_content": {
-    "placeholders": {
-      "model": {}
-    }
-  },
-  "ai_settings_test_invalid_content": "请先填写合法的 AI 配置，再进行测试。",
-  "ai_settings_testing_loading_title": "测试中",
-  "ai_settings_test_result_title": "测试结果",
-  "ai_settings_test_failed_title": "测试失败",
-  "ai_settings_clear_confirm_title": "确认清除？",
-  "ai_settings_clear_confirm_content": "清除后将无法使用 AI 相关功能，直到重新配置。",
-  "ai_settings_clear_confirm_button": "清除",
-  "obj_store_settings_title": "资源存储",
-  "obj_store_settings_type_section_title": "存储方式",
-  "obj_store_settings_type_none_label": "未选择",
-  "obj_store_settings_type_local_label": "本地存储",
-  "obj_store_settings_type_qiniu_label": "七牛云",
-  "obj_store_settings_type_data_capsule_label": "数据胶囊",
-  "obj_store_settings_qiniu_section_title": "七牛云配置",
-  "obj_store_settings_data_capsule_section_title": "数据胶囊配置",
-  "obj_store_settings_test_section_title": "测试",
-  "obj_store_settings_tips_section_title": "说明",
-  "obj_store_settings_danger_section_title": "危险区",
-  "obj_store_settings_clear_button": "清除资源存储配置",
-  "obj_store_settings_bucket_type_label": "空间类型",
-  "obj_store_settings_protocol_label": "访问协议",
-  "obj_store_settings_protocol_https_label": "https",
-  "obj_store_settings_protocol_http_label": "http",
-  "obj_store_settings_http_security_warning": "安全提示：HTTP 为明文传输，访问密钥/文件内容可能被截获，仅建议内网调试使用。",
-  "obj_store_settings_access_key_label": "AccessKey（访问密钥）",
-  "obj_store_settings_secret_key_label": "SecretKey（私密密钥）",
-  "obj_store_settings_access_key_ak_label": "AccessKey（AK）",
-  "obj_store_settings_secret_key_sk_label": "SecretKey（SK）",
-  "obj_store_settings_bucket_label": "Bucket",
-  "obj_store_settings_domain_label": "访问域名（用于拼接图片URL）",
-  "obj_store_settings_upload_host_label": "上传域名（可选）",
-  "obj_store_settings_key_prefix_label": "Key 前缀（可选）",
-  "obj_store_settings_endpoint_label": "Endpoint（上传/访问）",
-  "obj_store_settings_domain_optional_label": "访问域名（可选）",
-  "obj_store_settings_region_label": "Region",
-  "obj_store_settings_url_style_label": "URL 风格",
-  "obj_store_settings_fixed_private_value": "私有（固定）",
-  "obj_store_settings_fixed_https_value": "https（固定）",
-  "obj_store_settings_fixed_path_style_value": "路径风格（固定）",
-  "obj_store_settings_fixed_region_value": "{region}（固定）",
-  "@obj_store_settings_fixed_region_value": {
-    "placeholders": {
-      "region": {}
-    }
-  },
-  "obj_store_settings_placeholder_example_short": "如：xxxxx",
-  "obj_store_settings_placeholder_bucket": "如：my-bucket",
-  "obj_store_settings_placeholder_domain": "如：cdn.example.com",
-  "obj_store_settings_placeholder_upload_host": "默认：https://upload.qiniup.com",
-  "obj_store_settings_placeholder_endpoint": "如：s3.example.com",
-  "obj_store_settings_placeholder_key_prefix": "如：media/",
-  "obj_store_settings_placeholder_query": "如：media/xxx.png",
-  "obj_store_settings_test_file_not_selected": "未选择文件",
-  "obj_store_settings_test_file_selected": "{name}（{bytes} bytes）",
-  "@obj_store_settings_test_file_selected": {
-    "placeholders": {
-      "name": {},
-      "bytes": {}
-    }
-  },
-  "obj_store_settings_choose_file_button": "选择文件",
-  "obj_store_settings_test_upload_button": "测试上传",
-  "obj_store_settings_test_uploading_button": "测试上传中...",
-  "obj_store_settings_test_query_button": "测试查询",
-  "obj_store_settings_test_querying_button": "查询中...",
-  "obj_store_settings_test_upload_result": "上传结果：\\nKey: {key}\\nURI: {uri}",
-  "@obj_store_settings_test_upload_result": {
-    "placeholders": {
-      "key": {},
-      "uri": {}
-    }
-  },
-  "obj_store_settings_query_key_label": "查询 Key / URL（用于测试查询/拼接URL，支持粘贴完整 URL）",
-  "obj_store_settings_tips_content": "1. 本地存储会将文件写入应用私有目录（卸载应用后会被清理）。\\n2. 七牛云存储会在本机生成上传凭证并直接上传到七牛。\\n3. 七牛私有空间查询会生成带签名的临时下载链接。\\n4. 数据胶囊为私有空间，查询会生成带签名的临时链接（默认 30 分钟）。\\n5. 访问密钥属于敏感信息，仅建议自用场景配置；如需更安全的方案，建议使用服务端下发的上传凭证。\\n6. 如配置了自定义访问域名，请确保与服务端配置一致，避免出现“可访问=否”。",
-  "obj_store_settings_cleared_title": "已清除",
-  "obj_store_settings_cleared_content": "已将资源存储恢复为未选择",
-  "obj_store_settings_invalid_title": "提示",
-  "obj_store_settings_qiniu_config_incomplete_error": "七牛云配置不完整，请检查 Bucket / 访问域名 / 上传域名",
-  "obj_store_settings_qiniu_missing_credentials_error": "请填写七牛云 AccessKey / SecretKey",
-  "obj_store_settings_data_capsule_config_incomplete_error": "数据胶囊配置不完整，请检查 Bucket / Endpoint",
-  "obj_store_settings_data_capsule_missing_credentials_error": "请填写数据胶囊 AccessKey（AK）/ SecretKey（SK）",
-  "obj_store_settings_saved_title": "已保存",
-  "obj_store_settings_saved_content": "资源存储配置已保存",
-  "obj_store_settings_save_failed_title": "保存失败",
-  "obj_store_settings_test_upload_select_file_hint": "请先选择一个要测试上传的图片/视频文件",
-  "obj_store_settings_test_upload_read_failed_hint": "无法读取文件内容，请重新选择",
-  "obj_store_settings_upload_success_title": "上传成功",
-  "obj_store_settings_upload_failed_title": "上传失败",
-  "obj_store_settings_test_query_key_required_hint": "请填写要查询的 Key",
-  "obj_store_settings_query_failed_title": "查询失败",
-  "obj_store_settings_clear_confirm_title": "确认清除",
-  "obj_store_settings_clear_confirm_content": "将清除资源存储的所有配置（包含密钥等敏感信息）",
-  "obj_store_settings_dialog_obj_content": "Key: {key}\\nURI: {uri}",
-  "@obj_store_settings_dialog_obj_content": {
-    "placeholders": {
-      "key": {},
-      "uri": {}
-    }
-  },
-  "obj_store_settings_copy_redacted_action": "复制脱敏内容",
-  "obj_store_settings_copy_original_action": "复制原始内容",
-  "obj_store_settings_copy_original_confirm_title": "复制原始 URI？",
-  "obj_store_settings_copy_original_confirm_content": "原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。",
-  "obj_store_settings_query_result_title": "查询结果",
-  "obj_store_settings_dialog_query_content": "URI: {uri}\\n可访问: {accessible}",
-  "@obj_store_settings_dialog_query_content": {
-    "placeholders": {
-      "uri": {},
-      "accessible": {}
-    }
-  },
-  "obj_store_settings_copy_redacted_result_action": "复制脱敏结果",
-  "obj_store_settings_copy_original_result_action": "复制原始结果"
+  }
 }
