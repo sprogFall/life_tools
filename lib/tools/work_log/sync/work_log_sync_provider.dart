@@ -30,8 +30,8 @@ class WorkLogSyncProvider implements ToolSyncProvider {
       }
     }
 
-    // 导出操作日志（限制最近1000条，避免数据量过大）
-    final operationLogs = await _repository.listOperationLogs(limit: 1000);
+    // 导出全部操作日志：同步/备份应保持完整性，避免跨端丢失历史记录。
+    final operationLogs = await _repository.listOperationLogs();
     final taskTags = await _tagRepository.exportWorkTaskTags();
 
     return {

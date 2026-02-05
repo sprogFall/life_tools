@@ -75,6 +75,56 @@ void main() {
       expect(restored[recipeId], 5);
     });
 
+    test('兼容旧快照：缺少 meal_item_ratings 字段时不应导致本地打分丢失', () async {
+      final db = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
+      addTearDown(() async => db.close());
+
+      final repo = OvercookedRepository.withDatabase(db);
+      final now = DateTime(2026, 1, 1, 10);
+      final recipeId = await repo.createRecipe(
+        OvercookedRecipe.create(
+          name: '番茄炒蛋',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+
+      final day = DateTime(2026, 1, 2, 12);
+      await repo.replaceMeal(date: day, recipeIds: [recipeId], now: now);
+      final mealId = (await repo.listMealsForDate(day)).single.id;
+      await repo.upsertRating(
+        mealId: mealId,
+        recipeId: recipeId,
+        rating: 4,
+        now: now,
+      );
+
+      final provider = OvercookedSyncProvider(repository: repo);
+      final exported = await provider.exportData();
+
+      final legacy = Map<String, dynamic>.from(exported);
+      final legacyData = Map<String, dynamic>.from(legacy['data'] as Map);
+      legacyData.remove('meal_item_ratings');
+      legacy['data'] = legacyData;
+
+      await provider.importData(legacy);
+      final restored = await repo.getRatingsForMeal(mealId);
+      expect(restored[recipeId], 4);
+    });
+
     test('导入时应清理旧打分（即使 foreign_keys 关闭）', () async {
       final db = await openDatabase(
         inMemoryDatabasePath,
@@ -115,7 +165,10 @@ void main() {
       await db.execute('PRAGMA foreign_keys = OFF');
 
       final provider = OvercookedSyncProvider(repository: repo);
-      await provider.importData({'version': 3, 'data': const <String, dynamic>{}});
+      await provider.importData({
+        'version': 3,
+        'data': const <String, dynamic>{},
+      });
 
       final rows = await db.query('overcooked_meal_item_ratings');
       expect(rows, isEmpty);

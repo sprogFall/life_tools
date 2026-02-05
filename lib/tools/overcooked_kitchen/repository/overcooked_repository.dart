@@ -673,6 +673,39 @@ ORDER BY m.day_key ASC
     });
   }
 
+  Future<void> importMealItemRatingsFromServer(
+    List<Map<String, dynamic>> ratings,
+  ) async {
+    if (ratings.isEmpty) return;
+
+    final db = await _database;
+    await db.transaction((txn) async {
+      for (final row in ratings) {
+        final mealId = row['meal_id'];
+        final recipeId = row['recipe_id'];
+        final rating = row['rating'];
+        final createdAt = row['created_at'];
+        if (mealId is! int ||
+            recipeId is! int ||
+            rating is! int ||
+            createdAt is! int) {
+          continue;
+        }
+
+        await txn.rawInsert(
+          '''
+INSERT OR REPLACE INTO overcooked_meal_item_ratings
+  (id, meal_id, recipe_id, rating, created_at)
+SELECT ?, ?, ?, ?, ?
+WHERE EXISTS(SELECT 1 FROM overcooked_meals WHERE id = ?)
+  AND EXISTS(SELECT 1 FROM overcooked_recipes WHERE id = ?)
+''',
+          [row['id'], mealId, recipeId, rating, createdAt, mealId, recipeId],
+        );
+      }
+    });
+  }
+
   Future<void> importFromLegacyServer({
     required List<Map<String, dynamic>> recipes,
     required List<Map<String, dynamic>> ingredientTags,

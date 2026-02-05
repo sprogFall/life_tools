@@ -55,6 +55,11 @@ class OvercookedSyncProvider implements ToolSyncProvider {
     }
 
     if (version == 3) {
+      final hasMealItemRatings = dataMap.containsKey('meal_item_ratings');
+      final preservedRatings = hasMealItemRatings
+          ? null
+          : await _repository.exportMealItemRatings();
+
       await _repository.importFromServer(
         recipes: readList('recipes'),
         ingredientTags: readList('recipe_ingredient_tags'),
@@ -63,8 +68,19 @@ class OvercookedSyncProvider implements ToolSyncProvider {
         wishItems: readList('wish_items'),
         meals: readList('meals'),
         mealItems: readList('meal_items'),
-        mealItemRatings: readList('meal_item_ratings'),
+        mealItemRatings: hasMealItemRatings
+            ? readList('meal_item_ratings')
+            : const [],
       );
+
+      // 兼容：旧快照可能缺少 meal_item_ratings 字段；仅当字段存在时才覆盖导入（允许清空）。
+      if (!hasMealItemRatings &&
+          preservedRatings != null &&
+          preservedRatings.isNotEmpty) {
+        await _repository.importMealItemRatingsFromServer(
+          preservedRatings.map((e) => Map<String, dynamic>.from(e)).toList(),
+        );
+      }
       return;
     }
 
