@@ -4,6 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# 无论从哪个目录调用脚本，都以仓库根目录为工作目录。
+cd "${ROOT_DIR}"
+
 DIAGRAM_DIR="${ROOT_DIR}/docs/architecture/diagrams"
 OUT_DIR="${ROOT_DIR}/docs/architecture/exports"
 TOOL_DIR="${ROOT_DIR}/tools/plantuml"
@@ -22,29 +25,48 @@ fi
 download_plantuml() {
   mkdir -p "${TOOL_DIR}"
 
+  local should_download=1
   if [[ -f "${JAR_PATH}" ]]; then
+    # 历史脚本会下载到 8059（2017）旧版，这里自动升级到当前官方版本。
+    if java -jar "${JAR_PATH}" -version 2>/dev/null | grep -q "version 8059"; then
+      echo "检测到旧版 PlantUML（8059），将升级到官方最新版。"
+    else
+      should_download=0
+    fi
+  fi
+
+  if [[ "${should_download}" -eq 0 ]]; then
     return 0
   fi
 
-  echo "PlantUML jar 不存在，开始下载到：${JAR_PATH}"
-
-  local metadata_url="https://repo1.maven.org/maven2/net/sourceforge/plantuml/plantuml/maven-metadata.xml"
-  local version=""
-  version="$(
-    curl -fsSL "${metadata_url}" | python3 -c 'import re,sys; xml=sys.stdin.read(); m=re.search(r"<release>([^<]+)</release>", xml) or re.search(r"<latest>([^<]+)</latest>", xml); print(m.group(1) if m else "")'
-  )" || true
-
-  if [[ -z "${version}" ]]; then
-    echo "无法从 Maven metadata 解析 PlantUML 版本号" >&2
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "未找到 curl，无法下载 PlantUML。请先安装 curl 或手动放置 ${JAR_PATH}" >&2
     exit 1
   fi
 
-  local jar_url="https://repo1.maven.org/maven2/net/sourceforge/plantuml/plantuml/${version}/plantuml-${version}.jar"
+  echo "开始下载 PlantUML 到：${JAR_PATH}"
+
+  # 使用官方 GitHub Release，避免 Maven metadata 的 legacy release 字段导致降级到旧版。
+  local jar_url="https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar"
   local tmp="${JAR_PATH}.tmp"
 
   echo "下载：${jar_url}"
-  curl -fsSL "${jar_url}" -o "${tmp}"
+  curl -fL --retry 3 --retry-delay 1 "${jar_url}" -o "${tmp}"
+
+  if ! java -jar "${tmp}" -version >/dev/null 2>&1; then
+    echo "下载的 PlantUML jar 无法执行：${tmp}" >&2
+    rm -f "${tmp}"
+    exit 1
+  fi
+
   mv "${tmp}" "${JAR_PATH}"
+
+  local version_line
+  version_line="$(java -jar "${JAR_PATH}" -version 2>/dev/null | head -n 1 || true)"
+  if [[ -n "${version_line}" ]]; then
+    echo "已安装：${version_line}"
+  fi
+
   echo "下载完成：${JAR_PATH}"
 }
 

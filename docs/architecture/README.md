@@ -18,6 +18,8 @@
 bash scripts/render_architecture_diagrams.sh
 ```
 
+> 可在仓库任意当前目录执行（脚本会自动切到仓库根目录）。
+
 导出目录：
 
 - PNG：`docs/architecture/exports/png/`
@@ -27,10 +29,13 @@ bash scripts/render_architecture_diagrams.sh
 ### 渲染依赖
 
 - 必需：`java`（用于运行 PlantUML）
+- 必需：`curl`（首次/升级时下载 PlantUML jar）
 - 推荐：`fonts-noto-cjk`（提供中文字体，避免导出图片/PDF 出现“方框”）
 - 推荐：`graphviz`（提供 `dot`，提升组件/类图布局稳定性）
-- 推荐：`librsvg2-bin`（提供 `rsvg-convert`，用于把 SVG 转 PDF；PlantUML 的 Maven jar 可能不自带 PDF 依赖）
+- 推荐：`librsvg2-bin`（提供 `rsvg-convert`，用于把 SVG 转 PDF；脚本优先走 png→pdf，未安装 PIL 时会尝试该方式）
 - 推荐：`python3-pil`（脚本优先用 PNG 打包 PDF，保证跨机器打开不缺字；代价是 PDF 文本不可选择）
+
+> 说明：PlantUML 由脚本从官方 GitHub Releases 自动下载（`latest`），并会自动替换历史旧版 jar（如 8059）。
 
 > 说明：即使没有 `dot`，部分图（尤其是序列图）仍可正常导出；但「组件图/类图」在某些环境下可能布局变差或失败。
 
