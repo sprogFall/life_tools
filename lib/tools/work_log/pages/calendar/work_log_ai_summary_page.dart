@@ -69,7 +69,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                       padding: const EdgeInsets.all(IOS26Theme.spacingXl),
                       child: Column(
                         key: const ValueKey('work_log_ai_summary_page'),
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildRangeCard(l10n),
                           const SizedBox(height: IOS26Theme.spacingLg),
@@ -98,7 +98,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             l10n.work_log_ai_summary_range_title,
@@ -163,7 +163,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
@@ -266,7 +266,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
@@ -352,7 +352,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             l10n.work_log_ai_summary_style_title,
@@ -401,7 +401,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             l10n.work_log_ai_summary_data_hint(entries.length, totalMinutes),
@@ -438,7 +438,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             l10n.work_log_ai_summary_result_title,

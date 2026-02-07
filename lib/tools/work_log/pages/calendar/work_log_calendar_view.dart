@@ -55,58 +55,98 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
 
   Widget _buildHeader() {
     final title = switch (_mode) {
-      WorkCalendarMode.month => _formatMonth(_focusedMonth),
+      WorkCalendarMode.month => '${_focusedMonth.month}月',
       WorkCalendarMode.week =>
-        '周 · ${_formatDate(_startOfWeek(_selectedDate))}',
+        _formatDate(_startOfWeek(_selectedDate)),
       WorkCalendarMode.day => _formatDate(_selectedDate),
     };
 
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: _goPrev,
-            child: const Icon(
-              CupertinoIcons.chevron_left,
-              size: 20,
-              color: IOS26Theme.primaryColor,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
+    final subtitle = switch (_mode) {
+      WorkCalendarMode.month => '${_focusedMonth.year}年',
+      WorkCalendarMode.week => '周视图',
+      WorkCalendarMode.day => '日视图',
+    };
+
+    return Row(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
               title,
-              style: IOS26Theme.titleMedium,
-              textAlign: TextAlign.center,
+              style: IOS26Theme.displayMedium.copyWith(
+                height: 1.0,
+                color: IOS26Theme.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: _goNext,
-            child: const Icon(
-              CupertinoIcons.chevron_right,
-              size: 20,
-              color: IOS26Theme.primaryColor,
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textTertiary,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        const Spacer(),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(44, 44),
+              onPressed: _goPrev,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: IOS26Theme.surfaceColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: IOS26Theme.glassBorderColor,
+                    width: 0.5,
+                  ),
+                ),
+                child: const Icon(
+                  CupertinoIcons.chevron_left,
+                  size: 20,
+                  color: IOS26Theme.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(44, 44),
+              onPressed: _goNext,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: IOS26Theme.surfaceColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: IOS26Theme.glassBorderColor,
+                    width: 0.5,
+                  ),
+                ),
+                child: const Icon(
+                  CupertinoIcons.chevron_right,
+                  size: 20,
+                  color: IOS26Theme.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildModeSegment() {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: IOS26Theme.glassColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
-      ),
+    return SizedBox(
+      width: double.infinity,
       child: CupertinoSlidingSegmentedControl<WorkCalendarMode>(
         groupValue: _mode,
+        backgroundColor: IOS26Theme.surfaceColor.withValues(alpha: 0.5),
         thumbColor: IOS26Theme.surfaceColor,
         children: const {
           WorkCalendarMode.month: Padding(
@@ -159,9 +199,9 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           itemCount: totalCells,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            mainAxisExtent: 54,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
+            mainAxisExtent: 64,
+            crossAxisSpacing: 0,
+            mainAxisSpacing: 0,
           ),
           itemBuilder: (context, index) {
             final date = startCell.add(Duration(days: index));
@@ -475,10 +515,6 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     return '${hours.toStringAsFixed(1)}h';
   }
 
-  static String _formatMonth(DateTime month) {
-    return '${month.year}年${month.month}月';
-  }
-
   static String _formatWeekday(DateTime date) {
     const map = {
       DateTime.monday: '周一',
@@ -515,109 +551,85 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = inMonth
-        ? IOS26Theme.textPrimary
-        : IOS26Theme.textTertiary;
+    final now = DateTime.now();
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
+    final isWeekend =
+        date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+
+    Color textColor;
+    if (selected) {
+      textColor = IOS26Theme.surfaceColor;
+    } else if (isToday) {
+      textColor = IOS26Theme.primaryColor;
+    } else if (!inMonth) {
+      textColor = IOS26Theme.textTertiary.withValues(alpha: 0.3);
+    } else if (isWeekend) {
+      textColor = IOS26Theme.textPrimary.withValues(alpha: 0.9);
+    } else {
+      textColor = IOS26Theme.textPrimary;
+    }
+
     final minutesText = minutes > 0 ? _minutesToHoursText(minutes) : null;
-    final baseTopColor = selected
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.24)
-        : IOS26Theme.surfaceColor.withValues(alpha: 0.92);
-    final baseBottomColor = selected
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.08)
-        : IOS26Theme.glassColor;
-    final borderColor = selected
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.38)
-        : IOS26Theme.glassBorderColor;
+    final minutesColor = selected
+        ? IOS26Theme.surfaceColor.withValues(alpha: 0.9)
+        : IOS26Theme.textSecondary.withValues(alpha: 0.8);
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [baseTopColor, baseBottomColor],
-          ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor, width: 0.9),
-          boxShadow: [
-            BoxShadow(
-              color: IOS26Theme.surfaceColor.withValues(alpha: 0.45),
-              blurRadius: 1.2,
-              offset: const Offset(-0.8, -0.8),
-            ),
-            BoxShadow(
-              color: selected
-                  ? IOS26Theme.primaryColor.withValues(alpha: 0.16)
-                  : IOS26Theme.shadowColor.withValues(alpha: 0.85),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-              spreadRadius: 0.3,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            decoration: BoxDecoration(
-              color: IOS26Theme.surfaceColor.withValues(
-                alpha: selected ? 0.30 : 0.20,
-              ),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    height: 16,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          IOS26Theme.surfaceColor.withValues(alpha: 0.38),
-                          IOS26Theme.surfaceColor.withValues(alpha: 0),
-                        ],
-                      ),
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: Container(
+          width: 46,
+          height: 54,
+          decoration: selected
+              ? BoxDecoration(
+                  color: IOS26Theme.primaryColor,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: IOS26Theme.primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6, top: 4),
-                      child: Text(
-                        '${date.day}',
-                        style: IOS26Theme.bodySmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (minutesText != null)
-                      Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            minutesText,
-                            style: IOS26Theme.bodySmall.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: IOS26Theme.primaryColor,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (minutesText != null) const SizedBox(height: 2),
                   ],
+                )
+              : null,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${date.day}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                  height: 1.0,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 4),
+              if (minutesText != null)
+                Text(
+                  minutesText,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: minutesColor,
+                    height: 1.0,
+                  ),
+                )
+              else if (isToday && !selected)
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: IOS26Theme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                )
+              else
+                const SizedBox(height: 10 + 4),
+            ],
           ),
         ),
       ),
