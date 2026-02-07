@@ -97,7 +97,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
               minimumSize: const Size(44, 44),
               onPressed: _goPrev,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                 decoration: BoxDecoration(
                   color: IOS26Theme.surfaceColor,
                   shape: BoxShape.circle,
@@ -119,7 +119,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
               minimumSize: const Size(44, 44),
               onPressed: _goNext,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                 decoration: BoxDecoration(
                   color: IOS26Theme.surfaceColor,
                   shape: BoxShape.circle,
@@ -600,7 +600,7 @@ class _DayCell extends StatelessWidget {
             children: [
               Text(
                 '${date.day}',
-                style: TextStyle(
+                style: IOS26Theme.titleMedium.copyWith(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: textColor,
@@ -611,7 +611,7 @@ class _DayCell extends StatelessWidget {
               if (minutesText != null)
                 Text(
                   minutesText,
-                  style: TextStyle(
+                  style: IOS26Theme.bodySmall.copyWith(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: minutesColor,
