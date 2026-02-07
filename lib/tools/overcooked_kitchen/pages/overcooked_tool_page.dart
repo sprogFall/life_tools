@@ -31,6 +31,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
   int _calendarRefreshToken = 0;
   DateTime _gachaTargetDate = DateTime.now();
+  int _gachaRefreshToken = 0;
 
   @override
   void initState() {
@@ -122,7 +123,10 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
     return IndexedStack(
       index: _tab,
       children: [
-        OvercookedRecipesTab(onJumpToGacha: () => setState(() => _tab = 4)),
+        OvercookedRecipesTab(
+          onJumpToGacha: () => setState(() => _tab = 4),
+          onRecipesChanged: () => setState(() => _gachaRefreshToken++),
+        ),
         OvercookedWishlistTab(
           date: _wishDate,
           onDateChanged: (d) => setState(() => _wishDate = d),
@@ -147,6 +151,7 @@ class _OvercookedToolPageState extends State<OvercookedToolPage> {
         OvercookedGachaTab(
           targetDate: _gachaTargetDate,
           onTargetDateChanged: (d) => setState(() => _gachaTargetDate = d),
+          refreshToken: _gachaRefreshToken,
           onImportToWish: (date) async {
             if (!mounted) return;
             await _refreshTodayReminderIfNeeded(date);

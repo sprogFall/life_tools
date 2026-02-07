@@ -15,8 +15,13 @@ import '../../widgets/overcooked_image.dart';
 
 class OvercookedRecipesTab extends StatefulWidget {
   final VoidCallback? onJumpToGacha;
+  final VoidCallback? onRecipesChanged;
 
-  const OvercookedRecipesTab({super.key, this.onJumpToGacha});
+  const OvercookedRecipesTab({
+    super.key,
+    this.onJumpToGacha,
+    this.onRecipesChanged,
+  });
 
   @override
   State<OvercookedRecipesTab> createState() => _OvercookedRecipesTabState();
@@ -34,6 +39,10 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
   void initState() {
     super.initState();
     _refresh();
+  }
+
+  void _notifyRecipesChanged() {
+    widget.onRecipesChanged?.call();
   }
 
   Future<void> _refresh() async {
@@ -113,6 +122,8 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                   );
                   if (!mounted) return;
                   await _refresh();
+                  if (!mounted) return;
+                  _notifyRecipesChanged();
                 },
               ),
             ),
@@ -184,6 +195,8 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
             );
             if (!mounted) return;
             await _refresh();
+            if (!mounted) return;
+            _notifyRecipesChanged();
           },
           child: Text(
             '+ 新建',

@@ -25,6 +25,7 @@ class OvercookedTagPickerSheet
     required super.multi,
     super.createHint,
     super.onCreateTag,
+    super.disabledTagIds = const <int>{},
   }) : super(
          keyPrefix: 'overcooked-tag',
          buildResult: (ids, changed) =>
@@ -39,6 +40,7 @@ class OvercookedTagPickerSheet
     required bool multi,
     String? createHint,
     Future<Tag> Function(String name)? onCreateTag,
+    Set<int> disabledTagIds = const <int>{},
   }) {
     return showModalBottomSheet<OvercookedTagPickerResult>(
       context: context,
@@ -61,6 +63,7 @@ class OvercookedTagPickerSheet
               multi: multi,
               createHint: createHint,
               onCreateTag: onCreateTag,
+              disabledTagIds: disabledTagIds,
             ),
           ),
         );

@@ -96,6 +96,100 @@ void main() {
       expect(recipe.createdAt, now);
     });
 
+    test('可按风格统计菜品数量', () async {
+      final typeA = await tagRepository.createTagForToolCategory(
+        name: '主菜',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
+      final typeB = await tagRepository.createTagForToolCategory(
+        name: '汤',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
+      final typeC = await tagRepository.createTagForToolCategory(
+        name: '甜品',
+        toolId: 'overcooked_kitchen',
+        categoryId: 'dish_type',
+        color: null,
+        now: DateTime(2026, 1, 1, 9),
+      );
+
+      final now = DateTime(2026, 1, 2, 10);
+      await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '红烧肉',
+          coverImageKey: null,
+          typeTagId: typeA,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+      await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '鱼香肉丝',
+          coverImageKey: null,
+          typeTagId: typeA,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+      await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '紫菜蛋花汤',
+          coverImageKey: null,
+          typeTagId: typeB,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+      await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '番茄炒蛋',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+
+      final counts = await repository.countRecipesByTypeTagIds([
+        typeA,
+        typeB,
+        typeC,
+        9999,
+      ]);
+
+      expect(counts[typeA], 2);
+      expect(counts[typeB], 1);
+      expect(counts.containsKey(typeC), isFalse);
+      expect(counts.containsKey(9999), isFalse);
+    });
+
     test('愿望单：同一天同菜谱去重，并可查询', () async {
       final now = DateTime(2026, 1, 2, 10);
       final recipeId = await repository.createRecipe(

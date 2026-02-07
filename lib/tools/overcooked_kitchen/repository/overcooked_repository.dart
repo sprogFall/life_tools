@@ -165,6 +165,35 @@ ORDER BY updated_at DESC, id DESC
     return _hydrateRecipesFromRows(rows);
   }
 
+  Future<Map<int, int>> countRecipesByTypeTagIds(List<int> typeTagIds) async {
+    final ids = _dedupeInts(typeTagIds).toList();
+    if (ids.isEmpty) return const {};
+
+    final placeholders = _placeholders(ids.length);
+    final db = await _database;
+    final rows = await db.rawQuery('''
+SELECT type_tag_id, COUNT(*) AS recipe_count
+FROM overcooked_recipes
+WHERE type_tag_id IN ($placeholders)
+GROUP BY type_tag_id
+''', ids);
+    if (rows.isEmpty) return const {};
+
+    final result = <int, int>{};
+    for (final row in rows) {
+      final typeTagId = row['type_tag_id'] as int?;
+      if (typeTagId == null) continue;
+      final countValue = row['recipe_count'];
+      final count = switch (countValue) {
+        int value => value,
+        num value => value.toInt(),
+        _ => 0,
+      };
+      result[typeTagId] = count < 0 ? 0 : count;
+    }
+    return result;
+  }
+
   Future<List<OvercookedRecipe>> listRecipesByIds(List<int> recipeIds) async {
     final ids = _dedupeInts(recipeIds).toList();
     if (ids.isEmpty) return const [];

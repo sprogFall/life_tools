@@ -47,6 +47,18 @@ class _FakeOvercookedRepository extends OvercookedRepository {
   }
 
   @override
+  Future<Map<int, int>> countRecipesByTypeTagIds(List<int> typeTagIds) async {
+    final map = <int, int>{};
+    final set = typeTagIds.toSet();
+    for (final recipe in recipes) {
+      final typeId = recipe.typeTagId;
+      if (typeId == null || !set.contains(typeId)) continue;
+      map[typeId] = (map[typeId] ?? 0) + 1;
+    }
+    return map;
+  }
+
+  @override
   Future<void> addWish({
     required DateTime date,
     required int recipeId,
@@ -171,6 +183,249 @@ void main() {
       expect((repository as _FakeOvercookedRepository).addedWishes, [
         (date: DateTime(2026, 1, 2), recipeId: 100),
       ]);
+    });
+
+    testWidgets('无菜品的风格标签不可选择', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final mainTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final dessertTag = Tag(
+        id: 2,
+        name: '甜品',
+        color: null,
+        sortIndex: 1,
+        createdAt: now,
+        updatedAt: now,
+      );
+      tagService = _FakeTagService(db, tags: [mainTag, dessertTag]);
+      repository = _FakeOvercookedRepository(
+        db,
+        recipes: [
+          OvercookedRecipe.create(
+            name: '红烧肉',
+            coverImageKey: null,
+            typeTagId: mainTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 101),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('甜品'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('未选择'), findsOneWidget);
+      final rollButton = tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      expect(rollButton.onPressed, isNull);
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      final rollButtonAfterPick = tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      expect(rollButtonAfterPick.onPressed, isNotNull);
+    });
+
+    testWidgets('refreshToken 变化后应刷新风格可选状态', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final typeTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final recipes = <OvercookedRecipe>[];
+      tagService = _FakeTagService(db, tags: [typeTag]);
+      repository = _FakeOvercookedRepository(db, recipes: recipes);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+              refreshToken: 0,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      final rollButtonBefore = tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      expect(rollButtonBefore.onPressed, isNull);
+
+      recipes.add(
+        OvercookedRecipe.create(
+          name: '红烧肉',
+          coverImageKey: null,
+          typeTagId: typeTag.id,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ).copyWith(id: 200),
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+              refreshToken: 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      final rollButtonAfter = tester.widget<CupertinoButton>(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      expect(rollButtonAfter.onPressed, isNotNull);
+    });
+
+    testWidgets('份数达到风格菜品上限后提示且不再增加', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final typeTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      tagService = _FakeTagService(db, tags: [typeTag]);
+      repository = _FakeOvercookedRepository(
+        db,
+        recipes: [
+          OvercookedRecipe.create(
+            name: '红烧肉',
+            coverImageKey: null,
+            typeTagId: typeTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 100),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('共 1 道'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_count_add-1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('当前风格“主菜”只有 1 道可抽菜品，不能再加啦。'), findsOneWidget);
+      await tester.tap(find.text('知道了'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('共 1 道'), findsOneWidget);
     });
   });
 }

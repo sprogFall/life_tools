@@ -16,12 +16,14 @@ class OvercookedGachaTab extends StatefulWidget {
   final DateTime targetDate;
   final ValueChanged<DateTime> onTargetDateChanged;
   final ValueChanged<DateTime> onImportToWish;
+  final int refreshToken;
 
   const OvercookedGachaTab({
     super.key,
     required this.targetDate,
     required this.onTargetDateChanged,
     required this.onImportToWish,
+    this.refreshToken = 0,
   });
 
   @override
@@ -34,6 +36,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
   Map<int, Tag> _tagsById = const {};
   Set<int> _selectedTypeIds = {};
   Map<int, int> _typeCountById = {};
+  Map<int, int> _typeRecipeTotalById = {};
   List<OvercookedRecipe> _picked = const [];
 
   @override
@@ -42,24 +45,126 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
     _loadTypes();
   }
 
+  @override
+  void didUpdateWidget(covariant OvercookedGachaTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken) {
+      _loadTypes();
+    }
+  }
+
   Future<void> _loadTypes() async {
     if (_loading) return;
     setState(() => _loading = true);
     try {
-      final tags = await context.read<TagService>().listTagsForToolCategory(
+      final tagService = context.read<TagService>();
+      final repository = context.read<OvercookedRepository>();
+      final tags = await tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.dishType,
       );
+      final tagIds = tags
+          .map((tag) => tag.id)
+          .whereType<int>()
+          .toSet()
+          .toList(growable: false);
+      final recipeTotals = await repository.countRecipesByTypeTagIds(tagIds);
+
+      final normalizedTotals = <int, int>{
+        for (final id in tagIds)
+          id: ((recipeTotals[id] ?? 0) < 0 ? 0 : (recipeTotals[id] ?? 0)),
+      };
+
+      final nextSelectedTypeIds = _selectedTypeIds
+          .where((id) => (normalizedTotals[id] ?? 0) > 0)
+          .toSet();
+      final nextTypeCountById = _buildTypeCountMap(
+        selectedTypeIds: nextSelectedTypeIds,
+        recipeTotals: normalizedTotals,
+        currentCounts: _typeCountById,
+      );
+
+      if (!mounted) return;
       setState(() {
         _typeTags = tags;
         _tagsById = {
           for (final t in tags)
             if (t.id != null) t.id!: t,
         };
+        _typeRecipeTotalById = normalizedTotals;
+        _selectedTypeIds = nextSelectedTypeIds;
+        _typeCountById = nextTypeCountById;
+        _picked = const [];
       });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Set<int> get _disabledTypeIds {
+    return _typeRecipeTotalById.entries
+        .where((entry) => entry.value <= 0)
+        .map((entry) => entry.key)
+        .toSet();
+  }
+
+  int _recipeTotalForType(int typeId) {
+    final total = _typeRecipeTotalById[typeId] ?? 0;
+    return total < 0 ? 0 : total;
+  }
+
+  Map<int, int> _buildTypeCountMap({
+    required Set<int> selectedTypeIds,
+    required Map<int, int> recipeTotals,
+    required Map<int, int> currentCounts,
+  }) {
+    final next = <int, int>{};
+    for (final id in selectedTypeIds) {
+      final max = recipeTotals[id] ?? 0;
+      if (max <= 0) continue;
+      final current = currentCounts[id] ?? 1;
+      next[id] = current.clamp(1, max).toInt();
+    }
+    return next;
+  }
+
+  Map<int, int> _effectiveTypeCounts() {
+    return _buildTypeCountMap(
+      selectedTypeIds: _selectedTypeIds,
+      recipeTotals: _typeRecipeTotalById,
+      currentCounts: _typeCountById,
+    );
+  }
+
+  Future<void> _onTypeCountChanged({
+    required int typeId,
+    required String typeName,
+    required int next,
+  }) async {
+    final max = _recipeTotalForType(typeId);
+    if (max <= 0) return;
+
+    final current = (_typeCountById[typeId] ?? 1).clamp(1, max).toInt();
+    if (next > max) {
+      if (current != max && mounted) {
+        setState(() {
+          _typeCountById = {..._typeCountById, typeId: max};
+        });
+      }
+      if (!mounted) return;
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '已达到上限',
+        content: '当前风格“$typeName”只有 $max 道可抽菜品，不能再加啦。',
+      );
+      return;
+    }
+
+    final clamped = next.clamp(1, max).toInt();
+    if (clamped == current || !mounted) return;
+    setState(() {
+      _typeCountById = {..._typeCountById, typeId: clamped};
+    });
   }
 
   @override
@@ -70,20 +175,21 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               final name = _tagsById[id]?.name;
               final trimmed = name?.trim();
               if (trimmed == null || trimmed.isEmpty) return null;
-              final count = _typeCountById[id] ?? 1;
-              return (id: id, name: trimmed, count: count);
+              final maxCount = _recipeTotalForType(id);
+              if (maxCount <= 0) return null;
+              final count = (_typeCountById[id] ?? 1)
+                  .clamp(1, maxCount)
+                  .toInt();
+              return (id: id, name: trimmed, count: count, maxCount: maxCount);
             })
-            .whereType<({int id, String name, int count})>()
+            .whereType<({int id, String name, int count, int maxCount})>()
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
-    final totalCount = entries.fold<int>(
-      0,
-      (sum, e) => sum + (e.count <= 0 ? 0 : e.count),
-    );
+    final totalCount = entries.fold<int>(0, (sum, e) => sum + e.count);
     final typeText = entries.isEmpty
         ? '未选择'
         : entries.map((e) => '${e.name}×${e.count}').join('、');
-    final canRoll = !_loading && _selectedTypeIds.isNotEmpty;
+    final canRoll = !_loading && entries.isNotEmpty && totalCount > 0;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
@@ -109,7 +215,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
           ],
         ),
         const SizedBox(height: 12),
-        _fieldTitle('菜品风格搭配（来自标签）'),
+        _fieldTitle('菜品风格搭配'),
         const SizedBox(height: 8),
         SizedBox(
           height: 48,
@@ -166,13 +272,16 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                 const SizedBox(height: 10),
                 ...entries.map(
                   (e) => _TypeCountRow(
+                    typeId: e.id,
                     name: e.name,
                     count: e.count,
                     onChanged: _loading
                         ? null
-                        : (next) => setState(() {
-                            _typeCountById = {..._typeCountById, e.id: next};
-                          }),
+                        : (next) => _onTypeCountChanged(
+                            typeId: e.id,
+                            typeName: e.name,
+                            next: next,
+                          ),
                   ),
                 ),
               ],
@@ -181,7 +290,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         ],
         const SizedBox(height: 12),
         OvercookedDateBar(
-          title: '导入到哪天的愿望单',
+          title: '导入愿望单',
           date: widget.targetDate,
           onPrev: () => widget.onTargetDateChanged(
             widget.targetDate.subtract(const Duration(days: 1)),
@@ -267,19 +376,24 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         categoryId: OvercookedTagCategories.dishType,
         name: name,
       ),
+      disabledTagIds: _disabledTypeIds,
     );
     if (selected == null || !mounted) return;
     if (selected.tagsChanged) {
       await _loadTypes();
       if (!mounted) return;
     }
+
+    final nextSelectedTypeIds = selected.selectedIds
+        .where((id) => _recipeTotalForType(id) > 0)
+        .toSet();
     setState(() {
-      _selectedTypeIds = selected.selectedIds;
-      final next = <int, int>{};
-      for (final id in _selectedTypeIds) {
-        next[id] = _typeCountById[id] ?? 1;
-      }
-      _typeCountById = next;
+      _selectedTypeIds = nextSelectedTypeIds;
+      _typeCountById = _buildTypeCountMap(
+        selectedTypeIds: _selectedTypeIds,
+        recipeTotals: _typeRecipeTotalById,
+        currentCounts: _typeCountById,
+      );
       _picked = const [];
     });
   }
@@ -293,11 +407,13 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       );
       return;
     }
-    if (_typeCountById.isEmpty || _typeCountById.values.every((c) => c <= 0)) {
+
+    final typeCounts = _effectiveTypeCounts();
+    if (typeCounts.isEmpty || typeCounts.values.every((c) => c <= 0)) {
       await OvercookedDialogs.showMessage(
         context,
         title: '提示',
-        content: '请为至少 1 种风格设置抽取数量',
+        content: '请至少选择 1 个有可抽菜品的风格，并设置抽取数量',
       );
       return;
     }
@@ -309,10 +425,14 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       );
       final seed = DateTime.now().millisecondsSinceEpoch;
       final picked = await service.pickByTypeCounts(
-        typeCounts: _typeCountById,
+        typeCounts: typeCounts,
         seed: seed,
       );
-      setState(() => _picked = picked);
+      if (!mounted) return;
+      setState(() {
+        _typeCountById = typeCounts;
+        _picked = picked;
+      });
     } catch (e) {
       if (!mounted) return;
       await OvercookedDialogs.showMessage(
@@ -443,11 +563,13 @@ class _PickedCard extends StatelessWidget {
 }
 
 class _TypeCountRow extends StatelessWidget {
+  final int typeId;
   final String name;
   final int count;
   final ValueChanged<int>? onChanged;
 
   const _TypeCountRow({
+    required this.typeId,
     required this.name,
     required this.count,
     required this.onChanged,
@@ -469,6 +591,7 @@ class _TypeCountRow extends StatelessWidget {
             ),
           ),
           _iconButton(
+            key: ValueKey('overcooked_gacha_count_minus-$typeId'),
             icon: CupertinoIcons.minus,
             enabled: onChanged != null && c > 1,
             onPressed: () => onChanged?.call(c - 1),
@@ -477,6 +600,7 @@ class _TypeCountRow extends StatelessWidget {
           Text('$c', style: IOS26Theme.titleSmall),
           const SizedBox(width: 10),
           _iconButton(
+            key: ValueKey('overcooked_gacha_count_add-$typeId'),
             icon: CupertinoIcons.add,
             enabled: onChanged != null,
             onPressed: () => onChanged?.call(c + 1),
@@ -487,12 +611,15 @@ class _TypeCountRow extends StatelessWidget {
   }
 
   static Widget _iconButton({
+    Key? key,
     required IconData icon,
     required bool enabled,
     required VoidCallback onPressed,
   }) {
     return CupertinoButton(
+      key: key,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      minimumSize: IOS26Theme.minimumTapSize,
       onPressed: enabled ? onPressed : null,
       color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(14),

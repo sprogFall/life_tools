@@ -114,6 +114,68 @@ void main() {
       expect(result.selectedIds, containsAll(<int>{1, 2}));
     });
 
+    testWidgets('可禁用无菜品标签且不可选中', (tester) async {
+      final now = DateTime(2026, 1, 1);
+      final tags = [
+        Tag(
+          id: 1,
+          name: '主菜',
+          color: null,
+          sortIndex: 0,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        Tag(
+          id: 2,
+          name: '甜品',
+          color: null,
+          sortIndex: 1,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ];
+
+      final completer = Completer<OvercookedTagPickerResult?>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  key: const ValueKey('open'),
+                  onPressed: () async {
+                    final result = await OvercookedTagPickerSheet.show(
+                      context,
+                      title: '选择风格搭配',
+                      tags: tags,
+                      selectedIds: const <int>{2},
+                      multi: true,
+                      disabledTagIds: const <int>{2},
+                    );
+                    completer.complete(result);
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('甜品'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      final result = await completer.future;
+      expect(result, isNotNull);
+      expect(result!.selectedIds.contains(2), isFalse);
+      expect(result.selectedIds, isEmpty);
+    });
+
     testWidgets('键盘弹出时新增标签输入框不被遮挡', (tester) async {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetDevicePixelRatio());

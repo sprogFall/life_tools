@@ -24,6 +24,7 @@ class TagPickerSheetView<T> extends StatefulWidget {
   final String keyPrefix;
   final String? createHint;
   final Future<Tag> Function(String name)? onCreateTag;
+  final Set<int> disabledTagIds;
   final T Function(Set<int> selectedIds, bool tagsChanged) buildResult;
 
   const TagPickerSheetView({
@@ -35,6 +36,7 @@ class TagPickerSheetView<T> extends StatefulWidget {
     required this.keyPrefix,
     this.createHint,
     this.onCreateTag,
+    this.disabledTagIds = const <int>{},
     required this.buildResult,
   });
 
@@ -47,6 +49,7 @@ class TagPickerSheetView<T> extends StatefulWidget {
     required String keyPrefix,
     String? createHint,
     Future<Tag> Function(String name)? onCreateTag,
+    Set<int> disabledTagIds = const <int>{},
     required T Function(Set<int> selectedIds, bool tagsChanged) buildResult,
   }) {
     return showModalBottomSheet<T>(
@@ -71,6 +74,7 @@ class TagPickerSheetView<T> extends StatefulWidget {
               keyPrefix: keyPrefix,
               createHint: createHint,
               onCreateTag: onCreateTag,
+              disabledTagIds: disabledTagIds,
               buildResult: buildResult,
             ),
           ),
@@ -96,7 +100,9 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
   @override
   void initState() {
     super.initState();
-    _selected = Set<int>.from(widget.selectedIds);
+    _selected = Set<int>.from(
+      widget.selectedIds,
+    ).difference(widget.disabledTagIds);
     _tags = widget.tags;
   }
 
@@ -166,18 +172,7 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final tag in filtered)
-                          _TagSelectChip(
-                            key: tag.id == null
-                                ? null
-                                : ValueKey('${widget.keyPrefix}-${tag.id}'),
-                            text: tag.name,
-                            selected:
-                                tag.id != null && _selected.contains(tag.id),
-                            onPressed: tag.id == null
-                                ? null
-                                : () => _toggle(tag.id!),
-                          ),
+                        for (final tag in filtered) _buildTagChip(tag),
                         if (_canCreate)
                           IOS26QuickAddChip(
                             fieldKey: ValueKey(
@@ -202,6 +197,17 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
   }
 
   bool get _canCreate => widget.onCreateTag != null;
+
+  Widget _buildTagChip(Tag tag) {
+    final id = tag.id;
+    final isDisabled = id == null || widget.disabledTagIds.contains(id);
+    return _TagSelectChip(
+      key: id == null ? null : ValueKey('${widget.keyPrefix}-$id'),
+      text: tag.name,
+      selected: !isDisabled && _selected.contains(id),
+      onPressed: isDisabled ? null : () => _toggle(id),
+    );
+  }
 
   String get _quickAddPlaceholder {
     final hint = widget.createHint?.trim();
@@ -312,13 +318,22 @@ class _TagSelectChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected
+    final enabled = onPressed != null;
+    final bg = !enabled
+        ? IOS26Theme.textTertiary.withValues(alpha: 0.16)
+        : selected
         ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
         : IOS26Theme.surfaceColor.withValues(alpha: 0.65);
-    final border = selected
+    final border = !enabled
+        ? IOS26Theme.textTertiary.withValues(alpha: 0.28)
+        : selected
         ? IOS26Theme.primaryColor.withValues(alpha: 0.35)
         : IOS26Theme.textTertiary.withValues(alpha: 0.35);
-    final fg = selected ? IOS26Theme.primaryColor : IOS26Theme.textPrimary;
+    final fg = !enabled
+        ? IOS26Theme.textTertiary
+        : selected
+        ? IOS26Theme.primaryColor
+        : IOS26Theme.textPrimary;
 
     return DecoratedBox(
       decoration: BoxDecoration(
