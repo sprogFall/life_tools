@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+import '../../../core/ai/ai_json_utils.dart';
 import '../models/stockpile_drafts.dart';
 
 sealed class StockpileAiIntent {
@@ -52,10 +51,10 @@ class BatchEntryIntent extends StockpileAiIntent {
 
 class StockpileAiIntentParser {
   static StockpileAiIntent parse(String text) {
-    final map = _decodeJsonObject(text);
+    final map = AiJsonUtils.decodeFirstObject(text);
     if (map == null) return const UnknownIntent(reason: '无法解析 JSON');
 
-    final type = _asString(map['type'])?.trim();
+    final type = AiJsonUtils.asString(map['type'])?.trim();
     if (type == null || type.isEmpty) {
       return UnknownIntent(reason: '缺少 type 字段', raw: map);
     }
@@ -73,7 +72,7 @@ class StockpileAiIntentParser {
   }
 
   static StockpileAiIntent _parseCreateItem(Map<String, Object?> root) {
-    final item = _asMap(root['item']);
+    final item = AiJsonUtils.asMap(root['item']);
     if (item == null) {
       return UnknownIntent(reason: 'create_item 缺少 item 对象', raw: root);
     }
@@ -106,14 +105,14 @@ class StockpileAiIntentParser {
     final items = <StockItemDraft>[];
     final consumptions = <StockpileAiConsumptionEntry>[];
 
-    final itemsRaw = root['items'];
-    if (itemsRaw is List) {
+    final itemsRaw = AiJsonUtils.asList(root['items']);
+    if (itemsRaw != null) {
       for (var i = 0; i < itemsRaw.length; i++) {
-        final m = _asMap(itemsRaw[i]);
-        if (m == null) {
+        final itemMap = AiJsonUtils.asMap(itemsRaw[i]);
+        if (itemMap == null) {
           return UnknownIntent(reason: 'batch_entry.items[$i] 不是对象', raw: root);
         }
-        final parsed = _parseStockItemDraft(m);
+        final parsed = _parseStockItemDraft(itemMap);
         if (parsed.error != null) {
           return UnknownIntent(
             reason: 'batch_entry.items[$i] ${parsed.error}',
@@ -124,18 +123,18 @@ class StockpileAiIntentParser {
       }
     }
 
-    final consumptionsRaw = root['consumptions'];
-    if (consumptionsRaw is List) {
+    final consumptionsRaw = AiJsonUtils.asList(root['consumptions']);
+    if (consumptionsRaw != null) {
       for (var i = 0; i < consumptionsRaw.length; i++) {
-        final m = _asMap(consumptionsRaw[i]);
-        if (m == null) {
+        final entryMap = AiJsonUtils.asMap(consumptionsRaw[i]);
+        if (entryMap == null) {
           return UnknownIntent(
             reason: 'batch_entry.consumptions[$i] 不是对象',
             raw: root,
           );
         }
         final parsed = _parseConsumptionEntry(
-          m,
+          entryMap,
           missingConsumptionError:
               'batch_entry.consumptions[$i] 缺少 consumption 对象',
           invalidQuantityError:
@@ -161,40 +160,47 @@ class StockpileAiIntentParser {
   static ({StockItemDraft? draft, String? error}) _parseStockItemDraft(
     Map<String, Object?> item,
   ) {
-    final name = _asString(item['name'])?.trim();
+    final name = AiJsonUtils.asString(item['name'])?.trim();
     if (name == null || name.isEmpty) {
       return (draft: null, error: '缺少 item.name');
     }
 
-    final total = _asDouble(item['total_quantity']) ?? 1;
-    final remaining = _asDouble(item['remaining_quantity']) ?? total;
+    final total = AiJsonUtils.asDouble(item['total_quantity']) ?? 1;
+    final remaining = AiJsonUtils.asDouble(item['remaining_quantity']) ?? total;
     final purchaseDate =
-        _parseDateOnly(_asString(item['purchase_date'])) ?? DateTime.now();
-    final expiryDate = _parseDateOnly(_asString(item['expiry_date']));
-    final restockRemindDate = _parseDateOnly(
-      _asString(item['restock_remind_date']),
+        AiJsonUtils.parseDateOnly(
+          AiJsonUtils.asString(item['purchase_date']),
+        ) ??
+        DateTime.now();
+    final expiryDate = AiJsonUtils.parseDateOnly(
+      AiJsonUtils.asString(item['expiry_date']),
     );
-    final restockRemindQuantity = _asDouble(item['restock_remind_quantity']);
+    final restockRemindDate = AiJsonUtils.parseDateOnly(
+      AiJsonUtils.asString(item['restock_remind_date']),
+    );
+    final restockRemindQuantity = AiJsonUtils.asDouble(
+      item['restock_remind_quantity'],
+    );
 
     final tagIds =
-        _asList(
+        AiJsonUtils.asList(
           item['tag_ids'],
-        )?.map(_asInt).whereType<int>().toList(growable: false) ??
+        )?.map(AiJsonUtils.asInt).whereType<int>().toList(growable: false) ??
         const <int>[];
 
     return (
       draft: StockItemDraft(
         name: name,
-        location: _asString(item['location'])?.trim() ?? '',
+        location: AiJsonUtils.asString(item['location'])?.trim() ?? '',
         totalQuantity: total,
         remainingQuantity: remaining,
-        unit: _asString(item['unit'])?.trim() ?? '',
+        unit: AiJsonUtils.asString(item['unit'])?.trim() ?? '',
         purchaseDate: purchaseDate,
         expiryDate: expiryDate,
-        remindDays: _asInt(item['remind_days']) ?? 3,
+        remindDays: AiJsonUtils.asInt(item['remind_days']) ?? 3,
         restockRemindDate: restockRemindDate,
         restockRemindQuantity: restockRemindQuantity,
-        note: _asString(item['note'])?.trim() ?? '',
+        note: AiJsonUtils.asString(item['note'])?.trim() ?? '',
         tagIds: tagIds,
       ),
       error: null,
@@ -207,101 +213,41 @@ class StockpileAiIntentParser {
     required String missingConsumptionError,
     required String invalidQuantityError,
   }) {
-    final itemRefMap = _asMap(root['item_ref']);
+    final itemRefMap = AiJsonUtils.asMap(root['item_ref']);
     final itemRef = StockpileAiItemRef(
-      id: itemRefMap != null ? _asInt(itemRefMap['id']) : null,
-      name: itemRefMap != null ? _asString(itemRefMap['name'])?.trim() : null,
+      id: itemRefMap != null ? AiJsonUtils.asInt(itemRefMap['id']) : null,
+      name: itemRefMap != null
+          ? AiJsonUtils.asString(itemRefMap['name'])?.trim()
+          : null,
     );
 
-    final consumption = _asMap(root['consumption']);
+    final consumption = AiJsonUtils.asMap(root['consumption']);
     if (consumption == null) {
       return (entry: null, error: missingConsumptionError);
     }
 
-    final quantity = _asDouble(consumption['quantity']);
+    final quantity = AiJsonUtils.asDouble(consumption['quantity']);
     if (quantity == null || quantity <= 0) {
       return (entry: null, error: invalidQuantityError);
     }
 
     final consumedAt =
-        _parseDateTime(_asString(consumption['consumed_at'])) ?? DateTime.now();
+        AiJsonUtils.parseDateTime(
+          AiJsonUtils.asString(consumption['consumed_at']),
+        ) ??
+        DateTime.now();
 
     return (
       entry: StockpileAiConsumptionEntry(
         itemRef: itemRef,
         draft: StockConsumptionDraft(
           quantity: quantity,
-          method: _asString(consumption['method'])?.trim() ?? '',
+          method: AiJsonUtils.asString(consumption['method'])?.trim() ?? '',
           consumedAt: consumedAt,
-          note: _asString(consumption['note'])?.trim() ?? '',
+          note: AiJsonUtils.asString(consumption['note'])?.trim() ?? '',
         ),
       ),
       error: null,
     );
-  }
-
-  static Map<String, Object?>? _decodeJsonObject(String text) {
-    final trimmed = text.trim();
-    final decoded = _tryDecodeObject(trimmed);
-    if (decoded != null) return decoded;
-
-    final start = trimmed.indexOf('{');
-    final end = trimmed.lastIndexOf('}');
-    if (start < 0 || end <= start) return null;
-    final extracted = trimmed.substring(start, end + 1);
-    return _tryDecodeObject(extracted);
-  }
-
-  static Map<String, Object?>? _tryDecodeObject(String text) {
-    try {
-      final value = jsonDecode(text);
-      if (value is Map) return value.cast<String, Object?>();
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static Map<String, Object?>? _asMap(Object? value) {
-    if (value is Map) return value.cast<String, Object?>();
-    return null;
-  }
-
-  static List<Object?>? _asList(Object? value) {
-    if (value is List) return value.cast<Object?>();
-    return null;
-  }
-
-  static String? _asString(Object? value) {
-    if (value == null) return null;
-    if (value is String) return value;
-    return value.toString();
-  }
-
-  static int? _asInt(Object? value) {
-    if (value == null) return null;
-    if (value is int) return value;
-    if (value is num) return value.round();
-    return int.tryParse(value.toString());
-  }
-
-  static double? _asDouble(Object? value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is num) return value.toDouble();
-    return double.tryParse(value.toString());
-  }
-
-  static DateTime? _parseDateTime(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    return DateTime.tryParse(value.trim());
-  }
-
-  static DateTime? _parseDateOnly(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    final parsed = DateTime.tryParse(value.trim());
-    if (parsed == null) return null;
-    return DateTime(parsed.year, parsed.month, parsed.day);
   }
 }

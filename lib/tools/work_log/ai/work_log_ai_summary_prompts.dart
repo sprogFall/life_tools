@@ -1,3 +1,4 @@
+import '../../../core/ai/ai_use_case.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
 
@@ -15,6 +16,15 @@ class WorkLogAiSummaryStyle {
 
 class WorkLogAiSummaryPrompts {
   WorkLogAiSummaryPrompts._();
+
+  static const AiUseCaseSpec summaryUseCase = AiUseCaseSpec(
+    id: 'work_log_generate_summary',
+    systemPrompt: systemPrompt,
+    inputLabel: '工作记录',
+    temperature: 0.2,
+    maxOutputTokens: 1600,
+    timeout: Duration(seconds: 60),
+  );
 
   static const String systemPrompt = '''
 你是一名专业的工作总结助手。

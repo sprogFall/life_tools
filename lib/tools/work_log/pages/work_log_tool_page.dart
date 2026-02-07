@@ -9,6 +9,7 @@ import '../../../core/widgets/ios26_floating_icon_button.dart';
 import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../pages/home_page.dart';
 import '../ai/work_log_ai_assistant.dart';
+import '../ai/work_log_ai_context.dart';
 import '../ai/work_log_ai_intent.dart';
 import '../models/work_log_drafts.dart';
 import '../models/work_task.dart';
@@ -339,19 +340,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
   }
 
   String _buildAiContext() {
-    final now = DateTime.now();
-    final tasks = _service.allTasks;
-    final taskLines = tasks
-        .where((t) => t.id != null)
-        .take(60)
-        .map((t) => '- [id=${t.id}] ${t.title}')
-        .join('\n');
-
-    return [
-      '当前日期：${_formatDate(now)}',
-      '现有任务列表（可能为空，供你在 task_ref 里选用 id/title）：',
-      taskLines.isEmpty ? '- (无)' : taskLines,
-    ].join('\n');
+    return buildWorkLogAiContext(now: DateTime.now(), tasks: _service.allTasks);
   }
 
   Future<void> _applyAiIntent(
@@ -545,10 +534,5 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
       ),
     );
     return result ?? false;
-  }
-
-  static String _formatDate(DateTime date) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${date.year}-${two(date.month)}-${two(date.day)}';
   }
 }

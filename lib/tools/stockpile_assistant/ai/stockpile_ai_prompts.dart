@@ -1,4 +1,17 @@
+import '../../../core/ai/ai_models.dart';
+import '../../../core/ai/ai_use_case.dart';
+
 class StockpileAiPrompts {
+  static const AiUseCaseSpec textToIntentUseCase = AiUseCaseSpec(
+    id: 'stockpile_text_to_intent',
+    systemPrompt: textToIntentSystemPrompt,
+    inputLabel: '用户输入',
+    responseFormat: AiResponseFormat.jsonObject,
+    temperature: 0.2,
+    maxOutputTokens: 900,
+    timeout: Duration(seconds: 60),
+  );
+
   static const String textToIntentSystemPrompt = '''
 你是一个“囤货助手”的 AI 解析器。你的任务是把用户输入转换为一条 JSON 指令，用于应用执行。
 

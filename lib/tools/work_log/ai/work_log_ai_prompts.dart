@@ -1,5 +1,18 @@
+import '../../../core/ai/ai_models.dart';
+import '../../../core/ai/ai_use_case.dart';
+
 class WorkLogAiPrompts {
   WorkLogAiPrompts._();
+
+  static const AiUseCaseSpec voiceToIntentUseCase = AiUseCaseSpec(
+    id: 'work_log_voice_to_intent',
+    systemPrompt: voiceToIntentSystemPrompt,
+    inputLabel: '用户语音转写',
+    responseFormat: AiResponseFormat.jsonObject,
+    temperature: 0.2,
+    maxOutputTokens: 800,
+    timeout: Duration(seconds: 60),
+  );
 
   static const String voiceToIntentSystemPrompt = '''
 你是一个“工作记录”助手。你的任务：把用户的语音转写文本，转换成客户端可执行的 JSON 指令。

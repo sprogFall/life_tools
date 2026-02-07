@@ -1,5 +1,5 @@
-import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_service.dart';
+import '../../../core/ai/ai_use_case.dart';
 import 'work_log_ai_prompts.dart';
 
 abstract interface class WorkLogAiAssistant {
@@ -10,24 +10,20 @@ abstract interface class WorkLogAiAssistant {
 }
 
 class DefaultWorkLogAiAssistant implements WorkLogAiAssistant {
-  final AiService _aiService;
+  final AiUseCaseExecutor _executor;
 
-  const DefaultWorkLogAiAssistant({required AiService aiService})
-    : _aiService = aiService;
+  DefaultWorkLogAiAssistant({required AiService aiService})
+    : _executor = AiUseCaseExecutor(aiService: aiService);
 
   @override
   Future<String> voiceTextToIntentJson({
     required String voiceText,
     required String context,
   }) {
-    final prompt = '$context\n\n用户语音转写：\n$voiceText';
-    return _aiService.chatText(
-      prompt: prompt,
-      systemPrompt: WorkLogAiPrompts.voiceToIntentSystemPrompt,
-      responseFormat: AiResponseFormat.jsonObject,
-      temperature: 0.2,
-      maxOutputTokens: 800,
-      timeout: const Duration(seconds: 60),
+    return _executor.run(
+      spec: WorkLogAiPrompts.voiceToIntentUseCase,
+      userInput: voiceText,
+      context: context,
     );
   }
 }

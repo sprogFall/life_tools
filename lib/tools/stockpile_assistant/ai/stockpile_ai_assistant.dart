@@ -1,4 +1,4 @@
-import '../../../core/ai/ai_models.dart';
+import '../../../core/ai/ai_use_case.dart';
 import '../../../core/ai/ai_service.dart';
 import 'stockpile_ai_prompts.dart';
 
@@ -10,24 +10,20 @@ abstract interface class StockpileAiAssistant {
 }
 
 class DefaultStockpileAiAssistant implements StockpileAiAssistant {
-  final AiService _aiService;
+  final AiUseCaseExecutor _executor;
 
-  const DefaultStockpileAiAssistant({required AiService aiService})
-    : _aiService = aiService;
+  DefaultStockpileAiAssistant({required AiService aiService})
+    : _executor = AiUseCaseExecutor(aiService: aiService);
 
   @override
   Future<String> textToIntentJson({
     required String text,
     required String context,
   }) {
-    final prompt = '$context\n\n用户输入：\n$text';
-    return _aiService.chatText(
-      prompt: prompt,
-      systemPrompt: StockpileAiPrompts.textToIntentSystemPrompt,
-      responseFormat: AiResponseFormat.jsonObject,
-      temperature: 0.2,
-      maxOutputTokens: 900,
-      timeout: const Duration(seconds: 60),
+    return _executor.run(
+      spec: StockpileAiPrompts.textToIntentUseCase,
+      userInput: text,
+      context: context,
     );
   }
 }

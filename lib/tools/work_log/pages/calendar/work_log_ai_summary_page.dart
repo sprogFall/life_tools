@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/ai/ai_service.dart';
+import '../../../../core/ai/ai_use_case.dart';
 import '../../../../core/backup/services/share_service.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/theme/ios26_theme.dart';
@@ -634,9 +635,10 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
       return;
     }
 
-    AiService aiService;
+    late final AiUseCaseExecutor aiExecutor;
     try {
-      aiService = context.read<AiService>();
+      final aiService = context.read<AiService>();
+      aiExecutor = AiUseCaseExecutor(aiService: aiService);
     } on ProviderNotFoundException {
       await AppDialogs.showInfo(
         context,
@@ -678,11 +680,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
 
     setState(() => _generating = true);
     try {
-      final summary = await aiService.chatText(
+      final summary = await aiExecutor.runWithPrompt(
+        spec: WorkLogAiSummaryPrompts.summaryUseCase,
         prompt: prompt,
-        systemPrompt: WorkLogAiSummaryPrompts.systemPrompt,
-        temperature: 0.2,
-        maxOutputTokens: 1600,
       );
       if (!mounted) return;
       setState(() => _summaryText = summary.trim());
