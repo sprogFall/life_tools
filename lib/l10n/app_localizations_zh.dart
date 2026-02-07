@@ -51,6 +51,114 @@ class AppLocalizationsZh extends AppLocalizations {
   String get work_log_ai_entry => 'AI录入';
 
   @override
+  String get work_log_ai_summary_entry => 'AI总结';
+
+  @override
+  String get work_log_ai_summary_title => 'AI总结';
+
+  @override
+  String get work_log_ai_summary_range_title => '时间范围';
+
+  @override
+  String get work_log_ai_summary_start_date_label => '开始日期';
+
+  @override
+  String get work_log_ai_summary_end_date_label => '结束日期';
+
+  @override
+  String get work_log_ai_summary_range_hint => '统计范围包含开始与结束当天';
+
+  @override
+  String get work_log_ai_summary_task_title => '总结任务';
+
+  @override
+  String get work_log_ai_summary_task_empty => '暂无任务';
+
+  @override
+  String get work_log_ai_summary_task_no_hours => '无工时';
+
+  @override
+  String get work_log_ai_summary_affiliation_title => '归属筛选';
+
+  @override
+  String get work_log_ai_summary_affiliation_empty => '暂无可用归属';
+
+  @override
+  String get work_log_ai_summary_all_affiliations => '全部归属';
+
+  @override
+  String get work_log_ai_summary_style_title => '总结风格';
+
+  @override
+  String get work_log_ai_summary_style_concise => '精简周报';
+
+  @override
+  String get work_log_ai_summary_style_review => '复盘分析';
+
+  @override
+  String get work_log_ai_summary_style_risk => '风险导向';
+
+  @override
+  String get work_log_ai_summary_style_highlight => '成果亮点';
+
+  @override
+  String get work_log_ai_summary_style_management => '管理汇报';
+
+  @override
+  String work_log_ai_summary_data_hint(Object entryCount, Object minutes) {
+    return '已选 $entryCount 条记录，共 $minutes 分钟';
+  }
+
+  @override
+  String get work_log_ai_summary_generate_button => '生成总结';
+
+  @override
+  String get work_log_ai_summary_result_title => '总结结果';
+
+  @override
+  String get work_log_ai_summary_copy_button => '复制';
+
+  @override
+  String get work_log_ai_summary_share_button => '分享';
+
+  @override
+  String get work_log_ai_summary_copy_done_title => '已复制';
+
+  @override
+  String get work_log_ai_summary_copy_done_content => '总结已复制到剪切板';
+
+  @override
+  String get work_log_ai_summary_share_done_title => '已分享';
+
+  @override
+  String get work_log_ai_summary_share_done_content => '总结文件已分享';
+
+  @override
+  String get work_log_ai_summary_share_failed_title => '分享失败';
+
+  @override
+  String get work_log_ai_summary_share_failed_content => '请稍后重试';
+
+  @override
+  String get work_log_ai_summary_no_data_title => '暂无可总结数据';
+
+  @override
+  String get work_log_ai_summary_no_data_content => '当前筛选下没有工时记录，请调整时间范围或筛选条件';
+
+  @override
+  String get work_log_ai_summary_ai_missing_title => 'AI 未配置';
+
+  @override
+  String get work_log_ai_summary_ai_missing_content =>
+      '未找到 AI 服务，请先在设置中完成 AI 配置';
+
+  @override
+  String get work_log_ai_summary_generate_failed_title => '生成失败';
+
+  @override
+  String get work_log_ai_summary_generate_failed_content => 'AI 总结生成失败，请稍后重试';
+
+  @override
   String get sync_user_mismatch_title => '同步用户不匹配';
 
   @override
@@ -75,6 +183,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get common_clear => '清空';
+
+  @override
+  String get common_all => '全部';
 
   @override
   String get common_add => '添加';
@@ -696,6 +807,114 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get work_log_ai_entry => 'AI录入';
 
   @override
+  String get work_log_ai_summary_entry => 'AI总结';
+
+  @override
+  String get work_log_ai_summary_title => 'AI总结';
+
+  @override
+  String get work_log_ai_summary_range_title => '时间范围';
+
+  @override
+  String get work_log_ai_summary_start_date_label => '开始日期';
+
+  @override
+  String get work_log_ai_summary_end_date_label => '结束日期';
+
+  @override
+  String get work_log_ai_summary_range_hint => '统计范围包含开始与结束当天';
+
+  @override
+  String get work_log_ai_summary_task_title => '总结任务';
+
+  @override
+  String get work_log_ai_summary_task_empty => '暂无任务';
+
+  @override
+  String get work_log_ai_summary_task_no_hours => '无工时';
+
+  @override
+  String get work_log_ai_summary_affiliation_title => '归属筛选';
+
+  @override
+  String get work_log_ai_summary_affiliation_empty => '暂无可用归属';
+
+  @override
+  String get work_log_ai_summary_all_affiliations => '全部归属';
+
+  @override
+  String get work_log_ai_summary_style_title => '总结风格';
+
+  @override
+  String get work_log_ai_summary_style_concise => '精简周报';
+
+  @override
+  String get work_log_ai_summary_style_review => '复盘分析';
+
+  @override
+  String get work_log_ai_summary_style_risk => '风险导向';
+
+  @override
+  String get work_log_ai_summary_style_highlight => '成果亮点';
+
+  @override
+  String get work_log_ai_summary_style_management => '管理汇报';
+
+  @override
+  String work_log_ai_summary_data_hint(Object entryCount, Object minutes) {
+    return '已选 $entryCount 条记录，共 $minutes 分钟';
+  }
+
+  @override
+  String get work_log_ai_summary_generate_button => '生成总结';
+
+  @override
+  String get work_log_ai_summary_result_title => '总结结果';
+
+  @override
+  String get work_log_ai_summary_copy_button => '复制';
+
+  @override
+  String get work_log_ai_summary_share_button => '分享';
+
+  @override
+  String get work_log_ai_summary_copy_done_title => '已复制';
+
+  @override
+  String get work_log_ai_summary_copy_done_content => '总结已复制到剪切板';
+
+  @override
+  String get work_log_ai_summary_share_done_title => '已分享';
+
+  @override
+  String get work_log_ai_summary_share_done_content => '总结文件已分享';
+
+  @override
+  String get work_log_ai_summary_share_failed_title => '分享失败';
+
+  @override
+  String get work_log_ai_summary_share_failed_content => '请稍后重试';
+
+  @override
+  String get work_log_ai_summary_no_data_title => '暂无可总结数据';
+
+  @override
+  String get work_log_ai_summary_no_data_content => '当前筛选下没有工时记录，请调整时间范围或筛选条件';
+
+  @override
+  String get work_log_ai_summary_ai_missing_title => 'AI 未配置';
+
+  @override
+  String get work_log_ai_summary_ai_missing_content =>
+      '未找到 AI 服务，请先在设置中完成 AI 配置';
+
+  @override
+  String get work_log_ai_summary_generate_failed_title => '生成失败';
+
+  @override
+  String get work_log_ai_summary_generate_failed_content => 'AI 总结生成失败，请稍后重试';
+
+  @override
   String get sync_user_mismatch_title => '同步用户不匹配';
 
   @override
@@ -720,6 +939,9 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get common_clear => '清空';
+
+  @override
+  String get common_all => '全部';
 
   @override
   String get common_add => '添加';

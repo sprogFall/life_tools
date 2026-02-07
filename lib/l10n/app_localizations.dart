@@ -184,6 +184,216 @@ abstract class AppLocalizations {
   /// **'AI Entry'**
   String get work_log_ai_entry;
 
+  /// No description provided for @work_log_ai_summary_entry.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Summary'**
+  String get work_log_ai_summary_entry;
+
+  /// No description provided for @work_log_ai_summary_title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Summary'**
+  String get work_log_ai_summary_title;
+
+  /// No description provided for @work_log_ai_summary_range_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Date Range'**
+  String get work_log_ai_summary_range_title;
+
+  /// No description provided for @work_log_ai_summary_start_date_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get work_log_ai_summary_start_date_label;
+
+  /// No description provided for @work_log_ai_summary_end_date_label.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get work_log_ai_summary_end_date_label;
+
+  /// No description provided for @work_log_ai_summary_range_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Range includes both start and end dates'**
+  String get work_log_ai_summary_range_hint;
+
+  /// No description provided for @work_log_ai_summary_task_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get work_log_ai_summary_task_title;
+
+  /// No description provided for @work_log_ai_summary_task_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks'**
+  String get work_log_ai_summary_task_empty;
+
+  /// No description provided for @work_log_ai_summary_task_no_hours.
+  ///
+  /// In en, this message translates to:
+  /// **'No hours'**
+  String get work_log_ai_summary_task_no_hours;
+
+  /// No description provided for @work_log_ai_summary_affiliation_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Affiliation'**
+  String get work_log_ai_summary_affiliation_title;
+
+  /// No description provided for @work_log_ai_summary_affiliation_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No affiliations'**
+  String get work_log_ai_summary_affiliation_empty;
+
+  /// No description provided for @work_log_ai_summary_all_affiliations.
+  ///
+  /// In en, this message translates to:
+  /// **'All affiliations'**
+  String get work_log_ai_summary_all_affiliations;
+
+  /// No description provided for @work_log_ai_summary_style_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary Style'**
+  String get work_log_ai_summary_style_title;
+
+  /// No description provided for @work_log_ai_summary_style_concise.
+  ///
+  /// In en, this message translates to:
+  /// **'Concise Report'**
+  String get work_log_ai_summary_style_concise;
+
+  /// No description provided for @work_log_ai_summary_style_review.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Analysis'**
+  String get work_log_ai_summary_style_review;
+
+  /// No description provided for @work_log_ai_summary_style_risk.
+  ///
+  /// In en, this message translates to:
+  /// **'Risk-Focused'**
+  String get work_log_ai_summary_style_risk;
+
+  /// No description provided for @work_log_ai_summary_style_highlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights'**
+  String get work_log_ai_summary_style_highlight;
+
+  /// No description provided for @work_log_ai_summary_style_management.
+  ///
+  /// In en, this message translates to:
+  /// **'Management Brief'**
+  String get work_log_ai_summary_style_management;
+
+  /// No description provided for @work_log_ai_summary_data_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected {entryCount} entries, total {minutes} minutes'**
+  String work_log_ai_summary_data_hint(Object entryCount, Object minutes);
+
+  /// No description provided for @work_log_ai_summary_generate_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Summary'**
+  String get work_log_ai_summary_generate_button;
+
+  /// No description provided for @work_log_ai_summary_result_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary Result'**
+  String get work_log_ai_summary_result_title;
+
+  /// No description provided for @work_log_ai_summary_copy_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get work_log_ai_summary_copy_button;
+
+  /// No description provided for @work_log_ai_summary_share_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get work_log_ai_summary_share_button;
+
+  /// No description provided for @work_log_ai_summary_copy_done_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get work_log_ai_summary_copy_done_title;
+
+  /// No description provided for @work_log_ai_summary_copy_done_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary copied to clipboard'**
+  String get work_log_ai_summary_copy_done_content;
+
+  /// No description provided for @work_log_ai_summary_share_done_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared'**
+  String get work_log_ai_summary_share_done_title;
+
+  /// No description provided for @work_log_ai_summary_share_done_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary file shared'**
+  String get work_log_ai_summary_share_done_content;
+
+  /// No description provided for @work_log_ai_summary_share_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Failed'**
+  String get work_log_ai_summary_share_failed_title;
+
+  /// No description provided for @work_log_ai_summary_share_failed_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Please try again later'**
+  String get work_log_ai_summary_share_failed_content;
+
+  /// No description provided for @work_log_ai_summary_no_data_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No Data to Summarize'**
+  String get work_log_ai_summary_no_data_title;
+
+  /// No description provided for @work_log_ai_summary_no_data_content.
+  ///
+  /// In en, this message translates to:
+  /// **'No time entries under current filters. Adjust range or filters.'**
+  String get work_log_ai_summary_no_data_content;
+
+  /// No description provided for @work_log_ai_summary_ai_missing_title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Not Configured'**
+  String get work_log_ai_summary_ai_missing_title;
+
+  /// No description provided for @work_log_ai_summary_ai_missing_content.
+  ///
+  /// In en, this message translates to:
+  /// **'AI service not found. Configure AI in Settings first.'**
+  String get work_log_ai_summary_ai_missing_content;
+
+  /// No description provided for @work_log_ai_summary_generate_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Failed'**
+  String get work_log_ai_summary_generate_failed_title;
+
+  /// No description provided for @work_log_ai_summary_generate_failed_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate summary. Please try again later.'**
+  String get work_log_ai_summary_generate_failed_content;
+
   /// Title shown when local data user does not match current sync user
   ///
   /// In en, this message translates to:
@@ -231,6 +441,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get common_clear;
+
+  /// No description provided for @common_all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get common_all;
 
   /// No description provided for @common_add.
   ///

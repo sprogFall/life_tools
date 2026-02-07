@@ -51,6 +51,119 @@ class AppLocalizationsEn extends AppLocalizations {
   String get work_log_ai_entry => 'AI Entry';
 
   @override
+  String get work_log_ai_summary_entry => 'AI Summary';
+
+  @override
+  String get work_log_ai_summary_title => 'AI Summary';
+
+  @override
+  String get work_log_ai_summary_range_title => 'Date Range';
+
+  @override
+  String get work_log_ai_summary_start_date_label => 'Start';
+
+  @override
+  String get work_log_ai_summary_end_date_label => 'End';
+
+  @override
+  String get work_log_ai_summary_range_hint =>
+      'Range includes both start and end dates';
+
+  @override
+  String get work_log_ai_summary_task_title => 'Tasks';
+
+  @override
+  String get work_log_ai_summary_task_empty => 'No tasks';
+
+  @override
+  String get work_log_ai_summary_task_no_hours => 'No hours';
+
+  @override
+  String get work_log_ai_summary_affiliation_title => 'Affiliation';
+
+  @override
+  String get work_log_ai_summary_affiliation_empty => 'No affiliations';
+
+  @override
+  String get work_log_ai_summary_all_affiliations => 'All affiliations';
+
+  @override
+  String get work_log_ai_summary_style_title => 'Summary Style';
+
+  @override
+  String get work_log_ai_summary_style_concise => 'Concise Report';
+
+  @override
+  String get work_log_ai_summary_style_review => 'Review Analysis';
+
+  @override
+  String get work_log_ai_summary_style_risk => 'Risk-Focused';
+
+  @override
+  String get work_log_ai_summary_style_highlight => 'Highlights';
+
+  @override
+  String get work_log_ai_summary_style_management => 'Management Brief';
+
+  @override
+  String work_log_ai_summary_data_hint(Object entryCount, Object minutes) {
+    return 'Selected $entryCount entries, total $minutes minutes';
+  }
+
+  @override
+  String get work_log_ai_summary_generate_button => 'Generate Summary';
+
+  @override
+  String get work_log_ai_summary_result_title => 'Summary Result';
+
+  @override
+  String get work_log_ai_summary_copy_button => 'Copy';
+
+  @override
+  String get work_log_ai_summary_share_button => 'Share';
+
+  @override
+  String get work_log_ai_summary_copy_done_title => 'Copied';
+
+  @override
+  String get work_log_ai_summary_copy_done_content =>
+      'Summary copied to clipboard';
+
+  @override
+  String get work_log_ai_summary_share_done_title => 'Shared';
+
+  @override
+  String get work_log_ai_summary_share_done_content => 'Summary file shared';
+
+  @override
+  String get work_log_ai_summary_share_failed_title => 'Share Failed';
+
+  @override
+  String get work_log_ai_summary_share_failed_content =>
+      'Please try again later';
+
+  @override
+  String get work_log_ai_summary_no_data_title => 'No Data to Summarize';
+
+  @override
+  String get work_log_ai_summary_no_data_content =>
+      'No time entries under current filters. Adjust range or filters.';
+
+  @override
+  String get work_log_ai_summary_ai_missing_title => 'AI Not Configured';
+
+  @override
+  String get work_log_ai_summary_ai_missing_content =>
+      'AI service not found. Configure AI in Settings first.';
+
+  @override
+  String get work_log_ai_summary_generate_failed_title => 'Generate Failed';
+
+  @override
+  String get work_log_ai_summary_generate_failed_content =>
+      'Failed to generate summary. Please try again later.';
+
+  @override
   String get sync_user_mismatch_title => 'Sync user mismatch';
 
   @override
@@ -77,6 +190,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get common_clear => 'Clear';
+
+  @override
+  String get common_all => 'All';
 
   @override
   String get common_add => 'Add';
@@ -718,6 +834,119 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String get work_log_ai_entry => 'AI Entry';
 
   @override
+  String get work_log_ai_summary_entry => 'AI Summary';
+
+  @override
+  String get work_log_ai_summary_title => 'AI Summary';
+
+  @override
+  String get work_log_ai_summary_range_title => 'Date Range';
+
+  @override
+  String get work_log_ai_summary_start_date_label => 'Start';
+
+  @override
+  String get work_log_ai_summary_end_date_label => 'End';
+
+  @override
+  String get work_log_ai_summary_range_hint =>
+      'Range includes both start and end dates';
+
+  @override
+  String get work_log_ai_summary_task_title => 'Tasks';
+
+  @override
+  String get work_log_ai_summary_task_empty => 'No tasks';
+
+  @override
+  String get work_log_ai_summary_task_no_hours => 'No hours';
+
+  @override
+  String get work_log_ai_summary_affiliation_title => 'Affiliation';
+
+  @override
+  String get work_log_ai_summary_affiliation_empty => 'No affiliations';
+
+  @override
+  String get work_log_ai_summary_all_affiliations => 'All affiliations';
+
+  @override
+  String get work_log_ai_summary_style_title => 'Summary Style';
+
+  @override
+  String get work_log_ai_summary_style_concise => 'Concise Report';
+
+  @override
+  String get work_log_ai_summary_style_review => 'Review Analysis';
+
+  @override
+  String get work_log_ai_summary_style_risk => 'Risk-Focused';
+
+  @override
+  String get work_log_ai_summary_style_highlight => 'Highlights';
+
+  @override
+  String get work_log_ai_summary_style_management => 'Management Brief';
+
+  @override
+  String work_log_ai_summary_data_hint(Object entryCount, Object minutes) {
+    return 'Selected $entryCount entries, total $minutes minutes';
+  }
+
+  @override
+  String get work_log_ai_summary_generate_button => 'Generate Summary';
+
+  @override
+  String get work_log_ai_summary_result_title => 'Summary Result';
+
+  @override
+  String get work_log_ai_summary_copy_button => 'Copy';
+
+  @override
+  String get work_log_ai_summary_share_button => 'Share';
+
+  @override
+  String get work_log_ai_summary_copy_done_title => 'Copied';
+
+  @override
+  String get work_log_ai_summary_copy_done_content =>
+      'Summary copied to clipboard';
+
+  @override
+  String get work_log_ai_summary_share_done_title => 'Shared';
+
+  @override
+  String get work_log_ai_summary_share_done_content => 'Summary file shared';
+
+  @override
+  String get work_log_ai_summary_share_failed_title => 'Share Failed';
+
+  @override
+  String get work_log_ai_summary_share_failed_content =>
+      'Please try again later';
+
+  @override
+  String get work_log_ai_summary_no_data_title => 'No Data to Summarize';
+
+  @override
+  String get work_log_ai_summary_no_data_content =>
+      'No time entries under current filters. Adjust range or filters.';
+
+  @override
+  String get work_log_ai_summary_ai_missing_title => 'AI Not Configured';
+
+  @override
+  String get work_log_ai_summary_ai_missing_content =>
+      'AI service not found. Configure AI in Settings first.';
+
+  @override
+  String get work_log_ai_summary_generate_failed_title => 'Generate Failed';
+
+  @override
+  String get work_log_ai_summary_generate_failed_content =>
+      'Failed to generate summary. Please try again later.';
+
+  @override
   String get sync_user_mismatch_title => 'Sync user mismatch';
 
   @override
@@ -744,6 +973,9 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get common_clear => 'Clear';
+
+  @override
+  String get common_all => 'All';
 
   @override
   String get common_add => 'Add';

@@ -15,6 +15,7 @@ import '../models/work_task.dart';
 import '../repository/work_log_repository.dart';
 import '../repository/work_log_repository_base.dart';
 import '../services/work_log_service.dart';
+import 'calendar/work_log_ai_summary_page.dart';
 import 'calendar/work_log_calendar_view.dart';
 import 'log/operation_log_list_page.dart';
 import 'task/work_log_voice_input_sheet.dart';
@@ -188,6 +189,13 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                   semanticLabel: l10n.work_log_ai_entry,
                   onPressed: _openVoiceInput,
                 ),
+              if (_tab == 1)
+                IOS26FloatingIconButton(
+                  buttonKey: const ValueKey('work_log_ai_summary_button'),
+                  icon: CupertinoIcons.sparkles,
+                  semanticLabel: l10n.work_log_ai_summary_entry,
+                  onPressed: _openAiSummary,
+                ),
             ],
           ),
         ),
@@ -308,6 +316,17 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
 
     if (mounted) Navigator.of(context).pop(); // loading
     await _applyAiIntent(intent, rawJson: jsonText);
+  }
+
+  Future<void> _openAiSummary() async {
+    await Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _service,
+          child: const WorkLogAiSummaryPage(),
+        ),
+      ),
+    );
   }
 
   WorkLogAiAssistant? _maybeCreateAiAssistant(BuildContext context) {
