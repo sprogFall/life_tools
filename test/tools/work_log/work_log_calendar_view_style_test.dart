@@ -38,7 +38,6 @@ void main() {
 
     // 2. 验证选中日期格的样式（单层阴影 + 主色背景 + 无渐变）
     // 默认选中今天
-    final today = DateTime.now().day.toString();
     // 找到包含今天日期的 Container（通过查找父级或结构可能比较复杂，这里直接遍历所有 Container 检查是否有一个符合选中样式的）
     final hasSelectedStyle = containers.any((container) {
       final decoration = container.decoration;
