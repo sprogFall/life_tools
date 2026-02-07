@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/text_editing_safety.dart';
+
 /// iOS 26 风格主题配置
 class IOS26Theme {
   IOS26Theme._();
@@ -619,7 +621,11 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
       _requestFocusSoon();
       return;
     }
-    widget.controller.clear();
+    setControllerTextWhenComposingIdle(
+      widget.controller,
+      '',
+      shouldContinue: () => mounted,
+    );
     _collapse();
   }
 

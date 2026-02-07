@@ -5,6 +5,7 @@ import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/tags/widgets/tag_picker_sheet.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/utils/text_editing_safety.dart';
 import '../../../core/widgets/ios26_select_field.dart';
 import '../providers/stockpile_batch_entry_provider.dart';
 import '../stockpile_constants.dart';
@@ -411,7 +412,9 @@ class StockpileBatchItemRow extends StatelessWidget {
     final borderColor = selected
         ? IOS26Theme.primaryColor
         : IOS26Theme.textTertiary.withValues(alpha: 0.4);
-    final textColor = selected ? IOS26Theme.surfaceColor : IOS26Theme.textPrimary;
+    final textColor = selected
+        ? IOS26Theme.surfaceColor
+        : IOS26Theme.textPrimary;
     final dotColor = tag.color == null
         ? IOS26Theme.textTertiary
         : Color(tag.color!);
@@ -530,7 +533,13 @@ class StockpileBatchItemRow extends StatelessWidget {
     if (id != null) {
       entry.selectedTagIds.add(id);
       final name = tagsById[id]?.name;
-      if (name != null) entry.locationController.text = name;
+      if (name != null) {
+        setControllerTextWhenComposingIdle(
+          entry.locationController,
+          name,
+          shouldContinue: () => context.mounted,
+        );
+      }
     }
     provider.touch();
 

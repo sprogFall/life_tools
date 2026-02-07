@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_service.dart';
+import '../../../core/utils/text_editing_safety.dart';
 import '../ai/stockpile_ai_intent.dart';
 import '../models/stockpile_drafts.dart';
 import '../services/stockpile_service.dart';
@@ -206,7 +207,13 @@ class StockpileBatchEntryProvider extends ChangeNotifier {
       if (entry.selectedTagIds.any(locationIds.contains)) {
         final id = entry.selectedTagIds.firstWhere(locationIds.contains);
         final name = _tagsById[id]?.name;
-        if (name != null) entry.locationController.text = name;
+        if (name != null) {
+          setControllerTextWhenComposingIdle(
+            entry.locationController,
+            name,
+            shouldContinue: () => !_disposed,
+          );
+        }
         continue;
       }
 

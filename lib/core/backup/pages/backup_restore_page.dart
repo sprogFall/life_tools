@@ -18,6 +18,7 @@ import '../../theme/ios26_theme.dart';
 import '../../ui/app_dialogs.dart';
 import '../../ui/app_scaffold.dart';
 import '../../ui/section_header.dart';
+import '../../utils/text_editing_safety.dart';
 import '../services/share_service.dart';
 
 class BackupRestorePage extends StatefulWidget {
@@ -63,10 +64,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     return AppScaffold(
       body: Column(
         children: [
-          IOS26AppBar(
-            title: l10n.backup_restore_title,
-            showBackButton: true,
-          ),
+          IOS26AppBar(title: l10n.backup_restore_title, showBackButton: true),
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -265,7 +263,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
               onPressed: _isRestoring || _restoreController.text.isEmpty
                   ? null
-                  : () => _restoreController.clear(),
+                  : () => setControllerTextWhenComposingIdle(
+                      _restoreController,
+                      '',
+                      shouldContinue: () => mounted,
+                    ),
               child: Text(
                 l10n.common_clear,
                 style: IOS26Theme.labelLarge.copyWith(
@@ -392,7 +394,12 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData('text/plain');
     if (!mounted) return;
-    setState(() => _restoreController.text = data?.text ?? '');
+    setControllerTextWhenComposingIdle(
+      _restoreController,
+      data?.text ?? '',
+      shouldContinue: () => mounted,
+    );
+    setState(() {});
   }
 
   Future<void> _importFromTxtFile() async {
@@ -450,7 +457,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         l10n.backup_restore_summary_imported(result.importedTools),
         l10n.backup_restore_summary_skipped(result.skippedTools),
         if (result.failedTools.isNotEmpty)
-          l10n.backup_restore_summary_failed(result.failedTools.keys.join(', ')),
+          l10n.backup_restore_summary_failed(
+            result.failedTools.keys.join(', '),
+          ),
       ].join('\n');
 
       await AppDialogs.showInfo(

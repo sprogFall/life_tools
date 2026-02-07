@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/ios26_theme.dart';
+import '../../utils/text_editing_safety.dart';
 import '../../widgets/ios26_sheet_header.dart';
 import '../models/tag.dart';
 
@@ -239,7 +240,11 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
     if (trimmed.isEmpty) return false;
     final exists = _tags.any((t) => t.name.trim() == trimmed);
     if (exists) {
-      _quickAddController.clear();
+      setControllerTextWhenComposingIdle(
+        _quickAddController,
+        '',
+        shouldContinue: () => mounted,
+      );
       _quickAddFocusNode.requestFocus();
       return false;
     }
@@ -259,8 +264,16 @@ class _TagPickerSheetViewState<T> extends State<TagPickerSheetView<T>> {
         _tags = next;
         _changed = true;
         _query = '';
-        _searchController.clear();
-        _quickAddController.clear();
+        setControllerTextWhenComposingIdle(
+          _searchController,
+          '',
+          shouldContinue: () => mounted,
+        );
+        setControllerTextWhenComposingIdle(
+          _quickAddController,
+          '',
+          shouldContinue: () => mounted,
+        );
         if (widget.multi) {
           _selected.add(id);
         } else {

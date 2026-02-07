@@ -10,6 +10,7 @@ import '../../../core/tags/models/tag_with_tools.dart';
 import '../../../core/tags/models/tag_category.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/utils/text_editing_safety.dart';
 import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../pages/home_page.dart';
 import 'tag_rename_page.dart';
@@ -280,7 +281,14 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
 
   void _clearQuickAddDraft(String categoryId) {
     _pendingQuickAddNamesByCategoryId.remove(categoryId);
-    _quickAddControllersByCategoryId[categoryId]?.clear();
+    final controller = _quickAddControllersByCategoryId[categoryId];
+    if (controller != null) {
+      setControllerTextWhenComposingIdle(
+        controller,
+        '',
+        shouldContinue: () => mounted,
+      );
+    }
     _quickAddChipUiControllersByCategoryId[categoryId]?.collapse();
   }
 

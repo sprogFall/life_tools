@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../theme/ios26_theme.dart';
+import '../../utils/text_editing_safety.dart';
 import 'package:life_tools/core/ui/app_dialogs.dart';
 import 'package:life_tools/core/ui/app_scaffold.dart';
 import 'package:life_tools/core/ui/section_header.dart';
@@ -63,10 +64,23 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     final config = context.read<SyncConfigService>().config;
     if (config == null) return;
 
+    setControllerTextWhenComposingIdle(
+      _userIdController,
+      config.userId,
+      shouldContinue: () => mounted,
+    );
+    setControllerTextWhenComposingIdle(
+      _serverUrlController,
+      config.serverUrl,
+      shouldContinue: () => mounted,
+    );
+    setControllerTextWhenComposingIdle(
+      _portController,
+      config.serverPort.toString(),
+      shouldContinue: () => mounted,
+    );
+
     setState(() {
-      _userIdController.text = config.userId;
-      _serverUrlController.text = config.serverUrl;
-      _portController.text = config.serverPort.toString();
       _networkType = config.networkType;
       _wifiNames = List<String>.from(config.allowedWifiNames);
       _autoSyncOnStartup = config.autoSyncOnStartup;
@@ -162,11 +176,17 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             groupValue: _networkType,
             children: {
               SyncNetworkType.public: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Text(l10n.sync_network_public_label),
               ),
               SyncNetworkType.privateWifi: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Text(l10n.sync_network_private_label),
               ),
             },
@@ -230,9 +250,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             ),
           ),
           const SizedBox(height: 10),
-          _buildHint(
-            l10n.sync_server_url_tip,
-          ),
+          _buildHint(l10n.sync_server_url_tip),
         ],
       ),
     );
@@ -655,7 +673,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
     await AppDialogs.showInfo(
       context,
-      title: ok ? l10n.sync_finished_title_success : l10n.sync_finished_title_failed,
+      title: ok
+          ? l10n.sync_finished_title_success
+          : l10n.sync_finished_title_failed,
       content: ok
           ? l10n.sync_finished_content_success
           : l10n.sync_finished_content_failed,
@@ -669,34 +689,31 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
     final result = await showCupertinoDialog<SyncForceDecision>(
       context: context,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: Text(l10n.sync_user_mismatch_title),
-            content: Text(
-              l10n.sync_user_mismatch_content(
-                mismatch.localUserId,
-                mismatch.serverUserId,
-              ),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(l10n.common_cancel),
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () =>
-                    Navigator.pop(ctx, SyncForceDecision.useServer),
-                child: Text(l10n.sync_user_mismatch_overwrite_local),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () =>
-                    Navigator.pop(ctx, SyncForceDecision.useClient),
-                child: Text(l10n.sync_user_mismatch_overwrite_server),
-              ),
-            ],
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(l10n.sync_user_mismatch_title),
+        content: Text(
+          l10n.sync_user_mismatch_content(
+            mismatch.localUserId,
+            mismatch.serverUserId,
           ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.common_cancel),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(ctx, SyncForceDecision.useServer),
+            child: Text(l10n.sync_user_mismatch_overwrite_local),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(ctx, SyncForceDecision.useClient),
+            child: Text(l10n.sync_user_mismatch_overwrite_server),
+          ),
+        ],
+      ),
     );
     return result;
   }

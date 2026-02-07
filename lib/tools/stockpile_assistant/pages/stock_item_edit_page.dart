@@ -8,6 +8,7 @@ import '../../../core/tags/models/tag.dart';
 import '../../../core/tags/tag_service.dart';
 import '../../../core/tags/widgets/tag_picker_sheet.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/utils/text_editing_safety.dart';
 import '../../../core/widgets/ios26_select_field.dart';
 import '../models/stock_item.dart';
 import '../models/stockpile_drafts.dart';
@@ -393,7 +394,13 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     setState(() => _selectedLocationTagId = id);
     if (id != null) {
       final name = _tagsById[id]?.name;
-      if (name != null) _locationController.text = name;
+      if (name != null) {
+        setControllerTextWhenComposingIdle(
+          _locationController,
+          name,
+          shouldContinue: () => mounted,
+        );
+      }
     }
     _rebuildAllSelectedTagIds();
 
@@ -444,7 +451,11 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
     if (locationId != null) {
       final name = _tagsById[locationId]?.name.trim();
       if (name != null && name.isNotEmpty) {
-        _locationController.text = name;
+        setControllerTextWhenComposingIdle(
+          _locationController,
+          name,
+          shouldContinue: () => mounted,
+        );
       }
     }
   }
