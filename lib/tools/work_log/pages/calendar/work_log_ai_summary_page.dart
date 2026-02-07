@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +28,8 @@ class WorkLogAiSummaryPage extends StatefulWidget {
 class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   bool _loading = true;
   bool _generating = false;
+  int _generatingElapsedSeconds = 0;
+  Timer? _generatingTimer;
 
   late DateTime _startDate;
   late DateTime _endDate;
@@ -51,44 +55,55 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   }
 
   @override
+  void dispose() {
+    _stopGeneratingTimer();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            IOS26AppBar(
-              title: l10n.work_log_ai_summary_title,
-              showBackButton: true,
+            Column(
+              children: [
+                IOS26AppBar(
+                  title: l10n.work_log_ai_summary_title,
+                  showBackButton: true,
+                ),
+                Expanded(
+                  child: _loading
+                      ? const Center(child: CupertinoActivityIndicator())
+                      : SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.all(IOS26Theme.spacingXl),
+                          child: Column(
+                            key: const ValueKey('work_log_ai_summary_page'),
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildRangeCard(l10n),
+                              const SizedBox(height: IOS26Theme.spacingLg),
+                              _buildAffiliationCard(l10n),
+                              const SizedBox(height: IOS26Theme.spacingLg),
+                              _buildTaskCard(l10n),
+                              const SizedBox(height: IOS26Theme.spacingLg),
+                              _buildStyleCard(l10n),
+                              const SizedBox(height: IOS26Theme.spacingLg),
+                              _buildActionCard(l10n),
+                              if (_summaryText.trim().isNotEmpty) ...[
+                                const SizedBox(height: IOS26Theme.spacingLg),
+                                _buildResultCard(l10n),
+                              ],
+                            ],
+                          ),
+                        ),
+                ),
+              ],
             ),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CupertinoActivityIndicator())
-                  : SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.all(IOS26Theme.spacingXl),
-                      child: Column(
-                        key: const ValueKey('work_log_ai_summary_page'),
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildRangeCard(l10n),
-                          const SizedBox(height: IOS26Theme.spacingLg),
-                          _buildTaskCard(l10n),
-                          const SizedBox(height: IOS26Theme.spacingLg),
-                          _buildAffiliationCard(l10n),
-                          const SizedBox(height: IOS26Theme.spacingLg),
-                          _buildStyleCard(l10n),
-                          const SizedBox(height: IOS26Theme.spacingLg),
-                          _buildActionCard(l10n),
-                          if (_summaryText.trim().isNotEmpty) ...[
-                            const SizedBox(height: IOS26Theme.spacingLg),
-                            _buildResultCard(l10n),
-                          ],
-                        ],
-                      ),
-                    ),
-            ),
+            if (_generating) _buildGeneratingOverlay(l10n),
           ],
         ),
       ),
@@ -97,6 +112,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
 
   Widget _buildRangeCard(AppLocalizations l10n) {
     return GlassContainer(
+      key: const ValueKey('work_log_ai_summary_range_card'),
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -160,8 +176,13 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   Widget _buildTaskCard(AppLocalizations l10n) {
     final taskMinutes = _minutesByTaskId;
     final selectableTaskIds = _selectableTaskIds;
+    final availableTasks = _allTasks.where((task) {
+      final taskId = task.id;
+      return taskId != null && selectableTaskIds.contains(taskId);
+    }).toList();
 
     return GlassContainer(
+      key: const ValueKey('work_log_ai_summary_task_card'),
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -193,15 +214,20 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                 color: IOS26Theme.textSecondary,
               ),
             )
+          else if (availableTasks.isEmpty)
+            Text(
+              l10n.work_log_ai_summary_no_data_content,
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textSecondary,
+              ),
+            )
           else
             Wrap(
               spacing: IOS26Theme.spacingSm,
               runSpacing: IOS26Theme.spacingSm,
-              children: _allTasks
-                  .where((task) => task.id != null)
+              children: availableTasks
                   .map(
                     (task) => _buildTaskChip(
-                      l10n: l10n,
                       task: task,
                       minutes: taskMinutes[task.id!] ?? 0,
                     ),
@@ -213,17 +239,10 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     );
   }
 
-  Widget _buildTaskChip({
-    required AppLocalizations l10n,
-    required WorkTask task,
-    required int minutes,
-  }) {
+  Widget _buildTaskChip({required WorkTask task, required int minutes}) {
     final taskId = task.id!;
-    final enabled = minutes > 0;
     final selected = _selectedTaskIds.contains(taskId);
-    final label = enabled
-        ? '${task.title} (${_minutesToHours(minutes)})'
-        : '${task.title} · ${l10n.work_log_ai_summary_task_no_hours}';
+    final label = '${task.title} (${_minutesToHours(minutes)})';
 
     return CupertinoButton(
       key: ValueKey('work_log_ai_summary_task_$taskId'),
@@ -234,28 +253,19 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
       minimumSize: IOS26Theme.minimumTapSize,
       color: selected
           ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
-          : IOS26Theme.surfaceColor.withValues(alpha: enabled ? 0.7 : 0.45),
+          : IOS26Theme.surfaceColor.withValues(alpha: 0.7),
       borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-      onPressed: !enabled
-          ? null
-          : () {
-              setState(() {
-                if (!_selectedTaskIds.add(taskId)) {
-                  _selectedTaskIds.remove(taskId);
-                }
-                _selectedAffiliationIds = _selectedAffiliationIds
-                    .where(_selectableAffiliationIds.contains)
-                    .toSet();
-              });
-            },
+      onPressed: () {
+        setState(() {
+          if (!_selectedTaskIds.add(taskId)) {
+            _selectedTaskIds.remove(taskId);
+          }
+        });
+      },
       child: Text(
         label,
         style: IOS26Theme.bodySmall.copyWith(
-          color: selected
-              ? IOS26Theme.primaryColor
-              : (enabled
-                    ? IOS26Theme.textPrimary
-                    : IOS26Theme.textSecondary.withValues(alpha: 0.7)),
+          color: selected ? IOS26Theme.primaryColor : IOS26Theme.textPrimary,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         ),
       ),
@@ -265,6 +275,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   Widget _buildAffiliationCard(AppLocalizations l10n) {
     final selectable = _selectableAffiliationIds;
     return GlassContainer(
+      key: const ValueKey('work_log_ai_summary_affiliation_card'),
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -281,7 +292,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                 minimumSize: IOS26Theme.minimumTapSize,
                 onPressed: selectable.isEmpty
                     ? null
-                    : () => setState(() => _selectedAffiliationIds = {}),
+                    : () => _updateAffiliationSelection(
+                        () => _selectedAffiliationIds = {},
+                      ),
                 child: Text(
                   l10n.work_log_ai_summary_all_affiliations,
                   style: IOS26Theme.labelLarge,
@@ -328,13 +341,11 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
       borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
       onPressed: !selectable
           ? null
-          : () {
-              setState(() {
-                if (!_selectedAffiliationIds.add(tagId)) {
-                  _selectedAffiliationIds.remove(tagId);
-                }
-              });
-            },
+          : () => _updateAffiliationSelection(() {
+              if (!_selectedAffiliationIds.add(tagId)) {
+                _selectedAffiliationIds.remove(tagId);
+              }
+            }),
       child: Text(
         tag.name,
         style: IOS26Theme.bodySmall.copyWith(
@@ -599,9 +610,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
         .map((entry) => entry.taskId)
         .toSet();
 
-    final nextSelectedTaskIds = _selectedTaskIds.isEmpty
-        ? {...selectableTaskIds}
-        : _selectedTaskIds.where(selectableTaskIds.contains).toSet();
+    final nextSelectedTaskIds = _selectedTaskIds
+        .where(selectableTaskIds.contains)
+        .toSet();
 
     final nextSelectableAffiliations = _collectSelectableAffiliationIds(
       selectedTaskIds: nextSelectedTaskIds,
@@ -621,6 +632,85 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
           .toSet();
       _loading = false;
     });
+  }
+
+  void _updateAffiliationSelection(VoidCallback updateSelection) {
+    setState(() {
+      updateSelection();
+      _selectedTaskIds = _selectedTaskIdsForAffiliations();
+    });
+  }
+
+  Set<int> _selectedTaskIdsForAffiliations() {
+    final selectableTaskIds = _selectableTaskIds;
+    if (_selectedAffiliationIds.isEmpty) {
+      return selectableTaskIds;
+    }
+
+    final allowedTaskIds = <int>{};
+    for (final taskId in selectableTaskIds) {
+      final tags = _taskAffiliationsByTaskId[taskId] ?? const <Tag>[];
+      final matched = tags.any((tag) {
+        final tagId = tag.id;
+        return tagId != null && _selectedAffiliationIds.contains(tagId);
+      });
+      if (matched) {
+        allowedTaskIds.add(taskId);
+      }
+    }
+    return allowedTaskIds;
+  }
+
+  Widget _buildGeneratingOverlay(AppLocalizations l10n) {
+    return Positioned.fill(
+      child: ColoredBox(
+        key: const ValueKey('work_log_ai_summary_generating_overlay'),
+        color: IOS26Theme.backgroundColor.withValues(alpha: 0.66),
+        child: Center(
+          child: GlassContainer(
+            padding: const EdgeInsets.all(IOS26Theme.spacingXl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CupertinoActivityIndicator(radius: 14),
+                const SizedBox(height: IOS26Theme.spacingMd),
+                Text(
+                  l10n.work_log_ai_summary_generating_hint,
+                  style: IOS26Theme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: IOS26Theme.spacingSm),
+                Text(
+                  l10n.work_log_ai_summary_generating_elapsed(
+                    _generatingElapsedSeconds,
+                  ),
+                  style: IOS26Theme.bodySmall.copyWith(
+                    color: IOS26Theme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _startGeneratingTimer() {
+    _stopGeneratingTimer();
+    _generatingElapsedSeconds = 0;
+    _generatingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || !_generating) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _generatingElapsedSeconds += 1);
+    });
+  }
+
+  void _stopGeneratingTimer() {
+    _generatingTimer?.cancel();
+    _generatingTimer = null;
   }
 
   Future<void> _generateSummary() async {
@@ -678,7 +768,11 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
       taskAffiliationNames: taskAffiliationNames,
     );
 
-    setState(() => _generating = true);
+    setState(() {
+      _generating = true;
+      _generatingElapsedSeconds = 0;
+    });
+    _startGeneratingTimer();
     try {
       final summary = await aiExecutor.runWithPrompt(
         spec: WorkLogAiSummaryPrompts.summaryUseCase,
@@ -699,6 +793,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
         content: l10n.work_log_ai_summary_generate_failed_content,
       );
     } finally {
+      _stopGeneratingTimer();
       if (mounted) {
         setState(() => _generating = false);
       }
@@ -758,14 +853,25 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     return map;
   }
 
-  Set<int> get _selectableTaskIds => _minutesByTaskId.entries
+  Set<int> get _taskIdsWithMinutes => _minutesByTaskId.entries
       .where((entry) => entry.value > 0)
       .map((entry) => entry.key)
       .toSet();
 
+  Set<int> get _selectableTaskIds => _taskIdsWithMinutes.where((taskId) {
+    if (_selectedAffiliationIds.isEmpty) {
+      return true;
+    }
+    final tags = _taskAffiliationsByTaskId[taskId] ?? const <Tag>[];
+    return tags.any((tag) {
+      final tagId = tag.id;
+      return tagId != null && _selectedAffiliationIds.contains(tagId);
+    });
+  }).toSet();
+
   Set<int> get _selectableAffiliationIds => _collectSelectableAffiliationIds(
-    selectedTaskIds: _selectedTaskIds,
-    selectableTaskIds: _selectableTaskIds,
+    selectedTaskIds: const <int>{},
+    selectableTaskIds: _taskIdsWithMinutes,
     taskAffiliationsByTaskId: _taskAffiliationsByTaskId,
   );
 

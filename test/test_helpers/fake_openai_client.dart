@@ -6,9 +6,12 @@ class FakeOpenAiClient extends OpenAiClient {
   AiConfig? lastConfig;
   AiChatRequest? lastRequest;
   final AiChatResult reply;
+  final Duration responseDelay;
 
-  FakeOpenAiClient({required String replyText})
-    : reply = AiChatResult(text: replyText);
+  FakeOpenAiClient({
+    required String replyText,
+    this.responseDelay = Duration.zero,
+  }) : reply = AiChatResult(text: replyText);
 
   @override
   Future<AiChatResult> chatCompletions({
@@ -18,6 +21,9 @@ class FakeOpenAiClient extends OpenAiClient {
   }) async {
     lastConfig = config;
     lastRequest = request;
+    if (responseDelay > Duration.zero) {
+      await Future<void>.delayed(responseDelay);
+    }
     return reply;
   }
 }

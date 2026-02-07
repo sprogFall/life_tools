@@ -304,6 +304,18 @@ abstract class AppLocalizations {
   /// **'Generate Summary'**
   String get work_log_ai_summary_generate_button;
 
+  /// No description provided for @work_log_ai_summary_generating_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating summary, please wait...'**
+  String get work_log_ai_summary_generating_hint;
+
+  /// No description provided for @work_log_ai_summary_generating_elapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting {seconds}s'**
+  String work_log_ai_summary_generating_elapsed(Object seconds);
+
   /// No description provided for @work_log_ai_summary_result_title.
   ///
   /// In en, this message translates to:

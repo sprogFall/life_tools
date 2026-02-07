@@ -43,6 +43,13 @@
     }
   },
   "work_log_ai_summary_generate_button": "生成总结",
+  "work_log_ai_summary_generating_hint": "正在生成总结，请耐心等待…",
+  "work_log_ai_summary_generating_elapsed": "已等待 {seconds} 秒",
+  "@work_log_ai_summary_generating_elapsed": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
   "work_log_ai_summary_result_title": "总结结果",
   "work_log_ai_summary_copy_button": "复制",
   "work_log_ai_summary_share_button": "分享",

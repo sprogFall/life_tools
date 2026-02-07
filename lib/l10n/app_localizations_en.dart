@@ -114,6 +114,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get work_log_ai_summary_generate_button => 'Generate Summary';
 
   @override
+  String get work_log_ai_summary_generating_hint =>
+      'Generating summary, please wait...';
+
+  @override
+  String work_log_ai_summary_generating_elapsed(Object seconds) {
+    return 'Waiting ${seconds}s';
+  }
+
+  @override
   String get work_log_ai_summary_result_title => 'Summary Result';
 
   @override
@@ -895,6 +904,15 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get work_log_ai_summary_generate_button => 'Generate Summary';
+
+  @override
+  String get work_log_ai_summary_generating_hint =>
+      'Generating summary, please wait...';
+
+  @override
+  String work_log_ai_summary_generating_elapsed(Object seconds) {
+    return 'Waiting ${seconds}s';
+  }
 
   @override
   String get work_log_ai_summary_result_title => 'Summary Result';

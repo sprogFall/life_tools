@@ -43,6 +43,13 @@
     }
   },
   "work_log_ai_summary_generate_button": "Generate Summary",
+  "work_log_ai_summary_generating_hint": "Generating summary, please wait...",
+  "work_log_ai_summary_generating_elapsed": "Waiting {seconds}s",
+  "@work_log_ai_summary_generating_elapsed": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
   "work_log_ai_summary_result_title": "Summary Result",
   "work_log_ai_summary_copy_button": "Copy",
   "work_log_ai_summary_share_button": "Share",

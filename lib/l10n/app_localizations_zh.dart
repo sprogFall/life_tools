@@ -113,6 +113,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get work_log_ai_summary_generate_button => '生成总结';
 
   @override
+  String get work_log_ai_summary_generating_hint => '正在生成总结，请耐心等待…';
+
+  @override
+  String work_log_ai_summary_generating_elapsed(Object seconds) {
+    return '已等待 $seconds 秒';
+  }
+
+  @override
   String get work_log_ai_summary_result_title => '总结结果';
 
   @override
@@ -867,6 +875,14 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get work_log_ai_summary_generate_button => '生成总结';
+
+  @override
+  String get work_log_ai_summary_generating_hint => '正在生成总结，请耐心等待…';
+
+  @override
+  String work_log_ai_summary_generating_elapsed(Object seconds) {
+    return '已等待 $seconds 秒';
+  }
 
   @override
   String get work_log_ai_summary_result_title => '总结结果';
