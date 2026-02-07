@@ -519,47 +519,106 @@ class _DayCell extends StatelessWidget {
         ? IOS26Theme.textPrimary
         : IOS26Theme.textTertiary;
     final minutesText = minutes > 0 ? _minutesToHoursText(minutes) : null;
+    final baseTopColor = selected
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.24)
+        : IOS26Theme.surfaceColor.withValues(alpha: 0.92);
+    final baseBottomColor = selected
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.08)
+        : IOS26Theme.glassColor;
+    final borderColor = selected
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.38)
+        : IOS26Theme.glassBorderColor;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: selected
-              ? IOS26Theme.primaryColor.withValues(alpha: 0.12)
-              : IOS26Theme.glassColor,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [baseTopColor, baseBottomColor],
+          ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
+          border: Border.all(color: borderColor, width: 0.9),
+          boxShadow: [
+            BoxShadow(
+              color: IOS26Theme.surfaceColor.withValues(alpha: 0.45),
+              blurRadius: 1.2,
+              offset: const Offset(-0.8, -0.8),
+            ),
+            BoxShadow(
+              color: selected
+                  ? IOS26Theme.primaryColor.withValues(alpha: 0.16)
+                  : IOS26Theme.shadowColor.withValues(alpha: 0.85),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+              spreadRadius: 0.3,
+            ),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 6, top: 4),
-              child: Text(
-                '${date.day}',
-                style: IOS26Theme.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: IOS26Theme.surfaceColor.withValues(
+                alpha: selected ? 0.30 : 0.20,
               ),
             ),
-            const Spacer(),
-            if (minutesText != null)
-              Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    minutesText,
-                    style: IOS26Theme.bodySmall.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: IOS26Theme.primaryColor,
-                      fontSize: 10,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    height: 16,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          IOS26Theme.surfaceColor.withValues(alpha: 0.38),
+                          IOS26Theme.surfaceColor.withValues(alpha: 0),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            if (minutesText != null) const SizedBox(height: 2),
-          ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6, top: 4),
+                      child: Text(
+                        '${date.day}',
+                        style: IOS26Theme.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (minutesText != null)
+                      Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            minutesText,
+                            style: IOS26Theme.bodySmall.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: IOS26Theme.primaryColor,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (minutesText != null) const SizedBox(height: 2),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
