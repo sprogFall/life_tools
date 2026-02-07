@@ -279,7 +279,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '临期/已过期：${expiring.length} 个（列表已按临期优先排序）',
+                        '临期/已过期：${expiring.length} 个',
                         style: IOS26Theme.bodyMedium.copyWith(
                           color: IOS26Theme.textPrimary,
                         ),
@@ -476,7 +476,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
   Future<void> _openAiInput() async {
     final text = await WorkLogVoiceInputSheet.show(
       context,
-      helperText: '输入内容（可不写单位，AI 会根据物品/数量自动补单位；判断不出就留空）',
+      helperText: '告诉AI你又囤了哪些货吧',
       placeholder: '例如：买了牛奶2盒放冰箱，保质期到2026-01-05，提醒2天；或：牛奶 消耗1盒 早餐',
     );
     if (!mounted || text == null) return;

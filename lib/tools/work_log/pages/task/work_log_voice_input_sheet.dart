@@ -14,7 +14,7 @@ class WorkLogVoiceInputSheet extends StatefulWidget {
   const WorkLogVoiceInputSheet({
     super.key,
     this.title = 'AI录入',
-    this.helperText = '输入内容（告诉AI你想记录什么）',
+    this.helperText = '告诉AI你想记录什么吧',
     this.placeholder = '例如：今天完成了登录模块的开发，花了3小时…',
     this.textFieldKey = const ValueKey('work_log_ai_text_field'),
   });
@@ -22,7 +22,7 @@ class WorkLogVoiceInputSheet extends StatefulWidget {
   static Future<String?> show(
     BuildContext context, {
     String title = 'AI录入',
-    String helperText = '输入内容（告诉AI你想记录什么）',
+    String helperText = '告诉AI你想记录什么吧',
     String placeholder = '例如：今天完成了登录模块的开发，花了3小时…',
     Key textFieldKey = const ValueKey('work_log_ai_text_field'),
   }) {

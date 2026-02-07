@@ -160,7 +160,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('准备清单（自动汇总）', style: IOS26Theme.titleSmall),
+                Text('备菜清单', style: IOS26Theme.titleSmall),
                 const SizedBox(height: 10),
                 Text(
                   '主料：$ingredientText',
