@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
 import 'package:life_tools/core/obj_store/obj_store_errors.dart';
@@ -126,12 +127,17 @@ void main() {
       expect(find.text('详细内容'), findsOneWidget);
       expect(find.text('做法'), findsOneWidget);
       expect(find.text('切菜'), findsOneWidget);
-      expect(find.text('沉浸式阅读'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('overcooked_recipe_content_tap_area')),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.text('沉浸式阅读'));
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_recipe_content_tap_area')),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('沉浸式阅读'), findsAtLeastNWidgets(1));
+      expect(find.text('沉浸式阅读'), findsOneWidget);
       expect(find.text('下锅'), findsOneWidget);
     });
   });

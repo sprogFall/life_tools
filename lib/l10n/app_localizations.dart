@@ -226,6 +226,30 @@ abstract class AppLocalizations {
   /// **'Immersive Reading'**
   String get overcooked_recipe_markdown_page_title;
 
+  /// No description provided for @overcooked_recipe_markdown_export_done_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported'**
+  String get overcooked_recipe_markdown_export_done_title;
+
+  /// No description provided for @overcooked_recipe_markdown_export_done_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Image exported to: {path}'**
+  String overcooked_recipe_markdown_export_done_content(Object path);
+
+  /// No description provided for @overcooked_recipe_markdown_export_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Failed'**
+  String get overcooked_recipe_markdown_export_failed_title;
+
+  /// No description provided for @overcooked_recipe_markdown_export_failed_no_content.
+  ///
+  /// In en, this message translates to:
+  /// **'No exportable content found. Please try again later.'**
+  String get overcooked_recipe_markdown_export_failed_no_content;
+
   /// No description provided for @tool_work_log_name.
   ///
   /// In en, this message translates to:

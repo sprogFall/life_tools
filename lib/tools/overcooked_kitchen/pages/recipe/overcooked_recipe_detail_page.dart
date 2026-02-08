@@ -254,59 +254,54 @@ class _OvercookedRecipeDetailPageState
             ),
           )
         else
-          GlassContainer(
-            borderRadius: IOS26Theme.radiusLg,
-            padding: const EdgeInsets.all(IOS26Theme.spacingMd),
-            color: IOS26Theme.surfaceColor.withValues(alpha: 0.86),
-            border: Border.all(
-              color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-              width: 1,
-            ),
-            child: OvercookedMarkdownBody(data: recipe.content.trim()),
-          ),
-        if (recipe.content.trim().isNotEmpty) ...[
-          const SizedBox(height: IOS26Theme.spacingSm),
-          Align(
-            alignment: Alignment.centerRight,
-            child: CupertinoButton(
-              padding: const EdgeInsets.symmetric(
-                horizontal: IOS26Theme.spacingSm,
-                vertical: IOS26Theme.spacingXs,
+          CupertinoButton(
+            key: const ValueKey('overcooked_recipe_content_tap_area'),
+            padding: EdgeInsets.zero,
+            minimumSize: IOS26Theme.minimumTapSize,
+            onPressed: () {
+              Navigator.of(context).push(
+                CupertinoPageRoute<void>(
+                  builder: (_) => OvercookedRecipeMarkdownPage(
+                    recipeName: recipe.name,
+                    markdown: recipe.content.trim(),
+                  ),
+                ),
+              );
+            },
+            child: GlassContainer(
+              borderRadius: IOS26Theme.radiusLg,
+              padding: const EdgeInsets.all(IOS26Theme.spacingMd),
+              color: IOS26Theme.surfaceColor.withValues(alpha: 0.86),
+              border: Border.all(
+                color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+                width: 1,
               ),
-              minimumSize: IOS26Theme.minimumTapSize,
-              borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
-              color: IOS26Theme.toolBlue.withValues(alpha: 0.12),
-              onPressed: () {
-                Navigator.of(context).push(
-                  CupertinoPageRoute<void>(
-                    builder: (_) => OvercookedRecipeMarkdownPage(
-                      recipeName: recipe.name,
-                      markdown: recipe.content.trim(),
-                    ),
-                  ),
-                );
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    CupertinoIcons.doc_richtext,
-                    size: 14,
-                    color: IOS26Theme.toolBlue,
-                  ),
-                  const SizedBox(width: IOS26Theme.spacingXs),
-                  Text(
-                    l10n.overcooked_recipe_detail_immersive_read,
-                    style: IOS26Theme.bodySmall.copyWith(
-                      color: IOS26Theme.toolBlue,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  OvercookedMarkdownBody(data: recipe.content.trim()),
+                  const SizedBox(height: IOS26Theme.spacingSm),
+                  Row(
+                    children: [
+                      const Icon(
+                        CupertinoIcons.doc_richtext,
+                        size: 14,
+                        color: IOS26Theme.toolBlue,
+                      ),
+                      const SizedBox(width: IOS26Theme.spacingXs),
+                      Text(
+                        l10n.overcooked_recipe_detail_immersive_read,
+                        style: IOS26Theme.bodySmall.copyWith(
+                          color: IOS26Theme.toolBlue,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-        ],
         if (recipe.detailImageKeys.isNotEmpty) ...[
           const SizedBox(height: 16),
           _sectionTitle('详细图片'),

@@ -74,6 +74,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get overcooked_recipe_markdown_page_title => '沉浸式阅读';
 
   @override
+  String get overcooked_recipe_markdown_export_done_title => '导出成功';
+
+  @override
+  String overcooked_recipe_markdown_export_done_content(Object path) {
+    return '图片已导出到：$path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_title => '导出失败';
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_no_content =>
+      '未找到可导出的内容，请稍后重试。';
+
+  @override
   String get tool_work_log_name => '工作记录';
 
   @override
@@ -944,6 +959,21 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get overcooked_recipe_markdown_page_title => '沉浸式阅读';
+
+  @override
+  String get overcooked_recipe_markdown_export_done_title => '导出成功';
+
+  @override
+  String overcooked_recipe_markdown_export_done_content(Object path) {
+    return '图片已导出到：$path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_title => '导出失败';
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_no_content =>
+      '未找到可导出的内容，请稍后重试。';
 
   @override
   String get tool_work_log_name => '工作记录';

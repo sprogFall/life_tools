@@ -78,6 +78,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get overcooked_recipe_markdown_page_title => 'Immersive Reading';
 
   @override
+  String get overcooked_recipe_markdown_export_done_title => 'Exported';
+
+  @override
+  String overcooked_recipe_markdown_export_done_content(Object path) {
+    return 'Image exported to: $path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_title => 'Export Failed';
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_no_content =>
+      'No exportable content found. Please try again later.';
+
+  @override
   String get tool_work_log_name => 'Work Log';
 
   @override
@@ -982,6 +997,21 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get overcooked_recipe_markdown_page_title => 'Immersive Reading';
+
+  @override
+  String get overcooked_recipe_markdown_export_done_title => 'Exported';
+
+  @override
+  String overcooked_recipe_markdown_export_done_content(Object path) {
+    return 'Image exported to: $path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_title => 'Export Failed';
+
+  @override
+  String get overcooked_recipe_markdown_export_failed_no_content =>
+      'No exportable content found. Please try again later.';
 
   @override
   String get tool_work_log_name => 'Work Log';

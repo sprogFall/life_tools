@@ -24,6 +24,15 @@
   "overcooked_recipe_edit_ai_not_configured_content": "Configure AI in Settings > AI Settings before generating recipes.",
   "overcooked_recipe_detail_immersive_read": "Immersive Reading",
   "overcooked_recipe_markdown_page_title": "Immersive Reading",
+  "overcooked_recipe_markdown_export_done_title": "Exported",
+  "overcooked_recipe_markdown_export_done_content": "Image exported to: {path}",
+  "@overcooked_recipe_markdown_export_done_content": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "overcooked_recipe_markdown_export_failed_title": "Export Failed",
+  "overcooked_recipe_markdown_export_failed_no_content": "No exportable content found. Please try again later.",
   "tool_work_log_name": "Work Log",
   "work_log_ai_entry": "AI Entry",
   "work_log_ai_summary_entry": "AI Summary",
