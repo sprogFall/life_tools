@@ -173,6 +173,87 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to generate summary. Please try again later.';
 
   @override
+  String get work_log_calendar_month_mode => 'Month';
+
+  @override
+  String get work_log_calendar_week_mode => 'Week';
+
+  @override
+  String get work_log_calendar_day_mode => 'Day';
+
+  @override
+  String work_log_calendar_month_title(Object month) {
+    return 'Month $month';
+  }
+
+  @override
+  String work_log_calendar_month_subtitle(Object days) {
+    return '$days days with records';
+  }
+
+  @override
+  String get work_log_calendar_week_subtitle => 'Week View';
+
+  @override
+  String get work_log_calendar_day_subtitle => 'Day View';
+
+  @override
+  String get work_log_calendar_selected_day_title => 'Selected Day';
+
+  @override
+  String work_log_calendar_selected_day_label(
+    Object month,
+    Object day,
+    Object weekday,
+  ) {
+    return '$month/$day · $weekday';
+  }
+
+  @override
+  String get work_log_calendar_recent_days_title => 'Recent Records';
+
+  @override
+  String get work_log_calendar_recent_days_empty =>
+      'No other records this month';
+
+  @override
+  String get work_log_calendar_no_entries_today =>
+      'No time entries on this day';
+
+  @override
+  String get work_log_calendar_total_label => 'Total';
+
+  @override
+  String get work_log_calendar_content_label => 'Content';
+
+  @override
+  String get work_log_calendar_task_label => 'Task';
+
+  @override
+  String get work_log_calendar_no_content => '(No content)';
+
+  @override
+  String get work_log_calendar_weekday_mon => 'M';
+
+  @override
+  String get work_log_calendar_weekday_tue => 'T';
+
+  @override
+  String get work_log_calendar_weekday_wed => 'W';
+
+  @override
+  String get work_log_calendar_weekday_thu => 'T';
+
+  @override
+  String get work_log_calendar_weekday_fri => 'F';
+
+  @override
+  String get work_log_calendar_weekday_sat => 'S';
+
+  @override
+  String get work_log_calendar_weekday_sun => 'S';
+
+  @override
   String get sync_user_mismatch_title => 'Sync user mismatch';
 
   @override
@@ -963,6 +1044,87 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   @override
   String get work_log_ai_summary_generate_failed_content =>
       'Failed to generate summary. Please try again later.';
+
+  @override
+  String get work_log_calendar_month_mode => 'Month';
+
+  @override
+  String get work_log_calendar_week_mode => 'Week';
+
+  @override
+  String get work_log_calendar_day_mode => 'Day';
+
+  @override
+  String work_log_calendar_month_title(Object month) {
+    return 'Month $month';
+  }
+
+  @override
+  String work_log_calendar_month_subtitle(Object days) {
+    return '$days days with records';
+  }
+
+  @override
+  String get work_log_calendar_week_subtitle => 'Week View';
+
+  @override
+  String get work_log_calendar_day_subtitle => 'Day View';
+
+  @override
+  String get work_log_calendar_selected_day_title => 'Selected Day';
+
+  @override
+  String work_log_calendar_selected_day_label(
+    Object month,
+    Object day,
+    Object weekday,
+  ) {
+    return '$month/$day · $weekday';
+  }
+
+  @override
+  String get work_log_calendar_recent_days_title => 'Recent Records';
+
+  @override
+  String get work_log_calendar_recent_days_empty =>
+      'No other records this month';
+
+  @override
+  String get work_log_calendar_no_entries_today =>
+      'No time entries on this day';
+
+  @override
+  String get work_log_calendar_total_label => 'Total';
+
+  @override
+  String get work_log_calendar_content_label => 'Content';
+
+  @override
+  String get work_log_calendar_task_label => 'Task';
+
+  @override
+  String get work_log_calendar_no_content => '(No content)';
+
+  @override
+  String get work_log_calendar_weekday_mon => 'M';
+
+  @override
+  String get work_log_calendar_weekday_tue => 'T';
+
+  @override
+  String get work_log_calendar_weekday_wed => 'W';
+
+  @override
+  String get work_log_calendar_weekday_thu => 'T';
+
+  @override
+  String get work_log_calendar_weekday_fri => 'F';
+
+  @override
+  String get work_log_calendar_weekday_sat => 'S';
+
+  @override
+  String get work_log_calendar_weekday_sun => 'S';
 
   @override
   String get sync_user_mismatch_title => 'Sync user mismatch';

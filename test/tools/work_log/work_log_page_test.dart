@@ -220,5 +220,123 @@ void main() {
       expect(find.text('工作内容：开发功能A'), findsOneWidget);
       expect(find.text('任务：任务A'), findsOneWidget);
     });
+
+    testWidgets('日历月视图应展示选中日期信息与近期记录卡片', (tester) async {
+      final fake = FakeWorkLogRepository();
+      final taskId = await fake.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final today = DateTime.now();
+      final anotherDay = DateTime(today.year, today.month, 1);
+
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: today,
+          minutes: 60,
+          content: '今日记录',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: anotherDay,
+          minutes: 120,
+          content: '近期记录',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await tester.pumpWidget(
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.text('日历'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('work_log_calendar_selected_day_card')),
+        findsOneWidget,
+      );
+      expect(find.text('当天记录'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('work_log_calendar_recent_days_card')),
+        findsOneWidget,
+      );
+      expect(find.text('近期记录'), findsWidgets);
+    });
+
+    testWidgets('日历月视图点击日期后应保持月网格并刷新选中工时', (tester) async {
+      final fake = FakeWorkLogRepository();
+      final taskId = await fake.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final now = DateTime.now();
+      final targetDate = DateTime(
+        now.year,
+        now.month,
+        now.day > 1 ? now.day - 1 : now.day + 1,
+      );
+      final targetKey = ValueKey(
+        'work_log_calendar_day_cell_${targetDate.year}${targetDate.month.toString().padLeft(2, '0')}${targetDate.day.toString().padLeft(2, '0')}',
+      );
+
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: now,
+          minutes: 60,
+          content: '今日记录',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: targetDate,
+          minutes: 120,
+          content: '目标记录',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await tester.pumpWidget(
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.text('日历'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byKey(targetKey), findsOneWidget);
+      expect(find.text('1h'), findsWidgets);
+
+      await tester.tap(find.byKey(targetKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.text('2h'), findsWidgets);
+    });
   });
 }

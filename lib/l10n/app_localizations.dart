@@ -406,6 +406,148 @@ abstract class AppLocalizations {
   /// **'Failed to generate summary. Please try again later.'**
   String get work_log_ai_summary_generate_failed_content;
 
+  /// No description provided for @work_log_calendar_month_mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get work_log_calendar_month_mode;
+
+  /// No description provided for @work_log_calendar_week_mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get work_log_calendar_week_mode;
+
+  /// No description provided for @work_log_calendar_day_mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get work_log_calendar_day_mode;
+
+  /// No description provided for @work_log_calendar_month_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Month {month}'**
+  String work_log_calendar_month_title(Object month);
+
+  /// No description provided for @work_log_calendar_month_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days with records'**
+  String work_log_calendar_month_subtitle(Object days);
+
+  /// No description provided for @work_log_calendar_week_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Week View'**
+  String get work_log_calendar_week_subtitle;
+
+  /// No description provided for @work_log_calendar_day_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Day View'**
+  String get work_log_calendar_day_subtitle;
+
+  /// No description provided for @work_log_calendar_selected_day_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected Day'**
+  String get work_log_calendar_selected_day_title;
+
+  /// No description provided for @work_log_calendar_selected_day_label.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} · {weekday}'**
+  String work_log_calendar_selected_day_label(
+    Object month,
+    Object day,
+    Object weekday,
+  );
+
+  /// No description provided for @work_log_calendar_recent_days_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Records'**
+  String get work_log_calendar_recent_days_title;
+
+  /// No description provided for @work_log_calendar_recent_days_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No other records this month'**
+  String get work_log_calendar_recent_days_empty;
+
+  /// No description provided for @work_log_calendar_no_entries_today.
+  ///
+  /// In en, this message translates to:
+  /// **'No time entries on this day'**
+  String get work_log_calendar_no_entries_today;
+
+  /// No description provided for @work_log_calendar_total_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get work_log_calendar_total_label;
+
+  /// No description provided for @work_log_calendar_content_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get work_log_calendar_content_label;
+
+  /// No description provided for @work_log_calendar_task_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Task'**
+  String get work_log_calendar_task_label;
+
+  /// No description provided for @work_log_calendar_no_content.
+  ///
+  /// In en, this message translates to:
+  /// **'(No content)'**
+  String get work_log_calendar_no_content;
+
+  /// No description provided for @work_log_calendar_weekday_mon.
+  ///
+  /// In en, this message translates to:
+  /// **'M'**
+  String get work_log_calendar_weekday_mon;
+
+  /// No description provided for @work_log_calendar_weekday_tue.
+  ///
+  /// In en, this message translates to:
+  /// **'T'**
+  String get work_log_calendar_weekday_tue;
+
+  /// No description provided for @work_log_calendar_weekday_wed.
+  ///
+  /// In en, this message translates to:
+  /// **'W'**
+  String get work_log_calendar_weekday_wed;
+
+  /// No description provided for @work_log_calendar_weekday_thu.
+  ///
+  /// In en, this message translates to:
+  /// **'T'**
+  String get work_log_calendar_weekday_thu;
+
+  /// No description provided for @work_log_calendar_weekday_fri.
+  ///
+  /// In en, this message translates to:
+  /// **'F'**
+  String get work_log_calendar_weekday_fri;
+
+  /// No description provided for @work_log_calendar_weekday_sat.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get work_log_calendar_weekday_sat;
+
+  /// No description provided for @work_log_calendar_weekday_sun.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get work_log_calendar_weekday_sun;
+
   /// Title shown when local data user does not match current sync user
   ///
   /// In en, this message translates to:

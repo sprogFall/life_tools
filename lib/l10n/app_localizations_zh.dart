@@ -167,6 +167,85 @@ class AppLocalizationsZh extends AppLocalizations {
   String get work_log_ai_summary_generate_failed_content => 'AI 总结生成失败，请稍后重试';
 
   @override
+  String get work_log_calendar_month_mode => '月';
+
+  @override
+  String get work_log_calendar_week_mode => '周';
+
+  @override
+  String get work_log_calendar_day_mode => '日';
+
+  @override
+  String work_log_calendar_month_title(Object month) {
+    return '$month月';
+  }
+
+  @override
+  String work_log_calendar_month_subtitle(Object days) {
+    return '本月有 $days 天记录工时';
+  }
+
+  @override
+  String get work_log_calendar_week_subtitle => '周视图';
+
+  @override
+  String get work_log_calendar_day_subtitle => '日视图';
+
+  @override
+  String get work_log_calendar_selected_day_title => '当天记录';
+
+  @override
+  String work_log_calendar_selected_day_label(
+    Object month,
+    Object day,
+    Object weekday,
+  ) {
+    return '$month月$day日 · $weekday';
+  }
+
+  @override
+  String get work_log_calendar_recent_days_title => '近期记录';
+
+  @override
+  String get work_log_calendar_recent_days_empty => '本月暂无其他工时记录';
+
+  @override
+  String get work_log_calendar_no_entries_today => '当天暂无工时记录';
+
+  @override
+  String get work_log_calendar_total_label => '总计';
+
+  @override
+  String get work_log_calendar_content_label => '工作内容';
+
+  @override
+  String get work_log_calendar_task_label => '任务';
+
+  @override
+  String get work_log_calendar_no_content => '（无内容）';
+
+  @override
+  String get work_log_calendar_weekday_mon => '一';
+
+  @override
+  String get work_log_calendar_weekday_tue => '二';
+
+  @override
+  String get work_log_calendar_weekday_wed => '三';
+
+  @override
+  String get work_log_calendar_weekday_thu => '四';
+
+  @override
+  String get work_log_calendar_weekday_fri => '五';
+
+  @override
+  String get work_log_calendar_weekday_sat => '六';
+
+  @override
+  String get work_log_calendar_weekday_sun => '日';
+
+  @override
   String get sync_user_mismatch_title => '同步用户不匹配';
 
   @override
@@ -929,6 +1008,85 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get work_log_ai_summary_generate_failed_content => 'AI 总结生成失败，请稍后重试';
+
+  @override
+  String get work_log_calendar_month_mode => '月';
+
+  @override
+  String get work_log_calendar_week_mode => '周';
+
+  @override
+  String get work_log_calendar_day_mode => '日';
+
+  @override
+  String work_log_calendar_month_title(Object month) {
+    return '$month月';
+  }
+
+  @override
+  String work_log_calendar_month_subtitle(Object days) {
+    return '本月有 $days 天记录工时';
+  }
+
+  @override
+  String get work_log_calendar_week_subtitle => '周视图';
+
+  @override
+  String get work_log_calendar_day_subtitle => '日视图';
+
+  @override
+  String get work_log_calendar_selected_day_title => '当天记录';
+
+  @override
+  String work_log_calendar_selected_day_label(
+    Object month,
+    Object day,
+    Object weekday,
+  ) {
+    return '$month月$day日 · $weekday';
+  }
+
+  @override
+  String get work_log_calendar_recent_days_title => '近期记录';
+
+  @override
+  String get work_log_calendar_recent_days_empty => '本月暂无其他工时记录';
+
+  @override
+  String get work_log_calendar_no_entries_today => '当天暂无工时记录';
+
+  @override
+  String get work_log_calendar_total_label => '总计';
+
+  @override
+  String get work_log_calendar_content_label => '工作内容';
+
+  @override
+  String get work_log_calendar_task_label => '任务';
+
+  @override
+  String get work_log_calendar_no_content => '（无内容）';
+
+  @override
+  String get work_log_calendar_weekday_mon => '一';
+
+  @override
+  String get work_log_calendar_weekday_tue => '二';
+
+  @override
+  String get work_log_calendar_weekday_wed => '三';
+
+  @override
+  String get work_log_calendar_weekday_thu => '四';
+
+  @override
+  String get work_log_calendar_weekday_fri => '五';
+
+  @override
+  String get work_log_calendar_weekday_sat => '六';
+
+  @override
+  String get work_log_calendar_weekday_sun => '日';
 
   @override
   String get sync_user_mismatch_title => '同步用户不匹配';

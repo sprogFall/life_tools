@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../models/work_task.dart';
 import '../../models/work_time_entry.dart';
 import '../../services/work_log_service.dart';
@@ -36,14 +39,19 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(
+        IOS26Theme.spacingXl,
+        0,
+        IOS26Theme.spacingXl,
+        IOS26Theme.spacingXl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           _buildModeSegment(),
-          const SizedBox(height: 12),
+          const SizedBox(height: IOS26Theme.spacingMd),
           if (_loading)
             const Center(child: CupertinoActivityIndicator())
           else
@@ -54,17 +62,21 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     final title = switch (_mode) {
-      WorkCalendarMode.month => '${_focusedMonth.month}月',
-      WorkCalendarMode.week =>
-        _formatDate(_startOfWeek(_selectedDate)),
+      WorkCalendarMode.month => l10n.work_log_calendar_month_title(
+        _focusedMonth.month,
+      ),
+      WorkCalendarMode.week => _formatDate(_startOfWeek(_selectedDate)),
       WorkCalendarMode.day => _formatDate(_selectedDate),
     };
 
     final subtitle = switch (_mode) {
-      WorkCalendarMode.month => '${_focusedMonth.year}年',
-      WorkCalendarMode.week => '周视图',
-      WorkCalendarMode.day => '日视图',
+      WorkCalendarMode.month => l10n.work_log_calendar_month_subtitle(
+        _countDaysWithRecords(),
+      ),
+      WorkCalendarMode.week => l10n.work_log_calendar_week_subtitle,
+      WorkCalendarMode.day => l10n.work_log_calendar_day_subtitle,
     };
 
     return Row(
@@ -79,7 +91,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                 color: IOS26Theme.textPrimary,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: IOS26Theme.spacingXs),
             Text(
               subtitle,
               style: IOS26Theme.bodySmall.copyWith(
@@ -94,7 +106,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           children: [
             CupertinoButton(
               padding: EdgeInsets.zero,
-              minimumSize: const Size(44, 44),
+              minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _goPrev,
               child: Container(
                 padding: const EdgeInsets.all(IOS26Theme.spacingSm),
@@ -113,10 +125,10 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: IOS26Theme.spacingMd),
             CupertinoButton(
               padding: EdgeInsets.zero,
-              minimumSize: const Size(44, 44),
+              minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _goNext,
               child: Container(
                 padding: const EdgeInsets.all(IOS26Theme.spacingSm),
@@ -142,29 +154,44 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   }
 
   Widget _buildModeSegment() {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       child: CupertinoSlidingSegmentedControl<WorkCalendarMode>(
         groupValue: _mode,
         backgroundColor: IOS26Theme.surfaceColor.withValues(alpha: 0.5),
         thumbColor: IOS26Theme.surfaceColor,
-        children: const {
+        children: {
           WorkCalendarMode.month: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            child: Text('月'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: IOS26Theme.spacingSm,
+            ),
+            child: Text(l10n.work_log_calendar_month_mode),
           ),
           WorkCalendarMode.week: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            child: Text('周'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: IOS26Theme.spacingSm,
+            ),
+            child: Text(l10n.work_log_calendar_week_mode),
           ),
           WorkCalendarMode.day: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            child: Text('日'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: IOS26Theme.spacingSm,
+            ),
+            child: Text(l10n.work_log_calendar_day_mode),
           ),
         },
         onValueChanged: (value) {
           if (value == null) return;
-          setState(() => _mode = value);
+          setState(() {
+            _mode = value;
+            if (value == WorkCalendarMode.month) {
+              _focusedMonth = _startOfMonth(_selectedDate);
+            }
+          });
           _load();
         },
       ),
@@ -189,41 +216,255 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     );
     final totalCells = ((leading + daysInMonth + 6) ~/ 7) * 7;
 
+    final selectedDay = _startOfDay(_selectedDate);
+    final selectedEntries =
+        _entries.where((e) => _isSameDay(e.workDate, selectedDay)).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final selectedTotal = selectedEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.minutes,
+    );
+
+    final taskTitleById = _taskTitleMap(
+      context.watch<WorkLogService>().allTasks,
+    );
+    final recentDays =
+        _dailyMinutes.entries
+            .where(
+              (entry) => entry.value > 0 && !_isSameDay(entry.key, selectedDay),
+            )
+            .toList()
+          ..sort((a, b) => b.key.compareTo(a.key));
+
     return Column(
       children: [
-        _buildWeekdayHeader(),
-        const SizedBox(height: 8),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: totalCells,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            mainAxisExtent: 64,
-            crossAxisSpacing: 0,
-            mainAxisSpacing: 0,
+        GlassContainer(
+          borderRadius: IOS26Theme.radiusXxl,
+          padding: const EdgeInsets.fromLTRB(
+            IOS26Theme.spacingLg,
+            IOS26Theme.spacingLg,
+            IOS26Theme.spacingLg,
+            IOS26Theme.spacingMd,
           ),
-          itemBuilder: (context, index) {
-            final date = startCell.add(Duration(days: index));
-            final inMonth = date.month == firstOfMonth.month;
-            final minutes = _dailyMinutes[_startOfDay(date)] ?? 0;
-            final selected = _isSameDay(date, _selectedDate);
-            return _DayCell(
-              date: date,
-              inMonth: inMonth,
-              selected: selected,
-              minutes: minutes,
-              onTap: () {
-                setState(() {
-                  _selectedDate = _startOfDay(date);
-                  _mode = WorkCalendarMode.day;
-                });
-                _load();
-              },
-            );
-          },
+          child: Column(
+            children: [
+              _buildWeekdayHeader(),
+              const SizedBox(height: IOS26Theme.spacingSm),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: totalCells,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  mainAxisExtent: 64,
+                  crossAxisSpacing: 0,
+                  mainAxisSpacing: 0,
+                ),
+                itemBuilder: (context, index) {
+                  final date = startCell.add(Duration(days: index));
+                  final inMonth = date.month == firstOfMonth.month;
+                  final minutes = _dailyMinutes[_startOfDay(date)] ?? 0;
+                  final selected = _isSameDay(date, _selectedDate);
+                  return _DayCell(
+                    key: ValueKey(_dayCellKey(date)),
+                    date: date,
+                    inMonth: inMonth,
+                    selected: selected,
+                    minutes: minutes,
+                    onTap: () {
+                      final nextDate = _startOfDay(date);
+                      final shouldReload = !inMonth;
+                      setState(() {
+                        _selectedDate = nextDate;
+                        if (!inMonth) {
+                          _focusedMonth = _startOfMonth(nextDate);
+                        }
+                      });
+                      if (shouldReload) {
+                        _load();
+                      }
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: IOS26Theme.spacingMd),
+        _buildSelectedDayCard(
+          selectedEntries: selectedEntries,
+          selectedTotal: selectedTotal,
+          taskTitleById: taskTitleById,
+        ),
+        const SizedBox(height: IOS26Theme.spacingMd),
+        _buildRecentDaysCard(recentDays),
       ],
+    );
+  }
+
+  Widget _buildSelectedDayCard({
+    required List<WorkTimeEntry> selectedEntries,
+    required int selectedTotal,
+    required Map<int, String> taskTitleById,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return GlassContainer(
+      key: const ValueKey('work_log_calendar_selected_day_card'),
+      borderRadius: IOS26Theme.radiusXl,
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                l10n.work_log_calendar_selected_day_title,
+                style: IOS26Theme.titleSmall.copyWith(
+                  color: IOS26Theme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                selectedTotal > 0 ? _minutesToHoursText(selectedTotal) : '0h',
+                style: IOS26Theme.titleSmall.copyWith(
+                  color: IOS26Theme.primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: IOS26Theme.spacingXs),
+          Text(
+            _formatSelectedDayLabel(_selectedDate),
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: IOS26Theme.spacingMd),
+          if (selectedEntries.isEmpty)
+            Text(
+              l10n.work_log_calendar_no_entries_today,
+              style: IOS26Theme.bodyMedium.copyWith(
+                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+              ),
+            )
+          else
+            ...selectedEntries.take(3).map((entry) {
+              final taskTitle =
+                  taskTitleById[entry.taskId] ?? '任务#${entry.taskId}';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: IOS26Theme.spacingSm),
+                child: _buildEntryRow(entry: entry, taskTitle: taskTitle),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEntryRow({
+    required WorkTimeEntry entry,
+    required String taskTitle,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final content = entry.content.trim().isEmpty
+        ? l10n.work_log_calendar_no_content
+        : entry.content;
+
+    return GestureDetector(
+      onTap: () => _openTaskDetail(context, entry.taskId, taskTitle),
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${l10n.work_log_calendar_content_label}：$content',
+                  style: IOS26Theme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: IOS26Theme.spacingXs),
+                Text(
+                  '${l10n.work_log_calendar_task_label}：$taskTitle',
+                  style: IOS26Theme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: IOS26Theme.spacingMd),
+          Text(
+            _minutesToHoursText(entry.minutes),
+            style: IOS26Theme.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: IOS26Theme.primaryColor,
+            ),
+          ),
+          const SizedBox(width: IOS26Theme.spacingXs),
+          const Icon(
+            CupertinoIcons.chevron_right,
+            size: 18,
+            color: IOS26Theme.textTertiary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentDaysCard(List<MapEntry<DateTime, int>> recentDays) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return GlassContainer(
+      key: const ValueKey('work_log_calendar_recent_days_card'),
+      borderRadius: IOS26Theme.radiusXl,
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.work_log_calendar_recent_days_title,
+            style: IOS26Theme.titleSmall,
+          ),
+          const SizedBox(height: IOS26Theme.spacingSm),
+          if (recentDays.isEmpty)
+            Text(
+              l10n.work_log_calendar_recent_days_empty,
+              style: IOS26Theme.bodyMedium.copyWith(
+                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+              ),
+            )
+          else
+            ...recentDays.take(5).map((entry) {
+              final day = entry.key;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: IOS26Theme.spacingSm),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _formatRecentDayTitle(day),
+                        style: IOS26Theme.bodyMedium.copyWith(
+                          color: IOS26Theme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _minutesToHoursText(entry.value),
+                      style: IOS26Theme.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: IOS26Theme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
@@ -256,7 +497,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                     : null,
                 child: Row(
                   children: [
-                    Text(_formatWeekday(d), style: IOS26Theme.titleSmall),
+                    Text(_formatWeekdayLong(d), style: IOS26Theme.titleSmall),
                     const SizedBox(width: 10),
                     Text(_formatDate(d), style: IOS26Theme.bodySmall),
                     const Spacer(),
@@ -295,6 +536,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   }
 
   Widget _buildDayView() {
+    final l10n = AppLocalizations.of(context)!;
     final day = _startOfDay(_selectedDate);
     final todaysEntries =
         _entries.where((e) => _isSameDay(e.workDate, day)).toList()
@@ -308,10 +550,13 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     return Column(
       children: [
         GlassContainer(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(IOS26Theme.spacingLg),
           child: Row(
             children: [
-              Text('总计', style: IOS26Theme.titleSmall),
+              Text(
+                l10n.work_log_calendar_total_label,
+                style: IOS26Theme.titleSmall,
+              ),
               const Spacer(),
               Text(
                 total > 0 ? _minutesToHoursText(total) : '0h',
@@ -322,10 +567,10 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: IOS26Theme.spacingMd),
         if (todaysEntries.isEmpty)
           Text(
-            '当天暂无工时记录',
+            l10n.work_log_calendar_no_entries_today,
             style: IOS26Theme.bodyMedium.copyWith(
               color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
             ),
@@ -333,9 +578,11 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
         else
           ...todaysEntries.map((e) {
             final taskTitle = taskTitleById[e.taskId] ?? '任务#${e.taskId}';
-            final content = e.content.trim().isEmpty ? '（无内容）' : e.content;
+            final content = e.content.trim().isEmpty
+                ? l10n.work_log_calendar_no_content
+                : e.content;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: IOS26Theme.spacingMd),
               child: GestureDetector(
                 onTap: () => _openTaskDetail(context, e.taskId, taskTitle),
                 child: GlassContainer(
@@ -346,10 +593,13 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('工作内容：$content', style: IOS26Theme.titleSmall),
+                            Text(
+                              '${l10n.work_log_calendar_content_label}：$content',
+                              style: IOS26Theme.titleSmall,
+                            ),
                             const SizedBox(height: 6),
                             Text(
-                              '任务：$taskTitle',
+                              '${l10n.work_log_calendar_task_label}：$taskTitle',
                               style: IOS26Theme.bodySmall,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -357,7 +607,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: IOS26Theme.spacingMd),
                       Text(
                         _minutesToHoursText(e.minutes),
                         style: IOS26Theme.bodyMedium.copyWith(
@@ -365,7 +615,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                           color: IOS26Theme.primaryColor,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: IOS26Theme.spacingXs),
                       const Icon(
                         CupertinoIcons.chevron_right,
                         size: 18,
@@ -382,14 +632,24 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   }
 
   Widget _buildWeekdayHeader() {
-    const labels = ['一', '二', '三', '四', '五', '六', '日'];
+    final l10n = AppLocalizations.of(context)!;
+    final labels = [
+      l10n.work_log_calendar_weekday_mon,
+      l10n.work_log_calendar_weekday_tue,
+      l10n.work_log_calendar_weekday_wed,
+      l10n.work_log_calendar_weekday_thu,
+      l10n.work_log_calendar_weekday_fri,
+      l10n.work_log_calendar_weekday_sat,
+      l10n.work_log_calendar_weekday_sun,
+    ];
+
     return Row(
       children: labels
           .map(
-            (t) => Expanded(
+            (text) => Expanded(
               child: Center(
                 child: Text(
-                  t,
+                  text,
                   style: IOS26Theme.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: IOS26Theme.textSecondary,
@@ -444,6 +704,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     setState(() {
       if (_mode == WorkCalendarMode.month) {
         _focusedMonth = _addMonths(_focusedMonth, -1);
+        _selectedDate = _alignDateToMonth(_selectedDate, _focusedMonth);
       } else if (_mode == WorkCalendarMode.week) {
         _selectedDate = _selectedDate.subtract(const Duration(days: 7));
       } else {
@@ -457,6 +718,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     setState(() {
       if (_mode == WorkCalendarMode.month) {
         _focusedMonth = _addMonths(_focusedMonth, 1);
+        _selectedDate = _alignDateToMonth(_selectedDate, _focusedMonth);
       } else if (_mode == WorkCalendarMode.week) {
         _selectedDate = _selectedDate.add(const Duration(days: 7));
       } else {
@@ -476,6 +738,39 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
         ),
       ),
     );
+  }
+
+  int _countDaysWithRecords() {
+    var count = 0;
+    for (final minutes in _dailyMinutes.values) {
+      if (minutes > 0) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  String _formatSelectedDayLabel(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
+    return l10n.work_log_calendar_selected_day_label(
+      date.month,
+      date.day,
+      _formatWeekdayLong(date),
+    );
+  }
+
+  String _formatRecentDayTitle(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
+    return l10n.work_log_calendar_selected_day_label(
+      date.month,
+      date.day,
+      _formatWeekdayLong(date),
+    );
+  }
+
+  String _formatWeekdayLong(DateTime date) {
+    final localeName = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat('EEE', localeName).format(date);
   }
 
   static Map<int, String> _taskTitleMap(List<WorkTask> tasks) {
@@ -503,8 +798,19 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     return DateTime(dateTime.year, dateTime.month + deltaMonths);
   }
 
+  static DateTime _alignDateToMonth(DateTime dateTime, DateTime month) {
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final day = dateTime.day <= daysInMonth ? dateTime.day : daysInMonth;
+    return DateTime(month.year, month.month, day);
+  }
+
   static bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  static String _dayCellKey(DateTime date) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return 'work_log_calendar_day_cell_${date.year}${two(date.month)}${two(date.day)}';
   }
 
   static String _minutesToHoursText(int minutes) {
@@ -513,19 +819,6 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
       return '${hours.toInt()}h';
     }
     return '${hours.toStringAsFixed(1)}h';
-  }
-
-  static String _formatWeekday(DateTime date) {
-    const map = {
-      DateTime.monday: '周一',
-      DateTime.tuesday: '周二',
-      DateTime.wednesday: '周三',
-      DateTime.thursday: '周四',
-      DateTime.friday: '周五',
-      DateTime.saturday: '周六',
-      DateTime.sunday: '周日',
-    };
-    return map[date.weekday] ?? '';
   }
 
   static String _formatDate(DateTime date) {
@@ -542,6 +835,7 @@ class _DayCell extends StatelessWidget {
   final VoidCallback onTap;
 
   const _DayCell({
+    super.key,
     required this.date,
     required this.inMonth,
     required this.selected,

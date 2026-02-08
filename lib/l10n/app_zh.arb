@@ -65,6 +65,46 @@
   "work_log_ai_summary_ai_missing_content": "未找到 AI 服务，请先在设置中完成 AI 配置",
   "work_log_ai_summary_generate_failed_title": "生成失败",
   "work_log_ai_summary_generate_failed_content": "AI 总结生成失败，请稍后重试",
+  "work_log_calendar_month_mode": "月",
+  "work_log_calendar_week_mode": "周",
+  "work_log_calendar_day_mode": "日",
+  "work_log_calendar_month_title": "{month}月",
+  "@work_log_calendar_month_title": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "work_log_calendar_month_subtitle": "本月有 {days} 天记录工时",
+  "@work_log_calendar_month_subtitle": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "work_log_calendar_week_subtitle": "周视图",
+  "work_log_calendar_day_subtitle": "日视图",
+  "work_log_calendar_selected_day_title": "当天记录",
+  "work_log_calendar_selected_day_label": "{month}月{day}日 · {weekday}",
+  "@work_log_calendar_selected_day_label": {
+    "placeholders": {
+      "month": {},
+      "day": {},
+      "weekday": {}
+    }
+  },
+  "work_log_calendar_recent_days_title": "近期记录",
+  "work_log_calendar_recent_days_empty": "本月暂无其他工时记录",
+  "work_log_calendar_no_entries_today": "当天暂无工时记录",
+  "work_log_calendar_total_label": "总计",
+  "work_log_calendar_content_label": "工作内容",
+  "work_log_calendar_task_label": "任务",
+  "work_log_calendar_no_content": "（无内容）",
+  "work_log_calendar_weekday_mon": "一",
+  "work_log_calendar_weekday_tue": "二",
+  "work_log_calendar_weekday_wed": "三",
+  "work_log_calendar_weekday_thu": "四",
+  "work_log_calendar_weekday_fri": "五",
+  "work_log_calendar_weekday_sat": "六",
+  "work_log_calendar_weekday_sun": "日",
   "sync_user_mismatch_title": "同步用户不匹配",
   "@sync_user_mismatch_title": {
     "description": "同步时检测到本地数据用户与当前同步用户不一致的提示标题"

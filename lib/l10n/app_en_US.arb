@@ -65,6 +65,46 @@
   "work_log_ai_summary_ai_missing_content": "AI service not found. Configure AI in Settings first.",
   "work_log_ai_summary_generate_failed_title": "Generate Failed",
   "work_log_ai_summary_generate_failed_content": "Failed to generate summary. Please try again later.",
+  "work_log_calendar_month_mode": "Month",
+  "work_log_calendar_week_mode": "Week",
+  "work_log_calendar_day_mode": "Day",
+  "work_log_calendar_month_title": "Month {month}",
+  "@work_log_calendar_month_title": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "work_log_calendar_month_subtitle": "{days} days with records",
+  "@work_log_calendar_month_subtitle": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "work_log_calendar_week_subtitle": "Week View",
+  "work_log_calendar_day_subtitle": "Day View",
+  "work_log_calendar_selected_day_title": "Selected Day",
+  "work_log_calendar_selected_day_label": "{month}/{day} · {weekday}",
+  "@work_log_calendar_selected_day_label": {
+    "placeholders": {
+      "month": {},
+      "day": {},
+      "weekday": {}
+    }
+  },
+  "work_log_calendar_recent_days_title": "Recent Records",
+  "work_log_calendar_recent_days_empty": "No other records this month",
+  "work_log_calendar_no_entries_today": "No time entries on this day",
+  "work_log_calendar_total_label": "Total",
+  "work_log_calendar_content_label": "Content",
+  "work_log_calendar_task_label": "Task",
+  "work_log_calendar_no_content": "(No content)",
+  "work_log_calendar_weekday_mon": "M",
+  "work_log_calendar_weekday_tue": "T",
+  "work_log_calendar_weekday_wed": "W",
+  "work_log_calendar_weekday_thu": "T",
+  "work_log_calendar_weekday_fri": "F",
+  "work_log_calendar_weekday_sat": "S",
+  "work_log_calendar_weekday_sun": "S",
   "sync_user_mismatch_title": "Sync user mismatch",
   "@sync_user_mismatch_title": {
     "description": "Title shown when local data user does not match current sync user"
