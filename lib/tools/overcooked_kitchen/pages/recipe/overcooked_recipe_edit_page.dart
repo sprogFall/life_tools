@@ -4,15 +4,20 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/ai/ai_errors.dart';
+import '../../../../core/ai/ai_service.dart';
 import '../../../../core/obj_store/obj_store_errors.dart';
 import '../../../../core/obj_store/obj_store_service.dart';
 import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/utils/dev_log.dart';
 import '../../../../core/utils/image_selector.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../pages/obj_store_settings_page.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
+import '../../ai/overcooked_recipe_ai_assistant.dart';
 import '../../overcooked_constants.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
@@ -23,8 +28,14 @@ import '../../widgets/overcooked_tag_picker_sheet.dart';
 class OvercookedRecipeEditPage extends StatefulWidget {
   final OvercookedRecipe? initial;
   final OvercookedRepository? repository;
+  final OvercookedRecipeAiAssistant? aiAssistant;
 
-  const OvercookedRecipeEditPage({super.key, this.initial, this.repository});
+  const OvercookedRecipeEditPage({
+    super.key,
+    this.initial,
+    this.repository,
+    this.aiAssistant,
+  });
 
   @override
   State<OvercookedRecipeEditPage> createState() =>
@@ -38,6 +49,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   bool _saving = false;
   bool _loading = false;
+  bool _generatingContent = false;
 
   String? _coverKey;
   List<String> _detailKeys = [];
@@ -126,6 +138,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(
@@ -135,7 +148,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           CupertinoButton(
             padding: EdgeInsets.zero,
             minimumSize: IOS26Theme.minimumTapSize,
-            onPressed: _saving ? null : _save,
+            onPressed: _saving || _generatingContent ? null : _save,
             child: Text(
               _saving ? '保存中…' : '保存',
               style: IOS26Theme.labelLarge.copyWith(
@@ -150,12 +163,27 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       body: Stack(
         children: [
           _buildBody(context),
-          if (_saving)
+          if (_saving || _generatingContent)
             Positioned.fill(
               child: Container(
                 color: IOS26Theme.overlayColor,
                 alignment: Alignment.center,
-                child: const CupertinoActivityIndicator(radius: 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CupertinoActivityIndicator(radius: 14),
+                    const SizedBox(height: IOS26Theme.spacingSm),
+                    Text(
+                      _saving
+                          ? '保存中…'
+                          : l10n.overcooked_recipe_edit_ai_generating_overlay,
+                      style: IOS26Theme.bodyMedium.copyWith(
+                        color: IOS26Theme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -164,6 +192,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final objStore = context.read<ObjStoreService>();
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -399,13 +428,52 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 },
         ),
         const SizedBox(height: 14),
-        _fieldTitle('详细内容'),
+        Row(
+          children: [
+            Expanded(child: _fieldTitle('详细内容')),
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(
+                horizontal: IOS26Theme.spacingSm,
+                vertical: IOS26Theme.spacingXs,
+              ),
+              minimumSize: IOS26Theme.minimumTapSize,
+              borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+              color: IOS26Theme.toolPurple.withValues(alpha: 0.14),
+              onPressed: _saving || _generatingContent
+                  ? null
+                  : _generateContentByAi,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    CupertinoIcons.sparkles,
+                    size: 14,
+                    color: IOS26Theme.toolPurple,
+                  ),
+                  const SizedBox(width: IOS26Theme.spacingXs),
+                  Text(
+                    l10n.overcooked_recipe_edit_ai_generate,
+                    style: IOS26Theme.bodySmall.copyWith(
+                      color: IOS26Theme.toolPurple,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         CupertinoTextField(
           controller: _contentController,
           placeholder: '写下步骤、火候、注意事项…',
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           maxLines: 8,
+        ),
+        const SizedBox(height: IOS26Theme.spacingXs),
+        Text(
+          l10n.overcooked_recipe_edit_markdown_hint,
+          style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
         ),
         const SizedBox(height: 14),
         _fieldTitle('详细图片（可多选）'),
@@ -800,6 +868,107 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       );
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  OvercookedRecipeAiAssistant? _createAiAssistant() {
+    if (widget.aiAssistant != null) {
+      return widget.aiAssistant;
+    }
+
+    try {
+      final aiService = context.read<AiService>();
+      return DefaultOvercookedRecipeAiAssistant(aiService: aiService);
+    } on ProviderNotFoundException catch (error, stackTrace) {
+      devLog(
+        'OvercookedRecipeEditPage 未注入 AiService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  List<String> _tagNames(Set<int> selectedIds) {
+    final names =
+        selectedIds
+            .map((id) => _tagsById[id]?.name.trim())
+            .whereType<String>()
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false)
+          ..sort();
+    return names;
+  }
+
+  Future<void> _generateContentByAi() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_saving || _generatingContent) return;
+
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '提示',
+        content: l10n.overcooked_recipe_edit_ai_need_name_content,
+      );
+      return;
+    }
+
+    final assistant = _createAiAssistant();
+    if (assistant == null) {
+      await OvercookedDialogs.showMessage(
+        context,
+        title: '提示',
+        content: l10n.overcooked_recipe_edit_ai_service_missing_content,
+      );
+      return;
+    }
+
+    final style = _typeTagId == null ? null : _tagsById[_typeTagId!]?.name;
+
+    setState(() => _generatingContent = true);
+    try {
+      final generated = await assistant.generateRecipeMarkdown(
+        name: name,
+        style: style,
+        ingredients: _tagNames(_ingredientTagIds),
+        sauces: _tagNames(_sauceTagIds),
+        flavors: _tagNames(_flavorTagIds),
+        intro: _introController.text.trim(),
+      );
+      if (!mounted) return;
+      final content = generated.trim();
+      if (content.isEmpty) {
+        await OvercookedDialogs.showMessage(
+          context,
+          title: '生成失败',
+          content: l10n.overcooked_recipe_edit_ai_empty_content,
+        );
+        return;
+      }
+      setState(() {
+        _contentController.text = content;
+        _contentController.selection = TextSelection.fromPosition(
+          TextPosition(offset: content.length),
+        );
+      });
+    } on AiNotConfiguredException {
+      if (!mounted) return;
+      await OvercookedDialogs.showMessage(
+        context,
+        title: 'AI 未配置',
+        content: l10n.overcooked_recipe_edit_ai_not_configured_content,
+      );
+    } catch (error, stackTrace) {
+      devLog('胡闹厨房菜谱 AI 生成失败', error: error, stackTrace: stackTrace);
+      if (!mounted) return;
+      await OvercookedDialogs.showMessage(
+        context,
+        title: 'AI 生成失败',
+        content: error.toString(),
+      );
+    } finally {
+      if (mounted) setState(() => _generatingContent = false);
     }
   }
 }

@@ -99,7 +99,7 @@ void main() {
         sauceTagIds: const [],
         flavorTagIds: const [],
         intro: '简介文本',
-        content: '正文内容',
+        content: '# 做法\n- 切菜\n- 下锅',
         detailImageKeys: const [],
         now: now,
       );
@@ -124,7 +124,15 @@ void main() {
 
       expect(find.text('测试菜谱'), findsOneWidget);
       expect(find.text('详细内容'), findsOneWidget);
-      expect(find.text('正文内容'), findsOneWidget);
+      expect(find.text('做法'), findsOneWidget);
+      expect(find.text('切菜'), findsOneWidget);
+      expect(find.text('沉浸式阅读'), findsOneWidget);
+
+      await tester.tap(find.text('沉浸式阅读'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('沉浸式阅读'), findsAtLeastNWidgets(1));
+      expect(find.text('下锅'), findsOneWidget);
     });
   });
 }

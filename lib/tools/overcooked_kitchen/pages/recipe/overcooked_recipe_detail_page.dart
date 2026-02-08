@@ -7,14 +7,17 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../tag_manager/pages/tag_manager_tool_page.dart';
 import '../../overcooked_constants.dart';
 import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_image.dart';
+import '../../widgets/overcooked_markdown.dart';
 import 'overcooked_recipe_edit_page.dart';
 import 'overcooked_image_viewer_page.dart';
+import 'overcooked_recipe_markdown_page.dart';
 
 class OvercookedRecipeDetailPage extends StatefulWidget {
   final int recipeId;
@@ -166,6 +169,7 @@ class _OvercookedRecipeDetailPageState
   }
 
   Widget _buildContent(BuildContext context, OvercookedRecipe recipe) {
+    final l10n = AppLocalizations.of(context)!;
     final objStore = context.read<ObjStoreService>();
     final typeName = recipe.typeTagId == null
         ? null
@@ -241,15 +245,68 @@ class _OvercookedRecipeDetailPageState
         const SizedBox(height: 14),
         _sectionTitle('详细内容'),
         const SizedBox(height: 8),
-        Text(
-          recipe.content.trim().isEmpty ? '（暂无）' : recipe.content.trim(),
-          style: IOS26Theme.bodyMedium.copyWith(
-            height: 1.45,
-            color: recipe.content.trim().isEmpty
-                ? IOS26Theme.textSecondary
-                : IOS26Theme.textPrimary,
+        if (recipe.content.trim().isEmpty)
+          Text(
+            '（暂无）',
+            style: IOS26Theme.bodyMedium.copyWith(
+              height: 1.45,
+              color: IOS26Theme.textSecondary,
+            ),
+          )
+        else
+          GlassContainer(
+            borderRadius: IOS26Theme.radiusLg,
+            padding: const EdgeInsets.all(IOS26Theme.spacingMd),
+            color: IOS26Theme.surfaceColor.withValues(alpha: 0.86),
+            border: Border.all(
+              color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
+              width: 1,
+            ),
+            child: OvercookedMarkdownBody(data: recipe.content.trim()),
           ),
-        ),
+        if (recipe.content.trim().isNotEmpty) ...[
+          const SizedBox(height: IOS26Theme.spacingSm),
+          Align(
+            alignment: Alignment.centerRight,
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(
+                horizontal: IOS26Theme.spacingSm,
+                vertical: IOS26Theme.spacingXs,
+              ),
+              minimumSize: IOS26Theme.minimumTapSize,
+              borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+              color: IOS26Theme.toolBlue.withValues(alpha: 0.12),
+              onPressed: () {
+                Navigator.of(context).push(
+                  CupertinoPageRoute<void>(
+                    builder: (_) => OvercookedRecipeMarkdownPage(
+                      recipeName: recipe.name,
+                      markdown: recipe.content.trim(),
+                    ),
+                  ),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    CupertinoIcons.doc_richtext,
+                    size: 14,
+                    color: IOS26Theme.toolBlue,
+                  ),
+                  const SizedBox(width: IOS26Theme.spacingXs),
+                  Text(
+                    l10n.overcooked_recipe_detail_immersive_read,
+                    style: IOS26Theme.bodySmall.copyWith(
+                      color: IOS26Theme.toolBlue,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         if (recipe.detailImageKeys.isNotEmpty) ...[
           const SizedBox(height: 16),
           _sectionTitle('详细图片'),

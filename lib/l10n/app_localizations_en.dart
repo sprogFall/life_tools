@@ -45,6 +45,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tool_overcooked_name => 'Overcooked Kitchen';
 
   @override
+  String get overcooked_recipe_edit_ai_generate => 'AI Generate';
+
+  @override
+  String get overcooked_recipe_edit_ai_generating_overlay =>
+      'Generating recipe...';
+
+  @override
+  String get overcooked_recipe_edit_markdown_hint =>
+      'Markdown supported. Fine-tune after generation.';
+
+  @override
+  String get overcooked_recipe_edit_ai_need_name_content =>
+      'Please enter a dish name before using AI generation.';
+
+  @override
+  String get overcooked_recipe_edit_ai_service_missing_content =>
+      'AI service not found. Ensure AiService is provided at app entry.';
+
+  @override
+  String get overcooked_recipe_edit_ai_empty_content =>
+      'AI returned empty content. Please try again later.';
+
+  @override
+  String get overcooked_recipe_edit_ai_not_configured_content =>
+      'Configure AI in Settings > AI Settings before generating recipes.';
+
+  @override
+  String get overcooked_recipe_detail_immersive_read => 'Immersive Reading';
+
+  @override
+  String get overcooked_recipe_markdown_page_title => 'Immersive Reading';
+
+  @override
   String get tool_work_log_name => 'Work Log';
 
   @override
@@ -916,6 +949,39 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get tool_overcooked_name => 'Overcooked Kitchen';
+
+  @override
+  String get overcooked_recipe_edit_ai_generate => 'AI Generate';
+
+  @override
+  String get overcooked_recipe_edit_ai_generating_overlay =>
+      'Generating recipe...';
+
+  @override
+  String get overcooked_recipe_edit_markdown_hint =>
+      'Markdown supported. Fine-tune after generation.';
+
+  @override
+  String get overcooked_recipe_edit_ai_need_name_content =>
+      'Please enter a dish name before using AI generation.';
+
+  @override
+  String get overcooked_recipe_edit_ai_service_missing_content =>
+      'AI service not found. Ensure AiService is provided at app entry.';
+
+  @override
+  String get overcooked_recipe_edit_ai_empty_content =>
+      'AI returned empty content. Please try again later.';
+
+  @override
+  String get overcooked_recipe_edit_ai_not_configured_content =>
+      'Configure AI in Settings > AI Settings before generating recipes.';
+
+  @override
+  String get overcooked_recipe_detail_immersive_read => 'Immersive Reading';
+
+  @override
+  String get overcooked_recipe_markdown_page_title => 'Immersive Reading';
 
   @override
   String get tool_work_log_name => 'Work Log';

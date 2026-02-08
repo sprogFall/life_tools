@@ -45,6 +45,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tool_overcooked_name => '胡闹厨房';
 
   @override
+  String get overcooked_recipe_edit_ai_generate => 'AI 生成';
+
+  @override
+  String get overcooked_recipe_edit_ai_generating_overlay => '菜谱生成中…';
+
+  @override
+  String get overcooked_recipe_edit_markdown_hint => '支持 Markdown，建议生成后再按需微调';
+
+  @override
+  String get overcooked_recipe_edit_ai_need_name_content => '请先填写菜名，再使用 AI 生成。';
+
+  @override
+  String get overcooked_recipe_edit_ai_service_missing_content =>
+      '未找到 AI 服务，请确认已在应用入口注入 AiService。';
+
+  @override
+  String get overcooked_recipe_edit_ai_empty_content => 'AI 返回内容为空，请稍后重试。';
+
+  @override
+  String get overcooked_recipe_edit_ai_not_configured_content =>
+      '请先在“设置 -> AI 设置”完成配置后再生成菜谱。';
+
+  @override
+  String get overcooked_recipe_detail_immersive_read => '沉浸式阅读';
+
+  @override
+  String get overcooked_recipe_markdown_page_title => '沉浸式阅读';
+
+  @override
   String get tool_work_log_name => '工作记录';
 
   @override
@@ -886,6 +915,35 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get tool_overcooked_name => '胡闹厨房';
+
+  @override
+  String get overcooked_recipe_edit_ai_generate => 'AI 生成';
+
+  @override
+  String get overcooked_recipe_edit_ai_generating_overlay => '菜谱生成中…';
+
+  @override
+  String get overcooked_recipe_edit_markdown_hint => '支持 Markdown，建议生成后再按需微调';
+
+  @override
+  String get overcooked_recipe_edit_ai_need_name_content => '请先填写菜名，再使用 AI 生成。';
+
+  @override
+  String get overcooked_recipe_edit_ai_service_missing_content =>
+      '未找到 AI 服务，请确认已在应用入口注入 AiService。';
+
+  @override
+  String get overcooked_recipe_edit_ai_empty_content => 'AI 返回内容为空，请稍后重试。';
+
+  @override
+  String get overcooked_recipe_edit_ai_not_configured_content =>
+      '请先在“设置 -> AI 设置”完成配置后再生成菜谱。';
+
+  @override
+  String get overcooked_recipe_detail_immersive_read => '沉浸式阅读';
+
+  @override
+  String get overcooked_recipe_markdown_page_title => '沉浸式阅读';
 
   @override
   String get tool_work_log_name => '工作记录';

@@ -172,6 +172,60 @@ abstract class AppLocalizations {
   /// **'Overcooked Kitchen'**
   String get tool_overcooked_name;
 
+  /// No description provided for @overcooked_recipe_edit_ai_generate.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Generate'**
+  String get overcooked_recipe_edit_ai_generate;
+
+  /// No description provided for @overcooked_recipe_edit_ai_generating_overlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating recipe...'**
+  String get overcooked_recipe_edit_ai_generating_overlay;
+
+  /// No description provided for @overcooked_recipe_edit_markdown_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown supported. Fine-tune after generation.'**
+  String get overcooked_recipe_edit_markdown_hint;
+
+  /// No description provided for @overcooked_recipe_edit_ai_need_name_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a dish name before using AI generation.'**
+  String get overcooked_recipe_edit_ai_need_name_content;
+
+  /// No description provided for @overcooked_recipe_edit_ai_service_missing_content.
+  ///
+  /// In en, this message translates to:
+  /// **'AI service not found. Ensure AiService is provided at app entry.'**
+  String get overcooked_recipe_edit_ai_service_missing_content;
+
+  /// No description provided for @overcooked_recipe_edit_ai_empty_content.
+  ///
+  /// In en, this message translates to:
+  /// **'AI returned empty content. Please try again later.'**
+  String get overcooked_recipe_edit_ai_empty_content;
+
+  /// No description provided for @overcooked_recipe_edit_ai_not_configured_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure AI in Settings > AI Settings before generating recipes.'**
+  String get overcooked_recipe_edit_ai_not_configured_content;
+
+  /// No description provided for @overcooked_recipe_detail_immersive_read.
+  ///
+  /// In en, this message translates to:
+  /// **'Immersive Reading'**
+  String get overcooked_recipe_detail_immersive_read;
+
+  /// No description provided for @overcooked_recipe_markdown_page_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Immersive Reading'**
+  String get overcooked_recipe_markdown_page_title;
+
   /// No description provided for @tool_work_log_name.
   ///
   /// In en, this message translates to:
