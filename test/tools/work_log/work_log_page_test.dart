@@ -338,5 +338,116 @@ void main() {
       expect(find.byType(GridView), findsOneWidget);
       expect(find.text('2h'), findsWidgets);
     });
+
+    testWidgets('日历周视图点击后应展示当天记录与近期记录卡片', (tester) async {
+      final fake = FakeWorkLogRepository();
+      final taskId = await fake.createTask(
+        WorkTask.create(
+          title: '任务A',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final now = DateTime.now();
+      final anotherDay = DateTime(
+        now.year,
+        now.month,
+        now.day > 1 ? now.day - 1 : now.day + 1,
+      );
+
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: now,
+          minutes: 60,
+          content: '今日记录',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+      await fake.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: anotherDay,
+          minutes: 120,
+          content: '近期记录',
+          now: DateTime(2026, 1, 1),
+        ),
+      );
+
+      await tester.pumpWidget(
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.text('日历'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('周'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('work_log_calendar_selected_day_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('work_log_calendar_recent_days_card')),
+        findsOneWidget,
+      );
+      expect(find.text('当天记录'), findsOneWidget);
+      expect(find.text('近期记录'), findsWidgets);
+    });
+
+    testWidgets('日历月视图当天有圆点时日期数字应与其他日期对齐', (tester) async {
+      final fake = FakeWorkLogRepository();
+      await tester.pumpWidget(
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.text('日历'));
+      await tester.pumpAndSettle();
+
+      final now = DateTime.now();
+      final compareDate = DateTime(
+        now.year,
+        now.month,
+        now.day > 1 ? now.day - 1 : now.day + 1,
+      );
+
+      final compareCellKey = ValueKey(
+        'work_log_calendar_day_cell_${compareDate.year}${compareDate.month.toString().padLeft(2, '0')}${compareDate.day.toString().padLeft(2, '0')}',
+      );
+
+      await tester.tap(find.byKey(compareCellKey));
+      await tester.pumpAndSettle();
+
+      final todayKey = ValueKey(
+        'work_log_calendar_day_cell_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}',
+      );
+
+      final todayText = find.descendant(
+        of: find.byKey(todayKey),
+        matching: find.text('${now.day}'),
+      );
+      final compareText = find.descendant(
+        of: find.byKey(compareCellKey),
+        matching: find.text('${compareDate.day}'),
+      );
+
+      final todayDy = tester.getTopLeft(todayText).dy;
+      final compareDy = tester.getTopLeft(compareText).dy;
+      final todayCellDy = tester.getTopLeft(find.byKey(todayKey)).dy;
+      final compareCellDy = tester.getTopLeft(find.byKey(compareCellKey)).dy;
+
+      final todayOffsetInCell = todayDy - todayCellDy;
+      final compareOffsetInCell = compareDy - compareCellDy;
+
+      expect(todayOffsetInCell, closeTo(compareOffsetInCell, 0.1));
+    });
   });
 }

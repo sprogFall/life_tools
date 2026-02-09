@@ -132,6 +132,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: GlassContainer(
+                key: const ValueKey('overcooked_recipes_gacha_entry_card'),
                 borderRadius: 18,
                 padding: const EdgeInsets.all(14),
                 color: IOS26Theme.toolOrange.withValues(alpha: 0.10),
@@ -139,6 +140,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                   color: IOS26Theme.toolOrange.withValues(alpha: 0.25),
                   width: 1,
                 ),
+                disableBlurDuringRouteTransition: false,
                 child: Row(
                   children: [
                     const Icon(

@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/theme/ios26_theme.dart';
 import 'package:life_tools/core/tags/models/tag.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
@@ -78,6 +80,26 @@ void main() {
       expect(find.text('不知道吃什么？去扭蛋机抽一个'), findsOneWidget);
       expect(find.text('去扭蛋'), findsOneWidget);
       expect(find.text('搜索菜谱'), findsOneWidget);
+    });
+
+    testWidgets('扭蛋入口卡片在路由过渡时不应关闭毛玻璃', (tester) async {
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedRecipesTab(onJumpToGacha: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final gachaCard = tester.widget<GlassContainer>(
+        find.byKey(const ValueKey('overcooked_recipes_gacha_entry_card')),
+      );
+      expect(gachaCard.disableBlurDuringRouteTransition, isFalse);
     });
   });
 }

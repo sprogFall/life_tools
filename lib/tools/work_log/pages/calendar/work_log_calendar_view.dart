@@ -207,14 +207,8 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   }
 
   Widget _buildMonthView() {
-    final firstOfMonth = _startOfMonth(_focusedMonth);
-    final leading = (firstOfMonth.weekday - DateTime.monday) % 7;
-    final startCell = firstOfMonth.subtract(Duration(days: leading));
-    final daysInMonth = DateUtils.getDaysInMonth(
-      firstOfMonth.year,
-      firstOfMonth.month,
-    );
-    final totalCells = ((leading + daysInMonth + 6) ~/ 7) * 7;
+    final monthGrid = _buildMonthGrid(_focusedMonth);
+    final firstOfMonth = monthGrid.firstOfMonth;
 
     final selectedDay = _startOfDay(_selectedDate);
     final selectedEntries =
@@ -253,7 +247,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: totalCells,
+                itemCount: monthGrid.totalCells,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 7,
                   mainAxisExtent: 64,
@@ -261,7 +255,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                   mainAxisSpacing: 0,
                 ),
                 itemBuilder: (context, index) {
-                  final date = startCell.add(Duration(days: index));
+                  final date = monthGrid.startCell.add(Duration(days: index));
                   final inMonth = date.month == firstOfMonth.month;
                   final minutes = _dailyMinutes[_startOfDay(date)] ?? 0;
                   final selected = _isSameDay(date, _selectedDate);
@@ -471,6 +465,24 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   Widget _buildWeekView() {
     final start = _startOfWeek(_selectedDate);
     final days = List.generate(7, (i) => start.add(Duration(days: i)));
+    final selectedDay = _startOfDay(_selectedDate);
+    final selectedEntries =
+        _entries.where((e) => _isSameDay(e.workDate, selectedDay)).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final selectedTotal = selectedEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.minutes,
+    );
+    final taskTitleById = _taskTitleMap(
+      context.watch<WorkLogService>().allTasks,
+    );
+    final recentDays =
+        _dailyMinutes.entries
+            .where(
+              (entry) => entry.value > 0 && !_isSameDay(entry.key, selectedDay),
+            )
+            .toList()
+          ..sort((a, b) => b.key.compareTo(a.key));
 
     return Column(
       children: [
@@ -478,14 +490,12 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
           final minutes = _dailyMinutes[_startOfDay(d)] ?? 0;
           final selected = _isSameDay(d, _selectedDate);
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.only(bottom: IOS26Theme.spacingSm),
             child: GestureDetector(
               onTap: () {
                 setState(() {
                   _selectedDate = _startOfDay(d);
-                  _mode = WorkCalendarMode.day;
                 });
-                _load();
               },
               child: GlassContainer(
                 padding: const EdgeInsets.symmetric(
@@ -531,6 +541,14 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
             ),
           );
         }),
+        const SizedBox(height: IOS26Theme.spacingMd),
+        _buildSelectedDayCard(
+          selectedEntries: selectedEntries,
+          selectedTotal: selectedTotal,
+          taskTitleById: taskTitleById,
+        ),
+        const SizedBox(height: IOS26Theme.spacingMd),
+        _buildRecentDaysCard(recentDays),
       ],
     );
   }
@@ -825,6 +843,23 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
     String two(int v) => v.toString().padLeft(2, '0');
     return '${date.year}-${two(date.month)}-${two(date.day)}';
   }
+
+  static ({DateTime firstOfMonth, DateTime startCell, int totalCells})
+  _buildMonthGrid(DateTime focusedMonth) {
+    final firstOfMonth = _startOfMonth(focusedMonth);
+    final leading = (firstOfMonth.weekday - DateTime.monday) % 7;
+    final startCell = firstOfMonth.subtract(Duration(days: leading));
+    final daysInMonth = DateUtils.getDaysInMonth(
+      firstOfMonth.year,
+      firstOfMonth.month,
+    );
+    final totalCells = ((leading + daysInMonth + 6) ~/ 7) * 7;
+    return (
+      firstOfMonth: firstOfMonth,
+      startCell: startCell,
+      totalCells: totalCells,
+    );
+  }
 }
 
 class _DayCell extends StatelessWidget {
@@ -868,6 +903,12 @@ class _DayCell extends StatelessWidget {
     final minutesColor = selected
         ? IOS26Theme.surfaceColor.withValues(alpha: 0.9)
         : IOS26Theme.textSecondary.withValues(alpha: 0.8);
+    final indicatorWidget = _buildIndicator(
+      minutesText: minutesText,
+      isToday: isToday,
+      selected: selected,
+      minutesColor: minutesColor,
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -890,8 +931,9 @@ class _DayCell extends StatelessWidget {
                 )
               : null,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              const SizedBox(height: 6),
               Text(
                 '${date.day}',
                 style: IOS26Theme.titleMedium.copyWith(
@@ -901,33 +943,43 @@ class _DayCell extends StatelessWidget {
                   height: 1.0,
                 ),
               ),
-              const SizedBox(height: 4),
-              if (minutesText != null)
-                Text(
-                  minutesText,
-                  style: IOS26Theme.bodySmall.copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: minutesColor,
-                    height: 1.0,
-                  ),
-                )
-              else if (isToday && !selected)
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    color: IOS26Theme.primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                )
-              else
-                const SizedBox(height: 10 + 4),
+              const SizedBox(height: 2),
+              SizedBox(height: 14, child: Center(child: indicatorWidget)),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildIndicator({
+    required String? minutesText,
+    required bool isToday,
+    required bool selected,
+    required Color minutesColor,
+  }) {
+    if (minutesText != null) {
+      return Text(
+        minutesText,
+        style: IOS26Theme.bodySmall.copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: minutesColor,
+          height: 1.0,
+        ),
+      );
+    }
+    if (isToday && !selected) {
+      return Container(
+        width: 4,
+        height: 4,
+        decoration: const BoxDecoration(
+          color: IOS26Theme.primaryColor,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   static String _minutesToHoursText(int minutes) {

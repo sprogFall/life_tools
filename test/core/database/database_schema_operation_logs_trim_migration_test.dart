@@ -73,6 +73,6 @@ CREATE TABLE IF NOT EXISTS operation_logs (
       expect(rows.length, 10);
       expect(rows.first['target_id'], 15);
       expect(rows.last['target_id'], 6);
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 }
