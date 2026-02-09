@@ -1,7 +1,6 @@
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:gal/gal.dart';
 
 enum OvercookedGallerySaveStatus {
   saved,
@@ -170,20 +169,17 @@ class OvercookedRecipeImageExportService {
       return const OvercookedGallerySaveResult.unsupported();
     }
 
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final status = await Permission.photosAddOnly.request();
-      if (!status.isGranted && !status.isLimited) {
+    try {
+      var hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        hasAccess = await Gal.requestAccess();
+      }
+      if (!hasAccess) {
         return const OvercookedGallerySaveResult.permissionDenied();
       }
-    }
 
-    try {
-      final result = await ImageGallerySaver.saveImage(
-        bytes,
-        quality: 100,
-        name: name,
-      );
-      return OvercookedGallerySaveResult.fromPluginResult(result);
+      await Gal.putImageBytes(bytes, name: name);
+      return const OvercookedGallerySaveResult.saved();
     } catch (error) {
       return OvercookedGallerySaveResult.failed(error.toString());
     }
