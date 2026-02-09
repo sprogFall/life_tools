@@ -47,6 +47,10 @@ abstract class WorkLogRepositoryBase {
   });
   Future<int> getOperationLogCount();
 
+  Future<int> getOperationLogRetentionLimit();
+  Future<void> setOperationLogRetentionLimit(int limit);
+  Future<void> trimOperationLogsToConfiguredLimit();
+
   // 同步相关方法：批量导入数据
   /// 从服务端数据批量导入任务（覆盖本地）
   Future<void> importTasksFromServer(List<Map<String, dynamic>> tasksData);

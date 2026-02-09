@@ -196,6 +196,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get work_log_ai_summary_generate_failed_content => 'AI 总结生成失败，请稍后重试';
 
   @override
+  String get work_log_operation_logs_title => '操作日志';
+
+  @override
+  String get work_log_operation_logs_empty => '暂无操作记录';
+
+  @override
+  String work_log_operation_logs_limit_hint(int count) {
+    return '仅可查看最近$count次操作';
+  }
+
+  @override
+  String get work_log_operation_logs_today => '今天';
+
+  @override
+  String get work_log_operation_logs_yesterday => '昨天';
+
+  @override
+  String get work_log_operation_logs_limit_setting => '保留条数';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_title => '设置保留条数';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_message =>
+      '调整后将仅保留最近指定条数的操作日志';
+
+  @override
+  String work_log_operation_logs_limit_option(int count) {
+    return '$count 条';
+  }
+
+  @override
   String get work_log_calendar_month_mode => '月';
 
   @override
@@ -1066,6 +1098,38 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get work_log_ai_summary_generate_failed_content => 'AI 总结生成失败，请稍后重试';
+
+  @override
+  String get work_log_operation_logs_title => '操作日志';
+
+  @override
+  String get work_log_operation_logs_empty => '暂无操作记录';
+
+  @override
+  String work_log_operation_logs_limit_hint(int count) {
+    return '仅可查看最近$count次操作';
+  }
+
+  @override
+  String get work_log_operation_logs_today => '今天';
+
+  @override
+  String get work_log_operation_logs_yesterday => '昨天';
+
+  @override
+  String get work_log_operation_logs_limit_setting => '保留条数';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_title => '设置保留条数';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_message =>
+      '调整后将仅保留最近指定条数的操作日志';
+
+  @override
+  String work_log_operation_logs_limit_option(int count) {
+    return '$count 条';
+  }
 
   @override
   String get work_log_calendar_month_mode => '月';

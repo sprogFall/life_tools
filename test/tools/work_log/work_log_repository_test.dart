@@ -344,6 +344,107 @@ void main() {
       expect(count, 2);
     });
 
+    test('操作日志应最多保留最近10条', () async {
+      for (int i = 0; i < 15; i++) {
+        await repository.createOperationLog(
+          OperationLog.create(
+            operationType: OperationType.updateTask,
+            targetType: TargetType.task,
+            targetId: i + 1,
+            targetTitle: '任务${i + 1}',
+            summary: '更新任务 ${i + 1}',
+            now: DateTime(2026, 1, 1, 10).add(Duration(minutes: i)),
+          ),
+        );
+      }
+
+      final logs = await repository.listOperationLogs();
+      expect(logs.length, 10);
+      expect(logs.first.targetId, 15);
+      expect(logs.last.targetId, 6);
+      expect(logs.every((log) => log.targetId >= 6), isTrue);
+
+      final count = await repository.getOperationLogCount();
+      expect(count, 10);
+    });
+
+    test('导入操作日志后也应只保留最近10条', () async {
+      final logsData = List.generate(12, (i) {
+        return Map<String, dynamic>.from(
+          OperationLog.create(
+            operationType: OperationType.createTask,
+            targetType: TargetType.task,
+            targetId: i + 1,
+            targetTitle: '导入任务${i + 1}',
+            summary: '导入日志 ${i + 1}',
+            now: DateTime(2026, 1, 1, 8).add(Duration(minutes: i)),
+          ).toMap(includeId: false),
+        );
+      });
+
+      await repository.importOperationLogsFromServer(logsData);
+
+      final logs = await repository.listOperationLogs();
+      expect(logs.length, 10);
+      expect(logs.first.targetId, 12);
+      expect(logs.last.targetId, 3);
+
+      final count = await repository.getOperationLogCount();
+      expect(count, 10);
+    });
+
+    test('应支持配置操作日志保留条数', () async {
+      await repository.setOperationLogRetentionLimit(5);
+
+      final retentionLimit = await repository.getOperationLogRetentionLimit();
+      expect(retentionLimit, 5);
+
+      for (int i = 0; i < 8; i++) {
+        await repository.createOperationLog(
+          OperationLog.create(
+            operationType: OperationType.updateTask,
+            targetType: TargetType.task,
+            targetId: i + 1,
+            targetTitle: '任务${i + 1}',
+            summary: '更新任务 ${i + 1}',
+            now: DateTime(2026, 1, 1, 8).add(Duration(minutes: i)),
+          ),
+        );
+      }
+
+      final logs = await repository.listOperationLogs();
+      expect(logs.length, 5);
+      expect(logs.first.targetId, 8);
+      expect(logs.last.targetId, 4);
+    });
+
+    test('导入操作日志时应遵循已配置的保留条数', () async {
+      await repository.setOperationLogRetentionLimit(12);
+
+      final logsData = List.generate(15, (i) {
+        return Map<String, dynamic>.from(
+          OperationLog.create(
+            operationType: OperationType.createTask,
+            targetType: TargetType.task,
+            targetId: i + 1,
+            targetTitle: '导入任务${i + 1}',
+            summary: '导入日志 ${i + 1}',
+            now: DateTime(2026, 1, 1, 8).add(Duration(minutes: i)),
+          ).toMap(includeId: false),
+        );
+      });
+
+      await repository.importOperationLogsFromServer(logsData);
+
+      final logs = await repository.listOperationLogs();
+      expect(logs.length, 12);
+      expect(logs.first.targetId, 15);
+      expect(logs.last.targetId, 4);
+
+      final count = await repository.getOperationLogCount();
+      expect(count, 12);
+    });
+
     test('应该可以按目标类型过滤操作日志', () async {
       await repository.createOperationLog(
         OperationLog.create(

@@ -74,6 +74,29 @@
   "work_log_ai_summary_ai_missing_content": "AI service not found. Configure AI in Settings first.",
   "work_log_ai_summary_generate_failed_title": "Generate Failed",
   "work_log_ai_summary_generate_failed_content": "Failed to generate summary. Please try again later.",
+  "work_log_operation_logs_title": "Operation Logs",
+  "work_log_operation_logs_empty": "No operation records",
+  "work_log_operation_logs_limit_hint": "Only the latest {count} operations are available",
+  "@work_log_operation_logs_limit_hint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "work_log_operation_logs_today": "Today",
+  "work_log_operation_logs_yesterday": "Yesterday",
+  "work_log_operation_logs_limit_setting": "Retention Limit",
+  "work_log_operation_logs_limit_sheet_title": "Set Retention Limit",
+  "work_log_operation_logs_limit_sheet_message": "Only the latest selected number of operation logs will be kept",
+  "work_log_operation_logs_limit_option": "{count} items",
+  "@work_log_operation_logs_limit_option": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "work_log_calendar_month_mode": "Month",
   "work_log_calendar_week_mode": "Week",
   "work_log_calendar_day_mode": "Day",

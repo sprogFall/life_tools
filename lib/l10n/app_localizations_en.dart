@@ -206,6 +206,38 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to generate summary. Please try again later.';
 
   @override
+  String get work_log_operation_logs_title => 'Operation Logs';
+
+  @override
+  String get work_log_operation_logs_empty => 'No operation records';
+
+  @override
+  String work_log_operation_logs_limit_hint(int count) {
+    return 'Only the latest $count operations are available';
+  }
+
+  @override
+  String get work_log_operation_logs_today => 'Today';
+
+  @override
+  String get work_log_operation_logs_yesterday => 'Yesterday';
+
+  @override
+  String get work_log_operation_logs_limit_setting => 'Retention Limit';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_title => 'Set Retention Limit';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_message =>
+      'Only the latest selected number of operation logs will be kept';
+
+  @override
+  String work_log_operation_logs_limit_option(int count) {
+    return '$count items';
+  }
+
+  @override
   String get work_log_calendar_month_mode => 'Month';
 
   @override
@@ -1110,6 +1142,38 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   @override
   String get work_log_ai_summary_generate_failed_content =>
       'Failed to generate summary. Please try again later.';
+
+  @override
+  String get work_log_operation_logs_title => 'Operation Logs';
+
+  @override
+  String get work_log_operation_logs_empty => 'No operation records';
+
+  @override
+  String work_log_operation_logs_limit_hint(int count) {
+    return 'Only the latest $count operations are available';
+  }
+
+  @override
+  String get work_log_operation_logs_today => 'Today';
+
+  @override
+  String get work_log_operation_logs_yesterday => 'Yesterday';
+
+  @override
+  String get work_log_operation_logs_limit_setting => 'Retention Limit';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_title => 'Set Retention Limit';
+
+  @override
+  String get work_log_operation_logs_limit_sheet_message =>
+      'Only the latest selected number of operation logs will be kept';
+
+  @override
+  String work_log_operation_logs_limit_option(int count) {
+    return '$count items';
+  }
 
   @override
   String get work_log_calendar_month_mode => 'Month';

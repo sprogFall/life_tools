@@ -1,6 +1,7 @@
 import 'package:life_tools/tools/work_log/models/operation_log.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
+import 'package:life_tools/tools/work_log/work_log_constants.dart';
 import 'package:life_tools/tools/work_log/repository/work_log_repository_base.dart';
 
 class FakeWorkLogRepository implements WorkLogRepositoryBase {
@@ -10,6 +11,8 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   final List<WorkTask> _tasks = [];
   final List<WorkTimeEntry> _entries = [];
   final List<OperationLog> _logs = [];
+  int _operationLogRetentionLimit =
+      WorkLogConstants.defaultOperationLogRetentionLimit;
 
   @override
   Future<int> createTask(WorkTask task) async {
@@ -188,6 +191,7 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
         createdAt: log.createdAt,
       ),
     );
+    _trimOperationLogs();
     return id;
   }
 
@@ -222,6 +226,22 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
+  Future<int> getOperationLogRetentionLimit() async {
+    return _operationLogRetentionLimit;
+  }
+
+  @override
+  Future<void> setOperationLogRetentionLimit(int limit) async {
+    _operationLogRetentionLimit = _normalizeOperationLogRetentionLimit(limit);
+    _trimOperationLogs();
+  }
+
+  @override
+  Future<void> trimOperationLogsToConfiguredLimit() async {
+    _trimOperationLogs();
+  }
+
+  @override
   Future<void> importTasksFromServer(
     List<Map<String, dynamic>> tasksData,
   ) async {
@@ -249,5 +269,21 @@ class FakeWorkLogRepository implements WorkLogRepositoryBase {
     for (final logMap in logsData) {
       _logs.add(OperationLog.fromMap(logMap));
     }
+    _trimOperationLogs();
+  }
+
+  int _normalizeOperationLogRetentionLimit(int value) {
+    return value.clamp(
+      WorkLogConstants.minOperationLogRetentionLimit,
+      WorkLogConstants.maxOperationLogRetentionLimit,
+    );
+  }
+
+  void _trimOperationLogs() {
+    _logs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (_logs.length <= _operationLogRetentionLimit) {
+      return;
+    }
+    _logs.removeRange(_operationLogRetentionLimit, _logs.length);
   }
 }

@@ -3,7 +3,8 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 17;
+  static const int version = 18;
+  static const int _maxOperationLogRecords = 10;
 
   static Future<void> onConfigure(Database db) async {
     // 说明：
@@ -83,6 +84,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 17) {
       await _upgradeToVersion17(db);
+    }
+    if (oldVersion < 18) {
+      await _upgradeToVersion18(db);
     }
   }
 
@@ -959,6 +963,27 @@ WHERE tool_id = ? AND category_id = ?
   static Future<void> _upgradeToVersion16(Database db) async {
     // v16: 添加菜谱打分表
     await _createOvercookedRatingTable(db);
+  }
+
+  static Future<void> _upgradeToVersion18(Database db) async {
+    // v18: 操作日志最多保留最近 10 条，避免备份/同步体积膨胀。
+    await _createOperationLogTables(db);
+    await _trimOperationLogs(db);
+  }
+
+  static Future<void> _trimOperationLogs(DatabaseExecutor db) async {
+    await db.rawDelete(
+      '''
+      DELETE FROM operation_logs
+      WHERE id NOT IN (
+        SELECT id
+        FROM operation_logs
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+      )
+      ''',
+      [_maxOperationLogRecords],
+    );
   }
 
   static Future<void> _upgradeToVersion17(Database db) async {

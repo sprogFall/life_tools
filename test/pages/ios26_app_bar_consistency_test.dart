@@ -197,7 +197,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: service,
-          child: const MaterialApp(home: OperationLogListPage()),
+          child: const TestAppWrapper(child: OperationLogListPage()),
         ),
       );
       await tester.pump();

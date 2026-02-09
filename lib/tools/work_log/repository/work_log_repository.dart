@@ -3,9 +3,13 @@ import '../../../core/database/database_helper.dart';
 import '../models/operation_log.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
+import '../work_log_constants.dart';
 import 'work_log_repository_base.dart';
 
 class WorkLogRepository implements WorkLogRepositoryBase {
+  static const String _operationLogRetentionLimitKey =
+      'work_log_operation_log_retention_limit';
+
   final Future<Database> _database;
 
   WorkLogRepository({DatabaseHelper? dbHelper})
@@ -232,7 +236,15 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   @override
   Future<int> createOperationLog(OperationLog log) async {
     final db = await _database;
-    return db.insert('operation_logs', log.toMap(includeId: false));
+    return db.transaction((txn) async {
+      final retentionLimit = await _getOperationLogRetentionLimit(txn);
+      final id = await txn.insert(
+        'operation_logs',
+        log.toMap(includeId: false),
+      );
+      await _trimOperationLogs(txn, retentionLimit);
+      return id;
+    });
   }
 
   @override
@@ -277,6 +289,31 @@ class WorkLogRepository implements WorkLogRepositoryBase {
   }
 
   @override
+  Future<int> getOperationLogRetentionLimit() async {
+    final db = await _database;
+    return _getOperationLogRetentionLimit(db);
+  }
+
+  @override
+  Future<void> setOperationLogRetentionLimit(int limit) async {
+    final db = await _database;
+    final normalized = _normalizeOperationLogRetentionLimit(limit);
+    await db.transaction((txn) async {
+      await _saveOperationLogRetentionLimit(txn, normalized);
+      await _trimOperationLogs(txn, normalized);
+    });
+  }
+
+  @override
+  Future<void> trimOperationLogsToConfiguredLimit() async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      final retentionLimit = await _getOperationLogRetentionLimit(txn);
+      await _trimOperationLogs(txn, retentionLimit);
+    });
+  }
+
+  @override
   Future<void> importTasksFromServer(
     List<Map<String, dynamic>> tasksData,
   ) async {
@@ -317,6 +354,8 @@ class WorkLogRepository implements WorkLogRepositoryBase {
     final db = await _database;
 
     await db.transaction((txn) async {
+      final retentionLimit = await _getOperationLogRetentionLimit(txn);
+
       // 1. 清空现有操作日志
       await txn.delete('operation_logs');
 
@@ -324,7 +363,62 @@ class WorkLogRepository implements WorkLogRepositoryBase {
       for (final logMap in logsData) {
         await txn.insert('operation_logs', logMap);
       }
+
+      await _trimOperationLogs(txn, retentionLimit);
     });
+  }
+
+  Future<void> _trimOperationLogs(
+    DatabaseExecutor db,
+    int retentionLimit,
+  ) async {
+    await db.rawDelete(
+      '''
+      DELETE FROM operation_logs
+      WHERE id NOT IN (
+        SELECT id
+        FROM operation_logs
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+      )
+      ''',
+      [retentionLimit],
+    );
+  }
+
+  Future<int> _getOperationLogRetentionLimit(DatabaseExecutor db) async {
+    final rows = await db.query(
+      'app_settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [_operationLogRetentionLimitKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      return WorkLogConstants.defaultOperationLogRetentionLimit;
+    }
+
+    final raw = rows.first['value'] as String?;
+    final parsed = int.tryParse(raw ?? '');
+    return _normalizeOperationLogRetentionLimit(parsed);
+  }
+
+  Future<void> _saveOperationLogRetentionLimit(
+    DatabaseExecutor db,
+    int limit,
+  ) async {
+    await db.insert('app_settings', {
+      'key': _operationLogRetentionLimitKey,
+      'value': '$limit',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  int _normalizeOperationLogRetentionLimit(int? value) {
+    final raw = value ?? WorkLogConstants.defaultOperationLogRetentionLimit;
+    return raw.clamp(
+      WorkLogConstants.minOperationLogRetentionLimit,
+      WorkLogConstants.maxOperationLogRetentionLimit,
+    );
   }
 
   static DateTime _startOfDay(DateTime dateTime) {

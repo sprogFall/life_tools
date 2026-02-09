@@ -13,7 +13,7 @@ void main() {
       databaseFactory = databaseFactoryFfi;
     });
 
-    test('导出/导入应包含全部 operation_logs（不应截断）', () async {
+    test('导出/导入 operation_logs 时应只保留最近10条', () async {
       final sourceDb = await openDatabase(
         inMemoryDatabasePath,
         version: DatabaseSchema.version,
@@ -45,7 +45,12 @@ void main() {
       final exported = await provider.exportData();
       final data = exported['data'] as Map<String, dynamic>;
       final exportedLogs = (data['operation_logs'] as List?) ?? const [];
-      expect(exportedLogs.length, total);
+      expect(exportedLogs.length, 10);
+      final exportedIds = exportedLogs
+          .map((e) => (e as Map)['target_id'] as int)
+          .toList();
+      expect(exportedIds.first, total);
+      expect(exportedIds.last, total - 9);
 
       final targetDb = await openDatabase(
         inMemoryDatabasePath,
@@ -62,7 +67,7 @@ void main() {
       );
 
       await provider2.importData(exported);
-      expect(await targetRepo.getOperationLogCount(), total);
+      expect(await targetRepo.getOperationLogCount(), 10);
 
       await sourceDb.close();
       await targetDb.close();

@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../models/operation_log.dart';
 import '../../services/work_log_service.dart';
+import '../../work_log_constants.dart';
 
 class OperationLogListPage extends StatefulWidget {
   const OperationLogListPage({super.key});
@@ -14,10 +17,8 @@ class OperationLogListPage extends StatefulWidget {
 
 class _OperationLogListPageState extends State<OperationLogListPage> {
   bool _loading = true;
+  int _retentionLimit = WorkLogConstants.defaultOperationLogRetentionLimit;
   List<OperationLog> _logs = [];
-  static const int _pageSize = 10;
-  int _offset = 0;
-  bool _hasMore = true;
 
   @override
   void initState() {
@@ -29,56 +30,105 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
     setState(() {
       _loading = true;
       _logs = [];
-      _offset = 0;
-      _hasMore = true;
     });
 
     final service = context.read<WorkLogService>();
+    final retentionLimit = await service.getOperationLogRetentionLimit();
     final newLogs = await service.listOperationLogs(
-      limit: _pageSize,
+      limit: retentionLimit,
       offset: 0,
     );
 
     if (!mounted) return;
     setState(() {
+      _retentionLimit = retentionLimit;
       _logs = newLogs;
-      _offset = newLogs.length;
-      _hasMore = newLogs.length >= _pageSize;
       _loading = false;
     });
   }
 
-  Future<void> _loadMore() async {
-    if (!_hasMore || _loading) return;
-
-    final service = context.read<WorkLogService>();
-    final newLogs = await service.listOperationLogs(
-      limit: _pageSize,
-      offset: _offset,
+  Future<void> _openRetentionLimitSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await showCupertinoModalPopup<int>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(
+          l10n.work_log_operation_logs_limit_sheet_title,
+          style: IOS26Theme.titleSmall,
+        ),
+        message: Text(
+          l10n.work_log_operation_logs_limit_sheet_message,
+          style: IOS26Theme.bodySmall,
+        ),
+        actions: [
+          for (final option
+              in WorkLogConstants.operationLogRetentionLimitOptions)
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop(option),
+              child: Text(l10n.work_log_operation_logs_limit_option(option)),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(sheetContext).pop(),
+          child: Text(l10n.common_cancel),
+        ),
+      ),
     );
 
+    if (selected == null || selected == _retentionLimit) {
+      return;
+    }
+
     if (!mounted) return;
-    setState(() {
-      _logs.addAll(newLogs);
-      _offset += newLogs.length;
-      _hasMore = newLogs.length >= _pageSize;
-    });
+    final service = context.read<WorkLogService>();
+    await service.updateOperationLogRetentionLimit(selected);
+    if (!mounted) return;
+    await _loadInitial();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            const IOS26AppBar(title: '操作日志', showBackButton: true),
+            IOS26AppBar(
+              title: l10n.work_log_operation_logs_title,
+              showBackButton: true,
+              actions: [
+                CupertinoButton(
+                  key: const ValueKey('work_log_operation_logs_limit_button'),
+                  padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                  minimumSize: IOS26Theme.minimumTapSize,
+                  onPressed: _openRetentionLimitSheet,
+                  child: const Icon(
+                    CupertinoIcons.slider_horizontal_3,
+                    color: IOS26Theme.primaryColor,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: IOS26Theme.spacingLg,
+                vertical: IOS26Theme.spacingSm,
+              ),
+              child: Text(
+                l10n.work_log_operation_logs_limit_hint(_retentionLimit),
+                style: IOS26Theme.bodySmall.copyWith(
+                  color: IOS26Theme.textSecondary,
+                ),
+              ),
+            ),
             Expanded(
               child: _loading
                   ? const Center(child: CupertinoActivityIndicator())
                   : _logs.isEmpty
-                  ? _buildEmptyState()
-                  : _buildLogList(),
+                  ? _buildEmptyState(l10n)
+                  : _buildLogList(l10n),
             ),
           ],
         ),
@@ -86,10 +136,10 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Text(
-        '暂无操作记录',
+        l10n.work_log_operation_logs_empty,
         style: IOS26Theme.bodyMedium.copyWith(
           color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
         ),
@@ -97,36 +147,27 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
     );
   }
 
-  Widget _buildLogList() {
+  Widget _buildLogList(AppLocalizations l10n) {
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      itemCount: _logs.length + (_hasMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= _logs.length) {
-          _loadMore();
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CupertinoActivityIndicator()),
-          );
-        }
-        return _buildLogItem(_logs[index]);
-      },
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
+      itemCount: _logs.length,
+      itemBuilder: (context, index) => _buildLogItem(_logs[index], l10n),
     );
   }
 
-  Widget _buildLogItem(OperationLog log) {
+  Widget _buildLogItem(OperationLog log, AppLocalizations l10n) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: IOS26Theme.spacingMd),
       child: GlassContainer(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(IOS26Theme.spacingLg - 2),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 _buildOperationIcon(log.operationType),
-                const SizedBox(width: 10),
+                const SizedBox(width: IOS26Theme.spacingMd - 2),
                 Expanded(
                   child: Text(
                     log.operationType.displayName,
@@ -134,18 +175,18 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
                   ),
                 ),
                 Text(
-                  _formatDateTime(log.createdAt),
+                  _formatDateTime(log.createdAt, l10n),
                   style: IOS26Theme.bodySmall,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: IOS26Theme.spacingSm),
             Text(
               log.summary,
               style: IOS26Theme.bodyMedium.copyWith(height: 1.4),
             ),
             if (log.targetTitle.isNotEmpty) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: IOS26Theme.spacingXs + 2),
               Text(
                 log.targetTitle,
                 style: IOS26Theme.bodySmall,
@@ -189,16 +230,16 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
     return Icon(icon, color: color, size: 24);
   }
 
-  static String _formatDateTime(DateTime dt) {
+  static String _formatDateTime(DateTime dt, AppLocalizations l10n) {
     String two(int v) => v.toString().padLeft(2, '0');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final logDate = DateTime(dt.year, dt.month, dt.day);
 
     if (logDate == today) {
-      return '今天 ${two(dt.hour)}:${two(dt.minute)}';
+      return '${l10n.work_log_operation_logs_today} ${two(dt.hour)}:${two(dt.minute)}';
     } else if (logDate == today.subtract(const Duration(days: 1))) {
-      return '昨天 ${two(dt.hour)}:${two(dt.minute)}';
+      return '${l10n.work_log_operation_logs_yesterday} ${two(dt.hour)}:${two(dt.minute)}';
     } else if (dt.year == now.year) {
       return '${dt.month}/${dt.day} ${two(dt.hour)}:${two(dt.minute)}';
     } else {

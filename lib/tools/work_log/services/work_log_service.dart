@@ -442,6 +442,15 @@ class WorkLogService extends ChangeNotifier {
     return _repository.getOperationLogCount();
   }
 
+  Future<int> getOperationLogRetentionLimit() async {
+    return _repository.getOperationLogRetentionLimit();
+  }
+
+  Future<void> updateOperationLogRetentionLimit(int limit) async {
+    await _repository.setOperationLogRetentionLimit(limit);
+    _safeNotify();
+  }
+
   String _generateTaskChangeSummary(WorkTask? oldTask, WorkTask newTask) {
     if (oldTask == null) return '更新任务「${newTask.title}」';
 

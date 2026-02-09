@@ -460,6 +460,60 @@ abstract class AppLocalizations {
   /// **'Failed to generate summary. Please try again later.'**
   String get work_log_ai_summary_generate_failed_content;
 
+  /// No description provided for @work_log_operation_logs_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation Logs'**
+  String get work_log_operation_logs_title;
+
+  /// No description provided for @work_log_operation_logs_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No operation records'**
+  String get work_log_operation_logs_empty;
+
+  /// No description provided for @work_log_operation_logs_limit_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the latest {count} operations are available'**
+  String work_log_operation_logs_limit_hint(int count);
+
+  /// No description provided for @work_log_operation_logs_today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get work_log_operation_logs_today;
+
+  /// No description provided for @work_log_operation_logs_yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get work_log_operation_logs_yesterday;
+
+  /// No description provided for @work_log_operation_logs_limit_setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Retention Limit'**
+  String get work_log_operation_logs_limit_setting;
+
+  /// No description provided for @work_log_operation_logs_limit_sheet_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Retention Limit'**
+  String get work_log_operation_logs_limit_sheet_title;
+
+  /// No description provided for @work_log_operation_logs_limit_sheet_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the latest selected number of operation logs will be kept'**
+  String get work_log_operation_logs_limit_sheet_message;
+
+  /// No description provided for @work_log_operation_logs_limit_option.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String work_log_operation_logs_limit_option(int count);
+
   /// No description provided for @work_log_calendar_month_mode.
   ///
   /// In en, this message translates to:
