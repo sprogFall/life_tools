@@ -407,5 +407,95 @@ void main() {
       final key = OvercookedRepository.dayKey(day);
       expect(stats[key], 3); // a, b, c 三个菜谱
     });
+
+    test('厨房日历：可读取本月最近做的菜并按日期倒序', () async {
+      final now = DateTime(2026, 1, 2, 10);
+      final a = await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '番茄炒蛋',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+      final b = await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '红烧肉',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+      final c = await repository.createRecipe(
+        OvercookedRecipe.create(
+          name: '冬瓜汤',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '',
+          content: '',
+          detailImageKeys: const [],
+          now: now,
+        ),
+      );
+
+      await repository.replaceMeal(
+        date: DateTime(2026, 1, 5),
+        recipeIds: [a],
+        now: now,
+      );
+      await repository.replaceMeal(
+        date: DateTime(2026, 1, 8),
+        recipeIds: [a],
+        now: now,
+      );
+      await repository.replaceMeal(
+        date: DateTime(2026, 1, 9),
+        recipeIds: [b],
+        now: now,
+      );
+      await repository.replaceMeal(
+        date: DateTime(2026, 2, 1),
+        recipeIds: [c],
+        now: now,
+      );
+
+      final recent = await repository.listRecentCookedRecipesForMonth(
+        year: 2026,
+        month: 1,
+      );
+
+      expect(recent.length, 2);
+      expect(recent[0].recipe.id, b);
+      expect(recent[0].recipe.name, '红烧肉');
+      expect(recent[0].cookedDate, DateTime(2026, 1, 9));
+      expect(recent[0].cookCount, 1);
+      expect(recent[1].recipe.id, a);
+      expect(recent[1].recipe.name, '番茄炒蛋');
+      expect(recent[1].cookedDate, DateTime(2026, 1, 8));
+      expect(recent[1].cookCount, 2);
+
+      final limited = await repository.listRecentCookedRecipesForMonth(
+        year: 2026,
+        month: 1,
+        limit: 1,
+      );
+      expect(limited.length, 1);
+      expect(limited.single.recipe.id, b);
+    });
   });
 }

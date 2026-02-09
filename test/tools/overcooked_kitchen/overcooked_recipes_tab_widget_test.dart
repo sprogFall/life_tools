@@ -82,7 +82,27 @@ void main() {
       expect(find.text('搜索菜谱'), findsOneWidget);
     });
 
-    testWidgets('扭蛋入口卡片在路由过渡时不应关闭毛玻璃', (tester) async {
+    testWidgets('去扭蛋按钮按下时不应改变颜色', (tester) async {
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedRecipesTab(onJumpToGacha: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final gachaButton = tester.widget<CupertinoButton>(
+        find.widgetWithText(CupertinoButton, '去扭蛋'),
+      );
+      expect(gachaButton.pressedOpacity, 1);
+    });
+
+    testWidgets('扭蛋入口卡片在路由过渡时应关闭毛玻璃避免闪烁', (tester) async {
       await tester.pumpWidget(
         MultiProvider(
           providers: [
@@ -99,7 +119,7 @@ void main() {
       final gachaCard = tester.widget<GlassContainer>(
         find.byKey(const ValueKey('overcooked_recipes_gacha_entry_card')),
       );
-      expect(gachaCard.disableBlurDuringRouteTransition, isFalse);
+      expect(gachaCard.disableBlurDuringRouteTransition, isTrue);
     });
   });
 }

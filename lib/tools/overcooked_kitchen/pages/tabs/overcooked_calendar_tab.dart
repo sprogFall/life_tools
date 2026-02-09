@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/ios26_theme.dart';
+import '../../models/overcooked_recipe.dart';
 import '../../repository/overcooked_repository.dart';
 import '../../utils/overcooked_utils.dart';
 
@@ -25,7 +28,10 @@ class OvercookedCalendarTab extends StatefulWidget {
 
 class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
   bool _loading = false;
+  bool _pendingLoad = false;
   Map<int, int> _countsByDayKey = const {};
+  List<({DateTime cookedDate, OvercookedRecipe recipe, int cookCount})>
+  _recentCookedRecipes = const [];
 
   @override
   void initState() {
@@ -47,17 +53,40 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
   }
 
   Future<void> _load() async {
-    if (_loading) return;
-    setState(() => _loading = true);
+    if (_loading) {
+      _pendingLoad = true;
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _recentCookedRecipes = const [];
+    });
     try {
       final repo = context.read<OvercookedRepository>();
-      final stats = await repo.getMonthlyCookCountsByTypeDistinct(
+      final statsFuture = repo.getMonthlyCookCountsByTypeDistinct(
         year: widget.month.year,
         month: widget.month.month,
       );
-      setState(() => _countsByDayKey = stats);
+      final recentFuture = repo.listRecentCookedRecipesForMonth(
+        year: widget.month.year,
+        month: widget.month.month,
+      );
+      final stats = await statsFuture;
+      final recent = await recentFuture;
+      if (!mounted) return;
+      setState(() {
+        _countsByDayKey = stats;
+        _recentCookedRecipes = recent;
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        if (_pendingLoad) {
+          _pendingLoad = false;
+          unawaited(_load());
+        }
+      }
     }
   }
 
@@ -81,6 +110,8 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
       final count = _countsByDayKey[key] ?? 0;
       cells.add(_dayCell(date: date, count: count));
     }
+
+    final hasRecentCookedRecipes = _recentCookedRecipes.isNotEmpty;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
@@ -139,6 +170,10 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
             ],
           ),
         ),
+        if (hasRecentCookedRecipes) ...[
+          const SizedBox(height: IOS26Theme.spacingMd),
+          _buildRecentCookedRecipesCard(),
+        ],
       ],
     );
   }
@@ -236,6 +271,64 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
         ),
       ],
     );
+  }
+
+  Widget _buildRecentCookedRecipesCard() {
+    return GlassContainer(
+      key: const ValueKey('overcooked_calendar_recent_recipes_card'),
+      borderRadius: 18,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('最近做的菜', style: IOS26Theme.titleSmall),
+          const SizedBox(height: IOS26Theme.spacingSm),
+          ..._recentCookedRecipes.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == _recentCookedRecipes.length - 1
+                    ? 0
+                    : IOS26Theme.spacingSm,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.recipe.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: IOS26Theme.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: IOS26Theme.spacingSm),
+                  Text(
+                    '${_formatMonthDay(item.cookedDate)} · ${_formatCookCount(item.cookCount)}',
+                    style: IOS26Theme.bodySmall.copyWith(
+                      color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  String _formatMonthDay(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$month-$day';
+  }
+
+  String _formatCookCount(int cookCount) {
+    if (cookCount <= 1) return '做过1次';
+    return '做过$cookCount次';
   }
 
   Widget _monthChip({required String text}) {

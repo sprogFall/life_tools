@@ -140,7 +140,6 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                   color: IOS26Theme.toolOrange.withValues(alpha: 0.25),
                   width: 1,
                 ),
-                disableBlurDuringRouteTransition: false,
                 child: Row(
                   children: [
                     const Icon(
@@ -161,6 +160,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                     ),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
+                      pressedOpacity: 1,
                       onPressed: widget.onJumpToGacha,
                       child: Text('去扭蛋', style: IOS26Theme.labelLarge),
                     ),

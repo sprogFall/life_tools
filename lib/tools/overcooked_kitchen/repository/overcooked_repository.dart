@@ -566,6 +566,81 @@ ORDER BY m.day_key ASC
     return result;
   }
 
+  Future<List<({DateTime cookedDate, OvercookedRecipe recipe, int cookCount})>>
+  listRecentCookedRecipesForMonth({
+    required int year,
+    required int month,
+    int limit = 5,
+  }) async {
+    if (limit <= 0) return const [];
+
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 0);
+    final startKey = dayKey(start);
+    final endKey = dayKey(end);
+
+    final db = await _database;
+    final rows = await db.rawQuery(
+      '''
+SELECT
+  mi.recipe_id AS recipe_id,
+  MAX(m.day_key) AS last_day_key,
+  COUNT(*) AS cook_count
+FROM overcooked_meal_items mi
+INNER JOIN overcooked_meals m ON m.id = mi.meal_id
+WHERE m.day_key >= ? AND m.day_key <= ?
+GROUP BY mi.recipe_id
+ORDER BY last_day_key DESC, recipe_id DESC
+LIMIT ?
+''',
+      [startKey, endKey, limit],
+    );
+    if (rows.isEmpty) return const [];
+
+    final recipeIds = rows
+        .map((row) => row['recipe_id'])
+        .whereType<int>()
+        .toList(growable: false);
+    final recipes = await listRecipesByIds(recipeIds);
+    if (recipes.isEmpty) return const [];
+
+    final recipesById = <int, OvercookedRecipe>{
+      for (final recipe in recipes)
+        if (recipe.id != null) recipe.id!: recipe,
+    };
+
+    final result =
+        <({DateTime cookedDate, OvercookedRecipe recipe, int cookCount})>[];
+    for (final row in rows) {
+      final recipeId = row['recipe_id'] as int?;
+      if (recipeId == null) continue;
+
+      final recipe = recipesById[recipeId];
+      if (recipe == null) continue;
+
+      final dayKeyValue = switch (row['last_day_key']) {
+        int value => value,
+        num value => value.toInt(),
+        _ => 0,
+      };
+      if (dayKeyValue <= 0) continue;
+
+      final cookCount = switch (row['cook_count']) {
+        int value => value,
+        num value => value.toInt(),
+        _ => 0,
+      };
+
+      result.add((
+        cookedDate: dateFromDayKey(dayKeyValue),
+        recipe: recipe,
+        cookCount: cookCount < 0 ? 0 : cookCount,
+      ));
+    }
+
+    return result;
+  }
+
   Future<List<Map<String, Object?>>> _exportTable(
     String table, {
     required String orderBy,
