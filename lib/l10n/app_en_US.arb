@@ -31,6 +31,22 @@
       "path": {}
     }
   },
+  "overcooked_recipe_markdown_export_done_saved_to_album_content": "Image saved to your gallery and exported to: {path}",
+  "@overcooked_recipe_markdown_export_done_saved_to_album_content": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "overcooked_recipe_markdown_export_partial_title": "Partially Exported",
+  "overcooked_recipe_markdown_export_partial_content": "Image exported to: {path}\nBut saving to your gallery failed: {reason}",
+  "@overcooked_recipe_markdown_export_partial_content": {
+    "placeholders": {
+      "path": {},
+      "reason": {}
+    }
+  },
+  "overcooked_recipe_markdown_export_gallery_permission_denied": "Photo access is not granted. Please allow it in system settings and try again.",
+  "overcooked_recipe_markdown_export_gallery_failed_unknown": "Unknown reason",
   "overcooked_recipe_markdown_export_failed_title": "Export Failed",
   "overcooked_recipe_markdown_export_failed_no_content": "No exportable content found. Please try again later.",
   "tool_work_log_name": "Work Log",

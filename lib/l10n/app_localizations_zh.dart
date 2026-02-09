@@ -82,6 +82,31 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String overcooked_recipe_markdown_export_done_saved_to_album_content(
+    Object path,
+  ) {
+    return '图片已保存到系统相册，同时导出到：$path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_partial_title => '导出部分成功';
+
+  @override
+  String overcooked_recipe_markdown_export_partial_content(
+    Object path,
+    Object reason,
+  ) {
+    return '图片已导出到：$path\n但保存到系统相册失败：$reason';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_permission_denied =>
+      '未获得相册写入权限，请在系统设置中允许后重试。';
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_failed_unknown => '未知原因';
+
+  @override
   String get overcooked_recipe_markdown_export_failed_title => '导出失败';
 
   @override
@@ -967,6 +992,31 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String overcooked_recipe_markdown_export_done_content(Object path) {
     return '图片已导出到：$path';
   }
+
+  @override
+  String overcooked_recipe_markdown_export_done_saved_to_album_content(
+    Object path,
+  ) {
+    return '图片已保存到系统相册，同时导出到：$path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_partial_title => '导出部分成功';
+
+  @override
+  String overcooked_recipe_markdown_export_partial_content(
+    Object path,
+    Object reason,
+  ) {
+    return '图片已导出到：$path\n但保存到系统相册失败：$reason';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_permission_denied =>
+      '未获得相册写入权限，请在系统设置中允许后重试。';
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_failed_unknown => '未知原因';
 
   @override
   String get overcooked_recipe_markdown_export_failed_title => '导出失败';

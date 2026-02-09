@@ -86,6 +86,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String overcooked_recipe_markdown_export_done_saved_to_album_content(
+    Object path,
+  ) {
+    return 'Image saved to your gallery and exported to: $path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_partial_title =>
+      'Partially Exported';
+
+  @override
+  String overcooked_recipe_markdown_export_partial_content(
+    Object path,
+    Object reason,
+  ) {
+    return 'Image exported to: $path\nBut saving to your gallery failed: $reason';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_permission_denied =>
+      'Photo access is not granted. Please allow it in system settings and try again.';
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_failed_unknown =>
+      'Unknown reason';
+
+  @override
   String get overcooked_recipe_markdown_export_failed_title => 'Export Failed';
 
   @override
@@ -1005,6 +1032,33 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String overcooked_recipe_markdown_export_done_content(Object path) {
     return 'Image exported to: $path';
   }
+
+  @override
+  String overcooked_recipe_markdown_export_done_saved_to_album_content(
+    Object path,
+  ) {
+    return 'Image saved to your gallery and exported to: $path';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_partial_title =>
+      'Partially Exported';
+
+  @override
+  String overcooked_recipe_markdown_export_partial_content(
+    Object path,
+    Object reason,
+  ) {
+    return 'Image exported to: $path\nBut saving to your gallery failed: $reason';
+  }
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_permission_denied =>
+      'Photo access is not granted. Please allow it in system settings and try again.';
+
+  @override
+  String get overcooked_recipe_markdown_export_gallery_failed_unknown =>
+      'Unknown reason';
 
   @override
   String get overcooked_recipe_markdown_export_failed_title => 'Export Failed';

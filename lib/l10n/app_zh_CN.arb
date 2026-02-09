@@ -31,6 +31,22 @@
       "path": {}
     }
   },
+  "overcooked_recipe_markdown_export_done_saved_to_album_content": "图片已保存到系统相册，同时导出到：{path}",
+  "@overcooked_recipe_markdown_export_done_saved_to_album_content": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "overcooked_recipe_markdown_export_partial_title": "导出部分成功",
+  "overcooked_recipe_markdown_export_partial_content": "图片已导出到：{path}\n但保存到系统相册失败：{reason}",
+  "@overcooked_recipe_markdown_export_partial_content": {
+    "placeholders": {
+      "path": {},
+      "reason": {}
+    }
+  },
+  "overcooked_recipe_markdown_export_gallery_permission_denied": "未获得相册写入权限，请在系统设置中允许后重试。",
+  "overcooked_recipe_markdown_export_gallery_failed_unknown": "未知原因",
   "overcooked_recipe_markdown_export_failed_title": "导出失败",
   "overcooked_recipe_markdown_export_failed_no_content": "未找到可导出的内容，请稍后重试。",
   "tool_work_log_name": "工作记录",

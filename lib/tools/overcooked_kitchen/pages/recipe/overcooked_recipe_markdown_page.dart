@@ -1,24 +1,26 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../../../core/theme/ios26_theme.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../services/overcooked_recipe_image_export_service.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_markdown.dart';
 
 class OvercookedRecipeMarkdownPage extends StatefulWidget {
   final String recipeName;
   final String markdown;
+  final OvercookedRecipeImageExportService? imageExportService;
 
   const OvercookedRecipeMarkdownPage({
     super.key,
     required this.recipeName,
     required this.markdown,
+    this.imageExportService,
   });
 
   @override
@@ -30,6 +32,14 @@ class _OvercookedRecipeMarkdownPageState
     extends State<OvercookedRecipeMarkdownPage> {
   final GlobalKey _captureKey = GlobalKey();
   bool _exporting = false;
+  late final OvercookedRecipeImageExportService _imageExportService;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageExportService =
+        widget.imageExportService ?? OvercookedRecipeImageExportService();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,19 +134,48 @@ class _OvercookedRecipeMarkdownPageState
 
       final bytes = Uint8List.view(byteData.buffer);
       final filename = _buildImageFileName();
-      final savedPath = await FileSaver.instance.saveFile(
+      final exportResult = await _imageExportService.exportPng(
         name: filename,
         bytes: bytes,
-        ext: 'png',
-        mimeType: MimeType.png,
       );
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
 
+      final galleryResult = exportResult.galleryResult;
+      var title = l10n.overcooked_recipe_markdown_export_done_title;
+      late final String content;
+      if (galleryResult.status == OvercookedGallerySaveStatus.saved) {
+        content = l10n
+            .overcooked_recipe_markdown_export_done_saved_to_album_content(
+              exportResult.filePath,
+            );
+      } else if (galleryResult.status ==
+          OvercookedGallerySaveStatus.unsupported) {
+        content = l10n.overcooked_recipe_markdown_export_done_content(
+          exportResult.filePath,
+        );
+      } else if (galleryResult.status ==
+          OvercookedGallerySaveStatus.permissionDenied) {
+        title = l10n.overcooked_recipe_markdown_export_partial_title;
+        content = l10n.overcooked_recipe_markdown_export_partial_content(
+          exportResult.filePath,
+          l10n.overcooked_recipe_markdown_export_gallery_permission_denied,
+        );
+      } else {
+        title = l10n.overcooked_recipe_markdown_export_partial_title;
+        final reason = galleryResult.errorMessage?.trim();
+        content = l10n.overcooked_recipe_markdown_export_partial_content(
+          exportResult.filePath,
+          (reason == null || reason.isEmpty)
+              ? l10n.overcooked_recipe_markdown_export_gallery_failed_unknown
+              : reason,
+        );
+      }
+
       await OvercookedDialogs.showMessage(
         context,
-        title: l10n.overcooked_recipe_markdown_export_done_title,
-        content: l10n.overcooked_recipe_markdown_export_done_content(savedPath),
+        title: title,
+        content: content,
       );
     } catch (error) {
       if (!mounted) return;

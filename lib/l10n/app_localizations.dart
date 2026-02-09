@@ -238,6 +238,41 @@ abstract class AppLocalizations {
   /// **'Image exported to: {path}'**
   String overcooked_recipe_markdown_export_done_content(Object path);
 
+  /// No description provided for @overcooked_recipe_markdown_export_done_saved_to_album_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved to your gallery and exported to: {path}'**
+  String overcooked_recipe_markdown_export_done_saved_to_album_content(
+    Object path,
+  );
+
+  /// No description provided for @overcooked_recipe_markdown_export_partial_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Partially Exported'**
+  String get overcooked_recipe_markdown_export_partial_title;
+
+  /// No description provided for @overcooked_recipe_markdown_export_partial_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Image exported to: {path}\nBut saving to your gallery failed: {reason}'**
+  String overcooked_recipe_markdown_export_partial_content(
+    Object path,
+    Object reason,
+  );
+
+  /// No description provided for @overcooked_recipe_markdown_export_gallery_permission_denied.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo access is not granted. Please allow it in system settings and try again.'**
+  String get overcooked_recipe_markdown_export_gallery_permission_denied;
+
+  /// No description provided for @overcooked_recipe_markdown_export_gallery_failed_unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown reason'**
+  String get overcooked_recipe_markdown_export_gallery_failed_unknown;
+
   /// No description provided for @overcooked_recipe_markdown_export_failed_title.
   ///
   /// In en, this message translates to:
