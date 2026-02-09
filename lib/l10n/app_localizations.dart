@@ -154,6 +154,12 @@ abstract class AppLocalizations {
   /// **'Calendar'**
   String get common_calendar;
 
+  /// No description provided for @settings_dark_mode_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get settings_dark_mode_label;
+
   /// No description provided for @tool_management_title.
   ///
   /// In en, this message translates to:

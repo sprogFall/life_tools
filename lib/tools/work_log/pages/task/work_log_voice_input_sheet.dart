@@ -146,16 +146,16 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   CupertinoIcons.sparkles,
                   size: 18,
-                  color: IOS26Theme.surfaceColor,
+                  color: IOS26Theme.onPrimaryColor,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '提交给AI',
                   style: IOS26Theme.labelLarge.copyWith(
-                    color: IOS26Theme.surfaceColor,
+                    color: IOS26Theme.onPrimaryColor,
                   ),
                 ),
               ],
@@ -172,7 +172,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(14),
-          child: const Icon(
+          child: Icon(
             CupertinoIcons.trash,
             size: 20,
             color: IOS26Theme.textSecondary,
@@ -184,7 +184,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(14),
-          child: const Icon(
+          child: Icon(
             CupertinoIcons.xmark,
             size: 20,
             color: IOS26Theme.textSecondary,

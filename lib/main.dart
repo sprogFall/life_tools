@@ -265,24 +265,37 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
         ),
       ],
-      child: MaterialApp(
-        navigatorKey: _navigatorKey,
-        onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
-        debugShowCheckedModeBanner: false,
-        theme: IOS26Theme.lightTheme,
-        scrollBehavior: const CupertinoScrollBehavior(),
-        locale: const Locale('zh', 'CN'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        builder: (context, child) {
-          return Stack(
-            children: [
-              StartupWrapper(child: child ?? const SizedBox.shrink()),
-              const IOS26ToastOverlay(),
-            ],
+      child: Consumer<SettingsService>(
+        builder: (context, settings, _) {
+          final themeMode = settings.themeMode;
+          final brightness = themeMode == ThemeMode.dark
+              ? Brightness.dark
+              : Brightness.light;
+          IOS26Theme.setBrightness(brightness);
+
+          return MaterialApp(
+            navigatorKey: _navigatorKey,
+            onGenerateTitle: (context) =>
+                AppLocalizations.of(context)!.appTitle,
+            debugShowCheckedModeBanner: false,
+            theme: IOS26Theme.lightTheme,
+            darkTheme: IOS26Theme.darkTheme,
+            themeMode: themeMode,
+            scrollBehavior: const CupertinoScrollBehavior(),
+            locale: const Locale('zh', 'CN'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) {
+              return Stack(
+                children: [
+                  StartupWrapper(child: child ?? const SizedBox.shrink()),
+                  const IOS26ToastOverlay(),
+                ],
+              );
+            },
+            home: _buildInitialPage(),
           );
         },
-        home: _buildInitialPage(),
       ),
     );
   }

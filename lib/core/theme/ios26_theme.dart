@@ -9,37 +9,118 @@ import '../utils/text_editing_safety.dart';
 class IOS26Theme {
   IOS26Theme._();
 
+  static Brightness _brightness = Brightness.light;
+
+  static Brightness get brightness => _brightness;
+  static bool get isDarkMode => _brightness == Brightness.dark;
+
+  static void setBrightness(Brightness brightness) {
+    _brightness = brightness;
+  }
+
   // 主色调 - iOS 26 风格的柔和蓝色
-  static const Color primaryColor = Color(0xFF007AFF);
-  static const Color secondaryColor = Color(0xFF5856D6);
+  static const Color _lightPrimaryColor = Color(0xFF007AFF);
+  static const Color _darkPrimaryColor = Color(0xFF0A84FF);
+  static const Color _lightSecondaryColor = Color(0xFF5856D6);
+  static const Color _darkSecondaryColor = Color(0xFF7D7AFF);
 
   // 背景色
-  static const Color backgroundColor = Color(0xFFF2F2F7);
-  static const Color surfaceColor = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFE5E5EA); // 新增：次级背景
-  static const Color cardColor = Color(0xFFFFFFFF);
+  static const Color _lightBackgroundColor = Color(0xFFF2F2F7);
+  static const Color _darkBackgroundColor = Color(0xFF0E1117);
+  static const Color _lightSurfaceColor = Color(0xFFFFFFFF);
+  static const Color _darkSurfaceColor = Color(0xFF1A1D24);
+  static const Color _lightSurfaceVariant = Color(0xFFE5E5EA);
+  static const Color _darkSurfaceVariant = Color(0xFF2A2E38);
+  static const Color _lightCardColor = Color(0xFFFFFFFF);
+  static const Color _darkCardColor = Color(0xFF1F232D);
 
   // 文字颜色
-  static const Color textPrimary = Color(0xFF1C1C1E);
-  static const Color textSecondary = Color(0xFF8E8E93);
-  static const Color textTertiary = Color(0xFFC7C7CC);
+  static const Color _lightTextPrimary = Color(0xFF1C1C1E);
+  static const Color _darkTextPrimary = Color(0xFFF5F5F7);
+  static const Color _lightTextSecondary = Color(0xFF8E8E93);
+  static const Color _darkTextSecondary = Color(0xFFB1B4BE);
+  static const Color _lightTextTertiary = Color(0xFFC7C7CC);
+  static const Color _darkTextTertiary = Color(0xFF626877);
 
   // 毛玻璃效果颜色
-  static const Color glassColor = Color(0xCCFFFFFF); // 提高不透明度，增强质感
-  static const Color glassBorderColor = Color(0x1A000000); // 使用黑色低透明度作为边框，适配性更好
+  static const Color _lightGlassColor = Color(0xCCFFFFFF);
+  static const Color _darkGlassColor = Color(0xB31A1D24);
+  static const Color _lightGlassBorderColor = Color(0x1A000000);
+  static const Color _darkGlassBorderColor = Color(0x33FFFFFF);
 
   // 语义化覆盖/阴影颜色
-  static const Color overlayColor = Color(0x26000000); // black 15%
-  static const Color shadowColor = Color(0x1F000000); // black 12% - 调淡阴影
-  static const Color shadowColorFaint = Color(0x0A000000); // black 4%
+  static const Color _lightOverlayColor = Color(0x26000000);
+  static const Color _darkOverlayColor = Color(0x59000000);
+  static const Color _lightShadowColor = Color(0x1F000000);
+  static const Color _darkShadowColor = Color(0x66000000);
+  static const Color _lightShadowColorFaint = Color(0x0A000000);
+  static const Color _darkShadowColorFaint = Color(0x33000000);
 
   // 工具颜色
-  static const Color toolBlue = Color(0xFF007AFF);
-  static const Color toolOrange = Color(0xFFFF9500);
-  static const Color toolRed = Color(0xFFFF3B30);
-  static const Color toolGreen = Color(0xFF34C759);
-  static const Color toolPurple = Color(0xFF5856D6);
-  static const Color toolPink = Color(0xFFFF2D55);
+  static const Color _lightToolBlue = Color(0xFF007AFF);
+  static const Color _darkToolBlue = Color(0xFF0A84FF);
+  static const Color _lightToolOrange = Color(0xFFFF9500);
+  static const Color _darkToolOrange = Color(0xFFFF9F0A);
+  static const Color _lightToolRed = Color(0xFFFF3B30);
+  static const Color _darkToolRed = Color(0xFFFF453A);
+  static const Color _lightToolGreen = Color(0xFF34C759);
+  static const Color _darkToolGreen = Color(0xFF30D158);
+  static const Color _lightToolPurple = Color(0xFF5856D6);
+  static const Color _darkToolPurple = Color(0xFFBF5AF2);
+  static const Color _lightToolPink = Color(0xFFFF2D55);
+  static const Color _darkToolPink = Color(0xFFFF6482);
+
+  static const Color onPrimaryColor = Color(0xFFFFFFFF);
+
+  static Color _adaptive({required Color light, required Color dark}) {
+    return isDarkMode ? dark : light;
+  }
+
+  static Color get primaryColor =>
+      _adaptive(light: _lightPrimaryColor, dark: _darkPrimaryColor);
+  static Color get secondaryColor =>
+      _adaptive(light: _lightSecondaryColor, dark: _darkSecondaryColor);
+
+  static Color get backgroundColor =>
+      _adaptive(light: _lightBackgroundColor, dark: _darkBackgroundColor);
+  static Color get surfaceColor =>
+      _adaptive(light: _lightSurfaceColor, dark: _darkSurfaceColor);
+  static Color get surfaceVariant =>
+      _adaptive(light: _lightSurfaceVariant, dark: _darkSurfaceVariant);
+  static Color get cardColor =>
+      _adaptive(light: _lightCardColor, dark: _darkCardColor);
+
+  static Color get textPrimary =>
+      _adaptive(light: _lightTextPrimary, dark: _darkTextPrimary);
+  static Color get textSecondary =>
+      _adaptive(light: _lightTextSecondary, dark: _darkTextSecondary);
+  static Color get textTertiary =>
+      _adaptive(light: _lightTextTertiary, dark: _darkTextTertiary);
+
+  static Color get glassColor =>
+      _adaptive(light: _lightGlassColor, dark: _darkGlassColor);
+  static Color get glassBorderColor =>
+      _adaptive(light: _lightGlassBorderColor, dark: _darkGlassBorderColor);
+
+  static Color get overlayColor =>
+      _adaptive(light: _lightOverlayColor, dark: _darkOverlayColor);
+  static Color get shadowColor =>
+      _adaptive(light: _lightShadowColor, dark: _darkShadowColor);
+  static Color get shadowColorFaint =>
+      _adaptive(light: _lightShadowColorFaint, dark: _darkShadowColorFaint);
+
+  static Color get toolBlue =>
+      _adaptive(light: _lightToolBlue, dark: _darkToolBlue);
+  static Color get toolOrange =>
+      _adaptive(light: _lightToolOrange, dark: _darkToolOrange);
+  static Color get toolRed =>
+      _adaptive(light: _lightToolRed, dark: _darkToolRed);
+  static Color get toolGreen =>
+      _adaptive(light: _lightToolGreen, dark: _darkToolGreen);
+  static Color get toolPurple =>
+      _adaptive(light: _lightToolPurple, dark: _darkToolPurple);
+  static Color get toolPink =>
+      _adaptive(light: _lightToolPink, dark: _darkToolPink);
 
   // ==================== 间距规范 ====================
   static const double spacingXs = 4;
@@ -74,8 +155,136 @@ class IOS26Theme {
     );
   }
 
+  static TextTheme _textThemeFor(Brightness brightness) {
+    final primary = _textPrimaryFor(brightness);
+    final secondary = _textSecondaryFor(brightness);
+    final accent = _primaryFor(brightness);
+    return TextTheme(
+      displayLarge: TextStyle(
+        fontSize: 34,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.37,
+        color: primary,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.36,
+        color: primary,
+      ),
+      headlineLarge: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.36,
+        color: primary,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.35,
+        color: primary,
+      ),
+      headlineSmall: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.38,
+        color: primary,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.41,
+        color: primary,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.32,
+        color: primary,
+      ),
+      titleSmall: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.24,
+        color: primary,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.41,
+        color: primary,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.24,
+        color: secondary,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.08,
+        color: secondary,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        letterSpacing: -0.24,
+        color: accent,
+      ),
+    );
+  }
+
+  static Color _primaryFor(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? _darkPrimaryColor
+        : _lightPrimaryColor;
+  }
+
+  static Color _secondaryFor(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? _darkSecondaryColor
+        : _lightSecondaryColor;
+  }
+
+  static Color _backgroundFor(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? _darkBackgroundColor
+        : _lightBackgroundColor;
+  }
+
+  static Color _surfaceFor(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? _darkSurfaceColor
+        : _lightSurfaceColor;
+  }
+
+  static Color _cardFor(Brightness brightness) {
+    return brightness == Brightness.dark ? _darkCardColor : _lightCardColor;
+  }
+
+  static Color _textPrimaryFor(Brightness brightness) {
+    return brightness == Brightness.dark ? _darkTextPrimary : _lightTextPrimary;
+  }
+
+  static Color _textSecondaryFor(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? _darkTextSecondary
+        : _lightTextSecondary;
+  }
+
+  static Color _textThemeTertiaryFor(Brightness brightness) {
+    return brightness == Brightness.dark
+        ? _darkTextTertiary
+        : _lightTextTertiary;
+  }
+
+  static Color _glassFor(Brightness brightness) {
+    return brightness == Brightness.dark ? _darkGlassColor : _lightGlassColor;
+  }
+
   // ==================== 文本样式静态访问器 ====================
-  static TextTheme get _textTheme => lightTheme.textTheme;
+  static TextTheme get _textTheme => _textThemeFor(_brightness);
 
   /// 大标题 (34pt, w700) - 用于页面主标题、品牌名称
   static TextStyle get displayLarge => _textTheme.displayLarge!;
@@ -114,7 +323,7 @@ class IOS26Theme {
   static TextStyle get labelLarge => _textTheme.labelLarge!;
 
   /// 标签文本 (13pt, w700) - 用于标签、小按钮
-  static TextStyle get labelSmall => const TextStyle(
+  static TextStyle get labelSmall => TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.08,
@@ -122,97 +331,46 @@ class IOS26Theme {
   );
 
   /// 获取主题数据
-  static ThemeData get lightTheme {
+  static ThemeData get lightTheme => _buildTheme(Brightness.light);
+  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
+
+  static ThemeData _buildTheme(Brightness brightness) {
+    final primary = _primaryFor(brightness);
+    final secondary = _secondaryFor(brightness);
+    final background = _backgroundFor(brightness);
+    final surface = _surfaceFor(brightness);
+    final card = _cardFor(brightness);
+    final textPrimary = _textPrimaryFor(brightness);
+    final textSecondary = _textSecondaryFor(brightness);
+    final textTertiary = _textThemeTertiaryFor(brightness);
+    final glass = _glassFor(brightness);
+
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
-      primaryColor: primaryColor,
-      scaffoldBackgroundColor: backgroundColor,
-      colorScheme: const ColorScheme.light(
-        primary: primaryColor,
-        secondary: secondaryColor,
-        surface: surfaceColor,
-        onPrimary: surfaceColor,
-        onSecondary: surfaceColor,
+      brightness: brightness,
+      primaryColor: primary,
+      scaffoldBackgroundColor: background,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: primary,
+        onPrimary: onPrimaryColor,
+        secondary: secondary,
+        onSecondary: onPrimaryColor,
+        error: brightness == Brightness.dark ? _darkToolRed : _lightToolRed,
+        onError: onPrimaryColor,
+        surface: surface,
         onSurface: textPrimary,
       ),
       fontFamily: 'Source Han Sans CN',
       fontFamilyFallback: const ['Noto Sans SC', 'Microsoft YaHei', 'Arial'],
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
-          fontSize: 34,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.37,
-          color: textPrimary,
-        ),
-        displayMedium: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.36,
-          color: textPrimary,
-        ),
-        headlineLarge: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.36,
-          color: textPrimary,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.35,
-          color: textPrimary,
-        ),
-        headlineSmall: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.38,
-          color: textPrimary,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.41,
-          color: textPrimary,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.32,
-          color: textPrimary,
-        ),
-        titleSmall: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.24,
-          color: textPrimary,
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w400,
-          letterSpacing: -0.41,
-          color: textPrimary,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w400,
-          letterSpacing: -0.24,
-          color: textSecondary,
-        ),
-        bodySmall: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w400,
-          letterSpacing: -0.08,
-          color: textSecondary,
-        ),
-        labelLarge: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          letterSpacing: -0.24,
-          color: primaryColor,
-        ),
+      textTheme: _textThemeFor(brightness),
+      cupertinoOverrideTheme: CupertinoThemeData(
+        brightness: brightness,
+        primaryColor: primary,
+        scaffoldBackgroundColor: background,
+        barBackgroundColor: glass,
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -227,20 +385,28 @@ class IOS26Theme {
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        color: cardColor,
+        color: card,
       ),
       dialogTheme: DialogThemeData(
         elevation: 0,
-        backgroundColor: surfaceColor,
+        backgroundColor: surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         elevation: 0,
-        backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(
+        backgroundColor: surface,
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
       ),
+      dividerColor: textTertiary.withValues(alpha: 0.2),
+      disabledColor: textSecondary.withValues(alpha: 0.5),
+      shadowColor: brightness == Brightness.dark
+          ? _darkShadowColor
+          : _lightShadowColor,
+      splashColor: primary.withValues(alpha: 0.15),
+      highlightColor: primary.withValues(alpha: 0.08),
+      canvasColor: background,
     );
   }
 }
@@ -410,7 +576,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: EdgeInsets.zero,
                 minimumSize: IOS26Theme.minimumTapSize,
                 onPressed: onBackPressed ?? () => Navigator.pop(context),
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.back,
                   color: IOS26Theme.primaryColor,
                   size: 20,
@@ -464,7 +630,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                   width: 0.5,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 CupertinoIcons.gear,
                 color: IOS26Theme.textSecondary,
                 size: 22,
@@ -685,9 +851,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                         controller: widget.controller,
                         focusNode: widget.focusNode,
                         placeholder: widget.placeholder,
-                        decoration: const BoxDecoration(
-                          color: Colors.transparent,
-                        ),
+                        decoration: BoxDecoration(color: Colors.transparent),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
@@ -710,7 +874,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                       onPressed: widget.loading ? null : _commit,
                       child: widget.loading
                           ? const CupertinoActivityIndicator(radius: 10)
-                          : const Icon(
+                          : Icon(
                               CupertinoIcons.check_mark,
                               size: 14,
                               color: IOS26Theme.toolGreen,
@@ -726,7 +890,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                   onPressed: widget.loading ? null : _expand,
                   child: widget.loading
                       ? const CupertinoActivityIndicator(radius: 10)
-                      : const Icon(
+                      : Icon(
                           CupertinoIcons.add,
                           size: 14,
                           color: IOS26Theme.primaryColor,

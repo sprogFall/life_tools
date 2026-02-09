@@ -120,7 +120,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                   minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _task != null ? _openEditTask : null,
-                  child: const Icon(
+                  child: Icon(
                     CupertinoIcons.pencil,
                     color: IOS26Theme.primaryColor,
                     size: 22,
@@ -130,7 +130,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                   minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _showMoreOptions,
-                  child: const Icon(
+                  child: Icon(
                     CupertinoIcons.ellipsis,
                     color: IOS26Theme.primaryColor,
                     size: 22,
@@ -255,16 +255,16 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             CupertinoIcons.clock_fill,
                             size: 20,
-                            color: IOS26Theme.surfaceColor,
+                            color: IOS26Theme.onPrimaryColor,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '记录工时',
                             style: IOS26Theme.labelLarge.copyWith(
-                              color: IOS26Theme.surfaceColor,
+                              color: IOS26Theme.onPrimaryColor,
                             ),
                           ),
                         ],
@@ -282,16 +282,16 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             CupertinoIcons.check_mark_circled_solid,
                             size: 20,
-                            color: IOS26Theme.surfaceColor,
+                            color: IOS26Theme.onPrimaryColor,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             '完成',
                             style: IOS26Theme.labelLarge.copyWith(
-                              color: IOS26Theme.surfaceColor,
+                              color: IOS26Theme.onPrimaryColor,
                             ),
                           ),
                         ],
@@ -319,10 +319,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             color: IOS26Theme.toolRed,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(
-            CupertinoIcons.delete,
-            color: IOS26Theme.surfaceColor,
-          ),
+          child: Icon(CupertinoIcons.delete, color: IOS26Theme.onPrimaryColor),
         ),
         confirmDismiss: (_) => _confirmDeleteTimeEntry(entry),
         child: GestureDetector(

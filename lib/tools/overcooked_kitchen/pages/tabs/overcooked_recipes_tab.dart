@@ -142,7 +142,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       CupertinoIcons.shuffle,
                       size: 18,
                       color: IOS26Theme.toolOrange,
@@ -203,7 +203,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
           child: Text(
             '+ 新建',
             style: IOS26Theme.labelLarge.copyWith(
-              color: IOS26Theme.surfaceColor,
+              color: IOS26Theme.onPrimaryColor,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -343,7 +343,7 @@ class _RecipeCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_right,
               size: 18,
               color: IOS26Theme.textTertiary,

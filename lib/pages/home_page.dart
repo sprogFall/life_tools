@@ -22,6 +22,7 @@ import '../core/theme/ios26_theme.dart';
 import '../core/ui/app_navigator.dart';
 import '../core/ui/app_scaffold.dart';
 import '../core/widgets/ios26_settings_row.dart';
+import '../l10n/app_localizations.dart';
 import 'ai_settings_page.dart';
 import 'obj_store_settings_page.dart';
 import 'tool_management_page.dart';
@@ -94,12 +95,7 @@ class _HomePageState extends State<HomePage> {
             child: Consumer2<SettingsService, MessageService>(
               builder: (context, settings, messageService, child) {
                 final tools = settings.getHomeTools();
-                return _buildContent(
-                  context,
-                  tools,
-                  settings,
-                  messageService,
-                );
+                return _buildContent(context, tools, settings, messageService);
               },
             ),
           ),
@@ -136,7 +132,10 @@ class _HomePageState extends State<HomePage> {
                       onPressed: allMessages.isEmpty
                           ? null
                           : () {
-                              AppNavigator.push(context, const AllMessagesPage());
+                              AppNavigator.push(
+                                context,
+                                const AllMessagesPage(),
+                              );
                             },
                       child: Text(
                         '全部消息',
@@ -512,7 +511,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                         ),
                         child: Icon(
                           widget.tool.icon,
-                          color: IOS26Theme.surfaceColor,
+                          color: IOS26Theme.onPrimaryColor,
                           size: 26,
                         ),
                       ),
@@ -551,16 +550,16 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             CupertinoIcons.star_fill,
-                            color: IOS26Theme.surfaceColor,
+                            color: IOS26Theme.onPrimaryColor,
                             size: 10,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '默认',
                             style: IOS26Theme.bodySmall.copyWith(
-                              color: IOS26Theme.surfaceColor,
+                              color: IOS26Theme.onPrimaryColor,
                             ),
                           ),
                         ],
@@ -582,8 +581,9 @@ class _SettingsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: IOS26Theme.surfaceColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -682,6 +682,27 @@ class _SettingsSheet extends StatelessWidget {
                               title: '资源存储',
                               value: value,
                               onTap: () => _openObjStoreSettings(context),
+                            );
+                          },
+                        ),
+                        _buildDivider(),
+                        IOS26SettingsRow(
+                          icon: CupertinoIcons.moon_stars,
+                          title: l10n.settings_dark_mode_label,
+                          showChevron: false,
+                          trailing: CupertinoSwitch(
+                            key: const ValueKey('settings_dark_mode_switch'),
+                            value: settings.isDarkModeEnabled,
+                            activeTrackColor: IOS26Theme.primaryColor,
+                            onChanged: (value) {
+                              unawaited(settings.setDarkModeEnabled(value));
+                            },
+                          ),
+                          onTap: () {
+                            unawaited(
+                              settings.setDarkModeEnabled(
+                                !settings.isDarkModeEnabled,
+                              ),
                             );
                           },
                         ),

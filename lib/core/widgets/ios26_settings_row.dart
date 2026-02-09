@@ -53,7 +53,7 @@ class IOS26SettingsRow extends StatelessWidget {
                 ),
               if (showChevron) ...[
                 const SizedBox(width: 8),
-                const Icon(
+                Icon(
                   CupertinoIcons.chevron_right,
                   color: IOS26Theme.textTertiary,
                   size: 18,

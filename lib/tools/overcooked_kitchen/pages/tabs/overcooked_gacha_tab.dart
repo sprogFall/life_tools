@@ -208,7 +208,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               child: Text(
                 '扭蛋',
                 style: IOS26Theme.labelLarge.copyWith(
-                  color: IOS26Theme.surfaceColor,
+                  color: IOS26Theme.onPrimaryColor,
                 ),
               ),
             ),
@@ -239,7 +239,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                     ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   CupertinoIcons.chevron_down,
                   size: 16,
                   color: IOS26Theme.textSecondary,
@@ -347,7 +347,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             child: Text(
               '就你了',
               style: IOS26Theme.labelLarge.copyWith(
-                color: IOS26Theme.surfaceColor,
+                color: IOS26Theme.onPrimaryColor,
               ),
             ),
           ),

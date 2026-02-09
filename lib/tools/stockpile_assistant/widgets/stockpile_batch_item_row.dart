@@ -51,7 +51,7 @@ class StockpileBatchItemRow extends StatelessWidget {
                         entry,
                       );
                     },
-              child: const Icon(
+              child: Icon(
                 CupertinoIcons.trash,
                 size: 18,
                 color: IOS26Theme.toolRed,
@@ -232,14 +232,14 @@ class StockpileBatchItemRow extends StatelessWidget {
                       entry.remindDaysController.text = '';
                       provider.touch();
                     },
-                    child: const Icon(
+                    child: Icon(
                       CupertinoIcons.clear_circled_solid,
                       size: 18,
                       color: IOS26Theme.textTertiary,
                     ),
                   )
                 else
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 16,
                     color: IOS26Theme.textTertiary,
@@ -327,14 +327,14 @@ class StockpileBatchItemRow extends StatelessWidget {
                       entry.restockRemindDate = null;
                       provider.touch();
                     },
-                    child: const Icon(
+                    child: Icon(
                       CupertinoIcons.clear_circled_solid,
                       size: 18,
                       color: IOS26Theme.textTertiary,
                     ),
                   )
                 else
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 16,
                     color: IOS26Theme.textTertiary,
@@ -413,7 +413,7 @@ class StockpileBatchItemRow extends StatelessWidget {
         ? IOS26Theme.primaryColor
         : IOS26Theme.textTertiary.withValues(alpha: 0.4);
     final textColor = selected
-        ? IOS26Theme.surfaceColor
+        ? IOS26Theme.onPrimaryColor
         : IOS26Theme.textPrimary;
     final dotColor = tag.color == null
         ? IOS26Theme.textTertiary
@@ -459,10 +459,10 @@ class StockpileBatchItemRow extends StatelessWidget {
             ),
             if (selected) ...[
               const SizedBox(width: IOS26Theme.spacingSm),
-              const Icon(
+              Icon(
                 CupertinoIcons.check_mark_circled_solid,
                 size: 18,
-                color: IOS26Theme.surfaceColor,
+                color: IOS26Theme.onPrimaryColor,
               ),
             ],
           ],

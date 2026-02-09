@@ -36,6 +36,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get common_calendar => 'Calendar';
 
   @override
+  String get settings_dark_mode_label => 'Dark Mode';
+
+  @override
   String get tool_management_title => 'Tool Management';
 
   @override
@@ -972,6 +975,9 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get common_calendar => 'Calendar';
+
+  @override
+  String get settings_dark_mode_label => 'Dark Mode';
 
   @override
   String get tool_management_title => 'Tool Management';

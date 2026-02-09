@@ -118,7 +118,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                     width: 0.5,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.chevron_left,
                   size: 20,
                   color: IOS26Theme.textPrimary,
@@ -140,7 +140,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                     width: 0.5,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.chevron_right,
                   size: 20,
                   color: IOS26Theme.textPrimary,
@@ -399,7 +399,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
             ),
           ),
           const SizedBox(width: IOS26Theme.spacingXs),
-          const Icon(
+          Icon(
             CupertinoIcons.chevron_right,
             size: 18,
             color: IOS26Theme.textTertiary,
@@ -487,8 +487,8 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
             .toList()
           ..sort((a, b) => b.key.compareTo(a.key));
 
-    final weekDayRows =
-        days.map((d) {
+    final weekDayRows = days
+        .map((d) {
           final minutes = _dailyMinutes[_startOfDay(d)] ?? 0;
           final selected = _isSameDay(d, _selectedDate);
           return Padding(
@@ -532,7 +532,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         ),
                       ),
                     const SizedBox(width: 6),
-                    const Icon(
+                    Icon(
                       CupertinoIcons.chevron_right,
                       size: 18,
                       color: IOS26Theme.textTertiary,
@@ -542,7 +542,8 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
               ),
             ),
           );
-        }).toList(growable: false);
+        })
+        .toList(growable: false);
 
     return Column(
       children: [
@@ -640,7 +641,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         ),
                       ),
                       const SizedBox(width: IOS26Theme.spacingXs),
-                      const Icon(
+                      Icon(
                         CupertinoIcons.chevron_right,
                         size: 18,
                         color: IOS26Theme.textTertiary,
@@ -979,7 +980,7 @@ class _DayCell extends StatelessWidget {
       return Container(
         width: 4,
         height: 4,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: IOS26Theme.primaryColor,
           shape: BoxShape.circle,
         ),

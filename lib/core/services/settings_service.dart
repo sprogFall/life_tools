@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -13,6 +14,7 @@ typedef DatabaseProvider = Future<Database> Function();
 class SettingsService extends ChangeNotifier {
   static const String _defaultToolKey = 'default_tool_id';
   static const String _hiddenToolIdsKey = 'hidden_tool_ids';
+  static const String _themeModeKey = 'theme_mode';
   static const String _tagManagerToolId = 'tag_manager';
   static const String _workLogToolId = 'work_log';
   static const String _stockpileToolId = 'stockpile_assistant';
@@ -24,12 +26,15 @@ class SettingsService extends ChangeNotifier {
   String? _defaultToolId;
   List<String> _toolOrder = [];
   Set<String> _hiddenToolIds = {};
+  ThemeMode _themeMode = ThemeMode.light;
 
   SettingsService({DatabaseProvider? databaseProvider})
     : _databaseProvider =
           databaseProvider ?? (() => DatabaseHelper.instance.database);
 
   String? get defaultToolId => _defaultToolId;
+  ThemeMode get themeMode => _themeMode;
+  bool get isDarkModeEnabled => _themeMode == ThemeMode.dark;
   List<String> get toolOrder => List.unmodifiable(_toolOrder);
   List<String> get hiddenToolIds {
     final ordered = <String>[];
@@ -46,6 +51,7 @@ class SettingsService extends ChangeNotifier {
     _prefs = await SharedPreferences.getInstance();
     _defaultToolId = _prefs?.getString(_defaultToolKey);
     _hiddenToolIds = _loadHiddenToolIds();
+    _themeMode = _loadThemeMode();
     await _loadToolOrder();
   }
 
@@ -53,6 +59,21 @@ class SettingsService extends ChangeNotifier {
     final raw = _prefs?.getStringList(_hiddenToolIdsKey) ?? const <String>[];
     final known = ToolRegistry.instance.tools.map((t) => t.id).toSet();
     return raw.where(known.contains).toSet();
+  }
+
+  ThemeMode _loadThemeMode() {
+    final raw = _prefs?.getString(_themeModeKey);
+    return switch (raw) {
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.light,
+    };
+  }
+
+  String _themeModeToStorageValue(ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.dark => 'dark',
+      _ => 'light',
+    };
   }
 
   Future<void> _saveHiddenToolIds() async {
@@ -203,6 +224,19 @@ class SettingsService extends ChangeNotifier {
   ToolInfo? getDefaultTool() {
     if (_defaultToolId == null) return null;
     return ToolRegistry.instance.getById(_defaultToolId!);
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    final next = mode == ThemeMode.dark ? ThemeMode.dark : ThemeMode.light;
+    if (_themeMode == next) return;
+    _themeMode = next;
+    await _prefs?.setString(_themeModeKey, _themeModeToStorageValue(next));
+    await _touchUpdatedAt();
+    notifyListeners();
+  }
+
+  Future<void> setDarkModeEnabled(bool enabled) async {
+    await setThemeMode(enabled ? ThemeMode.dark : ThemeMode.light);
   }
 
   static List<String> _fixToolOrderForNewTools(List<String> loaded) {

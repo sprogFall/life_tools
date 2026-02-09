@@ -113,8 +113,9 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final config = context.watch<SyncConfigService>().config;
-    final serverText =
-        config == null ? l10n.common_not_configured : config.fullServerUrl;
+    final serverText = config == null
+        ? l10n.common_not_configured
+        : config.fullServerUrl;
     return AppScaffold(
       body: Column(
         children: [
@@ -123,7 +124,10 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
             showBackButton: true,
             actions: [
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 onPressed: _loading ? null : _refresh,
                 child: Text(l10n.common_refresh, style: IOS26Theme.labelLarge),
               ),
@@ -182,7 +186,9 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
                   ? l10n.common_not_configured
                   : config!.userId,
             ),
-            style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
           const SizedBox(height: 12),
           CupertinoButton(
@@ -194,7 +200,9 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
               configured
                   ? l10n.sync_open_settings_button
                   : l10n.sync_go_config_button,
-              style: IOS26Theme.labelLarge.copyWith(color: IOS26Theme.primaryColor),
+              style: IOS26Theme.labelLarge.copyWith(
+                color: IOS26Theme.primaryColor,
+              ),
             ),
           ),
         ],
@@ -268,13 +276,15 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
         ),
       );
     }
-    final summaryText =
-        summaryParts.isEmpty ? l10n.sync_summary_no_major_changes : summaryParts.join(' · ');
+    final summaryText = summaryParts.isEmpty
+        ? l10n.sync_summary_no_major_changes
+        : summaryParts.join(' · ');
 
     final iconData = switch (record.decision) {
       SyncDecision.useClient => CupertinoIcons.arrow_up_circle_fill,
       SyncDecision.useServer => CupertinoIcons.arrow_down_circle_fill,
-      SyncDecision.rollback => CupertinoIcons.arrow_counterclockwise_circle_fill,
+      SyncDecision.rollback =>
+        CupertinoIcons.arrow_counterclockwise_circle_fill,
       _ => CupertinoIcons.info_circle_fill,
     };
 
@@ -290,10 +300,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
       child: CupertinoButton(
         padding: EdgeInsets.zero,
         onPressed: () {
-          AppNavigator.push(
-            context,
-            SyncRecordDetailPage(recordId: record.id),
-          );
+          AppNavigator.push(context, SyncRecordDetailPage(recordId: record.id));
         },
         child: GlassContainer(
           padding: const EdgeInsets.all(16),
@@ -305,10 +312,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
                   Icon(iconData, color: iconColor, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      directionText,
-                      style: IOS26Theme.titleMedium,
-                    ),
+                    child: Text(directionText, style: IOS26Theme.titleMedium),
                   ),
                   Text(
                     _timeFormat.format(record.serverTime),
@@ -498,7 +502,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
           const SizedBox(height: 4),
           Text(
             l10n.sync_details_client_updated_at_label(record.clientUpdatedAtMs),
-            style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -506,7 +512,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
               record.serverUpdatedAtMsBefore,
               record.serverUpdatedAtMsAfter,
             ),
-            style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -514,7 +522,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
               record.serverRevisionBefore,
               record.serverRevisionAfter,
             ),
-            style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
         ],
       ),
@@ -568,12 +578,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
                   ],
                 ),
               ),
-              Text(
-                value,
-                style: IOS26Theme.bodyMedium,
-              ),
+              Text(value, style: IOS26Theme.bodyMedium),
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 CupertinoIcons.chevron_right,
                 color: IOS26Theme.textTertiary,
                 size: 18,
@@ -591,13 +598,18 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Text(l10n.sync_rollback_section_title, style: IOS26Theme.titleMedium),
+            child: Text(
+              l10n.sync_rollback_section_title,
+              style: IOS26Theme.titleMedium,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
               l10n.sync_rollback_section_hint,
-              style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textSecondary,
+              ),
             ),
           ),
           buildOption(
@@ -707,7 +719,10 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
         context,
         title: l10n.sync_rollback_done_title,
         content: applyError == null
-            ? l10n.sync_rollback_done_content(targetRevision, result.serverRevision)
+            ? l10n.sync_rollback_done_content(
+                targetRevision,
+                result.serverRevision,
+              )
             : l10n.sync_rollback_done_partial_content(applyError),
       );
     } catch (e) {
@@ -784,7 +799,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
           padding: const EdgeInsets.all(16),
           child: Text(
             l10n.sync_diff_none,
-            style: IOS26Theme.bodyMedium.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodyMedium.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
         ),
       ];
@@ -797,7 +814,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
           padding: const EdgeInsets.all(16),
           child: Text(
             l10n.sync_diff_format_error,
-            style: IOS26Theme.bodyMedium.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodyMedium.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
         ),
       ];
@@ -813,7 +832,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
       if (same) continue;
 
       final diffItems = (toolData['diff_items'] as List?) ?? const [];
-      
+
       // Filter out length_changed
       final filteredItems = diffItems.where((e) {
         if (e is! Map) return false;
@@ -835,9 +854,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
                   style: IOS26Theme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                ...filteredItems.take(80).map(
-                      (e) => _buildDiffLine(toolId, e),
-                    ),
+                ...filteredItems.take(80).map((e) => _buildDiffLine(toolId, e)),
               ],
             ),
           ),
@@ -851,7 +868,9 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
           padding: const EdgeInsets.all(16),
           child: Text(
             l10n.sync_diff_no_substantive,
-            style: IOS26Theme.bodyMedium.copyWith(color: IOS26Theme.textSecondary),
+            style: IOS26Theme.bodyMedium.copyWith(
+              color: IOS26Theme.textSecondary,
+            ),
           ),
         ),
       ];
@@ -879,29 +898,31 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Container(
-             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-             decoration: BoxDecoration(
-               color: display.color.withValues(alpha: 0.1),
-               borderRadius: BorderRadius.circular(4),
-             ),
-             child: Text(
-               display.label,
-               style: IOS26Theme.bodySmall.copyWith(
-                 color: display.color,
-                 fontSize: 10,
-               ),
-             ),
-           ),
-           const SizedBox(width: 6),
-           Expanded(
-             child: Text(
-               display.details.isNotEmpty
-                   ? '${display.path} (${display.details})'
-                   : display.path,
-               style: IOS26Theme.bodySmall.copyWith(color: IOS26Theme.textSecondary),
-             ),
-           ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: display.color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              display.label,
+              style: IOS26Theme.bodySmall.copyWith(
+                color: display.color,
+                fontSize: 10,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              display.details.isNotEmpty
+                  ? '${display.path} (${display.details})'
+                  : display.path,
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );

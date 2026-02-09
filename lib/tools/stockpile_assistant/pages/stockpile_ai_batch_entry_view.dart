@@ -86,13 +86,11 @@ class StockpileAiBatchEntryView extends StatelessWidget {
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: provider.saving ? null : () => _save(context),
               child: provider.saving
-                  ? const CupertinoActivityIndicator(
-                      color: IOS26Theme.surfaceColor,
-                    )
+                  ? CupertinoActivityIndicator(color: IOS26Theme.onPrimaryColor)
                   : Text(
                       '保存',
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: IOS26Theme.surfaceColor,
+                        color: IOS26Theme.onPrimaryColor,
                       ),
                     ),
             ),
@@ -210,7 +208,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                             .read<StockpileBatchEntryProvider>()
                             .removeConsumption(entry);
                       },
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.trash,
                   size: 18,
                   color: IOS26Theme.toolRed,
@@ -288,7 +286,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                   : () => _pickItemForConsumption(context, entry, provider),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     CupertinoIcons.cube_box_fill,
                     size: 18,
                     color: IOS26Theme.toolGreen,
@@ -310,7 +308,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(width: IOS26Theme.spacingSm),
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 18,
                     color: IOS26Theme.textTertiary,

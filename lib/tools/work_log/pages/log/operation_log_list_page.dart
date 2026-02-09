@@ -103,7 +103,7 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
                   padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                   minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _openRetentionLimitSheet,
-                  child: const Icon(
+                  child: Icon(
                     CupertinoIcons.slider_horizontal_3,
                     color: IOS26Theme.primaryColor,
                     size: 22,

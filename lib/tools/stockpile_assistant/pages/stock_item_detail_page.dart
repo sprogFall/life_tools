@@ -81,7 +81,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
               padding: EdgeInsets.zero,
               minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _openEdit,
-              child: const Icon(
+              child: Icon(
                 CupertinoIcons.pencil,
                 color: IOS26Theme.primaryColor,
               ),
@@ -90,7 +90,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
               padding: EdgeInsets.zero,
               minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _openConsume,
-              child: const Icon(
+              child: Icon(
                 CupertinoIcons.minus_circle,
                 color: IOS26Theme.primaryColor,
               ),
@@ -99,10 +99,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
               padding: EdgeInsets.zero,
               minimumSize: IOS26Theme.minimumTapSize,
               onPressed: _confirmDelete,
-              child: const Icon(
-                CupertinoIcons.delete,
-                color: IOS26Theme.toolRed,
-              ),
+              child: Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
             ),
           ],
         ),
@@ -219,7 +216,7 @@ class _StockItemDetailPageState extends State<StockItemDetailPage> {
       margin: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             CupertinoIcons.minus_circle_fill,
             size: 18,
             color: IOS26Theme.toolOrange,

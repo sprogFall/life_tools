@@ -277,7 +277,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: _refreshCurrentWifi,
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.refresh,
                   size: 18,
                   color: IOS26Theme.primaryColor,
@@ -289,7 +289,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: _addWifiName,
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.add_circled,
                   size: 20,
                   color: IOS26Theme.primaryColor,
@@ -330,11 +330,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       ),
       child: Row(
         children: [
-          const Icon(
-            CupertinoIcons.wifi,
-            size: 18,
-            color: IOS26Theme.textSecondary,
-          ),
+          Icon(CupertinoIcons.wifi, size: 18, color: IOS26Theme.textSecondary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -352,7 +348,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   if (name != wifiName) name,
               ],
             ),
-            child: const Icon(
+            child: Icon(
               CupertinoIcons.trash,
               size: 18,
               color: IOS26Theme.toolRed,
@@ -422,14 +418,14 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   color: IOS26Theme.primaryColor,
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
-                      ? const CupertinoActivityIndicator(
+                      ? CupertinoActivityIndicator(
                           radius: 9,
-                          color: IOS26Theme.surfaceColor,
+                          color: IOS26Theme.onPrimaryColor,
                         )
                       : Text(
                           l10n.sync_now_button,
                           style: IOS26Theme.labelLarge.copyWith(
-                            color: IOS26Theme.surfaceColor,
+                            color: IOS26Theme.onPrimaryColor,
                           ),
                         ),
                 ),

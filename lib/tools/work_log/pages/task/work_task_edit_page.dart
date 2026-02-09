@@ -562,7 +562,7 @@ class _TimeRow extends StatelessWidget {
               const SizedBox(width: 10),
               GestureDetector(
                 onTap: onClear,
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.clear_circled_solid,
                   size: 18,
                   color: IOS26Theme.textTertiary,
@@ -570,7 +570,7 @@ class _TimeRow extends StatelessWidget {
               ),
             ] else ...[
               const SizedBox(width: 10),
-              const Icon(
+              Icon(
                 CupertinoIcons.chevron_right,
                 size: 18,
                 color: IOS26Theme.textTertiary,

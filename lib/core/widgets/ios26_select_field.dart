@@ -41,7 +41,7 @@ class IOS26SelectField extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_down,
               size: 16,
               color: IOS26Theme.textSecondary,

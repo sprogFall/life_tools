@@ -80,7 +80,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               CupertinoIcons.cube_box_fill,
                               size: 18,
                               color: IOS26Theme.toolGreen,
@@ -156,7 +156,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             child: Text(
               '保存',
               style: IOS26Theme.labelLarge.copyWith(
-                color: IOS26Theme.surfaceColor,
+                color: IOS26Theme.onPrimaryColor,
               ),
             ),
           ),
@@ -218,7 +218,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             ),
             Text(value, style: IOS26Theme.bodyMedium),
             const SizedBox(width: 6),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_right,
               size: 18,
               color: IOS26Theme.textTertiary,

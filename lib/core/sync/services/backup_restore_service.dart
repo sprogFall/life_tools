@@ -104,6 +104,7 @@ class BackupRestoreService {
         'default_tool_id': settingsService.defaultToolId,
         'tool_order': settingsService.toolOrder,
         'hidden_tool_ids': settingsService.hiddenToolIds,
+        'theme_mode': settingsService.themeMode.name,
       },
     };
   }
@@ -339,6 +340,7 @@ class BackupRestoreService {
       final hiddenToolIds = hiddenRaw is List
           ? hiddenRaw.whereType<String>().toList()
           : const <String>[];
+      final themeModeRaw = (settingsMap['theme_mode'] as String?)?.trim();
 
       if (toolOrder.isNotEmpty) {
         final known = ToolRegistry.instance.tools.map((t) => t.id).toSet();
@@ -354,6 +356,13 @@ class BackupRestoreService {
 
       if (defaultToolId != null && defaultToolId.trim().isNotEmpty) {
         await settingsService.setDefaultTool(defaultToolId);
+      }
+
+      if (themeModeRaw == 'dark') {
+        await settingsService.setDarkModeEnabled(true);
+      }
+      if (themeModeRaw == 'light') {
+        await settingsService.setDarkModeEnabled(false);
       }
     }
   }

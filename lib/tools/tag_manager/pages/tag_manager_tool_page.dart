@@ -934,7 +934,7 @@ class _TagChip extends StatelessWidget {
                 minimumSize: const Size(32, 32),
                 pressedOpacity: 0.7,
                 onPressed: onRemove,
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.xmark,
                   size: 13,
                   color: IOS26Theme.toolRed,

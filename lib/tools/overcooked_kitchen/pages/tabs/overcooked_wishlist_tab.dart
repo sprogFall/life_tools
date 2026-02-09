@@ -136,7 +136,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 child: Text(
                   '选择菜谱',
                   style: IOS26Theme.labelLarge.copyWith(
-                    color: IOS26Theme.surfaceColor,
+                    color: IOS26Theme.onPrimaryColor,
                   ),
                 ),
               ),
@@ -319,7 +319,7 @@ class _WishRow extends StatelessWidget {
             color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(14),
             onPressed: onRemove,
-            child: const Icon(
+            child: Icon(
               CupertinoIcons.trash,
               size: 18,
               color: IOS26Theme.textSecondary,

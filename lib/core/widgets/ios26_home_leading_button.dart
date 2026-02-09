@@ -18,19 +18,16 @@ class IOS26HomeLeadingButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            CupertinoIcons.home,
-            color: IOS26Theme.primaryColor,
-            size: 20,
-          ),
+          Icon(CupertinoIcons.home, color: IOS26Theme.primaryColor, size: 20),
           const SizedBox(width: IOS26Theme.spacingXs),
           Text(
             l10n.common_home,
-            style: IOS26Theme.labelLarge.copyWith(color: IOS26Theme.primaryColor),
+            style: IOS26Theme.labelLarge.copyWith(
+              color: IOS26Theme.primaryColor,
+            ),
           ),
         ],
       ),
     );
   }
 }
-

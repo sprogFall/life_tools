@@ -136,7 +136,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                           padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                           minimumSize: IOS26Theme.minimumTapSize,
                           onPressed: _openCreateItem,
-                          child: const Icon(
+                          child: Icon(
                             CupertinoIcons.add,
                             color: IOS26Theme.primaryColor,
                             size: 24,
@@ -242,7 +242,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       CupertinoIcons.cart_fill,
                       size: 18,
                       color: IOS26Theme.toolBlue,
@@ -271,7 +271,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       CupertinoIcons.bell_fill,
                       size: 18,
                       color: IOS26Theme.toolOrange,
@@ -338,7 +338,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
               color: IOS26Theme.toolGreen.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               CupertinoIcons.cube_box,
               color: IOS26Theme.toolGreen,
               size: 22,

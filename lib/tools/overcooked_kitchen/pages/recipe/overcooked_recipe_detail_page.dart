@@ -132,10 +132,7 @@ class _OvercookedRecipeDetailPageState
                     if (!mounted) return;
                     await _refresh();
                   },
-            child: const Icon(
-              CupertinoIcons.pencil,
-              color: IOS26Theme.primaryColor,
-            ),
+            child: Icon(CupertinoIcons.pencil, color: IOS26Theme.primaryColor),
           ),
           CupertinoButton(
             padding: EdgeInsets.zero,
@@ -156,7 +153,7 @@ class _OvercookedRecipeDetailPageState
                     if (!context.mounted) return;
                     Navigator.pop(context);
                   },
-            child: const Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
+            child: Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
           ),
         ],
       ),
@@ -283,7 +280,7 @@ class _OvercookedRecipeDetailPageState
                   const SizedBox(height: IOS26Theme.spacingSm),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         CupertinoIcons.doc_richtext,
                         size: 14,
                         color: IOS26Theme.toolBlue,
@@ -345,7 +342,7 @@ class _OvercookedRecipeDetailPageState
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   CupertinoIcons.tag,
                   size: 18,
                   color: IOS26Theme.toolPurple,
@@ -385,8 +382,9 @@ class _OvercookedRecipeDetailPageState
   Widget _chipsRow({
     required String title,
     required List<String> values,
-    Color color = IOS26Theme.toolPurple,
+    Color? color,
   }) {
+    final chipColor = color ?? IOS26Theme.toolPurple;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -403,10 +401,10 @@ class _OvercookedRecipeDetailPageState
           (v) => Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: chipColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: color.withValues(alpha: 0.25),
+                color: chipColor.withValues(alpha: 0.25),
                 width: 1,
               ),
             ),
@@ -414,7 +412,7 @@ class _OvercookedRecipeDetailPageState
               v,
               style: IOS26Theme.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
-                color: color,
+                color: chipColor,
               ),
             ),
           ),

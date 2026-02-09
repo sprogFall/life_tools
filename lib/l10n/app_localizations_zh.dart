@@ -36,6 +36,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get common_calendar => '日历';
 
   @override
+  String get settings_dark_mode_label => '深色模式';
+
+  @override
   String get tool_management_title => '工具管理';
 
   @override
@@ -938,6 +941,9 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get common_calendar => '日历';
+
+  @override
+  String get settings_dark_mode_label => '深色模式';
 
   @override
   String get tool_management_title => '工具管理';

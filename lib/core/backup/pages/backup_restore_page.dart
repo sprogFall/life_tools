@@ -149,16 +149,16 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     CupertinoIcons.share,
-                    color: IOS26Theme.surfaceColor,
+                    color: IOS26Theme.onPrimaryColor,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     l10n.backup_export_share_button,
                     style: IOS26Theme.labelLarge.copyWith(
-                      color: IOS26Theme.surfaceColor,
+                      color: IOS26Theme.onPrimaryColor,
                     ),
                   ),
                 ],
@@ -285,14 +285,14 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               color: IOS26Theme.toolRed.withValues(alpha: 0.9),
               onPressed: _isRestoring ? null : _confirmAndRestore,
               child: _isRestoring
-                  ? const CupertinoActivityIndicator(
+                  ? CupertinoActivityIndicator(
                       radius: 9,
-                      color: IOS26Theme.surfaceColor,
+                      color: IOS26Theme.onPrimaryColor,
                     )
                   : Text(
                       l10n.backup_restore_start_button,
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: IOS26Theme.surfaceColor,
+                        color: IOS26Theme.onPrimaryColor,
                       ),
                     ),
             ),

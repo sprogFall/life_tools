@@ -430,13 +430,11 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: !canGenerate || _generating ? null : _generateSummary,
               child: _generating
-                  ? const CupertinoActivityIndicator(
-                      color: IOS26Theme.surfaceColor,
-                    )
+                  ? CupertinoActivityIndicator(color: IOS26Theme.onPrimaryColor)
                   : Text(
                       l10n.work_log_ai_summary_generate_button,
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: IOS26Theme.surfaceColor,
+                        color: IOS26Theme.onPrimaryColor,
                       ),
                     ),
             ),
@@ -522,7 +520,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
           const Spacer(),
           Text(_formatDateDisplay(value), style: IOS26Theme.bodyMedium),
           const SizedBox(width: IOS26Theme.spacingXs),
-          const Icon(
+          Icon(
             CupertinoIcons.chevron_down,
             size: 14,
             color: IOS26Theme.textSecondary,

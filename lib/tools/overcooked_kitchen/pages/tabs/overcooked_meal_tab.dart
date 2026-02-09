@@ -122,7 +122,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 child: Text(
                   '新增餐次',
                   style: IOS26Theme.labelLarge.copyWith(
-                    color: IOS26Theme.surfaceColor,
+                    color: IOS26Theme.onPrimaryColor,
                   ),
                 ),
               ),
@@ -675,8 +675,9 @@ class _MealCard extends StatelessWidget {
     required String label,
     required IconData icon,
     required VoidCallback? onPressed,
-    Color iconColor = IOS26Theme.textSecondary,
+    Color? iconColor,
   }) {
+    final resolvedIconColor = iconColor ?? IOS26Theme.textSecondary;
     return Semantics(
       button: true,
       label: label,
@@ -685,7 +686,7 @@ class _MealCard extends StatelessWidget {
         onPressed: onPressed,
         color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(14),
-        child: Icon(icon, size: 18, color: iconColor),
+        child: Icon(icon, size: 18, color: resolvedIconColor),
       ),
     );
   }

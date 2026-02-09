@@ -136,7 +136,10 @@ void main() {
           ),
           ChangeNotifierProvider<SyncService>.value(value: syncService),
           Provider<WifiService>.value(
-            value: _FakeWifiService(status: NetworkStatus.offline, wifiName: null),
+            value: _FakeWifiService(
+              status: NetworkStatus.offline,
+              wifiName: null,
+            ),
           ),
           ChangeNotifierProvider<MessageService>.value(value: messageService),
         ],
@@ -201,6 +204,22 @@ void main() {
 
       expect(find.text('设置'), findsOneWidget);
       expect(find.text('工具管理'), findsOneWidget);
+      expect(find.text('深色模式'), findsOneWidget);
+    });
+
+    testWidgets('设置弹出层切换深色模式应写入设置服务', (tester) async {
+      final deps = await createMessageService(tester);
+      await tester.pumpWidget(wrap(const HomePage(), deps.messageService));
+
+      await tester.tap(find.byIcon(CupertinoIcons.gear));
+      await tester.pumpAndSettle();
+
+      expect(mockSettingsService.isDarkModeEnabled, isFalse);
+
+      await tester.tap(find.byKey(const ValueKey('settings_dark_mode_switch')));
+      await tester.pumpAndSettle();
+
+      expect(mockSettingsService.isDarkModeEnabled, isTrue);
     });
 
     testWidgets('设置弹出层中 AI 模型名过长应使用省略号', (tester) async {

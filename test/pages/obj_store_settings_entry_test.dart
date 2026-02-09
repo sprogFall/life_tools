@@ -12,6 +12,7 @@ import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
 import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
+import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,12 +84,18 @@ void main() {
             ChangeNotifierProvider.value(value: messageService),
             ChangeNotifierProvider.value(value: objStoreConfigService),
           ],
-          child: const MaterialApp(home: HomePage()),
+          child: MaterialApp(
+            locale: const Locale('zh', 'CN'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomePage(),
+          ),
         ),
       );
 
       await tester.tap(find.byIcon(CupertinoIcons.gear));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('资源存储'), findsOneWidget);
     });

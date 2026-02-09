@@ -143,7 +143,7 @@ class _DefaultToolRow extends StatelessWidget {
             width: 24,
             height: 24,
             child: selected
-                ? const Icon(
+                ? Icon(
                     CupertinoIcons.checkmark_circle_fill,
                     color: IOS26Theme.primaryColor,
                     size: 22,

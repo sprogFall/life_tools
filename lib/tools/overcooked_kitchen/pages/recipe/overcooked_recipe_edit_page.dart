@@ -241,7 +241,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                       child: Text(
                         '上传',
                         style: IOS26Theme.labelLarge.copyWith(
-                          color: IOS26Theme.surfaceColor,
+                          color: IOS26Theme.onPrimaryColor,
                         ),
                       ),
                     ),
@@ -266,7 +266,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                                 setState(() => _coverKey = null);
                               }
                             },
-                      child: const Icon(
+                      child: Icon(
                         CupertinoIcons.trash,
                         color: IOS26Theme.textSecondary,
                         size: 18,
@@ -445,7 +445,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     CupertinoIcons.sparkles,
                     size: 14,
                     color: IOS26Theme.toolPurple,
@@ -535,10 +535,10 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                             color: IOS26Theme.toolRed.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             CupertinoIcons.xmark,
                             size: 14,
-                            color: IOS26Theme.surfaceColor,
+                            color: IOS26Theme.onPrimaryColor,
                           ),
                         ),
                       ),
@@ -557,7 +557,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           child: Text(
             '添加图片',
             style: IOS26Theme.labelLarge.copyWith(
-              color: IOS26Theme.surfaceColor,
+              color: IOS26Theme.onPrimaryColor,
             ),
           ),
         ),
@@ -583,7 +583,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   CupertinoIcons.tag,
                   size: 18,
                   color: IOS26Theme.toolPurple,
@@ -667,7 +667,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_down,
               size: 16,
               color: IOS26Theme.textSecondary,
@@ -709,7 +709,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_down,
               size: 16,
               color: IOS26Theme.textSecondary,
