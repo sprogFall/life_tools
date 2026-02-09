@@ -449,5 +449,32 @@ void main() {
 
       expect(todayOffsetInCell, closeTo(compareOffsetInCell, 0.1));
     });
+
+    testWidgets('日历周视图近期记录为空时卡片宽度应保持一致', (tester) async {
+      final fake = FakeWorkLogRepository();
+
+      await tester.pumpWidget(
+        TestAppWrapper(child: WorkLogToolPage(repository: fake)),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.text('日历'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('周'));
+      await tester.pumpAndSettle();
+
+      final selectedCard = find.byKey(
+        const ValueKey('work_log_calendar_selected_day_card'),
+      );
+      final recentCard = find.byKey(
+        const ValueKey('work_log_calendar_recent_days_card'),
+      );
+
+      final selectedWidth = tester.getSize(selectedCard).width;
+      final recentWidth = tester.getSize(recentCard).width;
+
+      expect(recentWidth, closeTo(selectedWidth, 0.1));
+    });
   });
 }

@@ -412,52 +412,55 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
   Widget _buildRecentDaysCard(List<MapEntry<DateTime, int>> recentDays) {
     final l10n = AppLocalizations.of(context)!;
 
-    return GlassContainer(
-      key: const ValueKey('work_log_calendar_recent_days_card'),
-      borderRadius: IOS26Theme.radiusXl,
-      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.work_log_calendar_recent_days_title,
-            style: IOS26Theme.titleSmall,
-          ),
-          const SizedBox(height: IOS26Theme.spacingSm),
-          if (recentDays.isEmpty)
+    return SizedBox(
+      width: double.infinity,
+      child: GlassContainer(
+        key: const ValueKey('work_log_calendar_recent_days_card'),
+        borderRadius: IOS26Theme.radiusXl,
+        padding: const EdgeInsets.all(IOS26Theme.spacingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              l10n.work_log_calendar_recent_days_empty,
-              style: IOS26Theme.bodyMedium.copyWith(
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-              ),
-            )
-          else
-            ...recentDays.take(5).map((entry) {
-              final day = entry.key;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: IOS26Theme.spacingSm),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _formatRecentDayTitle(day),
-                        style: IOS26Theme.bodyMedium.copyWith(
-                          color: IOS26Theme.textPrimary,
+              l10n.work_log_calendar_recent_days_title,
+              style: IOS26Theme.titleSmall,
+            ),
+            const SizedBox(height: IOS26Theme.spacingSm),
+            if (recentDays.isEmpty)
+              Text(
+                l10n.work_log_calendar_recent_days_empty,
+                style: IOS26Theme.bodyMedium.copyWith(
+                  color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                ),
+              )
+            else
+              ...recentDays.take(5).map((entry) {
+                final day = entry.key;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: IOS26Theme.spacingSm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _formatRecentDayTitle(day),
+                          style: IOS26Theme.bodyMedium.copyWith(
+                            color: IOS26Theme.textPrimary,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      _minutesToHoursText(entry.value),
-                      style: IOS26Theme.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: IOS26Theme.primaryColor,
+                      Text(
+                        _minutesToHoursText(entry.value),
+                        style: IOS26Theme.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: IOS26Theme.primaryColor,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-        ],
+                    ],
+                  ),
+                );
+              }),
+          ],
+        ),
       ),
     );
   }
@@ -484,9 +487,8 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
             .toList()
           ..sort((a, b) => b.key.compareTo(a.key));
 
-    return Column(
-      children: [
-        ...days.map((d) {
+    final weekDayRows =
+        days.map((d) {
           final minutes = _dailyMinutes[_startOfDay(d)] ?? 0;
           final selected = _isSameDay(d, _selectedDate);
           return Padding(
@@ -540,7 +542,11 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
               ),
             ),
           );
-        }),
+        }).toList(growable: false);
+
+    return Column(
+      children: [
+        ...weekDayRows,
         const SizedBox(height: IOS26Theme.spacingMd),
         _buildSelectedDayCard(
           selectedEntries: selectedEntries,
