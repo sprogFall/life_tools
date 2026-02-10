@@ -397,10 +397,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         final l10n = AppLocalizations.of(context)!;
         final lastSyncTime = configService.config?.lastSyncTime;
         final lastError = syncService.lastError;
-        final primaryButton = IOS26Theme.buttonColors(
-          IOS26ButtonVariant.primary,
-        );
-        final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
 
         return GlassContainer(
           padding: const EdgeInsets.all(16),
@@ -420,15 +416,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   variant: IOS26ButtonVariant.primary,
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
-                      ? CupertinoActivityIndicator(
-                          radius: 9,
-                          color: primaryButton.foreground,
-                        )
-                      : Text(
+                      ? const IOS26ButtonLoadingIndicator(radius: 9)
+                      : IOS26ButtonLabel(
                           l10n.sync_now_button,
-                          style: IOS26Theme.labelLarge.copyWith(
-                            color: primaryButton.foreground,
-                          ),
+                          style: IOS26Theme.labelLarge,
                         ),
                 ),
               ),
@@ -489,11 +480,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                         borderRadius: BorderRadius.circular(14),
                         variant: IOS26ButtonVariant.ghost,
                         onPressed: () => _copyToClipboard(lastError),
-                        child: Text(
+                        child: IOS26ButtonLabel(
                           l10n.sync_copy_error_details_button,
-                          style: IOS26Theme.labelLarge.copyWith(
-                            color: ghostButton.foreground,
-                          ),
+                          style: IOS26Theme.labelLarge,
                         ),
                       ),
                     ),

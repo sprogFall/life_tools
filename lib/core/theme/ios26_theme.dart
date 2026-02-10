@@ -201,6 +201,88 @@ class IOS26IconButton extends StatelessWidget {
   }
 }
 
+class IOS26ButtonLabel extends StatelessWidget {
+  final String data;
+  final TextStyle? style;
+  final Color? color;
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final TextAlign? textAlign;
+
+  const IOS26ButtonLabel(
+    this.data, {
+    super.key,
+    this.style,
+    this.color,
+    this.maxLines,
+    this.overflow,
+    this.textAlign,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inheritedColor =
+        IconTheme.of(context).color ??
+        DefaultTextStyle.of(context).style.color ??
+        IOS26Theme.textPrimary;
+
+    return Text(
+      data,
+      maxLines: maxLines,
+      overflow: overflow,
+      textAlign: textAlign,
+      style: (style ?? IOS26Theme.labelLarge).copyWith(
+        color: color ?? inheritedColor,
+      ),
+    );
+  }
+}
+
+class IOS26ButtonIcon extends StatelessWidget {
+  final IconData icon;
+  final double size;
+  final String? semanticLabel;
+  final Color? color;
+
+  const IOS26ButtonIcon(
+    this.icon, {
+    super.key,
+    this.size = 20,
+    this.semanticLabel,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inheritedColor =
+        IconTheme.of(context).color ??
+        DefaultTextStyle.of(context).style.color ??
+        IOS26Theme.textPrimary;
+
+    return Icon(
+      icon,
+      size: size,
+      semanticLabel: semanticLabel,
+      color: color ?? inheritedColor,
+    );
+  }
+}
+
+class IOS26ButtonLoadingIndicator extends StatelessWidget {
+  final double radius;
+
+  const IOS26ButtonLoadingIndicator({super.key, this.radius = 10});
+
+  @override
+  Widget build(BuildContext context) {
+    final inheritedColor =
+        IconTheme.of(context).color ??
+        DefaultTextStyle.of(context).style.color ??
+        IOS26Theme.textPrimary;
+    return CupertinoActivityIndicator(radius: radius, color: inheritedColor);
+  }
+}
+
 /// iOS 26 风格主题配置
 class IOS26Theme {
   IOS26Theme._();

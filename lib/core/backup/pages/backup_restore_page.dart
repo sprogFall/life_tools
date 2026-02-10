@@ -103,8 +103,6 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   Widget _buildExportCard() {
     final l10n = AppLocalizations.of(context)!;
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -151,17 +149,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    CupertinoIcons.share,
-                    color: primaryButton.foreground,
-                    size: 18,
-                  ),
+                  const IOS26ButtonIcon(CupertinoIcons.share, size: 18),
                   const SizedBox(width: 8),
-                  Text(
+                  IOS26ButtonLabel(
                     l10n.backup_export_share_button,
-                    style: IOS26Theme.labelLarge.copyWith(
-                      color: primaryButton.foreground,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ],
               ),
@@ -175,11 +167,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               borderRadius: BorderRadius.circular(14),
               variant: IOS26ButtonVariant.ghost,
               onPressed: _exportToTxtFile,
-              child: Text(
+              child: IOS26ButtonLabel(
                 l10n.backup_export_save_txt_button,
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: ghostButton.foreground,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -191,11 +181,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               borderRadius: BorderRadius.circular(14),
               variant: IOS26ButtonVariant.ghost,
               onPressed: _exportToClipboard,
-              child: Text(
+              child: IOS26ButtonLabel(
                 l10n.backup_export_copy_clipboard_button,
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: ghostButton.foreground,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -206,10 +194,6 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   Widget _buildRestoreCard() {
     final l10n = AppLocalizations.of(context)!;
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
-    final destructiveButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.destructivePrimary,
-    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -235,11 +219,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   borderRadius: BorderRadius.circular(14),
                   variant: IOS26ButtonVariant.ghost,
                   onPressed: _isRestoring ? null : _pasteFromClipboard,
-                  child: Text(
+                  child: IOS26ButtonLabel(
                     l10n.backup_restore_paste_button,
-                    style: IOS26Theme.labelLarge.copyWith(
-                      color: ghostButton.foreground,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ),
@@ -250,11 +232,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                   borderRadius: BorderRadius.circular(14),
                   variant: IOS26ButtonVariant.ghost,
                   onPressed: _isRestoring ? null : _importFromTxtFile,
-                  child: Text(
+                  child: IOS26ButtonLabel(
                     l10n.backup_restore_import_txt_button,
-                    style: IOS26Theme.labelLarge.copyWith(
-                      color: ghostButton.foreground,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ),
@@ -274,11 +254,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                       '',
                       shouldContinue: () => mounted,
                     ),
-              child: Text(
+              child: IOS26ButtonLabel(
                 l10n.common_clear,
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: ghostButton.foreground,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -291,15 +269,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               variant: IOS26ButtonVariant.destructive,
               onPressed: _isRestoring ? null : _confirmAndRestore,
               child: _isRestoring
-                  ? CupertinoActivityIndicator(
-                      radius: 9,
-                      color: destructiveButton.foreground,
-                    )
-                  : Text(
+                  ? const IOS26ButtonLoadingIndicator(radius: 9)
+                  : IOS26ButtonLabel(
                       l10n.backup_restore_start_button,
-                      style: IOS26Theme.labelLarge.copyWith(
-                        color: destructiveButton.foreground,
-                      ),
+                      style: IOS26Theme.labelLarge,
                     ),
             ),
           ),

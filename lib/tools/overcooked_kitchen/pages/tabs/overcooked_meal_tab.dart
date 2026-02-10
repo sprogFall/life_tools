@@ -102,7 +102,6 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   @override
   Widget build(BuildContext context) {
     final distinctTypeCount = distinctRecipeCount(_meals);
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -120,12 +119,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                 variant: IOS26ButtonVariant.primary,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _addMealFlow,
-                child: Text(
-                  '新增餐次',
-                  style: IOS26Theme.labelLarge.copyWith(
-                    color: primaryButton.foreground,
-                  ),
-                ),
+                child: IOS26ButtonLabel('新增餐次', style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -561,9 +555,6 @@ class _MealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondaryButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.secondary,
-    );
     final title = tagName?.trim().isNotEmpty == true
         ? tagName!.trim()
         : (meal.mealTagId == null ? '未标记' : '（标签已删除）');
@@ -586,11 +577,10 @@ class _MealCard extends StatelessWidget {
                   variant: IOS26ButtonVariant.secondary,
                   borderRadius: BorderRadius.circular(999),
                   onPressed: onPickMealTag,
-                  child: Text(
+                  child: IOS26ButtonLabel(
                     title,
                     style: IOS26Theme.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: secondaryButton.foreground,
                     ),
                   ),
                 ),

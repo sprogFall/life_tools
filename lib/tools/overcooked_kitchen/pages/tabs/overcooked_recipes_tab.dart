@@ -174,7 +174,6 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
     return Row(
       children: [
         Expanded(
@@ -201,12 +200,9 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
             if (!mounted) return;
             _notifyRecipesChanged();
           },
-          child: Text(
+          child: IOS26ButtonLabel(
             '+ 新建',
-            style: IOS26Theme.labelLarge.copyWith(
-              color: primaryButton.foreground,
-              fontWeight: FontWeight.w700,
-            ),
+            style: IOS26Theme.labelLarge.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
       ],

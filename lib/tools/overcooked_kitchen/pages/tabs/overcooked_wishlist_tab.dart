@@ -116,7 +116,6 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
     final sauceText = sauceNames.isEmpty
         ? '（暂无）'
         : (sauceNames.toList()..sort()).join('、');
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -134,12 +133,7 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
                 variant: IOS26ButtonVariant.primary,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _editWishes,
-                child: Text(
-                  '选择菜谱',
-                  style: IOS26Theme.labelLarge.copyWith(
-                    color: primaryButton.foreground,
-                  ),
-                ),
+                child: IOS26ButtonLabel('选择菜谱', style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -301,7 +295,6 @@ class _WishRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return GlassContainer(
       borderRadius: 18,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -321,11 +314,7 @@ class _WishRow extends StatelessWidget {
             variant: IOS26ButtonVariant.ghost,
             borderRadius: BorderRadius.circular(14),
             onPressed: onRemove,
-            child: Icon(
-              CupertinoIcons.trash,
-              size: 18,
-              color: ghostButton.foreground,
-            ),
+            child: const IOS26ButtonIcon(CupertinoIcons.trash, size: 18),
           ),
         ],
       ),

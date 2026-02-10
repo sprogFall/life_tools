@@ -31,9 +31,6 @@ class MessageDetailPage extends StatelessWidget {
               );
             }
 
-            final primaryButton = IOS26Theme.buttonColors(
-              IOS26ButtonVariant.primary,
-            );
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
@@ -68,11 +65,9 @@ class MessageDetailPage extends StatelessWidget {
                     variant: IOS26ButtonVariant.primary,
                     borderRadius: BorderRadius.circular(14),
                     onPressed: () => MessageNavigation.open(context, message),
-                    child: Text(
+                    child: IOS26ButtonLabel(
                       '前往工具',
-                      style: IOS26Theme.labelLarge.copyWith(
-                        color: primaryButton.foreground,
-                      ),
+                      style: IOS26Theme.labelLarge,
                     ),
                   )
                 else

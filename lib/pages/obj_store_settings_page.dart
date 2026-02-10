@@ -437,10 +437,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildTestCard() {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
-    final secondaryButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.secondary,
-    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -468,12 +464,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                   vertical: 12,
                 ),
                 onPressed: _pickFile,
-                child: Text(
-                  '选择文件',
-                  style: IOS26Theme.labelLarge.copyWith(
-                    color: ghostButton.foreground,
-                  ),
-                ),
+                child: IOS26ButtonLabel('选择文件', style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -484,11 +475,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               variant: IOS26ButtonVariant.secondary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingUpload ? null : () => _testUpload(context),
-              child: Text(
+              child: IOS26ButtonLabel(
                 _isTestingUpload ? '测试上传中...' : '测试上传',
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: secondaryButton.foreground,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -516,11 +505,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               variant: IOS26ButtonVariant.secondary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingQuery ? null : () => _testQuery(context),
-              child: Text(
+              child: IOS26ButtonLabel(
                 _isTestingQuery ? '查询中...' : '测试查询',
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: secondaryButton.foreground,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -552,9 +539,6 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildDangerZoneCard() {
-    final destructiveButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.destructive,
-    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -568,12 +552,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               variant: IOS26ButtonVariant.destructive,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
-              child: Text(
-                '清除资源存储配置',
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: destructiveButton.foreground,
-                ),
-              ),
+              child: IOS26ButtonLabel('清除资源存储配置', style: IOS26Theme.labelLarge),
             ),
           ),
         ],

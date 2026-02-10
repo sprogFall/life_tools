@@ -12,7 +12,6 @@ class StockpileConsumeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final warningButton = IOS26Theme.buttonColors(IOS26ButtonVariant.warning);
     return IOS26Button(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       variant: IOS26ButtonVariant.warning,
@@ -21,18 +20,9 @@ class StockpileConsumeButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            CupertinoIcons.minus_circle_fill,
-            size: 18,
-            color: warningButton.foreground,
-          ),
+          const IOS26ButtonIcon(CupertinoIcons.minus_circle_fill, size: 18),
           const SizedBox(width: 6),
-          Text(
-            '消耗',
-            style: IOS26Theme.labelLarge.copyWith(
-              color: warningButton.foreground,
-            ),
-          ),
+          IOS26ButtonLabel('消耗', style: IOS26Theme.labelLarge),
         ],
       ),
     );

@@ -91,9 +91,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildConfigCard() {
-    final secondaryButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.secondary,
-    );
     final secondaryIconColor = IOS26Theme.iconColor(IOS26IconTone.secondary);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
@@ -185,11 +182,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               variant: IOS26ButtonVariant.secondary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTesting ? null : () => _testConnection(context),
-              child: Text(
+              child: IOS26ButtonLabel(
                 _isTesting ? '测试中...' : '测试连接',
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: secondaryButton.foreground,
-                ),
+                style: IOS26Theme.labelLarge,
               ),
             ),
           ),
@@ -218,9 +213,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildDangerZoneCard() {
-    final destructiveButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.destructive,
-    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -234,12 +226,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               variant: IOS26ButtonVariant.destructive,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
-              child: Text(
-                '清除AI配置',
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: destructiveButton.foreground,
-                ),
-              ),
+              child: IOS26ButtonLabel('清除AI配置', style: IOS26Theme.labelLarge),
             ),
           ),
         ],

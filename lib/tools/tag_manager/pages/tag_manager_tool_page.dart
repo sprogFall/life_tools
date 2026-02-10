@@ -186,25 +186,16 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.highlight,
-    );
-    final unselectedButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.neutral,
-    );
-    final chipButton = selected ? selectedButton : unselectedButton;
-
     return IOS26Button(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       borderRadius: BorderRadius.circular(14),
-      backgroundColor: chipButton.background,
+      variant: selected
+          ? IOS26ButtonVariant.highlight
+          : IOS26ButtonVariant.neutral,
       onPressed: onTap,
-      child: Text(
+      child: IOS26ButtonLabel(
         text,
-        style: IOS26Theme.bodySmall.copyWith(
-          fontWeight: FontWeight.w600,
-          color: chipButton.foreground,
-        ),
+        style: IOS26Theme.bodySmall.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }

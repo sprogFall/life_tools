@@ -190,8 +190,6 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         ? '未选择'
         : entries.map((e) => '${e.name}×${e.count}').join('、');
     final canRoll = !_loading && entries.isNotEmpty && totalCount > 0;
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
@@ -207,14 +205,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                   : IOS26ButtonVariant.ghost,
               borderRadius: BorderRadius.circular(14),
               onPressed: canRoll ? _roll : null,
-              child: Text(
-                '扭蛋',
-                style: IOS26Theme.labelLarge.copyWith(
-                  color: canRoll
-                      ? primaryButton.foreground
-                      : ghostButton.foreground,
-                ),
-              ),
+              child: IOS26ButtonLabel('扭蛋', style: IOS26Theme.labelLarge),
             ),
           ],
         ),
@@ -348,12 +339,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             variant: IOS26ButtonVariant.primary,
             borderRadius: BorderRadius.circular(14),
             onPressed: _loading ? null : _importToWish,
-            child: Text(
-              '就你了',
-              style: IOS26Theme.labelLarge.copyWith(
-                color: primaryButton.foreground,
-              ),
-            ),
+            child: IOS26ButtonLabel('就你了', style: IOS26Theme.labelLarge),
           ),
         ],
       ],

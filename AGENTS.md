@@ -118,6 +118,7 @@ dart format .
 - 按钮语义通过 `variant` 表达：主流程提交用 `primary`；普通次操作用 `secondary`；弱化操作（如“取消/复制/选择文件”）用 `ghost`；危险次操作用 `destructive`；高风险主操作（如“确认恢复/永久删除”）用 `destructivePrimary`。
 - 图标语义通过 `tone` 表达：普通图标用 `primary/secondary`；强调图标用 `accent`；风险态图标用 `warning/danger/success`。
 - 页面层禁止手写明暗适配：不要在页面内手写 alpha（如 `primaryColor.withValues(alpha: ...)`）拼按钮状态；若确有特殊背景需求，仅允许通过 `IOS26Button(backgroundColor: ...)` 显式覆盖并注明原因。
+- 按钮内容统一复用组件：按钮内文本优先使用 `IOS26ButtonLabel`，按钮内图标优先使用 `IOS26ButtonIcon`，按钮内加载态优先使用 `IOS26ButtonLoadingIndicator`；页面层禁止直接引用 `xxxButton.foreground`。
 
 ## 代码规范（2026-02-04 代码审查沉淀）
 
@@ -139,7 +140,7 @@ dart format .
 
 ### 规范守护（测试）
 
-- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`。
+- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`、`test/design/no_direct_ios26_button_foreground_test.dart`。
 
 ## 安全与隐私规范（补充）
 

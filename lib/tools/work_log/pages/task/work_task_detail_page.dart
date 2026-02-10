@@ -164,10 +164,6 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
 
     final totalMinutes = _totalMinutes;
     final canAddTimeEntry = _canAddTimeEntry(task.status);
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
-    final successPrimaryButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.successPrimary,
-    );
 
     return Stack(
       children: [
@@ -259,17 +255,14 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const IOS26ButtonIcon(
                             CupertinoIcons.clock_fill,
                             size: 20,
-                            color: primaryButton.foreground,
                           ),
                           const SizedBox(width: 8),
-                          Text(
+                          IOS26ButtonLabel(
                             '记录工时',
-                            style: IOS26Theme.labelLarge.copyWith(
-                              color: primaryButton.foreground,
-                            ),
+                            style: IOS26Theme.labelLarge,
                           ),
                         ],
                       ),
@@ -286,18 +279,12 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const IOS26ButtonIcon(
                             CupertinoIcons.check_mark_circled_solid,
                             size: 20,
-                            color: successPrimaryButton.foreground,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            '完成',
-                            style: IOS26Theme.labelLarge.copyWith(
-                              color: successPrimaryButton.foreground,
-                            ),
-                          ),
+                          IOS26ButtonLabel('完成', style: IOS26Theme.labelLarge),
                         ],
                       ),
                     ),

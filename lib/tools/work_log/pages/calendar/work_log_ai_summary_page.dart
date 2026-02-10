@@ -243,11 +243,6 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     final taskId = task.id!;
     final selected = _selectedTaskIds.contains(taskId);
     final label = '${task.title} (${_minutesToHours(minutes)})';
-    final secondaryButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.secondary,
-    );
-    final neutralButton = IOS26Theme.buttonColors(IOS26ButtonVariant.neutral);
-
     return IOS26Button(
       key: ValueKey('work_log_ai_summary_task_$taskId'),
       padding: const EdgeInsets.symmetric(
@@ -266,12 +261,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
           }
         });
       },
-      child: Text(
+      child: IOS26ButtonLabel(
         label,
         style: IOS26Theme.bodySmall.copyWith(
-          color: selected
-              ? secondaryButton.foreground
-              : neutralButton.foreground,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         ),
       ),
@@ -356,14 +348,12 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                 _selectedAffiliationIds.remove(tagId);
               }
             }),
-      child: Text(
+      child: IOS26ButtonLabel(
         tag.name,
+        color: selectable
+            ? null
+            : IOS26Theme.textSecondary.withValues(alpha: 0.7),
         style: IOS26Theme.bodySmall.copyWith(
-          color: selected
-              ? secondaryButton.foreground
-              : (selectable
-                    ? neutralButton.foreground
-                    : IOS26Theme.textSecondary.withValues(alpha: 0.7)),
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         ),
       ),
@@ -371,10 +361,6 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   }
 
   Widget _buildStyleCard(AppLocalizations l10n) {
-    final secondaryButton = IOS26Theme.buttonColors(
-      IOS26ButtonVariant.secondary,
-    );
-    final neutralButton = IOS26Theme.buttonColors(IOS26ButtonVariant.neutral);
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
@@ -402,12 +388,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                     : IOS26ButtonVariant.neutral,
                 borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
                 onPressed: () => setState(() => _selectedStyleId = style.id),
-                child: Text(
+                child: IOS26ButtonLabel(
                   _styleNameFromL10n(l10n, style.l10nKey),
                   style: IOS26Theme.bodySmall.copyWith(
-                    color: selected
-                        ? secondaryButton.foreground
-                        : neutralButton.foreground,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
@@ -423,8 +406,6 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     final canGenerate = _selectedTaskIds.isNotEmpty;
     final entries = _filteredEntries;
     final totalMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
-
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
@@ -445,12 +426,10 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: !canGenerate || _generating ? null : _generateSummary,
               child: _generating
-                  ? CupertinoActivityIndicator(color: primaryButton.foreground)
-                  : Text(
+                  ? const IOS26ButtonLoadingIndicator()
+                  : IOS26ButtonLabel(
                       l10n.work_log_ai_summary_generate_button,
-                      style: IOS26Theme.labelLarge.copyWith(
-                        color: primaryButton.foreground,
-                      ),
+                      style: IOS26Theme.labelLarge,
                     ),
             ),
           ),
@@ -460,7 +439,6 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   }
 
   Widget _buildResultCard(AppLocalizations l10n) {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
@@ -486,11 +464,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                   variant: IOS26ButtonVariant.ghost,
                   borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
                   onPressed: _copySummary,
-                  child: Text(
+                  child: IOS26ButtonLabel(
                     l10n.work_log_ai_summary_copy_button,
-                    style: IOS26Theme.labelLarge.copyWith(
-                      color: ghostButton.foreground,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ),
@@ -501,11 +477,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                   variant: IOS26ButtonVariant.ghost,
                   borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
                   onPressed: _shareSummary,
-                  child: Text(
+                  child: IOS26ButtonLabel(
                     l10n.work_log_ai_summary_share_button,
-                    style: IOS26Theme.labelLarge.copyWith(
-                      color: ghostButton.foreground,
-                    ),
+                    style: IOS26Theme.labelLarge,
                   ),
                 ),
               ),

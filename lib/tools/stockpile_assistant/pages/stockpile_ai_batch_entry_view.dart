@@ -20,7 +20,6 @@ class StockpileAiBatchEntryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<StockpileBatchEntryProvider>();
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
     final itemsCount = provider.items.length;
     final consumptionsCount = provider.consumptions.length;
 
@@ -87,13 +86,8 @@ class StockpileAiBatchEntryView extends StatelessWidget {
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: provider.saving ? null : () => _save(context),
               child: provider.saving
-                  ? CupertinoActivityIndicator(color: primaryButton.foreground)
-                  : Text(
-                      '保存',
-                      style: IOS26Theme.labelLarge.copyWith(
-                        color: primaryButton.foreground,
-                      ),
-                    ),
+                  ? const IOS26ButtonLoadingIndicator()
+                  : IOS26ButtonLabel('保存', style: IOS26Theme.labelLarge),
             ),
           ),
         ),

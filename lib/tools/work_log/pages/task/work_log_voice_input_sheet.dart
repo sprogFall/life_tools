@@ -135,8 +135,6 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
   }
 
   Widget _buildActions(BuildContext context) {
-    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return Row(
       children: [
         Expanded(
@@ -148,18 +146,9 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  CupertinoIcons.sparkles,
-                  size: 18,
-                  color: primaryButton.foreground,
-                ),
+                const IOS26ButtonIcon(CupertinoIcons.sparkles, size: 18),
                 const SizedBox(width: 8),
-                Text(
-                  '提交给AI',
-                  style: IOS26Theme.labelLarge.copyWith(
-                    color: primaryButton.foreground,
-                  ),
-                ),
+                IOS26ButtonLabel('提交给AI', style: IOS26Theme.labelLarge),
               ],
             ),
           ),
@@ -174,11 +163,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           variant: IOS26ButtonVariant.ghost,
           borderRadius: BorderRadius.circular(14),
-          child: Icon(
-            CupertinoIcons.trash,
-            size: 20,
-            color: ghostButton.foreground,
-          ),
+          child: const IOS26ButtonIcon(CupertinoIcons.trash, size: 20),
         ),
         const SizedBox(width: 10),
         IOS26Button(
