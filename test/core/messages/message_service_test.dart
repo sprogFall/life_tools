@@ -260,5 +260,33 @@ void main() {
         expect(notificationService.shown.length, 2);
       },
     );
+
+    test('未传 expiresAt 时，自动填充默认过期时间（次日 00:00）', () async {
+      final now = DateTime(2026, 3, 15, 14, 30);
+      await service.upsertMessage(
+        toolId: 'test_tool',
+        title: '测试',
+        body: '默认过期',
+        createdAt: now,
+      );
+
+      final msg = service.messages.single;
+      expect(msg.expiresAt, DateTime(2026, 3, 16)); // 次日 00:00
+    });
+
+    test('显式传入 expiresAt 时，使用传入值而非默认值', () async {
+      final now = DateTime(2026, 3, 15, 14, 30);
+      final customExpiry = DateTime(2026, 3, 22);
+      await service.upsertMessage(
+        toolId: 'test_tool',
+        title: '测试',
+        body: '自定义过期',
+        createdAt: now,
+        expiresAt: customExpiry,
+      );
+
+      final msg = service.messages.single;
+      expect(msg.expiresAt, customExpiry);
+    });
   });
 }

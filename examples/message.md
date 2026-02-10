@@ -4,7 +4,10 @@
 
 ## 1) 发送/更新一条消息（推荐：带 `dedupeKey`）
 
-`dedupeKey` 用于“同一条消息的更新”，例如：同一个物品的临期提醒每天只更新内容，不新增多条记录。
+`dedupeKey` 用于"同一条消息的更新"，例如：同一个物品的临期提醒每天只更新内容，不新增多条记录。
+
+> **默认过期行为**：如果不传 `expiresAt`，消息会在 **当天 00:00 + 1 天（即次日 00:00）** 自动过期清理。
+> 如需更长/更短的过期时间，可显式传入 `expiresAt`。
 
 ```dart
 import 'package:provider/provider.dart';
@@ -12,14 +15,25 @@ import 'package:life_tools/core/messages/message_service.dart';
 
 final messageService = context.read<MessageService>();
 
+// expiresAt 不传 → 默认次日 00:00 过期
 await messageService.upsertMessage(
   toolId: 'stockpile_assistant',
   title: '囤货助手',
   body: '【囤货助手】牛奶将在 2 天后到期（2026-01-03），剩余 1 瓶。',
   dedupeKey: 'stockpile:expiry:123', // 稳定 key：同一条提醒固定一个 key
   route: 'tool://stockpile_assistant', // 点击消息跳转到工具
-  // expiresAt: DateTime.now().add(const Duration(days: 7)), // 可选：到期自动清理
   notify: true, // 是否触发系统通知（Android/iOS）
+);
+
+// 显式传入 expiresAt → 使用传入值
+await messageService.upsertMessage(
+  toolId: 'stockpile_assistant',
+  title: '囤货助手',
+  body: '【囤货助手】牛奶将在 2 天后到期（2026-01-03），剩余 1 瓶。',
+  dedupeKey: 'stockpile:expiry:123',
+  route: 'tool://stockpile_assistant',
+  expiresAt: DateTime.now().add(const Duration(days: 7)), // 7 天后过期
+  notify: true,
 );
 ```
 

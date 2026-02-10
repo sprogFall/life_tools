@@ -5,6 +5,8 @@ import 'message_repository.dart';
 import 'models/app_message.dart';
 
 class MessageService extends ChangeNotifier {
+  static const defaultExpiresIn = Duration(days: 1);
+
   final MessageRepository _repository;
   final AppNotificationService? _notificationService;
   final int _maxMessages;
@@ -53,6 +55,9 @@ class MessageService extends ChangeNotifier {
         : _messages.firstWhere((e) => e.dedupeKey == dedupeKey);
 
     final effectiveNow = createdAt ?? DateTime.now();
+    final effectiveExpiresAt = expiresAt ??
+        DateTime(effectiveNow.year, effectiveNow.month, effectiveNow.day)
+            .add(defaultExpiresIn);
     final shouldResurfaceDaily =
         refreshDaily &&
         existing != null &&
@@ -68,7 +73,7 @@ class MessageService extends ChangeNotifier {
           existing.title == title &&
           existing.body == trimmedBody &&
           existing.route == route &&
-          existing.expiresAt == expiresAt;
+          existing.expiresAt == effectiveExpiresAt;
       if (noOpUpdate && !shouldResurfaceDaily) {
         return existing.id;
       }
@@ -80,7 +85,7 @@ class MessageService extends ChangeNotifier {
         existing.title != title ||
         existing.body != trimmedBody ||
         existing.route != route ||
-        existing.expiresAt != expiresAt ||
+        existing.expiresAt != effectiveExpiresAt ||
         shouldResurfaceDaily ||
         (markUnreadOnUpdate && existing.isRead);
 
@@ -91,7 +96,7 @@ class MessageService extends ChangeNotifier {
       dedupeKey: dedupeKey,
       route: route,
       createdAt: createdAt ?? effectiveNow,
-      expiresAt: expiresAt,
+      expiresAt: effectiveExpiresAt,
       markUnreadOnUpdate: markUnreadOnUpdate,
     );
     if (id == null) return null;
