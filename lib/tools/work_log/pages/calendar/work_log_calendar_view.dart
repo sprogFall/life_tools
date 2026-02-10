@@ -118,7 +118,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                     width: 0.5,
                   ),
                 ),
-                child: Icon(
+                child: IOS26Icon(
                   CupertinoIcons.chevron_left,
                   size: 20,
                   color: IOS26Theme.textPrimary,
@@ -140,7 +140,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                     width: 0.5,
                   ),
                 ),
-                child: Icon(
+                child: IOS26Icon(
                   CupertinoIcons.chevron_right,
                   size: 20,
                   color: IOS26Theme.textPrimary,
@@ -399,7 +399,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
             ),
           ),
           const SizedBox(width: IOS26Theme.spacingXs),
-          Icon(
+          IOS26Icon(
             CupertinoIcons.chevron_right,
             size: 18,
             color: IOS26Theme.textTertiary,
@@ -532,7 +532,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         ),
                       ),
                     const SizedBox(width: 6),
-                    Icon(
+                    IOS26Icon(
                       CupertinoIcons.chevron_right,
                       size: 18,
                       color: IOS26Theme.textTertiary,
@@ -641,7 +641,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
                         ),
                       ),
                       const SizedBox(width: IOS26Theme.spacingXs),
-                      Icon(
+                      IOS26Icon(
                         CupertinoIcons.chevron_right,
                         size: 18,
                         color: IOS26Theme.textTertiary,

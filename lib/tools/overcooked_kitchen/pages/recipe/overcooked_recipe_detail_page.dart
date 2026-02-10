@@ -132,7 +132,10 @@ class _OvercookedRecipeDetailPageState
                     if (!mounted) return;
                     await _refresh();
                   },
-            child: Icon(CupertinoIcons.pencil, color: IOS26Theme.primaryColor),
+            child: const IOS26Icon(
+              CupertinoIcons.pencil,
+              tone: IOS26IconTone.accent,
+            ),
           ),
           CupertinoButton(
             padding: EdgeInsets.zero,
@@ -153,7 +156,10 @@ class _OvercookedRecipeDetailPageState
                     if (!context.mounted) return;
                     Navigator.pop(context);
                   },
-            child: Icon(CupertinoIcons.delete, color: IOS26Theme.toolRed),
+            child: const IOS26Icon(
+              CupertinoIcons.delete,
+              tone: IOS26IconTone.danger,
+            ),
           ),
         ],
       ),
@@ -280,7 +286,7 @@ class _OvercookedRecipeDetailPageState
                   const SizedBox(height: IOS26Theme.spacingSm),
                   Row(
                     children: [
-                      Icon(
+                      IOS26Icon(
                         CupertinoIcons.doc_richtext,
                         size: 14,
                         color: IOS26Theme.toolBlue,
@@ -342,7 +348,7 @@ class _OvercookedRecipeDetailPageState
             ),
             child: Row(
               children: [
-                Icon(
+                IOS26Icon(
                   CupertinoIcons.tag,
                   size: 18,
                   color: IOS26Theme.toolPurple,

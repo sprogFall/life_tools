@@ -120,7 +120,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                   minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _task != null ? _openEditTask : null,
-                  child: Icon(
+                  child: IOS26Icon(
                     CupertinoIcons.pencil,
                     color: IOS26Theme.primaryColor,
                     size: 22,
@@ -130,7 +130,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                   minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _showMoreOptions,
-                  child: Icon(
+                  child: IOS26Icon(
                     CupertinoIcons.ellipsis,
                     color: IOS26Theme.primaryColor,
                     size: 22,
@@ -310,7 +310,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
             color: IOS26Theme.toolRed,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(CupertinoIcons.delete, color: IOS26Theme.onPrimaryColor),
+          child: const IOS26Icon(
+            CupertinoIcons.delete,
+            tone: IOS26IconTone.onAccent,
+          ),
         ),
         confirmDismiss: (_) => _confirmDeleteTimeEntry(entry),
         child: GestureDetector(

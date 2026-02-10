@@ -247,7 +247,7 @@ class StockpileBatchEntryPickerRow extends StatelessWidget {
             ),
             Text(value, style: IOS26Theme.bodySmall),
             const SizedBox(width: IOS26Theme.spacingSm),
-            Icon(
+            IOS26Icon(
               CupertinoIcons.chevron_right,
               size: 16,
               color: IOS26Theme.textTertiary,
@@ -288,13 +288,13 @@ class StockpileBatchEntryAddRow extends StatelessWidget {
         onPressed: onPressed,
         child: Row(
           children: [
-            Icon(icon, size: 20, color: color),
+            IOS26Icon(icon, size: 20, color: color),
             const SizedBox(width: IOS26Theme.spacingMd),
             Expanded(child: Text(text, style: IOS26Theme.titleSmall)),
-            Icon(
+            const IOS26Icon(
               CupertinoIcons.chevron_right,
               size: 18,
-              color: IOS26Theme.textTertiary,
+              tone: IOS26IconTone.secondary,
             ),
           ],
         ),

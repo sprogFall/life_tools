@@ -433,7 +433,7 @@ class _TaskCard extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(width: 6),
-                  Icon(
+                  IOS26Icon(
                     CupertinoIcons.chevron_right,
                     size: 18,
                     color: IOS26Theme.textTertiary,
@@ -572,7 +572,7 @@ class _PinnedCornerMark extends StatelessWidget {
             alignment: Alignment.topLeft,
             child: Padding(
               padding: EdgeInsets.only(left: 4, top: 4),
-              child: Icon(
+              child: IOS26Icon(
                 CupertinoIcons.pin_fill,
                 size: 11,
                 color: IOS26Theme.onPrimaryColor,

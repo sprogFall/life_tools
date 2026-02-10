@@ -91,7 +91,6 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildConfigCard() {
-    final secondaryIconColor = IOS26Theme.iconColor(IOS26IconTone.secondary);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -123,10 +122,10 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               suffix: CupertinoButton(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 onPressed: () => setState(() => _showApiKey = !_showApiKey),
-                child: Icon(
+                child: IOS26Icon(
                   _showApiKey ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
                   size: 18,
-                  color: secondaryIconColor,
+                  tone: IOS26IconTone.secondary,
                 ),
               ),
             ),

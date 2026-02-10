@@ -103,7 +103,7 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
                   padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                   minimumSize: IOS26Theme.minimumTapSize,
                   onPressed: _openRetentionLimitSheet,
-                  child: Icon(
+                  child: IOS26Icon(
                     CupertinoIcons.slider_horizontal_3,
                     color: IOS26Theme.primaryColor,
                     size: 22,
@@ -227,7 +227,7 @@ class _OperationLogListPageState extends State<OperationLogListPage> {
         IOS26Theme.toolRed,
       ),
     };
-    return Icon(icon, color: color, size: 24);
+    return IOS26Icon(icon, color: color, size: 24);
   }
 
   static String _formatDateTime(DateTime dt, AppLocalizations l10n) {

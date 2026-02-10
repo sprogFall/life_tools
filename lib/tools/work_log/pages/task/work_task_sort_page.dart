@@ -192,7 +192,7 @@ class _WorkTaskSortPageState extends State<WorkTaskSortPage> {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(
+          IOS26Icon(
             CupertinoIcons.arrow_up_arrow_down,
             size: 18,
             color: IOS26Theme.primaryColor.withValues(alpha: 0.95),
@@ -287,7 +287,7 @@ class _TaskSortRow extends StatelessWidget {
             index: reorderIndex,
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: Icon(
+              child: IOS26Icon(
                 CupertinoIcons.line_horizontal_3,
                 size: 18,
                 color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
@@ -321,7 +321,7 @@ class _TaskSortRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             minimumSize: IOS26Theme.minimumTapSize,
             onPressed: taskId == null ? null : onTogglePin,
-            child: Icon(pinIcon, size: 20, color: pinColor),
+            child: IOS26Icon(pinIcon, size: 20, color: pinColor),
           ),
         ],
       ),

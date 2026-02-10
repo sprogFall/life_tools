@@ -234,7 +234,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
                     ),
                   ),
                 ),
-                Icon(
+                IOS26Icon(
                   CupertinoIcons.chevron_down,
                   size: 16,
                   color: IOS26Theme.textSecondary,
@@ -613,12 +613,10 @@ class _TypeCountRow extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       variant: IOS26ButtonVariant.ghost,
       borderRadius: BorderRadius.circular(14),
-      child: Icon(
+      child: IOS26Icon(
         icon,
         size: 16,
-        color: enabled
-            ? IOS26Theme.iconColor(IOS26IconTone.accent)
-            : IOS26Theme.iconColor(IOS26IconTone.secondary),
+        tone: enabled ? IOS26IconTone.accent : IOS26IconTone.secondary,
       ),
     );
   }

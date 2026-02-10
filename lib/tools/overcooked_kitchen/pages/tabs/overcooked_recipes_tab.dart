@@ -142,7 +142,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    IOS26Icon(
                       CupertinoIcons.shuffle,
                       size: 18,
                       color: IOS26Theme.toolOrange,
@@ -307,7 +307,7 @@ class _RecipeCard extends StatelessWidget {
                         ),
                       if (ratingCount > 0) ...[
                         const SizedBox(width: 8),
-                        Icon(
+                        IOS26Icon(
                           CupertinoIcons.star_fill,
                           size: 14,
                           color: IOS26Theme.toolOrange,
@@ -340,7 +340,7 @@ class _RecipeCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
+            IOS26Icon(
               CupertinoIcons.chevron_right,
               size: 18,
               color: IOS26Theme.textTertiary,

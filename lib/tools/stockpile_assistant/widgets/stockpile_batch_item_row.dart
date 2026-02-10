@@ -51,7 +51,7 @@ class StockpileBatchItemRow extends StatelessWidget {
                         entry,
                       );
                     },
-              child: Icon(
+              child: IOS26Icon(
                 CupertinoIcons.trash,
                 size: 18,
                 color: IOS26Theme.toolRed,
@@ -232,14 +232,14 @@ class StockpileBatchItemRow extends StatelessWidget {
                       entry.remindDaysController.text = '';
                       provider.touch();
                     },
-                    child: Icon(
+                    child: IOS26Icon(
                       CupertinoIcons.clear_circled_solid,
                       size: 18,
                       color: IOS26Theme.textTertiary,
                     ),
                   )
                 else
-                  Icon(
+                  IOS26Icon(
                     CupertinoIcons.chevron_right,
                     size: 16,
                     color: IOS26Theme.textTertiary,
@@ -327,14 +327,14 @@ class StockpileBatchItemRow extends StatelessWidget {
                       entry.restockRemindDate = null;
                       provider.touch();
                     },
-                    child: Icon(
+                    child: IOS26Icon(
                       CupertinoIcons.clear_circled_solid,
                       size: 18,
                       color: IOS26Theme.textTertiary,
                     ),
                   )
                 else
-                  Icon(
+                  IOS26Icon(
                     CupertinoIcons.chevron_right,
                     size: 16,
                     color: IOS26Theme.textTertiary,
@@ -459,7 +459,7 @@ class StockpileBatchItemRow extends StatelessWidget {
             ),
             if (selected) ...[
               const SizedBox(width: IOS26Theme.spacingSm),
-              Icon(
+              IOS26Icon(
                 CupertinoIcons.check_mark_circled_solid,
                 size: 18,
                 color: IOS26Theme.onPrimaryColor,

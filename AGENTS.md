@@ -119,6 +119,9 @@ dart format .
 - 图标语义通过 `tone` 表达：普通图标用 `primary/secondary`；强调图标用 `accent`；风险态图标用 `warning/danger/success`。
 - 页面层禁止手写明暗适配：不要在页面内手写 alpha（如 `primaryColor.withValues(alpha: ...)`）拼按钮状态；若确有特殊背景需求，仅允许通过 `IOS26Button(backgroundColor: ...)` 显式覆盖并注明原因。
 - 按钮内容统一复用组件：按钮内文本优先使用 `IOS26ButtonLabel`，按钮内图标优先使用 `IOS26ButtonIcon`，按钮内加载态优先使用 `IOS26ButtonLoadingIndicator`；页面层禁止直接引用 `xxxButton.foreground`。
+- 非按钮图标统一入口：页面层禁止直接 `Icon(color: ...)`，统一使用 `IOS26Icon`（优先 `tone`，仅动态场景允许 `color` 覆盖）。
+- Markdown 统一入口：页面层禁止直接使用 `Markdown` / `MarkdownBody`，统一使用 `IOS26MarkdownView` / `IOS26MarkdownBody`。
+- 图片统一入口：页面层禁止直接使用 `Image.file` / `Image.network` / `Image.memory`，统一使用 `IOS26Image.file` / `IOS26Image.network` / `IOS26Image.memory`。
 
 ## 代码规范（2026-02-04 代码审查沉淀）
 
@@ -140,7 +143,7 @@ dart format .
 
 ### 规范守护（测试）
 
-- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`、`test/design/no_direct_ios26_button_foreground_test.dart`。
+- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`、`test/design/no_direct_ios26_button_foreground_test.dart`、`test/design/no_direct_icon_color_in_lib_test.dart`、`test/design/no_raw_markdown_widgets_test.dart`、`test/design/no_raw_image_constructors_test.dart`。
 
 ## 安全与隐私规范（补充）
 

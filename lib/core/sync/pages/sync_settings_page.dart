@@ -258,7 +258,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
   Widget _buildWifiCard() {
     final l10n = AppLocalizations.of(context)!;
-    final accentIconColor = IOS26Theme.iconColor(IOS26IconTone.accent);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -278,10 +277,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: _refreshCurrentWifi,
-                child: Icon(
+                child: const IOS26Icon(
                   CupertinoIcons.refresh,
                   size: 18,
-                  color: accentIconColor,
+                  tone: IOS26IconTone.accent,
                 ),
               ),
               CupertinoButton(
@@ -290,10 +289,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   vertical: 8,
                 ),
                 onPressed: _addWifiName,
-                child: Icon(
+                child: const IOS26Icon(
                   CupertinoIcons.add_circled,
                   size: 20,
-                  color: accentIconColor,
+                  tone: IOS26IconTone.accent,
                 ),
               ),
             ],
@@ -318,7 +317,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildWifiItem(String wifiName) {
-    final dangerIconColor = IOS26Theme.iconColor(IOS26IconTone.danger);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -332,7 +330,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       ),
       child: Row(
         children: [
-          Icon(CupertinoIcons.wifi, size: 18, color: IOS26Theme.textSecondary),
+          const IOS26Icon(
+            CupertinoIcons.wifi,
+            size: 18,
+            tone: IOS26IconTone.secondary,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -350,7 +352,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   if (name != wifiName) name,
               ],
             ),
-            child: Icon(CupertinoIcons.trash, size: 18, color: dangerIconColor),
+            child: const IOS26Icon(
+              CupertinoIcons.trash,
+              size: 18,
+              tone: IOS26IconTone.danger,
+            ),
           ),
         ],
       ),

@@ -69,7 +69,7 @@ class _HintCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
+          IOS26Icon(
             CupertinoIcons.arrow_up_arrow_down,
             size: 18,
             color: IOS26Theme.primaryColor.withValues(alpha: 0.95),
@@ -143,7 +143,7 @@ class _DefaultToolRow extends StatelessWidget {
             width: 24,
             height: 24,
             child: selected
-                ? Icon(
+                ? IOS26Icon(
                     CupertinoIcons.checkmark_circle_fill,
                     color: IOS26Theme.primaryColor,
                     size: 22,

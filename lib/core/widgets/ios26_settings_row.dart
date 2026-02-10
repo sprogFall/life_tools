@@ -39,7 +39,7 @@ class IOS26SettingsRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: iconColors.border, width: 0.8),
               ),
-              child: Icon(icon, color: iconColors.foreground, size: 20),
+              child: IOS26Icon(icon, color: iconColors.foreground, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(child: Text(title, style: IOS26Theme.titleMedium)),
@@ -58,9 +58,9 @@ class IOS26SettingsRow extends StatelessWidget {
                 ),
               if (showChevron) ...[
                 const SizedBox(width: 8),
-                Icon(
+                const IOS26Icon(
                   CupertinoIcons.chevron_right,
-                  color: IOS26Theme.iconColor(IOS26IconTone.secondary),
+                  tone: IOS26IconTone.secondary,
                   size: 18,
                 ),
               ],

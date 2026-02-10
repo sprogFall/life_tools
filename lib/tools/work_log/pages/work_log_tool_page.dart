@@ -124,7 +124,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                           padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                           minimumSize: IOS26Theme.minimumTapSize,
                           onPressed: _openOperationLogs,
-                          child: Icon(
+                          child: IOS26Icon(
                             CupertinoIcons.time,
                             color: IOS26Theme.primaryColor,
                             size: 22,
@@ -150,7 +150,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                                   ),
                                 );
                               },
-                              child: Icon(
+                              child: IOS26Icon(
                                 CupertinoIcons.arrow_up_arrow_down,
                                 color: IOS26Theme.primaryColor,
                                 size: 22,
@@ -161,7 +161,7 @@ class _WorkLogToolPageState extends State<WorkLogToolPage> {
                           padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                           minimumSize: IOS26Theme.minimumTapSize,
                           onPressed: _onPressedAdd,
-                          child: Icon(
+                          child: IOS26Icon(
                             CupertinoIcons.add,
                             color: IOS26Theme.primaryColor,
                             size: 24,

@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/obj_store/obj_store_errors.dart';
 import '../../../../core/obj_store/obj_store_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/widgets/ios26_image.dart';
 
 class OvercookedImageViewerPage extends StatefulWidget {
   final List<String> objectKeys;
@@ -123,7 +124,7 @@ class _DiskPreferredImageView extends StatelessWidget {
         }
         return _ZoomableImage(
           onZoomChanged: onZoomChanged,
-          child: Image.file(f, fit: BoxFit.contain),
+          child: IOS26Image.file(f, fit: BoxFit.contain),
         );
       },
     );
@@ -162,8 +163,8 @@ class _NetworkImageView extends StatelessWidget {
 
         final uri = Uri.tryParse(uriText);
         final image = !kIsWeb && uri != null && uri.scheme == 'file'
-            ? Image.file(File.fromUri(uri), fit: BoxFit.contain)
-            : Image.network(
+            ? IOS26Image.file(File.fromUri(uri), fit: BoxFit.contain)
+            : IOS26Image.network(
                 uriText,
                 fit: BoxFit.contain,
                 loadingBuilder: (context, child, progress) {

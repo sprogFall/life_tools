@@ -171,7 +171,7 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           variant: IOS26ButtonVariant.ghost,
           borderRadius: BorderRadius.circular(14),
-          child: Icon(
+          child: IOS26Icon(
             CupertinoIcons.xmark,
             size: 20,
             color: IOS26Theme.textSecondary,

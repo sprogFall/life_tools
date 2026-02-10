@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/obj_store/obj_store_errors.dart';
 import '../../../core/obj_store/obj_store_service.dart';
 import '../../../core/theme/ios26_theme.dart';
+import '../../../core/widgets/ios26_image.dart';
 
 class OvercookedImageByKey extends StatelessWidget {
   final ObjStoreService objStoreService;
@@ -46,7 +47,7 @@ class OvercookedImageByKey extends StatelessWidget {
           if (file != null && file.existsSync()) {
             return ClipRRect(
               borderRadius: BorderRadius.circular(borderRadius),
-              child: Image.file(file, fit: fit),
+              child: IOS26Image.file(file, fit: fit),
             );
           }
 
@@ -79,12 +80,12 @@ class OvercookedImageByKey extends StatelessWidget {
         if (!kIsWeb && uri != null && uri.scheme == 'file') {
           return ClipRRect(
             borderRadius: BorderRadius.circular(borderRadius),
-            child: Image.file(File.fromUri(uri), fit: fit),
+            child: IOS26Image.file(File.fromUri(uri), fit: fit),
           );
         }
         return ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
-          child: Image.network(uriText, fit: fit),
+          child: IOS26Image.network(uriText, fit: fit),
         );
       },
     );

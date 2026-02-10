@@ -203,7 +203,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                             .read<StockpileBatchEntryProvider>()
                             .removeConsumption(entry);
                       },
-                child: Icon(
+                child: IOS26Icon(
                   CupertinoIcons.trash,
                   size: 18,
                   color: IOS26Theme.toolRed,
@@ -281,7 +281,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                   : () => _pickItemForConsumption(context, entry, provider),
               child: Row(
                 children: [
-                  Icon(
+                  IOS26Icon(
                     CupertinoIcons.cube_box_fill,
                     size: 18,
                     color: IOS26Theme.toolGreen,
@@ -303,7 +303,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(width: IOS26Theme.spacingSm),
-                  Icon(
+                  IOS26Icon(
                     CupertinoIcons.chevron_right,
                     size: 18,
                     color: IOS26Theme.textTertiary,

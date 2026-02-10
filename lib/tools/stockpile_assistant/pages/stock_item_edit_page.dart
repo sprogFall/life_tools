@@ -540,14 +540,14 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                                 _expiryDate = null;
                                 _remindDaysController.text = '';
                               }),
-                              child: Icon(
+                              child: IOS26Icon(
                                 CupertinoIcons.clear_circled_solid,
                                 size: 18,
                                 color: IOS26Theme.textTertiary,
                               ),
                             )
                           else
-                            Icon(
+                            IOS26Icon(
                               CupertinoIcons.chevron_right,
                               size: 16,
                               color: IOS26Theme.textTertiary,
@@ -641,14 +641,14 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                               onPressed: () => setState(() {
                                 _restockRemindDate = null;
                               }),
-                              child: Icon(
+                              child: IOS26Icon(
                                 CupertinoIcons.clear_circled_solid,
                                 size: 18,
                                 color: IOS26Theme.textTertiary,
                               ),
                             )
                           else
-                            Icon(
+                            IOS26Icon(
                               CupertinoIcons.chevron_right,
                               size: 16,
                               color: IOS26Theme.textTertiary,
@@ -735,7 +735,7 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
             ),
             Text(value, style: IOS26Theme.bodyMedium),
             const SizedBox(width: 6),
-            Icon(
+            IOS26Icon(
               CupertinoIcons.chevron_right,
               size: 18,
               color: IOS26Theme.textTertiary,

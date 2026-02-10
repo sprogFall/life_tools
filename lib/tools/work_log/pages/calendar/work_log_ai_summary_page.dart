@@ -510,7 +510,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
           const Spacer(),
           Text(_formatDateDisplay(value), style: IOS26Theme.bodyMedium),
           const SizedBox(width: IOS26Theme.spacingXs),
-          Icon(
+          IOS26Icon(
             CupertinoIcons.chevron_down,
             size: 14,
             color: IOS26Theme.textSecondary,

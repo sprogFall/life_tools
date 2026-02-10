@@ -764,7 +764,7 @@ class _CategoryHeader extends StatelessWidget {
             onPressed: onToggleExpanded,
             child: Row(
               children: [
-                Icon(
+                IOS26Icon(
                   expanded
                       ? CupertinoIcons.chevron_down
                       : CupertinoIcons.chevron_right,
@@ -824,7 +824,7 @@ class _CategoryHeader extends StatelessWidget {
       onPressed: onPressed,
       variant: IOS26ButtonVariant.ghost,
       borderRadius: BorderRadius.circular(14),
-      child: Icon(icon, size: 18, color: color),
+      child: IOS26ButtonIcon(icon, size: 18, color: color),
     );
   }
 }
@@ -928,7 +928,7 @@ class _TagChip extends StatelessWidget {
                 minimumSize: const Size(32, 32),
                 pressedOpacity: 0.7,
                 onPressed: onRemove,
-                child: Icon(
+                child: IOS26Icon(
                   CupertinoIcons.xmark,
                   size: 13,
                   color: IOS26Theme.toolRed,

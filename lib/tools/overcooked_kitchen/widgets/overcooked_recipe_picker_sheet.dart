@@ -189,7 +189,7 @@ class _OvercookedRecipePickerSheetState
                         subtitle: ratingCount > 0
                             ? Row(
                                 children: [
-                                  Icon(
+                                  IOS26Icon(
                                     CupertinoIcons.star_fill,
                                     size: 12,
                                     color: IOS26Theme.toolOrange,

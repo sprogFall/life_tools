@@ -80,7 +80,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: Row(
                           children: [
-                            Icon(
+                            IOS26Icon(
                               CupertinoIcons.cube_box_fill,
                               size: 18,
                               color: IOS26Theme.toolGreen,
@@ -213,7 +213,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
             ),
             Text(value, style: IOS26Theme.bodyMedium),
             const SizedBox(width: 6),
-            Icon(
+            IOS26Icon(
               CupertinoIcons.chevron_right,
               size: 18,
               color: IOS26Theme.textTertiary,

@@ -509,7 +509,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                             ),
                           ],
                         ),
-                        child: Icon(
+                        child: IOS26Icon(
                           widget.tool.icon,
                           color: IOS26Theme.onPrimaryColor,
                           size: 26,
@@ -550,7 +550,7 @@ class _IOS26ToolCardState extends State<_IOS26ToolCard>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          IOS26Icon(
                             CupertinoIcons.star_fill,
                             color: IOS26Theme.onPrimaryColor,
                             size: 10,

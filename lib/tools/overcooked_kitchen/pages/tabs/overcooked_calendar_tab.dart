@@ -360,7 +360,7 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
           onPressed: onPressed,
           variant: IOS26ButtonVariant.ghost,
           borderRadius: BorderRadius.circular(14),
-          child: Icon(icon, size: 18, color: IOS26Theme.textPrimary),
+          child: IOS26ButtonIcon(icon, size: 18),
         ),
       ),
     );

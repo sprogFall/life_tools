@@ -288,11 +288,11 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
       _ => CupertinoIcons.info_circle_fill,
     };
 
-    final iconColor = switch (record.decision) {
-      SyncDecision.useClient => CupertinoColors.activeGreen,
-      SyncDecision.useServer => CupertinoColors.systemBlue,
-      SyncDecision.rollback => CupertinoColors.systemOrange,
-      _ => CupertinoColors.systemGrey,
+    final iconTone = switch (record.decision) {
+      SyncDecision.useClient => IOS26IconTone.success,
+      SyncDecision.useServer => IOS26IconTone.accent,
+      SyncDecision.rollback => IOS26IconTone.warning,
+      _ => IOS26IconTone.secondary,
     };
 
     return Padding(
@@ -309,7 +309,7 @@ class _SyncRecordsPageState extends State<SyncRecordsPage> {
             children: [
               Row(
                 children: [
-                  Icon(iconData, color: iconColor, size: 24),
+                  IOS26Icon(iconData, tone: iconTone, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(directionText, style: IOS26Theme.titleMedium),
@@ -559,7 +559,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
                   color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
+                child: IOS26Icon(icon, tone: IOS26IconTone.accent, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -580,7 +580,7 @@ class _SyncRecordDetailPageState extends State<SyncRecordDetailPage> {
               ),
               Text(value, style: IOS26Theme.bodyMedium),
               const SizedBox(width: 8),
-              Icon(
+              IOS26Icon(
                 CupertinoIcons.chevron_right,
                 color: IOS26Theme.textTertiary,
                 size: 18,

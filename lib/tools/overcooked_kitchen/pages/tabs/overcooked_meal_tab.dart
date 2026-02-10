@@ -680,7 +680,7 @@ class _MealCard extends StatelessWidget {
         onPressed: onPressed,
         variant: IOS26ButtonVariant.ghost,
         borderRadius: BorderRadius.circular(14),
-        child: Icon(icon, size: 18, color: resolvedIconColor),
+        child: IOS26ButtonIcon(icon, size: 18, color: resolvedIconColor),
       ),
     );
   }
@@ -744,7 +744,7 @@ class _StarRating extends StatelessWidget {
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Icon(
+              child: IOS26Icon(
                 rating != null && i <= rating!
                     ? CupertinoIcons.star_fill
                     : CupertinoIcons.star,

@@ -268,6 +268,33 @@ class IOS26ButtonIcon extends StatelessWidget {
   }
 }
 
+class IOS26Icon extends StatelessWidget {
+  final IconData icon;
+  final IOS26IconTone tone;
+  final double size;
+  final String? semanticLabel;
+  final Color? color;
+
+  const IOS26Icon(
+    this.icon, {
+    super.key,
+    this.tone = IOS26IconTone.primary,
+    this.size = 20,
+    this.semanticLabel,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      icon,
+      size: size,
+      semanticLabel: semanticLabel,
+      color: color ?? IOS26Theme.iconColor(tone),
+    );
+  }
+}
+
 class IOS26ButtonLoadingIndicator extends StatelessWidget {
   final double radius;
 

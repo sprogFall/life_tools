@@ -12,6 +12,7 @@ import '../../../../core/registry/tool_registry.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
+import '../../../../core/widgets/ios26_image.dart';
 import '../../../../core/utils/dev_log.dart';
 import '../../../../core/utils/image_selector.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -528,7 +529,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                             color: IOS26Theme.toolRed.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Icon(
+                          child: const IOS26Icon(
                             CupertinoIcons.xmark,
                             size: 14,
                             color: IOS26Theme.onPrimaryColor,
@@ -571,7 +572,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             ),
             child: Row(
               children: [
-                Icon(
+                IOS26Icon(
                   CupertinoIcons.tag,
                   size: 18,
                   color: IOS26Theme.toolPurple,
@@ -616,7 +617,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     if (img.bytes.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: Image.memory(img.bytes, fit: fit),
+        child: IOS26Image.memory(img.bytes, fit: fit),
       );
     }
 
@@ -655,7 +656,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 ),
               ),
             ),
-            Icon(
+            IOS26Icon(
               CupertinoIcons.chevron_down,
               size: 16,
               color: IOS26Theme.textSecondary,
@@ -697,7 +698,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                 ),
               ),
             ),
-            Icon(
+            IOS26Icon(
               CupertinoIcons.chevron_down,
               size: 16,
               color: IOS26Theme.textSecondary,

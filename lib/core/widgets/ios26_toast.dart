@@ -165,7 +165,7 @@ class IOS26ToastOverlay extends StatelessWidget {
                     key: overlayKey,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(icon, size: 18, color: color),
+                      IOS26Icon(icon, size: 18, color: color),
                       const SizedBox(width: IOS26Theme.spacingSm),
                       Flexible(
                         child: Text(
