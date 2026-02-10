@@ -35,6 +35,7 @@ class SettingsService extends ChangeNotifier {
   String? get defaultToolId => _defaultToolId;
   ThemeMode get themeMode => _themeMode;
   bool get isDarkModeEnabled => _themeMode == ThemeMode.dark;
+  bool get isFollowSystemTheme => _themeMode == ThemeMode.system;
   List<String> get toolOrder => List.unmodifiable(_toolOrder);
   List<String> get hiddenToolIds {
     final ordered = <String>[];
@@ -65,6 +66,7 @@ class SettingsService extends ChangeNotifier {
     final raw = _prefs?.getString(_themeModeKey);
     return switch (raw) {
       'dark' => ThemeMode.dark,
+      'system' => ThemeMode.system,
       _ => ThemeMode.light,
     };
   }
@@ -72,6 +74,7 @@ class SettingsService extends ChangeNotifier {
   String _themeModeToStorageValue(ThemeMode mode) {
     return switch (mode) {
       ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
       _ => 'light',
     };
   }
@@ -227,7 +230,11 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    final next = mode == ThemeMode.dark ? ThemeMode.dark : ThemeMode.light;
+    final next = switch (mode) {
+      ThemeMode.dark => ThemeMode.dark,
+      ThemeMode.system => ThemeMode.system,
+      _ => ThemeMode.light,
+    };
     if (_themeMode == next) return;
     _themeMode = next;
     await _prefs?.setString(_themeModeKey, _themeModeToStorageValue(next));
@@ -237,6 +244,10 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setDarkModeEnabled(bool enabled) async {
     await setThemeMode(enabled ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  Future<void> setFollowSystemTheme() async {
+    await setThemeMode(ThemeMode.system);
   }
 
   static List<String> _fixToolOrderForNewTools(List<String> loaded) {

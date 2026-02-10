@@ -155,6 +155,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _receiveShareService = ReceiveShareService();
   DateTime _lastStockpileReminderCheckDay = DateTime.now();
   DateTime _lastOvercookedReminderCheckDay = DateTime.now();
+  Brightness _platformBrightness =
+      WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
   @override
   void initState() {
@@ -171,6 +173,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _receiveShareService.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    final next = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    if (_platformBrightness == next) return;
+    _platformBrightness = next;
+    if (widget.settingsService.themeMode == ThemeMode.system) {
+      setState(() {});
+    }
+  }
+
+  Brightness _resolveEffectiveBrightness(ThemeMode themeMode) {
+    if (themeMode == ThemeMode.dark) return Brightness.dark;
+    if (themeMode == ThemeMode.system) return _platformBrightness;
+    return Brightness.light;
   }
 
   @override
@@ -268,10 +286,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       child: Consumer<SettingsService>(
         builder: (context, settings, _) {
           final themeMode = settings.themeMode;
-          final brightness = themeMode == ThemeMode.dark
-              ? Brightness.dark
-              : Brightness.light;
-          IOS26Theme.setBrightness(brightness);
+          final effectiveBrightness = _resolveEffectiveBrightness(themeMode);
+          IOS26Theme.setBrightness(effectiveBrightness);
 
           return MaterialApp(
             navigatorKey: _navigatorKey,

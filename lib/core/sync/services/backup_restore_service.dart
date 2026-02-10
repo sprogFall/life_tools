@@ -364,6 +364,9 @@ class BackupRestoreService {
       if (themeModeRaw == 'light') {
         await settingsService.setDarkModeEnabled(false);
       }
+      if (themeModeRaw == 'system') {
+        await settingsService.setFollowSystemTheme();
+      }
     }
   }
 

@@ -52,5 +52,17 @@ void main() {
       expect(reloaded.themeMode, ThemeMode.dark);
       expect(reloaded.isDarkModeEnabled, isTrue);
     });
+
+    test('开启跟随系统模式后重新初始化应保留配置', () async {
+      final service = SettingsService(databaseProvider: () async => db);
+      await service.init();
+      await service.setThemeMode(ThemeMode.system);
+
+      final reloaded = SettingsService(databaseProvider: () async => db);
+      await reloaded.init();
+
+      expect(reloaded.themeMode, ThemeMode.system);
+      expect(reloaded.isDarkModeEnabled, isFalse);
+    });
   });
 }

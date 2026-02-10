@@ -160,6 +160,30 @@ abstract class AppLocalizations {
   /// **'Dark Mode'**
   String get settings_dark_mode_label;
 
+  /// No description provided for @settings_theme_mode_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme Mode'**
+  String get settings_theme_mode_label;
+
+  /// No description provided for @settings_theme_mode_light.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settings_theme_mode_light;
+
+  /// No description provided for @settings_theme_mode_dark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settings_theme_mode_dark;
+
+  /// No description provided for @settings_theme_mode_system.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow System'**
+  String get settings_theme_mode_system;
+
   /// No description provided for @tool_management_title.
   ///
   /// In en, this message translates to:

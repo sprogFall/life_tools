@@ -18,5 +18,11 @@ void main() {
       expect(darkText, isNot(darkBackground));
       expect(IOS26Theme.onPrimaryColor, isNot(IOS26Theme.primaryColor));
     });
+
+    test('暗黑模式背景应为纯黑色，降低屏幕发光', () {
+      final darkTheme = IOS26Theme.darkTheme;
+      expect(darkTheme.scaffoldBackgroundColor, const Color(0xFF000000));
+      expect(darkTheme.canvasColor, const Color(0xFF000000));
+    });
   });
 }

@@ -39,6 +39,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings_dark_mode_label => 'Dark Mode';
 
   @override
+  String get settings_theme_mode_label => 'Theme Mode';
+
+  @override
+  String get settings_theme_mode_light => 'Light';
+
+  @override
+  String get settings_theme_mode_dark => 'Dark';
+
+  @override
+  String get settings_theme_mode_system => 'Follow System';
+
+  @override
   String get tool_management_title => 'Tool Management';
 
   @override
@@ -978,6 +990,18 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get settings_dark_mode_label => 'Dark Mode';
+
+  @override
+  String get settings_theme_mode_label => 'Theme Mode';
+
+  @override
+  String get settings_theme_mode_light => 'Light';
+
+  @override
+  String get settings_theme_mode_dark => 'Dark';
+
+  @override
+  String get settings_theme_mode_system => 'Follow System';
 
   @override
   String get tool_management_title => 'Tool Management';

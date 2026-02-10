@@ -20,33 +20,33 @@ class IOS26Theme {
 
   // 主色调 - iOS 26 风格的柔和蓝色
   static const Color _lightPrimaryColor = Color(0xFF007AFF);
-  static const Color _darkPrimaryColor = Color(0xFF0A84FF);
+  static const Color _darkPrimaryColor = Color(0xFF3B82F6);
   static const Color _lightSecondaryColor = Color(0xFF5856D6);
-  static const Color _darkSecondaryColor = Color(0xFF7D7AFF);
+  static const Color _darkSecondaryColor = Color(0xFF9A8CFF);
 
   // 背景色
   static const Color _lightBackgroundColor = Color(0xFFF2F2F7);
-  static const Color _darkBackgroundColor = Color(0xFF0E1117);
+  static const Color _darkBackgroundColor = Color(0xFF000000);
   static const Color _lightSurfaceColor = Color(0xFFFFFFFF);
-  static const Color _darkSurfaceColor = Color(0xFF1A1D24);
+  static const Color _darkSurfaceColor = Color(0xFF111214);
   static const Color _lightSurfaceVariant = Color(0xFFE5E5EA);
-  static const Color _darkSurfaceVariant = Color(0xFF2A2E38);
+  static const Color _darkSurfaceVariant = Color(0xFF1C1F24);
   static const Color _lightCardColor = Color(0xFFFFFFFF);
-  static const Color _darkCardColor = Color(0xFF1F232D);
+  static const Color _darkCardColor = Color(0xFF15181E);
 
   // 文字颜色
   static const Color _lightTextPrimary = Color(0xFF1C1C1E);
   static const Color _darkTextPrimary = Color(0xFFF5F5F7);
   static const Color _lightTextSecondary = Color(0xFF8E8E93);
-  static const Color _darkTextSecondary = Color(0xFFB1B4BE);
+  static const Color _darkTextSecondary = Color(0xFFC0C3CC);
   static const Color _lightTextTertiary = Color(0xFFC7C7CC);
-  static const Color _darkTextTertiary = Color(0xFF626877);
+  static const Color _darkTextTertiary = Color(0xFF7A8090);
 
   // 毛玻璃效果颜色
   static const Color _lightGlassColor = Color(0xCCFFFFFF);
-  static const Color _darkGlassColor = Color(0xB31A1D24);
+  static const Color _darkGlassColor = Color(0xB315181E);
   static const Color _lightGlassBorderColor = Color(0x1A000000);
-  static const Color _darkGlassBorderColor = Color(0x33FFFFFF);
+  static const Color _darkGlassBorderColor = Color(0x40FFFFFF);
 
   // 语义化覆盖/阴影颜色
   static const Color _lightOverlayColor = Color(0x26000000);
@@ -58,17 +58,17 @@ class IOS26Theme {
 
   // 工具颜色
   static const Color _lightToolBlue = Color(0xFF007AFF);
-  static const Color _darkToolBlue = Color(0xFF0A84FF);
+  static const Color _darkToolBlue = Color(0xFF3B82F6);
   static const Color _lightToolOrange = Color(0xFFFF9500);
-  static const Color _darkToolOrange = Color(0xFFFF9F0A);
+  static const Color _darkToolOrange = Color(0xFFFFB14A);
   static const Color _lightToolRed = Color(0xFFFF3B30);
   static const Color _darkToolRed = Color(0xFFFF453A);
   static const Color _lightToolGreen = Color(0xFF34C759);
-  static const Color _darkToolGreen = Color(0xFF30D158);
+  static const Color _darkToolGreen = Color(0xFF32D583);
   static const Color _lightToolPurple = Color(0xFF5856D6);
-  static const Color _darkToolPurple = Color(0xFFBF5AF2);
+  static const Color _darkToolPurple = Color(0xFFC084FC);
   static const Color _lightToolPink = Color(0xFFFF2D55);
-  static const Color _darkToolPink = Color(0xFFFF6482);
+  static const Color _darkToolPink = Color(0xFFFF6E91);
 
   static const Color onPrimaryColor = Color(0xFFFFFFFF);
 

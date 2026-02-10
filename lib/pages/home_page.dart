@@ -687,24 +687,11 @@ class _SettingsSheet extends StatelessWidget {
                         ),
                         _buildDivider(),
                         IOS26SettingsRow(
+                          key: const ValueKey('settings_theme_mode_row'),
                           icon: CupertinoIcons.moon_stars,
-                          title: l10n.settings_dark_mode_label,
-                          showChevron: false,
-                          trailing: CupertinoSwitch(
-                            key: const ValueKey('settings_dark_mode_switch'),
-                            value: settings.isDarkModeEnabled,
-                            activeTrackColor: IOS26Theme.primaryColor,
-                            onChanged: (value) {
-                              unawaited(settings.setDarkModeEnabled(value));
-                            },
-                          ),
-                          onTap: () {
-                            unawaited(
-                              settings.setDarkModeEnabled(
-                                !settings.isDarkModeEnabled,
-                              ),
-                            );
-                          },
+                          title: l10n.settings_theme_mode_label,
+                          value: _themeModeValueText(l10n, settings.themeMode),
+                          onTap: () => _showThemeModeSheet(context, settings),
                         ),
                         _buildDivider(),
                         IOS26SettingsRow(
@@ -735,6 +722,57 @@ class _SettingsSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  String _themeModeValueText(AppLocalizations l10n, ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.dark => l10n.settings_theme_mode_dark,
+      ThemeMode.system => l10n.settings_theme_mode_system,
+      _ => l10n.settings_theme_mode_light,
+    };
+  }
+
+  void _showThemeModeSheet(BuildContext context, SettingsService settings) {
+    final l10n = AppLocalizations.of(context)!;
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) {
+        return CupertinoActionSheet(
+          title: Text(l10n.settings_theme_mode_label),
+          actions: [
+            CupertinoActionSheetAction(
+              key: const ValueKey('settings_theme_mode_light_action'),
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                unawaited(settings.setThemeMode(ThemeMode.light));
+              },
+              child: Text(l10n.settings_theme_mode_light),
+            ),
+            CupertinoActionSheetAction(
+              key: const ValueKey('settings_theme_mode_dark_action'),
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                unawaited(settings.setThemeMode(ThemeMode.dark));
+              },
+              child: Text(l10n.settings_theme_mode_dark),
+            ),
+            CupertinoActionSheetAction(
+              key: const ValueKey('settings_theme_mode_system_action'),
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                unawaited(settings.setThemeMode(ThemeMode.system));
+              },
+              child: Text(l10n.settings_theme_mode_system),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext),
+            isDefaultAction: true,
+            child: Text(l10n.common_cancel),
+          ),
+        );
+      },
     );
   }
 
