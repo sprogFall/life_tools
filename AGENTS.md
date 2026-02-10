@@ -12,13 +12,14 @@
 5. **改动验证要求**：
    - 若本次改动涉及 **Flutter 侧代码/构建相关文件**（如 `lib/**`、`test/**`、平台代码 `android/**`/`ios/**`/`macos/**`/`windows/**`/`linux/**`、以及 `pubspec.yaml` 等），必须在交付前执行并通过：`flutter analyze` 与 `flutter test`
    - 若本次改动 **仅涉及后端服务**（`backend/**`）且未改动任何 Flutter 相关目录/配置，则无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端的测试（例如：`cd backend/sync_server && .venv/bin/pytest`）
-   - 若本次改动仅为“文档类变更”（如 `README.md`、`docs/**`、`examples/**`、`*.md` 等），可不执行 `flutter analyze` / `flutter test`
+   - 若本次改动仅为"文档类变更"（如 `README.md`、`docs/**`、`examples/**`、`*.md` 等），可不执行 `flutter analyze` / `flutter test`
    - 若仅进行 Git 操作（如生成/整理 `git commit`，且未改动任何代码文件），可不执行 `flutter analyze` / `flutter test`
 
 ## 项目概述
 
 这是一个名为 "life_tools" 的 Flutter 应用，支持 Android、iOS、Web、Linux、macOS 和 Windows 多平台。使用 Dart SDK ^3.10.7。
 数据全部记录在应用本地（SQLite）
+
 ## 常用命令
 
 所有命令均兼容 Windows 系统（PowerShell/CMD）。
@@ -103,60 +104,23 @@ dart format .
 
 详细规范请查看：`examples/ui.md`
 
-### iOS 26 统一规范（补充）
+## 代码规范
 
-- 文本样式：业务代码禁止硬编码 `TextStyle(...)`，统一使用 `IOS26Theme` 的文本样式访问器（`displayLarge` / `headlineMedium` / `titleLarge` / `titleMedium` / `titleSmall` / `bodyLarge` / `bodyMedium` / `bodySmall` / `labelLarge`）。
-- 间距与圆角：统一使用 `IOS26Theme.spacingXxx` 与 `IOS26Theme.radiusXxx` 常量。
-- 颜色常量：业务代码禁止使用 `Colors.white` 等硬编码色值，统一使用 `IOS26Theme` 的语义化颜色（如 `IOS26Theme.surfaceColor` / `IOS26Theme.backgroundColor` / `IOS26Theme.textPrimary` 等）。
-- 组件统一：加载使用 `CupertinoActivityIndicator`；按钮统一使用 `IOS26Button` / `IOS26IconButton`（组件内部封装 `CupertinoButton`）；图标使用 `CupertinoIcons`；避免 `TextButton` / `IconButton` / `InkWell` / `CircularProgressIndicator` / `Divider` 等 Material 组件（如有必要需在代码注释说明原因）。
-- AppBar：页面统一使用 `IOS26AppBar`；首页使用 `IOS26AppBar.home(onSettingsPressed: ...)`；当 `IOS26AppBar` 放在 `SafeArea` 内时必须设置 `useSafeArea: false` 避免重复内边距。
-- 交互尺寸：图标/导航类按钮统一使用 `IOS26Theme.minimumTapSize`；优先由 `IOS26Button` / `IOS26IconButton` 默认值承接，特殊场景再覆盖。
+开发时必须遵守异常处理、国际化、规范守护等代码审查规范。
 
-### 明暗主题按钮/图标规范（新增）
+详细规范请查看：`examples/code_standards.md`
 
-- 页面层禁止 `CupertinoButton(color: ...)`：统一使用 `IOS26Button` / `IOS26IconButton`，由组件内部处理明暗两套配色与前景色注入。
-- 按钮语义通过 `variant` 表达：主流程提交用 `primary`；普通次操作用 `secondary`；弱化操作（如“取消/复制/选择文件”）用 `ghost`；危险次操作用 `destructive`；高风险主操作（如“确认恢复/永久删除”）用 `destructivePrimary`。
-- 图标语义通过 `tone` 表达：普通图标用 `primary/secondary`；强调图标用 `accent`；风险态图标用 `warning/danger/success`。
-- 页面层禁止手写明暗适配：不要在页面内手写 alpha（如 `primaryColor.withValues(alpha: ...)`）拼按钮状态；若确有特殊背景需求，仅允许通过 `IOS26Button(backgroundColor: ...)` 显式覆盖并注明原因。
-- 按钮内容统一复用组件：按钮内文本优先使用 `IOS26ButtonLabel`，按钮内图标优先使用 `IOS26ButtonIcon`，按钮内加载态优先使用 `IOS26ButtonLoadingIndicator`；页面层禁止直接引用 `xxxButton.foreground`。
-- 非按钮图标统一入口：页面层禁止直接 `Icon(color: ...)`，统一使用 `IOS26Icon`（优先 `tone`，仅动态场景允许 `color` 覆盖）。
-- Markdown 统一入口：页面层禁止直接使用 `Markdown` / `MarkdownBody`，统一使用 `IOS26MarkdownView` / `IOS26MarkdownBody`。
-- 图片统一入口：页面层禁止直接使用 `Image.file` / `Image.network` / `Image.memory`，统一使用 `IOS26Image.file` / `IOS26Image.network` / `IOS26Image.memory`。
-
-## 代码规范（2026-02-04 代码审查沉淀）
-
-### 异常处理
-
-- 禁止空吞异常：不允许出现 `catch (_) {}`。至少使用 `devLog(...)` 记录（仅 Debug 输出），必要时给用户明确反馈（Dialog/Toast）。
-- 日志脱敏：严禁在日志/异常信息中输出密钥/令牌/自定义 Header 等敏感信息；`devLog` 的 message/error 也必须遵守。
-
-### 国际化（i18n）
-
-- UI 文案禁止硬编码：页面标题、按钮文案、空态文案等必须使用 `AppLocalizations`（优先 `common_*`，模块内使用 `xxx_*` 命名）。
-- 新增文案流程：同步更新 `lib/l10n/app_en.arb`、`lib/l10n/app_en_US.arb`、`lib/l10n/app_zh.arb`、`lib/l10n/app_zh_CN.arb`，并执行 `/opt/flutter/bin/flutter gen-l10n` 生成 Dart 文件。
-- Widget 测试统一包裹：测试中优先使用 `test/test_helpers/test_app_wrapper.dart`，避免缺少 `localizationsDelegates` 导致页面崩溃。
-
-### 样式与复用
-
-- 禁止硬编码 `EdgeInsets.all(8)`：统一替换为 `EdgeInsets.all(IOS26Theme.spacingSm)` 或更语义化的间距组合。
-- `SingleChildScrollView` 宽度规范：当 `SingleChildScrollView` 的 `child` 直系使用 `Column` 时，必须声明 `crossAxisAlignment: CrossAxisAlignment.stretch`（或等效显式全宽包裹），避免短文案导致卡片/容器未占满页面宽度。
-- 工具页返回首页按钮复用：AppBar leading 的“首页”入口统一使用 `IOS26HomeLeadingButton`，避免重复 Row/样式/交互尺寸逻辑。
-
-### 规范守护（测试）
-
-- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/single_child_scroll_view_stretch_width_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`、`test/design/no_direct_ios26_button_foreground_test.dart`、`test/design/no_direct_icon_color_in_lib_test.dart`、`test/design/no_raw_markdown_widgets_test.dart`、`test/design/no_raw_image_constructors_test.dart`。
-
-## 安全与隐私规范（补充）
+## 安全与隐私规范
 
 1. **敏感信息最小暴露**：
    - 严禁在日志/异常信息中输出密钥类信息（如 AI API Key、七牛 AK/SK、同步 Token/自定义 Header）
-   - 备份/导出/分享必须显式提供“包含敏感信息”的开关，并在 UI/文档中提示风险；默认值按产品需求决定（当前为方便迁移默认开启）
+   - 备份/导出/分享必须显式提供"包含敏感信息"的开关，并在 UI/文档中提示风险；默认值按产品需求决定（当前为方便迁移默认开启）
 2. **路径安全**：
    - 任何把 `key/path` 拼接到本地目录（`baseDir`）的逻辑，必须保证最终路径仍在 `baseDir` 内（例如使用 `path.isWithin` 做边界校验），禁止 `../` 穿越
 3. **网络安全默认值**：
    - 外部服务 URL 默认使用 `https`；若允许 `http`（如内网调试），需在 UI/文档明确提醒风险
 
-## 提交前检查（补充）
+## 提交前检查
 
 - 变更 Flutter 侧（`lib/**`、`test/**`、平台工程或 `pubspec.yaml`）：必须执行并通过 `flutter analyze` 与 `flutter test`
 - 仅变更后端（`backend/**`）且未改动 Flutter：无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端测试

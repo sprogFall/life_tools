@@ -21,6 +21,10 @@
 - `IOS26Theme.toolPurple` - 工具紫（#5856D6）
 - `IOS26Theme.toolPink` - 工具粉（#FF2D55）
 
+### 颜色使用原则
+
+- 业务代码禁止使用 `Colors.white` 等硬编码色值，统一使用 `IOS26Theme` 的语义化颜色（如 `IOS26Theme.surfaceColor` / `IOS26Theme.backgroundColor` / `IOS26Theme.textPrimary` 等）。
+
 ## 文本样式（统一使用 IOS26Theme）
 
 业务代码禁止硬编码 `TextStyle(...)`，统一使用 `IOS26Theme` 文本样式访问器：
@@ -43,7 +47,7 @@ Text('提示', style: IOS26Theme.bodySmall);
 
 ## 间距与圆角规范
 
-**间距：** `IOS26Theme.spacingXs/Sm/Md/Lg/Xl/Xxl/Xxxl`  
+**间距：** `IOS26Theme.spacingXs/Sm/Md/Lg/Xl/Xxl/Xxxl`
 **圆角：** `IOS26Theme.radiusSm/Md/Lg/Xl/Xxl/Full`
 
 ```dart
@@ -52,26 +56,70 @@ Padding(padding: const EdgeInsets.all(IOS26Theme.spacingMd));
 BorderRadius.circular(IOS26Theme.radiusXl);
 ```
 
+- 禁止硬编码 `EdgeInsets.all(8)`，统一替换为 `EdgeInsets.all(IOS26Theme.spacingSm)` 或更语义化的间距组合。
+
 ## 组件统一（iOS 26 风格）
 
 - 加载：`CupertinoActivityIndicator`
-- 按钮：`CupertinoButton`
+- 按钮：统一使用 `IOS26Button` / `IOS26IconButton`（组件内部封装 `CupertinoButton`）
 - 图标：`CupertinoIcons`
-- 禁止使用：`TextButton` / `IconButton` / `InkWell` / `CircularProgressIndicator` / `Divider` 等 Material 组件（确需保留时在代码注释说明原因）。
+- 非按钮图标：统一使用 `IOS26Icon`（优先 `tone`，仅动态场景允许 `color` 覆盖）
+- Markdown：统一使用 `IOS26MarkdownView` / `IOS26MarkdownBody`（禁止直接使用 `Markdown` / `MarkdownBody`）
+- 图片：统一使用 `IOS26Image.file` / `IOS26Image.network` / `IOS26Image.memory`（禁止直接使用 `Image.file` / `Image.network` / `Image.memory`）
+- 禁止使用：`TextButton` / `IconButton` / `InkWell` / `CircularProgressIndicator` / `Divider` 等 Material 组件（确需保留时在代码注释说明原因）
 
 ## AppBar 规范
 
 - 常规页面统一使用 `IOS26AppBar`
 - 首页使用 `IOS26AppBar.home(onSettingsPressed: ...)`
 - 当 `IOS26AppBar` 处于 `SafeArea` 内时，必须设置 `useSafeArea: false`
+- 工具页返回首页按钮统一使用 `IOS26HomeLeadingButton`，避免重复 Row/样式/交互尺寸逻辑
 
 ## 交互尺寸规范
 
-- 图标/导航类 `CupertinoButton` 必须设置：`minimumSize: IOS26Theme.minimumTapSize`
+- 图标/导航类按钮统一使用 `IOS26Theme.minimumTapSize`
+- 优先由 `IOS26Button` / `IOS26IconButton` 默认值承接，特殊场景再覆盖
+
+## 按钮与图标规范（明暗主题适配）
+
+### 按钮规范
+
+- 页面层禁止 `CupertinoButton(color: ...)`：统一使用 `IOS26Button` / `IOS26IconButton`，由组件内部处理明暗两套配色与前景色注入。
+- 按钮语义通过 `variant` 表达：
+  - `primary`：主流程提交
+  - `secondary`：普通次操作
+  - `ghost`：弱化操作（如"取消/复制/选择文件"）
+  - `destructive`：危险次操作
+  - `destructivePrimary`：高风险主操作（如"确认恢复/永久删除"）
+- 页面层禁止手写明暗适配：不要在页面内手写 alpha（如 `primaryColor.withValues(alpha: ...)`）拼按钮状态；若确有特殊背景需求，仅允许通过 `IOS26Button(backgroundColor: ...)` 显式覆盖并注明原因。
+- 按钮内容统一复用组件：
+  - 按钮内文本：`IOS26ButtonLabel`
+  - 按钮内图标：`IOS26ButtonIcon`
+  - 按钮内加载态：`IOS26ButtonLoadingIndicator`
+  - 页面层禁止直接引用 `xxxButton.foreground`
+
+### 图标规范
+
+- 页面层禁止直接 `Icon(color: ...)`，统一使用 `IOS26Icon`
+- 图标语义通过 `tone` 表达：
+  - `primary/secondary`：普通图标
+  - `accent`：强调图标
+  - `warning/danger/success`：风险态图标
+- 仅动态场景允许 `color` 覆盖
+
+## 布局规范
+
+- `SingleChildScrollView` 的 `child` 直系使用 `Column` 时，必须声明 `crossAxisAlignment: CrossAxisAlignment.stretch`（或等效显式全宽包裹），避免短文案导致卡片/容器未占满页面宽度。
 
 ## 可复用组件（优先复用，避免重复造轮子）
 
 - `IOS26AppBar`：iOS 26 毛玻璃导航栏（支持返回按钮 / actions）
+- `IOS26HomeLeadingButton`：工具页返回首页按钮
+- `IOS26Button` / `IOS26IconButton`：统一按钮组件
+- `IOS26ButtonLabel` / `IOS26ButtonIcon` / `IOS26ButtonLoadingIndicator`：按钮内容组件
+- `IOS26Icon`：统一图标组件
+- `IOS26MarkdownView` / `IOS26MarkdownBody`：统一 Markdown 组件
+- `IOS26Image`：统一图片组件
 - `GlassContainer`：毛玻璃卡片容器
 
 ```dart
@@ -95,27 +143,6 @@ class DemoPage extends StatelessWidget {
   }
 }
 ```
-
-## 按钮颜色使用规范
-
-**主要操作按钮（Primary）：**
-- 背景色：`IOS26Theme.primaryColor`
-- 文字色：`Colors.white`
-- 适用场景：提交、确认、保存等主要操作
-- 示例：AI录入页面的"提交给AI"按钮
-
-**次要操作按钮（Secondary）：**
-- 背景色：`IOS26Theme.textTertiary.withValues(alpha: 0.3)` （半透明浅灰）
-- 图标色：`IOS26Theme.textSecondary`
-- 适用场景：取消、清空、删除等辅助操作
-- 示例：AI录入页面的清空（垃圾桶）、取消（×）按钮
-
-**按钮圆角：**
-- 优先使用 `IOS26Theme.radiusMd` 或 `IOS26Theme.radiusLg`
-
-**按钮内边距：**
-- 主要按钮：`EdgeInsets.symmetric(vertical: IOS26Theme.spacingLg)`
-- 图标按钮：`EdgeInsets.symmetric(horizontal: IOS26Theme.spacingLg, vertical: IOS26Theme.spacingLg)`
 
 ## 表单字段标题规范
 
