@@ -143,10 +143,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               padding: const EdgeInsets.symmetric(vertical: 14),
               borderRadius: BorderRadius.circular(14),
-              color: primaryButton.background,
+              variant: IOS26ButtonVariant.primary,
               onPressed: _exportAndShare,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -170,10 +170,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               padding: const EdgeInsets.symmetric(vertical: 14),
               borderRadius: BorderRadius.circular(14),
-              color: ghostButton.background,
+              variant: IOS26ButtonVariant.ghost,
               onPressed: _exportToTxtFile,
               child: Text(
                 l10n.backup_export_save_txt_button,
@@ -186,10 +186,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               padding: const EdgeInsets.symmetric(vertical: 14),
               borderRadius: BorderRadius.circular(14),
-              color: ghostButton.background,
+              variant: IOS26ButtonVariant.ghost,
               onPressed: _exportToClipboard,
               child: Text(
                 l10n.backup_export_copy_clipboard_button,
@@ -230,10 +230,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           Row(
             children: [
               Expanded(
-                child: CupertinoButton(
+                child: IOS26Button(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   borderRadius: BorderRadius.circular(14),
-                  color: ghostButton.background,
+                  variant: IOS26ButtonVariant.ghost,
                   onPressed: _isRestoring ? null : _pasteFromClipboard,
                   child: Text(
                     l10n.backup_restore_paste_button,
@@ -245,10 +245,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: CupertinoButton(
+                child: IOS26Button(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   borderRadius: BorderRadius.circular(14),
-                  color: ghostButton.background,
+                  variant: IOS26ButtonVariant.ghost,
                   onPressed: _isRestoring ? null : _importFromTxtFile,
                   child: Text(
                     l10n.backup_restore_import_txt_button,
@@ -263,10 +263,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               padding: const EdgeInsets.symmetric(vertical: 12),
               borderRadius: BorderRadius.circular(14),
-              color: ghostButton.background,
+              variant: IOS26ButtonVariant.ghost,
               onPressed: _isRestoring || _restoreController.text.isEmpty
                   ? null
                   : () => setControllerTextWhenComposingIdle(
@@ -285,10 +285,10 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               padding: const EdgeInsets.symmetric(vertical: 14),
               borderRadius: BorderRadius.circular(14),
-              color: destructiveButton.background,
+              variant: IOS26ButtonVariant.destructive,
               onPressed: _isRestoring ? null : _confirmAndRestore,
               child: _isRestoring
                   ? CupertinoActivityIndicator(

@@ -78,12 +78,12 @@ class StockpileAiBatchEntryView extends StatelessWidget {
           ),
           child: SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               key: const ValueKey('stockpile_ai_batch_save'),
               padding: const EdgeInsets.symmetric(
                 vertical: IOS26Theme.spacingLg,
               ),
-              color: primaryButton.background,
+              variant: IOS26ButtonVariant.primary,
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: provider.saving ? null : () => _save(context),
               child: provider.saving

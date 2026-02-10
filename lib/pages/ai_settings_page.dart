@@ -180,9 +180,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
+            child: IOS26Button(
               key: const ValueKey('ai_test_button'),
-              color: secondaryButton.background,
+              variant: IOS26ButtonVariant.secondary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTesting ? null : () => _testConnection(context),
               child: Text(
@@ -230,8 +230,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: destructiveButton.background,
+            child: IOS26Button(
+              variant: IOS26ButtonVariant.destructive,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
               child: Text(

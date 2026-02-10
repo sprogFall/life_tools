@@ -11,20 +11,18 @@ class IOS26HomeLeadingButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final accentColor = IOS26Theme.iconColor(IOS26IconTone.accent);
-    return CupertinoButton(
+
+    return IOS26Button.plain(
       padding: const EdgeInsets.all(IOS26Theme.spacingSm),
       minimumSize: IOS26Theme.minimumTapSize,
+      foregroundColor: IOS26Theme.iconColor(IOS26IconTone.accent),
       onPressed: onPressed,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(CupertinoIcons.home, color: accentColor, size: 20),
+          const Icon(CupertinoIcons.home, size: 20),
           const SizedBox(width: IOS26Theme.spacingXs),
-          Text(
-            l10n.common_home,
-            style: IOS26Theme.labelLarge.copyWith(color: accentColor),
-          ),
+          Text(l10n.common_home, style: IOS26Theme.labelLarge),
         ],
       ),
     );

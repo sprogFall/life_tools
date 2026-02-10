@@ -349,17 +349,16 @@ class _OvercookedCalendarTabState extends State<OvercookedCalendarTab> {
     required VoidCallback onPressed,
     required String label,
   }) {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return Semantics(
       button: true,
       label: label,
       child: SizedBox(
         height: 44,
         width: 44,
-        child: CupertinoButton(
+        child: IOS26Button(
           padding: EdgeInsets.zero,
           onPressed: onPressed,
-          color: ghostButton.background,
+          variant: IOS26ButtonVariant.ghost,
           borderRadius: BorderRadius.circular(14),
           child: Icon(icon, size: 18, color: IOS26Theme.textPrimary),
         ),

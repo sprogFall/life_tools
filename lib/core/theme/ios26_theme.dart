@@ -53,6 +53,154 @@ class IOS26IconChipColors {
   });
 }
 
+enum IOS26ButtonStyle { filled, plain }
+
+/// iOS 26 统一按钮组件：页面只关心语义，不关心明暗模式配色。
+class IOS26Button extends StatelessWidget {
+  final Key? buttonKey;
+  final Widget child;
+  final VoidCallback? onPressed;
+  final IOS26ButtonVariant variant;
+  final IOS26ButtonStyle style;
+  final EdgeInsetsGeometry padding;
+  final Size minimumSize;
+  final BorderRadius? borderRadius;
+  final double pressedOpacity;
+  final AlignmentGeometry alignment;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+
+  const IOS26Button({
+    Key? key,
+    required this.child,
+    required this.onPressed,
+    this.variant = IOS26ButtonVariant.secondary,
+    this.style = IOS26ButtonStyle.filled,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    this.minimumSize = IOS26Theme.minimumTapSize,
+    this.borderRadius,
+    this.pressedOpacity = 0.4,
+    this.alignment = Alignment.center,
+    this.backgroundColor,
+    this.foregroundColor,
+  }) : buttonKey = key,
+       super(key: null);
+
+  const IOS26Button.plain({
+    Key? key,
+    required this.child,
+    required this.onPressed,
+    this.variant = IOS26ButtonVariant.ghost,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    this.minimumSize = IOS26Theme.minimumTapSize,
+    this.borderRadius,
+    this.pressedOpacity = 0.4,
+    this.alignment = Alignment.center,
+    this.backgroundColor,
+    this.foregroundColor,
+  }) : buttonKey = key,
+       style = IOS26ButtonStyle.plain,
+       super(key: null);
+
+  @override
+  Widget build(BuildContext context) {
+    final token = IOS26Theme.buttonColors(variant);
+    final effectiveForeground = foregroundColor ?? token.foreground;
+    final effectiveBackground =
+        backgroundColor ??
+        (style == IOS26ButtonStyle.filled
+            ? token.background
+            : Colors.transparent);
+
+    return CupertinoButton(
+      key: buttonKey,
+      padding: padding,
+      minimumSize: minimumSize,
+      borderRadius: borderRadius,
+      pressedOpacity: pressedOpacity,
+      alignment: alignment,
+      color: effectiveBackground,
+      onPressed: onPressed,
+      child: IconTheme(
+        data: IconThemeData(color: effectiveForeground),
+        child: DefaultTextStyle.merge(
+          style: IOS26Theme.labelLarge.copyWith(color: effectiveForeground),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+enum IOS26IconButtonStyle { plain, chip }
+
+/// iOS 26 统一图标按钮组件：统一 tone 与明暗模式适配。
+class IOS26IconButton extends StatelessWidget {
+  final Key? buttonKey;
+  final IconData icon;
+  final String? semanticLabel;
+  final VoidCallback? onPressed;
+  final IOS26IconTone tone;
+  final IOS26IconButtonStyle style;
+  final EdgeInsetsGeometry padding;
+  final Size minimumSize;
+  final BorderRadius borderRadius;
+  final double pressedOpacity;
+  final double size;
+
+  const IOS26IconButton({
+    Key? key,
+    required this.icon,
+    required this.onPressed,
+    this.semanticLabel,
+    this.tone = IOS26IconTone.primary,
+    this.style = IOS26IconButtonStyle.plain,
+    this.padding = EdgeInsets.zero,
+    this.minimumSize = IOS26Theme.minimumTapSize,
+    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
+    this.pressedOpacity = 0.4,
+    this.size = 20,
+  }) : buttonKey = key,
+       super(key: null);
+
+  @override
+  Widget build(BuildContext context) {
+    final iconWidget = Icon(icon, size: size, semanticLabel: semanticLabel);
+
+    if (style == IOS26IconButtonStyle.chip) {
+      final chip = IOS26Theme.iconChipColors(tone);
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: chip.background,
+          borderRadius: borderRadius,
+          border: Border.all(color: chip.border, width: 1),
+        ),
+        child: IOS26Button.plain(
+          key: buttonKey,
+          padding: padding,
+          minimumSize: minimumSize,
+          borderRadius: borderRadius,
+          pressedOpacity: pressedOpacity,
+          foregroundColor: chip.foreground,
+          onPressed: onPressed,
+          child: iconWidget,
+        ),
+      );
+    }
+
+    return IOS26Button.plain(
+      key: buttonKey,
+      padding: padding,
+      minimumSize: minimumSize,
+      borderRadius: borderRadius,
+      pressedOpacity: pressedOpacity,
+      foregroundColor: IOS26Theme.iconColor(tone),
+      onPressed: onPressed,
+      child: iconWidget,
+    );
+  }
+}
+
 /// iOS 26 风格主题配置
 class IOS26Theme {
   IOS26Theme._();

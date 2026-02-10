@@ -30,6 +30,8 @@ class IOS26FloatingIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = IOS26Theme.iconColor(IOS26IconTone.accent);
+
     return Positioned(
       right: right,
       bottom: bottom,
@@ -39,18 +41,27 @@ class IOS26FloatingIconButton extends StatelessWidget {
         child: GlassContainer(
           borderRadius: 999,
           padding: const EdgeInsets.all(6),
-          child: CupertinoButton(
-            key: buttonKey,
-            padding: EdgeInsets.zero,
-            minimumSize: IOS26Theme.minimumTapSize,
-            onPressed: onPressed,
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: iconColor ?? IOS26Theme.iconColor(IOS26IconTone.accent),
-              semanticLabel: semanticLabel,
-            ),
-          ),
+          child: iconColor == null
+              ? IOS26IconButton(
+                  key: buttonKey,
+                  icon: icon,
+                  size: iconSize,
+                  tone: IOS26IconTone.accent,
+                  onPressed: onPressed,
+                  semanticLabel: semanticLabel,
+                )
+              : IOS26Button.plain(
+                  key: buttonKey,
+                  padding: EdgeInsets.zero,
+                  minimumSize: IOS26Theme.minimumTapSize,
+                  onPressed: onPressed,
+                  foregroundColor: iconColor ?? accentColor,
+                  child: Icon(
+                    icon,
+                    size: iconSize,
+                    semanticLabel: semanticLabel,
+                  ),
+                ),
         ),
       ),
     );

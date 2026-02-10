@@ -112,12 +112,12 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
           Row(
             children: [
               Expanded(child: Text('三餐记录', style: IOS26Theme.headlineMedium)),
-              CupertinoButton(
+              IOS26Button(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
                 ),
-                color: primaryButton.background,
+                variant: IOS26ButtonVariant.primary,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _addMealFlow,
                 child: Text(
@@ -578,12 +578,12 @@ class _MealCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CupertinoButton(
+                IOS26Button(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  color: secondaryButton.background,
+                  variant: IOS26ButtonVariant.secondary,
                   borderRadius: BorderRadius.circular(999),
                   onPressed: onPickMealTag,
                   child: Text(
@@ -681,15 +681,14 @@ class _MealCard extends StatelessWidget {
     required VoidCallback? onPressed,
     Color? iconColor,
   }) {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     final resolvedIconColor = iconColor ?? IOS26Theme.textSecondary;
     return Semantics(
       button: true,
       label: label,
-      child: CupertinoButton(
+      child: IOS26Button(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         onPressed: onPressed,
-        color: ghostButton.background,
+        variant: IOS26ButtonVariant.ghost,
         borderRadius: BorderRadius.circular(14),
         child: Icon(icon, size: 18, color: resolvedIconColor),
       ),

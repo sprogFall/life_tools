@@ -263,9 +263,9 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
           child: Row(
             children: [
               Expanded(
-                child: CupertinoButton(
+                child: IOS26Button(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  color: ghostButton.background,
+                  variant: IOS26ButtonVariant.ghost,
                   borderRadius: BorderRadius.circular(14),
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(
@@ -278,10 +278,10 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: CupertinoButton(
+                child: IOS26Button(
                   key: const ValueKey('stock_item_save'),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  color: primaryButton.background,
+                  variant: IOS26ButtonVariant.primary,
                   borderRadius: BorderRadius.circular(14),
                   onPressed: _save,
                   child: Text(

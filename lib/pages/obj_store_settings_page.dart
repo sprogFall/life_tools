@@ -461,8 +461,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              CupertinoButton(
-                color: ghostButton.background,
+              IOS26Button(
+                variant: IOS26ButtonVariant.ghost,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -480,8 +480,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: secondaryButton.background,
+            child: IOS26Button(
+              variant: IOS26ButtonVariant.secondary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingUpload ? null : () => _testUpload(context),
               child: Text(
@@ -512,8 +512,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: secondaryButton.background,
+            child: IOS26Button(
+              variant: IOS26ButtonVariant.secondary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingQuery ? null : () => _testQuery(context),
               child: Text(
@@ -564,8 +564,8 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              color: destructiveButton.background,
+            child: IOS26Button(
+              variant: IOS26ButtonVariant.destructive,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
               child: Text(

@@ -13,9 +13,9 @@ class StockpileConsumeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final warningButton = IOS26Theme.buttonColors(IOS26ButtonVariant.warning);
-    return CupertinoButton(
+    return IOS26Button(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: warningButton.background,
+      variant: IOS26ButtonVariant.warning,
       borderRadius: BorderRadius.circular(14),
       onPressed: onPressed,
       child: Row(

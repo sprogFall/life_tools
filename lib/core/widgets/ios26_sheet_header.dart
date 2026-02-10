@@ -31,14 +31,12 @@ class IOS26SheetHeader extends StatelessWidget {
       height: 54,
       child: NavigationToolbar(
         centerMiddle: true,
-        leading: CupertinoButton(
+        leading: IOS26Button.plain(
           padding: const EdgeInsets.symmetric(horizontal: IOS26Theme.spacingSm),
           minimumSize: IOS26Theme.minimumTapSize,
+          foregroundColor: cancelColor,
           onPressed: onCancel ?? () => Navigator.pop(context),
-          child: Text(
-            cancelText,
-            style: IOS26Theme.labelLarge.copyWith(color: cancelColor),
-          ),
+          child: Text(cancelText, style: IOS26Theme.labelLarge),
         ),
         middle: Text(
           title,
@@ -47,15 +45,13 @@ class IOS26SheetHeader extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: CupertinoButton(
+        trailing: IOS26Button.plain(
           key: doneKey,
           padding: const EdgeInsets.symmetric(horizontal: IOS26Theme.spacingSm),
           minimumSize: IOS26Theme.minimumTapSize,
+          foregroundColor: doneColor,
           onPressed: onDone,
-          child: Text(
-            doneText,
-            style: IOS26Theme.labelLarge.copyWith(color: doneColor),
-          ),
+          child: Text(doneText, style: IOS26Theme.labelLarge),
         ),
       ),
     );

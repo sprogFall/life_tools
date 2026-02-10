@@ -149,9 +149,9 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-          child: CupertinoButton(
+          child: IOS26Button(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            color: primaryButton.background,
+            variant: IOS26ButtonVariant.primary,
             borderRadius: BorderRadius.circular(14),
             onPressed: _save,
             child: Text(

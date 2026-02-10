@@ -251,9 +251,9 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                 children: [
                   Expanded(
                     flex: 3,
-                    child: CupertinoButton(
+                    child: IOS26Button(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: primaryButton.background,
+                      variant: IOS26ButtonVariant.primary,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: _openAddTimeEntry,
                       child: Row(
@@ -278,9 +278,9 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
-                    child: CupertinoButton(
+                    child: IOS26Button(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: successPrimaryButton.background,
+                      variant: IOS26ButtonVariant.successPrimary,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: _showCompleteTaskDialog,
                       child: Row(

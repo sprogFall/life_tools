@@ -140,9 +140,9 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
     return Row(
       children: [
         Expanded(
-          child: CupertinoButton(
+          child: IOS26Button(
             onPressed: _confirm,
-            color: primaryButton.background,
+            variant: IOS26ButtonVariant.primary,
             padding: const EdgeInsets.symmetric(vertical: 14),
             borderRadius: BorderRadius.circular(14),
             child: Row(
@@ -165,14 +165,14 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
           ),
         ),
         const SizedBox(width: 10),
-        CupertinoButton(
+        IOS26Button(
           onPressed: () {
             setState(() {
               _controller.clear();
             });
           },
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: ghostButton.background,
+          variant: IOS26ButtonVariant.ghost,
           borderRadius: BorderRadius.circular(14),
           child: Icon(
             CupertinoIcons.trash,
@@ -181,10 +181,10 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
           ),
         ),
         const SizedBox(width: 10),
-        CupertinoButton(
+        IOS26Button(
           onPressed: () => Navigator.pop(context),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: ghostButton.background,
+          variant: IOS26ButtonVariant.ghost,
           borderRadius: BorderRadius.circular(14),
           child: Icon(
             CupertinoIcons.xmark,

@@ -126,12 +126,12 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
           Row(
             children: [
               Expanded(child: Text('愿望单', style: IOS26Theme.headlineMedium)),
-              CupertinoButton(
+              IOS26Button(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
                 ),
-                color: primaryButton.background,
+                variant: IOS26ButtonVariant.primary,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _editWishes,
                 child: Text(
@@ -316,9 +316,9 @@ class _WishRow extends StatelessWidget {
               style: IOS26Theme.titleSmall,
             ),
           ),
-          CupertinoButton(
+          IOS26Button(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            color: ghostButton.background,
+            variant: IOS26ButtonVariant.ghost,
             borderRadius: BorderRadius.circular(14),
             onPressed: onRemove,
             child: Icon(

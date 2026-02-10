@@ -414,10 +414,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
-                child: CupertinoButton(
+                child: IOS26Button(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   borderRadius: BorderRadius.circular(14),
-                  color: primaryButton.background,
+                  variant: IOS26ButtonVariant.primary,
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
                       ? CupertinoActivityIndicator(
@@ -484,10 +484,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: CupertinoButton(
+                      child: IOS26Button(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         borderRadius: BorderRadius.circular(14),
-                        color: ghostButton.background,
+                        variant: IOS26ButtonVariant.ghost,
                         onPressed: () => _copyToClipboard(lastError),
                         child: Text(
                           l10n.sync_copy_error_details_button,

@@ -123,14 +123,14 @@ class _OvercookedRecipePickerSheetState
                   ),
                 ),
                 const SizedBox(width: 8),
-                CupertinoButton(
+                IOS26Button(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  color: _sortMode == _SortMode.ratingDesc
-                      ? primaryButton.background
-                      : ghostButton.background,
+                  variant: _sortMode == _SortMode.ratingDesc
+                      ? IOS26ButtonVariant.primary
+                      : IOS26ButtonVariant.ghost,
                   borderRadius: BorderRadius.circular(10),
                   onPressed: _loadingStats
                       ? null

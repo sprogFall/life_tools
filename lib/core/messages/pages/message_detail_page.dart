@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -64,9 +63,9 @@ class MessageDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 if (MessageNavigation.canOpen(message))
-                  CupertinoButton(
+                  IOS26Button(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    color: primaryButton.background,
+                    variant: IOS26ButtonVariant.primary,
                     borderRadius: BorderRadius.circular(14),
                     onPressed: () => MessageNavigation.open(context, message),
                     child: Text(

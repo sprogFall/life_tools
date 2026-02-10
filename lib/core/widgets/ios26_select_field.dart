@@ -28,10 +28,11 @@ class IOS26SelectField extends StatelessWidget {
           borderRadius: BorderRadius.circular(IOS26Theme.radiusFormField),
           border: Border.all(color: colors.border, width: 1),
         ),
-        child: CupertinoButton(
+        child: IOS26Button.plain(
           key: buttonKey,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           borderRadius: BorderRadius.circular(IOS26Theme.radiusFormField),
+          foregroundColor: colors.foreground,
           onPressed: onPressed,
           child: Row(
             children: [

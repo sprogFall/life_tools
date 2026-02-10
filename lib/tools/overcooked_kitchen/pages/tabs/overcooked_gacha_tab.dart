@@ -199,12 +199,12 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         Row(
           children: [
             Expanded(child: Text('扭蛋机', style: IOS26Theme.headlineMedium)),
-            CupertinoButton(
+            IOS26Button(
               key: const ValueKey('overcooked_gacha_roll_button'),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              color: canRoll
-                  ? primaryButton.background
-                  : ghostButton.background,
+              variant: canRoll
+                  ? IOS26ButtonVariant.primary
+                  : IOS26ButtonVariant.ghost,
               borderRadius: BorderRadius.circular(14),
               onPressed: canRoll ? _roll : null,
               child: Text(
@@ -223,10 +223,10 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         const SizedBox(height: 8),
         SizedBox(
           height: 48,
-          child: CupertinoButton(
+          child: IOS26Button(
             key: const ValueKey('overcooked_gacha_pick_types_button'),
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            color: ghostButton.background,
+            variant: IOS26ButtonVariant.ghost,
             borderRadius: BorderRadius.circular(14),
             onPressed: _typeTags.isEmpty || _loading ? null : _pickTypes,
             child: Row(
@@ -342,10 +342,10 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
             ),
           ),
           const SizedBox(height: 10),
-          CupertinoButton(
+          IOS26Button(
             key: const ValueKey('overcooked_gacha_import_button'),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            color: primaryButton.background,
+            variant: IOS26ButtonVariant.primary,
             borderRadius: BorderRadius.circular(14),
             onPressed: _loading ? null : _importToWish,
             child: Text(
@@ -620,13 +620,12 @@ class _TypeCountRow extends StatelessWidget {
     required bool enabled,
     required VoidCallback onPressed,
   }) {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
-    return CupertinoButton(
+    return IOS26Button(
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       minimumSize: IOS26Theme.minimumTapSize,
       onPressed: enabled ? onPressed : null,
-      color: ghostButton.background,
+      variant: IOS26ButtonVariant.ghost,
       borderRadius: BorderRadius.circular(14),
       child: Icon(
         icon,

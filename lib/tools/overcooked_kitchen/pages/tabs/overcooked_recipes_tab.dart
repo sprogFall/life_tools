@@ -185,9 +185,9 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
             ),
           ),
         ),
-        CupertinoButton(
+        IOS26Button(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: primaryButton.background,
+          variant: IOS26ButtonVariant.primary,
           borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
           onPressed: () async {
             final repo = context.read<OvercookedRepository>();

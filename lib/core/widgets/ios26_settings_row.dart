@@ -25,7 +25,7 @@ class IOS26SettingsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconColors = IOS26Theme.iconChipColors(iconTone);
-    return CupertinoButton(
+    return IOS26Button.plain(
       padding: EdgeInsets.zero,
       onPressed: onTap,
       child: Padding(

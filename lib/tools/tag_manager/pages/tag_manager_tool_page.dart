@@ -194,10 +194,10 @@ class _FilterChip extends StatelessWidget {
     );
     final chipButton = selected ? selectedButton : unselectedButton;
 
-    return CupertinoButton(
+    return IOS26Button(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       borderRadius: BorderRadius.circular(14),
-      color: chipButton.background,
+      backgroundColor: chipButton.background,
       onPressed: onTap,
       child: Text(
         text,
@@ -827,12 +827,11 @@ class _CategoryHeader extends StatelessWidget {
     required VoidCallback onPressed,
     required Color color,
   }) {
-    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
-    return CupertinoButton(
+    return IOS26Button(
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       onPressed: onPressed,
-      color: ghostButton.background,
+      variant: IOS26ButtonVariant.ghost,
       borderRadius: BorderRadius.circular(14),
       child: Icon(icon, size: 18, color: color),
     );
@@ -909,10 +908,10 @@ class _TagChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: border, width: 1),
       ),
-      child: CupertinoButton(
+      child: IOS26Button(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         minimumSize: IOS26Theme.minimumTapSize,
-        color: Colors.transparent,
+        style: IOS26ButtonStyle.plain,
         borderRadius: BorderRadius.circular(999),
         onPressed: onTap,
         child: Row(
