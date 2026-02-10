@@ -155,8 +155,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _receiveShareService = ReceiveShareService();
   DateTime _lastStockpileReminderCheckDay = DateTime.now();
   DateTime _lastOvercookedReminderCheckDay = DateTime.now();
-  Brightness _platformBrightness =
-      WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
   @override
   void initState() {
@@ -177,18 +175,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangePlatformBrightness() {
-    final next = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    if (_platformBrightness == next) return;
-    _platformBrightness = next;
     if (widget.settingsService.themeMode == ThemeMode.system) {
       setState(() {});
     }
-  }
-
-  Brightness _resolveEffectiveBrightness(ThemeMode themeMode) {
-    if (themeMode == ThemeMode.dark) return Brightness.dark;
-    if (themeMode == ThemeMode.system) return _platformBrightness;
-    return Brightness.light;
   }
 
   @override
@@ -285,10 +274,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ],
       child: Consumer<SettingsService>(
         builder: (context, settings, _) {
-          final themeMode = settings.themeMode;
-          final effectiveBrightness = _resolveEffectiveBrightness(themeMode);
-          IOS26Theme.setBrightness(effectiveBrightness);
-
           return MaterialApp(
             navigatorKey: _navigatorKey,
             onGenerateTitle: (context) =>
@@ -296,17 +281,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             debugShowCheckedModeBanner: false,
             theme: IOS26Theme.lightTheme,
             darkTheme: IOS26Theme.darkTheme,
-            themeMode: themeMode,
+            themeMode: settings.themeMode,
             scrollBehavior: const CupertinoScrollBehavior(),
             locale: const Locale('zh', 'CN'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             builder: (context, child) {
-              return Stack(
-                children: [
-                  StartupWrapper(child: child ?? const SizedBox.shrink()),
-                  const IOS26ToastOverlay(),
-                ],
+              return IOS26ThemeBrightnessSync(
+                child: Stack(
+                  children: [
+                    StartupWrapper(child: child ?? const SizedBox.shrink()),
+                    const IOS26ToastOverlay(),
+                  ],
+                ),
               );
             },
             home: _buildInitialPage(),

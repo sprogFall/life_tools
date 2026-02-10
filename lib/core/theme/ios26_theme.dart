@@ -411,6 +411,27 @@ class IOS26Theme {
   }
 }
 
+/// 在构建期将当前 [Theme] 亮度同步到 [IOS26Theme]，并在亮度变化时强制刷新子树。
+///
+/// 说明：项目中存在大量直接读取 `IOS26Theme.xxx` 静态 getter 的业务组件，
+/// 这类组件不会自动订阅 `Theme.of(context)`，若不强制刷新可能出现系统亮暗切换后
+/// 页面“部分颜色未更新”的情况。
+class IOS26ThemeBrightnessSync extends StatelessWidget {
+  final Widget child;
+
+  const IOS26ThemeBrightnessSync({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    IOS26Theme.setBrightness(brightness);
+    return KeyedSubtree(
+      key: ValueKey<String>('ios26_theme_sync_${brightness.name}'),
+      child: child,
+    );
+  }
+}
+
 /// 毛玻璃容器组件
 class GlassContainer extends StatelessWidget {
   final Widget child;
