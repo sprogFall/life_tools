@@ -25,6 +25,23 @@ void main() {
       expect(secondary.border, isNot(Colors.transparent));
     });
 
+    test('高强调危险按钮在明暗模式都应保持可读性', () {
+      IOS26Theme.setBrightness(Brightness.light);
+      final light = IOS26Theme.buttonColors(
+        IOS26ButtonVariant.destructivePrimary,
+      );
+
+      IOS26Theme.setBrightness(Brightness.dark);
+      final dark = IOS26Theme.buttonColors(
+        IOS26ButtonVariant.destructivePrimary,
+      );
+
+      expect(light.foreground, equals(IOS26Theme.onPrimaryColor));
+      expect(dark.foreground, equals(IOS26Theme.onPrimaryColor));
+      expect(light.background, isNot(light.foreground));
+      expect(dark.background, isNot(dark.foreground));
+    });
+
     test('图标胶囊在明暗模式都应切换独立配色', () {
       IOS26Theme.setBrightness(Brightness.light);
       final light = IOS26Theme.iconChipColors(IOS26IconTone.accent);

@@ -437,6 +437,10 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildTestCard() {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
+    final secondaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.secondary,
+    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -458,7 +462,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               ),
               const SizedBox(width: 12),
               CupertinoButton(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+                color: ghostButton.background,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -467,7 +471,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
                 child: Text(
                   '选择文件',
                   style: IOS26Theme.labelLarge.copyWith(
-                    color: IOS26Theme.textSecondary,
+                    color: ghostButton.foreground,
                   ),
                 ),
               ),
@@ -477,12 +481,14 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
-              color: IOS26Theme.primaryColor.withValues(alpha: 0.12),
+              color: secondaryButton.background,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingUpload ? null : () => _testUpload(context),
               child: Text(
                 _isTestingUpload ? '测试上传中...' : '测试上传',
-                style: IOS26Theme.labelLarge,
+                style: IOS26Theme.labelLarge.copyWith(
+                  color: secondaryButton.foreground,
+                ),
               ),
             ),
           ),
@@ -507,12 +513,14 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
-              color: IOS26Theme.primaryColor.withValues(alpha: 0.12),
+              color: secondaryButton.background,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTestingQuery ? null : () => _testQuery(context),
               child: Text(
                 _isTestingQuery ? '查询中...' : '测试查询',
-                style: IOS26Theme.labelLarge,
+                style: IOS26Theme.labelLarge.copyWith(
+                  color: secondaryButton.foreground,
+                ),
               ),
             ),
           ),
@@ -544,6 +552,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   }
 
   Widget _buildDangerZoneCard() {
+    final destructiveButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.destructive,
+    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -554,13 +565,13 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
-              color: IOS26Theme.toolRed.withValues(alpha: 0.12),
+              color: destructiveButton.background,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
               child: Text(
                 '清除资源存储配置',
                 style: IOS26Theme.labelLarge.copyWith(
-                  color: IOS26Theme.toolRed,
+                  color: destructiveButton.foreground,
                 ),
               ),
             ),
@@ -692,7 +703,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
   Future<void> _testUpload(BuildContext context) async {
     final file = _selectedFile;
     if (file == null) {
-      await AppDialogs.showInfo(context, title: '提示', content: '请先选择一个要测试上传的图片/视频文件');
+      await AppDialogs.showInfo(
+        context,
+        title: '提示',
+        content: '请先选择一个要测试上传的图片/视频文件',
+      );
       return;
     }
     final service = context.read<ObjStoreService>();
@@ -700,7 +715,11 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     if (!context.mounted) return;
     if (bytes == null) {
       // ignore: use_build_context_synchronously
-      await AppDialogs.showInfo(context, title: '提示', content: '无法读取文件内容，请重新选择');
+      await AppDialogs.showInfo(
+        context,
+        title: '提示',
+        content: '无法读取文件内容，请重新选择',
+      );
       return;
     }
 
@@ -797,7 +816,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       confirmText: '清除',
       isDestructive: true,
     );
-    
+
     if (!ok) return;
 
     await cfgService.clear();
@@ -820,7 +839,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     final safeUri = _redactSensitiveUrl(uri);
     final safeContent = 'Key: $key\nURI: $safeUri';
     if (!mounted) return;
-    
+
     // 自定义弹窗逻辑太复杂，AppDialogs.showInfo 不够用，保留 showCupertinoDialog 但使用 AppDialogs 风格
     await showCupertinoDialog<void>(
       context: context,
@@ -862,7 +881,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
     final safeUri = _redactSensitiveUrl(uri);
     final safeContent = 'URI: $safeUri\n可访问: ${ok ? '是' : '否'}';
     if (!mounted) return;
-    
+
     await showCupertinoDialog<void>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -880,9 +899,9 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               final confirmed = await AppDialogs.showConfirm(
                 context,
                 title: '复制原始 URI？',
-                  content: '原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。',
-                  confirmText: '复制',
-                );
+                content: '原始 URI 可能包含签名/令牌等敏感信息，复制后请勿截图或分享。',
+                confirmText: '复制',
+              );
               if (!confirmed) return;
               await Clipboard.setData(
                 ClipboardData(text: 'URI: $uri\n可访问: ${ok ? '是' : '否'}'),

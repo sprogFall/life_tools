@@ -32,6 +32,9 @@ class MessageDetailPage extends StatelessWidget {
               );
             }
 
+            final primaryButton = IOS26Theme.buttonColors(
+              IOS26ButtonVariant.primary,
+            );
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
@@ -63,13 +66,13 @@ class MessageDetailPage extends StatelessWidget {
                 if (MessageNavigation.canOpen(message))
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    color: IOS26Theme.primaryColor,
+                    color: primaryButton.background,
                     borderRadius: BorderRadius.circular(14),
                     onPressed: () => MessageNavigation.open(context, message),
                     child: Text(
                       '前往工具',
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: IOS26Theme.onPrimaryColor,
+                        color: primaryButton.foreground,
                       ),
                     ),
                   )

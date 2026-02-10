@@ -258,6 +258,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
   Widget _buildWifiCard() {
     final l10n = AppLocalizations.of(context)!;
+    final accentIconColor = IOS26Theme.iconColor(IOS26IconTone.accent);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -280,7 +281,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 child: Icon(
                   CupertinoIcons.refresh,
                   size: 18,
-                  color: IOS26Theme.primaryColor,
+                  color: accentIconColor,
                 ),
               ),
               CupertinoButton(
@@ -292,7 +293,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 child: Icon(
                   CupertinoIcons.add_circled,
                   size: 20,
-                  color: IOS26Theme.primaryColor,
+                  color: accentIconColor,
                 ),
               ),
             ],
@@ -317,6 +318,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   }
 
   Widget _buildWifiItem(String wifiName) {
+    final dangerIconColor = IOS26Theme.iconColor(IOS26IconTone.danger);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -348,11 +350,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                   if (name != wifiName) name,
               ],
             ),
-            child: Icon(
-              CupertinoIcons.trash,
-              size: 18,
-              color: IOS26Theme.toolRed,
-            ),
+            child: Icon(CupertinoIcons.trash, size: 18, color: dangerIconColor),
           ),
         ],
       ),
@@ -399,6 +397,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         final l10n = AppLocalizations.of(context)!;
         final lastSyncTime = configService.config?.lastSyncTime;
         final lastError = syncService.lastError;
+        final primaryButton = IOS26Theme.buttonColors(
+          IOS26ButtonVariant.primary,
+        );
+        final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
 
         return GlassContainer(
           padding: const EdgeInsets.all(16),
@@ -415,17 +417,17 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 child: CupertinoButton(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   borderRadius: BorderRadius.circular(14),
-                  color: IOS26Theme.primaryColor,
+                  color: primaryButton.background,
                   onPressed: syncService.isSyncing ? null : _performSync,
                   child: syncService.isSyncing
                       ? CupertinoActivityIndicator(
                           radius: 9,
-                          color: IOS26Theme.onPrimaryColor,
+                          color: primaryButton.foreground,
                         )
                       : Text(
                           l10n.sync_now_button,
                           style: IOS26Theme.labelLarge.copyWith(
-                            color: IOS26Theme.onPrimaryColor,
+                            color: primaryButton.foreground,
                           ),
                         ),
                 ),
@@ -485,12 +487,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                       child: CupertinoButton(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         borderRadius: BorderRadius.circular(14),
-                        color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                        color: ghostButton.background,
                         onPressed: () => _copyToClipboard(lastError),
                         child: Text(
                           l10n.sync_copy_error_details_button,
                           style: IOS26Theme.labelLarge.copyWith(
-                            color: IOS26Theme.textSecondary,
+                            color: ghostButton.foreground,
                           ),
                         ),
                       ),

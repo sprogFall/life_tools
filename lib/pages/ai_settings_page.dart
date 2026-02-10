@@ -91,6 +91,10 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildConfigCard() {
+    final secondaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.secondary,
+    );
+    final secondaryIconColor = IOS26Theme.iconColor(IOS26IconTone.secondary);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -125,7 +129,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 child: Icon(
                   _showApiKey ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
                   size: 18,
-                  color: IOS26Theme.textSecondary,
+                  color: secondaryIconColor,
                 ),
               ),
             ),
@@ -178,12 +182,14 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
             width: double.infinity,
             child: CupertinoButton(
               key: const ValueKey('ai_test_button'),
-              color: IOS26Theme.primaryColor.withValues(alpha: 0.12),
+              color: secondaryButton.background,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: _isTesting ? null : () => _testConnection(context),
               child: Text(
                 _isTesting ? '测试中...' : '测试连接',
-                style: IOS26Theme.labelLarge,
+                style: IOS26Theme.labelLarge.copyWith(
+                  color: secondaryButton.foreground,
+                ),
               ),
             ),
           ),
@@ -212,6 +218,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Widget _buildDangerZoneCard() {
+    final destructiveButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.destructive,
+    );
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -222,13 +231,13 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
           SizedBox(
             width: double.infinity,
             child: CupertinoButton(
-              color: IOS26Theme.toolRed.withValues(alpha: 0.12),
+              color: destructiveButton.background,
               padding: const EdgeInsets.symmetric(vertical: 12),
               onPressed: () => _confirmAndClear(context),
               child: Text(
                 '清除AI配置',
                 style: IOS26Theme.labelLarge.copyWith(
-                  color: IOS26Theme.toolRed,
+                  color: destructiveButton.foreground,
                 ),
               ),
             ),
@@ -324,22 +333,14 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       if (!context.mounted) return;
       // 关闭 loading
       AppNavigator.pop(context);
-      
-      await AppDialogs.showInfo(
-        context,
-        title: '测试结果',
-        content: text,
-      );
+
+      await AppDialogs.showInfo(context, title: '测试结果', content: text);
     } catch (e) {
       if (!context.mounted) return;
       // 关闭 loading
       AppNavigator.pop(context);
 
-      await AppDialogs.showInfo(
-        context,
-        title: '测试失败',
-        content: e.toString(),
-      );
+      await AppDialogs.showInfo(context, title: '测试失败', content: e.toString());
     } finally {
       if (mounted) setState(() => _isTesting = false);
     }

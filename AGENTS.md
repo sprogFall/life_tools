@@ -112,6 +112,13 @@ dart format .
 - AppBar：页面统一使用 `IOS26AppBar`；首页使用 `IOS26AppBar.home(onSettingsPressed: ...)`；当 `IOS26AppBar` 放在 `SafeArea` 内时必须设置 `useSafeArea: false` 避免重复内边距。
 - 交互尺寸：图标/导航类按钮的 `CupertinoButton` 必须设置 `minimumSize: IOS26Theme.minimumTapSize`，并按需保持 `padding: EdgeInsets.zero`。
 
+### 明暗主题按钮/图标规范（新增）
+
+- 按钮颜色统一走语义 token：使用 `IOS26Theme.buttonColors(IOS26ButtonVariant.xxx)`；业务代码禁止直接写 `CupertinoButton(color: IOS26Theme.xxx)`。
+- 按钮语义建议：主流程提交用 `primary`；普通次操作用 `secondary`；弱化操作（如“取消/复制/选择文件”）用 `ghost`；危险次操作用 `destructive`；高风险主操作（如“确认恢复/永久删除”）用 `destructivePrimary`。
+- 图标颜色统一走语义 tone：普通图标使用 `IOS26Theme.iconColor(IOS26IconTone.xxx)`；带底图标胶囊使用 `IOS26Theme.iconChipColors(IOS26IconTone.xxx)`。
+- 明暗模式适配原则：不要在页面内手写 alpha 方案（如 `primaryColor.withValues(alpha: ...)`）来拼按钮状态，统一通过语义 token 让亮暗两套自动切换。
+
 ## 代码规范（2026-02-04 代码审查沉淀）
 
 ### 异常处理
@@ -132,7 +139,7 @@ dart format .
 
 ### 规范守护（测试）
 
-- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`。
+- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`。
 
 ## 安全与隐私规范（补充）
 

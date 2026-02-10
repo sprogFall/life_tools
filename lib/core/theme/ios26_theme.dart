@@ -5,7 +5,13 @@ import 'package:flutter/material.dart';
 
 import '../utils/text_editing_safety.dart';
 
-enum IOS26ButtonVariant { primary, secondary, ghost, destructive }
+enum IOS26ButtonVariant {
+  primary,
+  secondary,
+  ghost,
+  destructive,
+  destructivePrimary,
+}
 
 enum IOS26IconTone {
   primary,
@@ -132,6 +138,11 @@ class IOS26Theme {
         background: toolRed.withValues(alpha: isDark ? 0.28 : 0.14),
         foreground: toolRed,
         border: toolRed.withValues(alpha: isDark ? 0.6 : 0.34),
+      ),
+      IOS26ButtonVariant.destructivePrimary => IOS26ButtonColors(
+        background: toolRed,
+        foreground: onPrimaryColor,
+        border: toolRed.withValues(alpha: isDark ? 0.86 : 1),
       ),
     };
   }
