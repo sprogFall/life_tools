@@ -57,6 +57,7 @@ class StockpileAiBatchEntryView extends StatelessWidget {
                   IOS26Theme.spacingLg,
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: provider.tab == 0
                       ? _buildItemList(context, provider)
                       : _buildConsumptionList(context, provider),

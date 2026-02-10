@@ -80,6 +80,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (widget.taskTitle != null) ...[
                       _buildTaskInfoCard(),

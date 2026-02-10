@@ -139,11 +139,12 @@ dart format .
 ### 样式与复用
 
 - 禁止硬编码 `EdgeInsets.all(8)`：统一替换为 `EdgeInsets.all(IOS26Theme.spacingSm)` 或更语义化的间距组合。
+- `SingleChildScrollView` 宽度规范：当 `SingleChildScrollView` 的 `child` 直系使用 `Column` 时，必须声明 `crossAxisAlignment: CrossAxisAlignment.stretch`（或等效显式全宽包裹），避免短文案导致卡片/容器未占满页面宽度。
 - 工具页返回首页按钮复用：AppBar leading 的“首页”入口统一使用 `IOS26HomeLeadingButton`，避免重复 Row/样式/交互尺寸逻辑。
 
 ### 规范守护（测试）
 
-- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`、`test/design/no_direct_ios26_button_foreground_test.dart`、`test/design/no_direct_icon_color_in_lib_test.dart`、`test/design/no_raw_markdown_widgets_test.dart`、`test/design/no_raw_image_constructors_test.dart`。
+- 设计/规范类约束通过测试守护：`test/design/no_empty_catch_blocks_test.dart`、`test/design/no_edge_insets_all_8_test.dart`、`test/design/single_child_scroll_view_stretch_width_test.dart`、`test/design/no_colors_white_test.dart`、`test/design/no_direct_ios26_button_color_test.dart`、`test/design/no_colored_cupertino_button_in_pages_test.dart`、`test/design/no_direct_ios26_button_foreground_test.dart`、`test/design/no_direct_icon_color_in_lib_test.dart`、`test/design/no_raw_markdown_widgets_test.dart`、`test/design/no_raw_image_constructors_test.dart`。
 
 ## 安全与隐私规范（补充）
 

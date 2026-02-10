@@ -70,6 +70,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildExportCard(),
                   const SizedBox(height: 16),

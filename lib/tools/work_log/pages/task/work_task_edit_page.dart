@@ -101,6 +101,7 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildFormCard(),
                     const SizedBox(height: 16),

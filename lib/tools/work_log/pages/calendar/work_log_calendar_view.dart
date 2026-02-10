@@ -46,7 +46,7 @@ class _WorkLogCalendarViewState extends State<WorkLogCalendarView> {
         IOS26Theme.spacingXl,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
           const SizedBox(height: IOS26Theme.spacingMd),

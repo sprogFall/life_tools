@@ -139,6 +139,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildTypeCard(),
                   const SizedBox(height: 16),

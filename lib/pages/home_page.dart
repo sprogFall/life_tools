@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GlassContainer(
             padding: const EdgeInsets.all(16),
