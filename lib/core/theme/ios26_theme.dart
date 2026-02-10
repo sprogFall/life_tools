@@ -554,13 +554,21 @@ class IOS26Theme {
 
   /// 统一的表单文本输入框装饰（用于 CupertinoTextField.decoration）。
   static BoxDecoration textFieldDecoration({double? radius}) {
+    final isDark = IOS26Theme.isDarkMode;
     return BoxDecoration(
-      color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+      color: IOS26Theme.surfaceColor.withValues(alpha: isDark ? 0.82 : 0.72),
       borderRadius: BorderRadius.circular(radius ?? IOS26Theme.radiusFormField),
       border: Border.all(
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.2),
-        width: 0.5,
+        color: IOS26Theme.textTertiary.withValues(alpha: isDark ? 0.42 : 0.24),
+        width: isDark ? 0.9 : 0.7,
       ),
+      boxShadow: [
+        BoxShadow(
+          color: IOS26Theme.shadowColor.withValues(alpha: isDark ? 0.22 : 0.06),
+          blurRadius: isDark ? 10 : 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
     );
   }
 

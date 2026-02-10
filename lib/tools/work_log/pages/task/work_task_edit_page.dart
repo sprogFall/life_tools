@@ -243,21 +243,14 @@ class _WorkTaskEditPageState extends State<WorkTaskEditPage> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: CupertinoTextField(
-        key: key,
-        controller: controller,
-        placeholder: placeholder,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        decoration: null,
-      ),
+    return CupertinoTextField(
+      key: key,
+      controller: controller,
+      placeholder: placeholder,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: IOS26Theme.textFieldDecoration(),
     );
   }
 

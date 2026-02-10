@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/theme/ios26_theme.dart';
@@ -25,5 +26,34 @@ void main() {
     final cardWidth = tester.getSize(cardFinder).width;
 
     expect(cardWidth, closeTo(scaffoldWidth - 40, 0.1));
+  });
+
+  testWidgets('深色模式下内容与用时输入框应具备独立边框分隔', (tester) async {
+    IOS26Theme.setBrightness(Brightness.dark);
+    addTearDown(() => IOS26Theme.setBrightness(Brightness.light));
+
+    await tester.pumpWidget(
+      const TestAppWrapper(child: WorkTimeEntryEditPage(taskId: 1)),
+    );
+    await tester.pumpAndSettle();
+
+    final minutesField = tester.widget<CupertinoTextField>(
+      find.byKey(const ValueKey('time_entry_minutes_field')),
+    );
+    final contentField = tester.widget<CupertinoTextField>(
+      find.byKey(const ValueKey('time_entry_content_field')),
+    );
+
+    final minutesDecoration = minutesField.decoration;
+    final contentDecoration = contentField.decoration;
+
+    expect(minutesDecoration, isA<BoxDecoration>());
+    expect(contentDecoration, isA<BoxDecoration>());
+    final minutesBox = minutesDecoration as BoxDecoration;
+    final contentBox = contentDecoration as BoxDecoration;
+    expect(minutesBox.color, isNotNull);
+    expect(contentBox.color, isNotNull);
+    expect(minutesBox.border, isNotNull);
+    expect(contentBox.border, isNotNull);
   });
 }

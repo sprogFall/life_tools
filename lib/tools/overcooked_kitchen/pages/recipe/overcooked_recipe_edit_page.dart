@@ -210,6 +210,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           controller: _nameController,
           placeholder: '如：宫保鸡丁',
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: IOS26Theme.textFieldDecoration(),
         ),
         const SizedBox(height: 14),
         _fieldTitle('菜的图片（封面）'),
@@ -391,6 +392,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           placeholder: '如：下饭神器 / 15分钟搞定…',
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           maxLines: 2,
+          decoration: IOS26Theme.textFieldDecoration(),
         ),
         const SizedBox(height: 14),
         _fieldTitle('风味（来自标签，可多选）'),
@@ -463,6 +465,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
           placeholder: '写下步骤、火候、注意事项…',
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           maxLines: 8,
+          decoration: IOS26Theme.textFieldDecoration(),
         ),
         const SizedBox(height: IOS26Theme.spacingXs),
         Text(

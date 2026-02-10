@@ -112,10 +112,10 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                         textInputAction: TextInputAction.next,
                         maxLines: 1,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 10,
+                          horizontal: 18,
+                          vertical: 14,
                         ),
-                        decoration: null,
+                        decoration: IOS26Theme.textFieldDecoration(),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -134,10 +134,10 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
                         textInputAction: TextInputAction.done,
                         maxLines: 1,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 10,
+                          horizontal: 18,
+                          vertical: 14,
                         ),
-                        decoration: null,
+                        decoration: IOS26Theme.textFieldDecoration(),
                       ),
                     ),
                   ],
@@ -176,16 +176,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
               ),
             ),
           ),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: child,
-            ),
-          ),
+          Expanded(child: child),
         ],
       ),
     );

@@ -14,17 +14,16 @@ class AppDialogs {
   }) {
     return showCupertinoDialog<void>(
       context: context,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(buttonText),
-              ),
-            ],
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(buttonText),
           ),
+        ],
+      ),
     );
   }
 
@@ -39,22 +38,21 @@ class AppDialogs {
   }) async {
     final result = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(cancelText),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: isDestructive,
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(confirmText),
-              ),
-            ],
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(cancelText),
           ),
+          CupertinoDialogAction(
+            isDestructiveAction: isDestructive,
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(confirmText),
+          ),
+        ],
+      ),
     );
     return result ?? false;
   }
@@ -72,34 +70,31 @@ class AppDialogs {
     final controller = TextEditingController(text: defaultValue);
     return showCupertinoDialog<String>(
       context: context,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Column(
-              children: [
-                if (content != null) ...[
-                  Text(content),
-                  const SizedBox(height: 12),
-                ],
-                CupertinoTextField(
-                  controller: controller,
-                  placeholder: placeholder,
-                  autofocus: true,
-                  style: IOS26Theme.bodyLarge,
-                ),
-              ],
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Column(
+          children: [
+            if (content != null) ...[Text(content), const SizedBox(height: 12)],
+            CupertinoTextField(
+              controller: controller,
+              placeholder: placeholder,
+              autofocus: true,
+              style: IOS26Theme.bodyLarge,
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(cancelText),
-              ),
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(ctx, controller.text),
-                child: Text(confirmText),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(cancelText),
           ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: Text(confirmText),
+          ),
+        ],
+      ),
     );
   }
 
@@ -113,13 +108,12 @@ class AppDialogs {
   }) {
     return showCupertinoModalPopup<T>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: title != null ? Text(title) : null,
-            message: message != null ? Text(message) : null,
-            actions: actions,
-            cancelButton: cancelButton,
-          ),
+      builder: (ctx) => CupertinoActionSheet(
+        title: title != null ? Text(title) : null,
+        message: message != null ? Text(message) : null,
+        actions: actions,
+        cancelButton: cancelButton,
+      ),
     );
   }
 
@@ -129,14 +123,13 @@ class AppDialogs {
     showCupertinoDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: Text(title),
-            content: const Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: CupertinoActivityIndicator(),
-            ),
-          ),
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: const Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
     );
   }
 }

@@ -417,6 +417,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
               placeholder: '如：超下饭 / 太咸了下次少放盐…',
               maxLines: 3,
               autofocus: true,
+              decoration: IOS26Theme.textFieldDecoration(),
             ),
           ],
         ),

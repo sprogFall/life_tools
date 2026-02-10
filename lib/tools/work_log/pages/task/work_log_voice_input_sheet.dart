@@ -114,20 +114,14 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             ),
           ),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: IOS26Theme.surfaceColor.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: CupertinoTextField(
-              key: widget.textFieldKey,
-              controller: _controller,
-              maxLines: 4,
-              placeholder: widget.placeholder,
-              autofocus: true,
-              decoration: null,
-            ),
+          CupertinoTextField(
+            key: widget.textFieldKey,
+            controller: _controller,
+            maxLines: 4,
+            placeholder: widget.placeholder,
+            autofocus: true,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: IOS26Theme.textFieldDecoration(),
           ),
         ],
       ),

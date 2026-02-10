@@ -323,28 +323,18 @@ class StockpileBatchEntryTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-      ),
+    return CupertinoTextField(
+      key: fieldKey,
+      controller: controller,
+      placeholder: placeholder,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      maxLines: maxLines,
       padding: const EdgeInsets.symmetric(
-        horizontal: IOS26Theme.spacingMd,
-        vertical: IOS26Theme.spacingXs,
+        horizontal: IOS26Theme.spacingLg,
+        vertical: IOS26Theme.spacingMd,
       ),
-      child: CupertinoTextField(
-        key: fieldKey,
-        controller: controller,
-        placeholder: placeholder,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        maxLines: maxLines,
-        padding: const EdgeInsets.symmetric(
-          horizontal: IOS26Theme.spacingSm,
-          vertical: IOS26Theme.spacingSm,
-        ),
-        decoration: null,
-      ),
+      decoration: IOS26Theme.textFieldDecoration(radius: IOS26Theme.radiusLg),
     );
   }
 }
