@@ -5,6 +5,44 @@ import 'package:flutter/material.dart';
 
 import '../utils/text_editing_safety.dart';
 
+enum IOS26ButtonVariant { primary, secondary, ghost, destructive }
+
+enum IOS26IconTone {
+  primary,
+  secondary,
+  accent,
+  success,
+  warning,
+  danger,
+  onAccent,
+}
+
+@immutable
+class IOS26ButtonColors {
+  final Color background;
+  final Color foreground;
+  final Color border;
+
+  const IOS26ButtonColors({
+    required this.background,
+    required this.foreground,
+    required this.border,
+  });
+}
+
+@immutable
+class IOS26IconChipColors {
+  final Color background;
+  final Color foreground;
+  final Color border;
+
+  const IOS26IconChipColors({
+    required this.background,
+    required this.foreground,
+    required this.border,
+  });
+}
+
 /// iOS 26 风格主题配置
 class IOS26Theme {
   IOS26Theme._();
@@ -71,6 +109,85 @@ class IOS26Theme {
   static const Color _darkToolPink = Color(0xFFFF6E91);
 
   static const Color onPrimaryColor = Color(0xFFFFFFFF);
+
+  static IOS26ButtonColors buttonColors(IOS26ButtonVariant variant) {
+    final isDark = isDarkMode;
+    return switch (variant) {
+      IOS26ButtonVariant.primary => IOS26ButtonColors(
+        background: primaryColor,
+        foreground: onPrimaryColor,
+        border: primaryColor.withValues(alpha: isDark ? 0.78 : 1),
+      ),
+      IOS26ButtonVariant.secondary => IOS26ButtonColors(
+        background: isDark ? const Color(0xFF161A22) : const Color(0xFFEAF2FF),
+        foreground: isDark ? const Color(0xFFEAF3FF) : const Color(0xFF1457C8),
+        border: primaryColor.withValues(alpha: isDark ? 0.42 : 0.22),
+      ),
+      IOS26ButtonVariant.ghost => IOS26ButtonColors(
+        background: textTertiary.withValues(alpha: isDark ? 0.2 : 0.22),
+        foreground: textPrimary,
+        border: textTertiary.withValues(alpha: isDark ? 0.28 : 0.24),
+      ),
+      IOS26ButtonVariant.destructive => IOS26ButtonColors(
+        background: toolRed.withValues(alpha: isDark ? 0.28 : 0.14),
+        foreground: toolRed,
+        border: toolRed.withValues(alpha: isDark ? 0.6 : 0.34),
+      ),
+    };
+  }
+
+  static Color iconColor(IOS26IconTone tone) {
+    return switch (tone) {
+      IOS26IconTone.primary => textPrimary,
+      IOS26IconTone.secondary => textSecondary,
+      IOS26IconTone.accent => primaryColor,
+      IOS26IconTone.success => toolGreen,
+      IOS26IconTone.warning => toolOrange,
+      IOS26IconTone.danger => toolRed,
+      IOS26IconTone.onAccent => onPrimaryColor,
+    };
+  }
+
+  static IOS26IconChipColors iconChipColors(IOS26IconTone tone) {
+    final isDark = isDarkMode;
+    return switch (tone) {
+      IOS26IconTone.onAccent => IOS26IconChipColors(
+        background: primaryColor,
+        foreground: onPrimaryColor,
+        border: primaryColor.withValues(alpha: isDark ? 0.78 : 1),
+      ),
+      IOS26IconTone.accent => IOS26IconChipColors(
+        background: primaryColor.withValues(alpha: isDark ? 0.22 : 0.12),
+        foreground: primaryColor,
+        border: primaryColor.withValues(alpha: isDark ? 0.46 : 0.24),
+      ),
+      IOS26IconTone.success => IOS26IconChipColors(
+        background: toolGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+        foreground: toolGreen,
+        border: toolGreen.withValues(alpha: isDark ? 0.52 : 0.3),
+      ),
+      IOS26IconTone.warning => IOS26IconChipColors(
+        background: toolOrange.withValues(alpha: isDark ? 0.27 : 0.13),
+        foreground: toolOrange,
+        border: toolOrange.withValues(alpha: isDark ? 0.54 : 0.3),
+      ),
+      IOS26IconTone.danger => IOS26IconChipColors(
+        background: toolRed.withValues(alpha: isDark ? 0.27 : 0.13),
+        foreground: toolRed,
+        border: toolRed.withValues(alpha: isDark ? 0.52 : 0.3),
+      ),
+      IOS26IconTone.primary => IOS26IconChipColors(
+        background: textPrimary.withValues(alpha: isDark ? 0.14 : 0.08),
+        foreground: textPrimary,
+        border: textPrimary.withValues(alpha: isDark ? 0.24 : 0.16),
+      ),
+      IOS26IconTone.secondary => IOS26IconChipColors(
+        background: textSecondary.withValues(alpha: isDark ? 0.18 : 0.1),
+        foreground: textSecondary,
+        border: textSecondary.withValues(alpha: isDark ? 0.3 : 0.18),
+      ),
+    };
+  }
 
   static Color _adaptive({required Color light, required Color dark}) {
     return isDarkMode ? dark : light;
@@ -599,7 +716,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                 onPressed: onBackPressed ?? () => Navigator.pop(context),
                 child: Icon(
                   CupertinoIcons.back,
-                  color: IOS26Theme.primaryColor,
+                  color: IOS26Theme.iconColor(IOS26IconTone.accent),
                   size: 20,
                 ),
               )
@@ -653,7 +770,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               child: Icon(
                 CupertinoIcons.gear,
-                color: IOS26Theme.textSecondary,
+                color: IOS26Theme.iconColor(IOS26IconTone.secondary),
                 size: 22,
               ),
             ),
@@ -832,8 +949,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
 
   @override
   Widget build(BuildContext context) {
-    final bg = IOS26Theme.surfaceColor.withValues(alpha: 0.65);
-    final border = IOS26Theme.textTertiary.withValues(alpha: 0.35);
+    final chipColors = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -857,9 +973,9 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
 
         return DecoratedBox(
           decoration: BoxDecoration(
-            color: bg,
+            color: chipColors.background,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: border, width: 1),
+            border: Border.all(color: chipColors.border, width: 1),
           ),
           child: _expanded
               ? Row(
@@ -898,7 +1014,9 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                           : Icon(
                               CupertinoIcons.check_mark,
                               size: 14,
-                              color: IOS26Theme.toolGreen,
+                              color: IOS26Theme.iconColor(
+                                IOS26IconTone.success,
+                              ),
                             ),
                     ),
                   ],
@@ -914,7 +1032,7 @@ class _IOS26QuickAddChipState extends State<IOS26QuickAddChip> {
                       : Icon(
                           CupertinoIcons.add,
                           size: 14,
-                          color: IOS26Theme.primaryColor,
+                          color: IOS26Theme.iconColor(IOS26IconTone.accent),
                         ),
                 ),
         );

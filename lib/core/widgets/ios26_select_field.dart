@@ -19,34 +19,41 @@ class IOS26SelectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = IOS26Theme.buttonColors(IOS26ButtonVariant.secondary);
     return SizedBox(
       height: 48,
-      child: CupertinoButton(
-        key: buttonKey,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(14),
-        onPressed: onPressed,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: IOS26Theme.titleSmall.copyWith(
-                  color: isPlaceholder
-                      ? IOS26Theme.textSecondary
-                      : IOS26Theme.textPrimary,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusFormField),
+          border: Border.all(color: colors.border, width: 1),
+        ),
+        child: CupertinoButton(
+          key: buttonKey,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusFormField),
+          onPressed: onPressed,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: IOS26Theme.titleSmall.copyWith(
+                    color: isPlaceholder
+                        ? IOS26Theme.textSecondary
+                        : colors.foreground,
+                  ),
                 ),
               ),
-            ),
-            Icon(
-              CupertinoIcons.chevron_down,
-              size: 16,
-              color: IOS26Theme.textSecondary,
-            ),
-          ],
+              Icon(
+                CupertinoIcons.chevron_down,
+                size: 16,
+                color: IOS26Theme.iconColor(IOS26IconTone.secondary),
+              ),
+            ],
+          ),
         ),
       ),
     );

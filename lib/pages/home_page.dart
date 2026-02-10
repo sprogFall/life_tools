@@ -631,6 +631,7 @@ class _SettingsSheet extends StatelessWidget {
                       children: [
                         IOS26SettingsRow(
                           icon: CupertinoIcons.app,
+                          iconTone: IOS26IconTone.primary,
                           title: '工具管理',
                           value: settings.defaultToolId == null
                               ? '默认：首页'
@@ -640,6 +641,7 @@ class _SettingsSheet extends StatelessWidget {
                         _buildDivider(),
                         IOS26SettingsRow(
                           icon: CupertinoIcons.sparkles,
+                          iconTone: IOS26IconTone.accent,
                           title: 'AI配置',
                           value: aiValue,
                           onTap: () => _openAiSettings(context),
@@ -649,6 +651,7 @@ class _SettingsSheet extends StatelessWidget {
                           builder: (context, syncConfig, _) {
                             return IOS26SettingsRow(
                               icon: CupertinoIcons.cloud_upload,
+                              iconTone: IOS26IconTone.secondary,
                               title: '数据同步',
                               value: syncConfig.isConfigured ? '已配置' : '未配置',
                               onTap: () => _openSyncSettings(context),
@@ -679,6 +682,7 @@ class _SettingsSheet extends StatelessWidget {
                             };
                             return IOS26SettingsRow(
                               icon: CupertinoIcons.photo_on_rectangle,
+                              iconTone: IOS26IconTone.secondary,
                               title: '资源存储',
                               value: value,
                               onTap: () => _openObjStoreSettings(context),
@@ -689,6 +693,7 @@ class _SettingsSheet extends StatelessWidget {
                         IOS26SettingsRow(
                           key: const ValueKey('settings_theme_mode_row'),
                           icon: CupertinoIcons.moon_stars,
+                          iconTone: IOS26IconTone.secondary,
                           title: l10n.settings_theme_mode_label,
                           value: _themeModeValueText(l10n, settings.themeMode),
                           onTap: () => _showThemeModeSheet(context, settings),
@@ -696,6 +701,7 @@ class _SettingsSheet extends StatelessWidget {
                         _buildDivider(),
                         IOS26SettingsRow(
                           icon: CupertinoIcons.archivebox,
+                          iconTone: IOS26IconTone.warning,
                           title: '备份与还原',
                           value: '导入/导出',
                           onTap: () => _openBackupRestore(context),

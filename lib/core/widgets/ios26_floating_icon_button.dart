@@ -47,7 +47,7 @@ class IOS26FloatingIconButton extends StatelessWidget {
             child: Icon(
               icon,
               size: iconSize,
-              color: iconColor ?? IOS26Theme.primaryColor,
+              color: iconColor ?? IOS26Theme.iconColor(IOS26IconTone.accent),
               semanticLabel: semanticLabel,
             ),
           ),

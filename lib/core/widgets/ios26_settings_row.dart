@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+
 import '../theme/ios26_theme.dart';
 
 class IOS26SettingsRow extends StatelessWidget {
@@ -8,6 +9,7 @@ class IOS26SettingsRow extends StatelessWidget {
   final Widget? trailing;
   final bool showChevron;
   final VoidCallback? onTap;
+  final IOS26IconTone iconTone;
 
   const IOS26SettingsRow({
     super.key,
@@ -17,10 +19,12 @@ class IOS26SettingsRow extends StatelessWidget {
     this.trailing,
     this.showChevron = true,
     this.onTap,
+    this.iconTone = IOS26IconTone.accent,
   });
 
   @override
   Widget build(BuildContext context) {
+    final iconColors = IOS26Theme.iconChipColors(iconTone);
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: onTap,
@@ -31,10 +35,11 @@ class IOS26SettingsRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(IOS26Theme.spacingSm),
               decoration: BoxDecoration(
-                color: IOS26Theme.primaryColor.withValues(alpha: 0.1),
+                color: iconColors.background,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: iconColors.border, width: 0.8),
               ),
-              child: Icon(icon, color: IOS26Theme.primaryColor, size: 20),
+              child: Icon(icon, color: iconColors.foreground, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(child: Text(title, style: IOS26Theme.titleMedium)),
@@ -55,7 +60,7 @@ class IOS26SettingsRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   CupertinoIcons.chevron_right,
-                  color: IOS26Theme.textTertiary,
+                  color: IOS26Theme.iconColor(IOS26IconTone.secondary),
                   size: 18,
                 ),
               ],

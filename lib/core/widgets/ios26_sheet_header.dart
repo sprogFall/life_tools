@@ -25,13 +25,20 @@ class IOS26SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cancelColor = IOS26Theme.iconColor(IOS26IconTone.secondary);
+    final doneColor = IOS26Theme.iconColor(IOS26IconTone.accent);
     return SizedBox(
       height: 54,
       child: NavigationToolbar(
         centerMiddle: true,
         leading: CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: IOS26Theme.spacingSm),
+          minimumSize: IOS26Theme.minimumTapSize,
           onPressed: onCancel ?? () => Navigator.pop(context),
-          child: Text(cancelText),
+          child: Text(
+            cancelText,
+            style: IOS26Theme.labelLarge.copyWith(color: cancelColor),
+          ),
         ),
         middle: Text(
           title,
@@ -42,8 +49,13 @@ class IOS26SheetHeader extends StatelessWidget {
         ),
         trailing: CupertinoButton(
           key: doneKey,
+          padding: const EdgeInsets.symmetric(horizontal: IOS26Theme.spacingSm),
+          minimumSize: IOS26Theme.minimumTapSize,
           onPressed: onDone,
-          child: Text(doneText),
+          child: Text(
+            doneText,
+            style: IOS26Theme.labelLarge.copyWith(color: doneColor),
+          ),
         ),
       ),
     );
