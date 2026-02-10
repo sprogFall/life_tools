@@ -64,6 +64,7 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(title: '记录消耗', showBackButton: true),
@@ -150,13 +151,13 @@ class _StockConsumptionEditPageState extends State<StockConsumptionEditPage> {
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
           child: CupertinoButton(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            color: IOS26Theme.primaryColor,
+            color: primaryButton.background,
             borderRadius: BorderRadius.circular(14),
             onPressed: _save,
             child: Text(
               '保存',
               style: IOS26Theme.labelLarge.copyWith(
-                color: IOS26Theme.onPrimaryColor,
+                color: primaryButton.foreground,
               ),
             ),
           ),

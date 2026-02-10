@@ -102,6 +102,7 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
   @override
   Widget build(BuildContext context) {
     final distinctTypeCount = distinctRecipeCount(_meals);
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -116,13 +117,13 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
                   horizontal: 16,
                   vertical: 14,
                 ),
-                color: IOS26Theme.primaryColor,
+                color: primaryButton.background,
                 borderRadius: BorderRadius.circular(14),
                 onPressed: _loading ? null : _addMealFlow,
                 child: Text(
                   '新增餐次',
                   style: IOS26Theme.labelLarge.copyWith(
-                    color: IOS26Theme.onPrimaryColor,
+                    color: primaryButton.foreground,
                   ),
                 ),
               ),
@@ -560,6 +561,9 @@ class _MealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final secondaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.secondary,
+    );
     final title = tagName?.trim().isNotEmpty == true
         ? tagName!.trim()
         : (meal.mealTagId == null ? '未标记' : '（标签已删除）');
@@ -579,14 +583,14 @@ class _MealCard extends StatelessWidget {
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  color: IOS26Theme.primaryColor.withValues(alpha: 0.14),
+                  color: secondaryButton.background,
                   borderRadius: BorderRadius.circular(999),
                   onPressed: onPickMealTag,
                   child: Text(
                     title,
                     style: IOS26Theme.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: IOS26Theme.primaryColor,
+                      color: secondaryButton.foreground,
                     ),
                   ),
                 ),
@@ -677,6 +681,7 @@ class _MealCard extends StatelessWidget {
     required VoidCallback? onPressed,
     Color? iconColor,
   }) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     final resolvedIconColor = iconColor ?? IOS26Theme.textSecondary;
     return Semantics(
       button: true,
@@ -684,7 +689,7 @@ class _MealCard extends StatelessWidget {
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         onPressed: onPressed,
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+        color: ghostButton.background,
         borderRadius: BorderRadius.circular(14),
         child: Icon(icon, size: 18, color: resolvedIconColor),
       ),

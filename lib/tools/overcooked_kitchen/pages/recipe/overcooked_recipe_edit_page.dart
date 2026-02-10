@@ -194,6 +194,11 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
   Widget _buildBody(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final objStore = context.read<ObjStoreService>();
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
+    final highlightButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.highlight,
+    );
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         IOS26Theme.spacingLg,
@@ -235,13 +240,13 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                         horizontal: 16,
                         vertical: 14,
                       ),
-                      color: IOS26Theme.primaryColor,
+                      color: primaryButton.background,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: _saving ? null : _pickCover,
                       child: Text(
                         '上传',
                         style: IOS26Theme.labelLarge.copyWith(
-                          color: IOS26Theme.onPrimaryColor,
+                          color: primaryButton.foreground,
                         ),
                       ),
                     ),
@@ -251,7 +256,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                         horizontal: 16,
                         vertical: 14,
                       ),
-                      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+                      color: ghostButton.background,
                       borderRadius: BorderRadius.circular(14),
                       onPressed:
                           _saving ||
@@ -268,7 +273,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                             },
                       child: Icon(
                         CupertinoIcons.trash,
-                        color: IOS26Theme.textSecondary,
+                        color: ghostButton.foreground,
                         size: 18,
                       ),
                     ),
@@ -438,7 +443,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
               ),
               minimumSize: IOS26Theme.minimumTapSize,
               borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
-              color: IOS26Theme.toolPurple.withValues(alpha: 0.14),
+              color: highlightButton.background,
               onPressed: _saving || _generatingContent
                   ? null
                   : _generateContentByAi,
@@ -448,13 +453,13 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                   Icon(
                     CupertinoIcons.sparkles,
                     size: 14,
-                    color: IOS26Theme.toolPurple,
+                    color: highlightButton.foreground,
                   ),
                   const SizedBox(width: IOS26Theme.spacingXs),
                   Text(
                     l10n.overcooked_recipe_edit_ai_generate,
                     style: IOS26Theme.bodySmall.copyWith(
-                      color: IOS26Theme.toolPurple,
+                      color: highlightButton.foreground,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -483,7 +488,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
             height: 88,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+              color: ghostButton.background,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Text('暂无图片', style: IOS26Theme.bodySmall),
@@ -538,7 +543,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
                           child: Icon(
                             CupertinoIcons.xmark,
                             size: 14,
-                            color: IOS26Theme.onPrimaryColor,
+                            color: primaryButton.foreground,
                           ),
                         ),
                       ),
@@ -551,13 +556,13 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
         const SizedBox(height: 10),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: IOS26Theme.primaryColor,
+          color: primaryButton.background,
           borderRadius: BorderRadius.circular(14),
           onPressed: _saving ? null : _pickDetailImages,
           child: Text(
             '添加图片',
             style: IOS26Theme.labelLarge.copyWith(
-              color: IOS26Theme.onPrimaryColor,
+              color: primaryButton.foreground,
             ),
           ),
         ),
@@ -646,11 +651,12 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     required String label,
     required VoidCallback? onPressed,
   }) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return SizedBox(
       height: 48,
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+        color: ghostButton.background,
         borderRadius: BorderRadius.circular(14),
         onPressed: onPressed,
         child: Row(
@@ -684,6 +690,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     required String emptyText,
     required VoidCallback? onPressed,
   }) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     final names =
         selectedIds.map((id) => tagsById[id]?.name).whereType<String>().toList()
           ..sort();
@@ -692,7 +699,7 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
       height: 48,
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+        color: ghostButton.background,
         borderRadius: BorderRadius.circular(14),
         onPressed: onPressed,
         child: Row(

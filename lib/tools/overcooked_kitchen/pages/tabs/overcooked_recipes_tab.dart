@@ -174,6 +174,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
     return Row(
       children: [
         Expanded(
@@ -186,7 +187,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
         ),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: IOS26Theme.primaryColor,
+          color: primaryButton.background,
           borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
           onPressed: () async {
             final repo = context.read<OvercookedRepository>();
@@ -203,7 +204,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
           child: Text(
             '+ 新建',
             style: IOS26Theme.labelLarge.copyWith(
-              color: IOS26Theme.onPrimaryColor,
+              color: primaryButton.foreground,
               fontWeight: FontWeight.w700,
             ),
           ),

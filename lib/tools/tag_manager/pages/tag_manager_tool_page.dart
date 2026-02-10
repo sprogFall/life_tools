@@ -824,11 +824,12 @@ class _CategoryHeader extends StatelessWidget {
     required VoidCallback onPressed,
     required Color color,
   }) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return CupertinoButton(
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       onPressed: onPressed,
-      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+      color: ghostButton.background,
       borderRadius: BorderRadius.circular(14),
       child: Icon(icon, size: 18, color: color),
     );

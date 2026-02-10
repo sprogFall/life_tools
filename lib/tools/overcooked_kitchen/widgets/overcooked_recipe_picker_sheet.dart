@@ -104,6 +104,8 @@ class _OvercookedRecipePickerSheetState
   @override
   Widget build(BuildContext context) {
     final filtered = _getFilteredAndSorted();
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.80,
@@ -127,8 +129,8 @@ class _OvercookedRecipePickerSheetState
                     vertical: 8,
                   ),
                   color: _sortMode == _SortMode.ratingDesc
-                      ? IOS26Theme.primaryColor
-                      : IOS26Theme.textTertiary.withValues(alpha: 0.3),
+                      ? primaryButton.background
+                      : ghostButton.background,
                   borderRadius: BorderRadius.circular(10),
                   onPressed: _loadingStats
                       ? null
@@ -146,8 +148,8 @@ class _OvercookedRecipePickerSheetState
                         CupertinoIcons.star_fill,
                         size: 14,
                         color: _sortMode == _SortMode.ratingDesc
-                            ? IOS26Theme.surfaceColor
-                            : IOS26Theme.textSecondary,
+                            ? primaryButton.foreground
+                            : ghostButton.foreground,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -155,8 +157,8 @@ class _OvercookedRecipePickerSheetState
                         style: IOS26Theme.bodySmall.copyWith(
                           fontWeight: FontWeight.w600,
                           color: _sortMode == _SortMode.ratingDesc
-                              ? IOS26Theme.surfaceColor
-                              : IOS26Theme.textSecondary,
+                              ? primaryButton.foreground
+                              : ghostButton.foreground,
                         ),
                       ),
                     ],

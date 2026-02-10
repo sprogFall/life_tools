@@ -135,12 +135,14 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
   }
 
   Widget _buildActions(BuildContext context) {
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return Row(
       children: [
         Expanded(
           child: CupertinoButton(
             onPressed: _confirm,
-            color: IOS26Theme.primaryColor,
+            color: primaryButton.background,
             padding: const EdgeInsets.symmetric(vertical: 14),
             borderRadius: BorderRadius.circular(14),
             child: Row(
@@ -149,13 +151,13 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
                 Icon(
                   CupertinoIcons.sparkles,
                   size: 18,
-                  color: IOS26Theme.onPrimaryColor,
+                  color: primaryButton.foreground,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '提交给AI',
                   style: IOS26Theme.labelLarge.copyWith(
-                    color: IOS26Theme.onPrimaryColor,
+                    color: primaryButton.foreground,
                   ),
                 ),
               ],
@@ -170,19 +172,19 @@ class _WorkLogVoiceInputSheetState extends State<WorkLogVoiceInputSheet> {
             });
           },
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+          color: ghostButton.background,
           borderRadius: BorderRadius.circular(14),
           child: Icon(
             CupertinoIcons.trash,
             size: 20,
-            color: IOS26Theme.textSecondary,
+            color: ghostButton.foreground,
           ),
         ),
         const SizedBox(width: 10),
         CupertinoButton(
           onPressed: () => Navigator.pop(context),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+          color: ghostButton.background,
           borderRadius: BorderRadius.circular(14),
           child: Icon(
             CupertinoIcons.xmark,

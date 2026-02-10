@@ -9,8 +9,12 @@ enum IOS26ButtonVariant {
   primary,
   secondary,
   ghost,
+  neutral,
+  warning,
+  highlight,
   destructive,
   destructivePrimary,
+  successPrimary,
 }
 
 enum IOS26IconTone {
@@ -134,6 +138,21 @@ class IOS26Theme {
         foreground: textPrimary,
         border: textTertiary.withValues(alpha: isDark ? 0.28 : 0.24),
       ),
+      IOS26ButtonVariant.neutral => IOS26ButtonColors(
+        background: surfaceColor.withValues(alpha: isDark ? 0.68 : 0.72),
+        foreground: textPrimary,
+        border: textTertiary.withValues(alpha: isDark ? 0.32 : 0.2),
+      ),
+      IOS26ButtonVariant.warning => IOS26ButtonColors(
+        background: toolOrange.withValues(alpha: isDark ? 0.28 : 0.16),
+        foreground: toolOrange,
+        border: toolOrange.withValues(alpha: isDark ? 0.58 : 0.34),
+      ),
+      IOS26ButtonVariant.highlight => IOS26ButtonColors(
+        background: secondaryColor.withValues(alpha: isDark ? 0.32 : 0.14),
+        foreground: secondaryColor,
+        border: secondaryColor.withValues(alpha: isDark ? 0.64 : 0.3),
+      ),
       IOS26ButtonVariant.destructive => IOS26ButtonColors(
         background: toolRed.withValues(alpha: isDark ? 0.28 : 0.14),
         foreground: toolRed,
@@ -143,6 +162,11 @@ class IOS26Theme {
         background: toolRed,
         foreground: onPrimaryColor,
         border: toolRed.withValues(alpha: isDark ? 0.86 : 1),
+      ),
+      IOS26ButtonVariant.successPrimary => IOS26ButtonColors(
+        background: toolGreen,
+        foreground: onPrimaryColor,
+        border: toolGreen.withValues(alpha: isDark ? 0.86 : 1),
       ),
     };
   }

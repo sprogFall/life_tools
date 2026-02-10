@@ -190,6 +190,8 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         ? '未选择'
         : entries.map((e) => '${e.name}×${e.count}').join('、');
     final canRoll = !_loading && entries.isNotEmpty && totalCount > 0;
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
@@ -201,14 +203,16 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
               key: const ValueKey('overcooked_gacha_roll_button'),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               color: canRoll
-                  ? IOS26Theme.primaryColor
-                  : IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                  ? primaryButton.background
+                  : ghostButton.background,
               borderRadius: BorderRadius.circular(14),
               onPressed: canRoll ? _roll : null,
               child: Text(
                 '扭蛋',
                 style: IOS26Theme.labelLarge.copyWith(
-                  color: IOS26Theme.onPrimaryColor,
+                  color: canRoll
+                      ? primaryButton.foreground
+                      : ghostButton.foreground,
                 ),
               ),
             ),
@@ -222,7 +226,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
           child: CupertinoButton(
             key: const ValueKey('overcooked_gacha_pick_types_button'),
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+            color: ghostButton.background,
             borderRadius: BorderRadius.circular(14),
             onPressed: _typeTags.isEmpty || _loading ? null : _pickTypes,
             child: Row(
@@ -341,13 +345,13 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
           CupertinoButton(
             key: const ValueKey('overcooked_gacha_import_button'),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            color: IOS26Theme.primaryColor,
+            color: primaryButton.background,
             borderRadius: BorderRadius.circular(14),
             onPressed: _loading ? null : _importToWish,
             child: Text(
               '就你了',
               style: IOS26Theme.labelLarge.copyWith(
-                color: IOS26Theme.onPrimaryColor,
+                color: primaryButton.foreground,
               ),
             ),
           ),
@@ -616,17 +620,20 @@ class _TypeCountRow extends StatelessWidget {
     required bool enabled,
     required VoidCallback onPressed,
   }) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return CupertinoButton(
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       minimumSize: IOS26Theme.minimumTapSize,
       onPressed: enabled ? onPressed : null,
-      color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+      color: ghostButton.background,
       borderRadius: BorderRadius.circular(14),
       child: Icon(
         icon,
         size: 16,
-        color: enabled ? IOS26Theme.primaryColor : IOS26Theme.textTertiary,
+        color: enabled
+            ? IOS26Theme.iconColor(IOS26IconTone.accent)
+            : IOS26Theme.iconColor(IOS26IconTone.secondary),
       ),
     );
   }

@@ -10,6 +10,22 @@ void main() {
       'lib/core/sync/pages/sync_settings_page.dart',
       'lib/pages/ai_settings_page.dart',
       'lib/pages/obj_store_settings_page.dart',
+      'lib/tools/overcooked_kitchen/pages/recipe/overcooked_recipe_edit_page.dart',
+      'lib/tools/overcooked_kitchen/pages/tabs/overcooked_calendar_tab.dart',
+      'lib/tools/overcooked_kitchen/pages/tabs/overcooked_gacha_tab.dart',
+      'lib/tools/overcooked_kitchen/pages/tabs/overcooked_meal_tab.dart',
+      'lib/tools/overcooked_kitchen/pages/tabs/overcooked_recipes_tab.dart',
+      'lib/tools/overcooked_kitchen/pages/tabs/overcooked_wishlist_tab.dart',
+      'lib/tools/overcooked_kitchen/widgets/overcooked_date_bar.dart',
+      'lib/tools/overcooked_kitchen/widgets/overcooked_recipe_picker_sheet.dart',
+      'lib/tools/stockpile_assistant/pages/stock_consumption_edit_page.dart',
+      'lib/tools/stockpile_assistant/pages/stock_item_edit_page.dart',
+      'lib/tools/stockpile_assistant/pages/stockpile_ai_batch_entry_view.dart',
+      'lib/tools/stockpile_assistant/widgets/stockpile_consume_button.dart',
+      'lib/tools/tag_manager/pages/tag_manager_tool_page.dart',
+      'lib/tools/work_log/pages/calendar/work_log_ai_summary_page.dart',
+      'lib/tools/work_log/pages/task/work_log_voice_input_sheet.dart',
+      'lib/tools/work_log/pages/task/work_task_detail_page.dart',
     };
 
     final violations = <String>[];

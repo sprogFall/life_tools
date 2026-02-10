@@ -42,6 +42,44 @@ void main() {
       expect(dark.background, isNot(dark.foreground));
     });
 
+    test('高亮按钮在明暗模式都应切换独立紫色层级', () {
+      IOS26Theme.setBrightness(Brightness.light);
+      final light = IOS26Theme.buttonColors(IOS26ButtonVariant.highlight);
+
+      IOS26Theme.setBrightness(Brightness.dark);
+      final dark = IOS26Theme.buttonColors(IOS26ButtonVariant.highlight);
+
+      expect(light.background, isNot(light.foreground));
+      expect(dark.background, isNot(dark.foreground));
+      expect(light.background, isNot(dark.background));
+    });
+
+    test('警告按钮在明暗模式都应保持橙色可读性', () {
+      IOS26Theme.setBrightness(Brightness.light);
+      final light = IOS26Theme.buttonColors(IOS26ButtonVariant.warning);
+
+      IOS26Theme.setBrightness(Brightness.dark);
+      final dark = IOS26Theme.buttonColors(IOS26ButtonVariant.warning);
+
+      expect(light.background, isNot(light.foreground));
+      expect(dark.background, isNot(dark.foreground));
+      expect(light.foreground, isNot(Colors.transparent));
+      expect(dark.foreground, isNot(Colors.transparent));
+    });
+
+    test('成功主按钮在明暗模式都应保持白色前景', () {
+      IOS26Theme.setBrightness(Brightness.light);
+      final light = IOS26Theme.buttonColors(IOS26ButtonVariant.successPrimary);
+
+      IOS26Theme.setBrightness(Brightness.dark);
+      final dark = IOS26Theme.buttonColors(IOS26ButtonVariant.successPrimary);
+
+      expect(light.foreground, equals(IOS26Theme.onPrimaryColor));
+      expect(dark.foreground, equals(IOS26Theme.onPrimaryColor));
+      expect(light.background, isNot(light.foreground));
+      expect(dark.background, isNot(dark.foreground));
+    });
+
     test('图标胶囊在明暗模式都应切换独立配色', () {
       IOS26Theme.setBrightness(Brightness.light);
       final light = IOS26Theme.iconChipColors(IOS26IconTone.accent);

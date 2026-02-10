@@ -164,6 +164,10 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
 
     final totalMinutes = _totalMinutes;
     final canAddTimeEntry = _canAddTimeEntry(task.status);
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
+    final successPrimaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.successPrimary,
+    );
 
     return Stack(
       children: [
@@ -249,7 +253,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                     flex: 3,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: IOS26Theme.primaryColor,
+                      color: primaryButton.background,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: _openAddTimeEntry,
                       child: Row(
@@ -258,13 +262,13 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                           Icon(
                             CupertinoIcons.clock_fill,
                             size: 20,
-                            color: IOS26Theme.onPrimaryColor,
+                            color: primaryButton.foreground,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '记录工时',
                             style: IOS26Theme.labelLarge.copyWith(
-                              color: IOS26Theme.onPrimaryColor,
+                              color: primaryButton.foreground,
                             ),
                           ),
                         ],
@@ -276,7 +280,7 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                     flex: 2,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: IOS26Theme.toolGreen,
+                      color: successPrimaryButton.background,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: _showCompleteTaskDialog,
                       child: Row(
@@ -285,13 +289,13 @@ class _WorkTaskDetailPageState extends State<WorkTaskDetailPage> {
                           Icon(
                             CupertinoIcons.check_mark_circled_solid,
                             size: 20,
-                            color: IOS26Theme.onPrimaryColor,
+                            color: successPrimaryButton.foreground,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             '完成',
                             style: IOS26Theme.labelLarge.copyWith(
-                              color: IOS26Theme.onPrimaryColor,
+                              color: successPrimaryButton.foreground,
                             ),
                           ),
                         ],

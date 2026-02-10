@@ -243,6 +243,10 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     final taskId = task.id!;
     final selected = _selectedTaskIds.contains(taskId);
     final label = '${task.title} (${_minutesToHours(minutes)})';
+    final secondaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.secondary,
+    );
+    final neutralButton = IOS26Theme.buttonColors(IOS26ButtonVariant.neutral);
 
     return CupertinoButton(
       key: ValueKey('work_log_ai_summary_task_$taskId'),
@@ -251,9 +255,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
         vertical: IOS26Theme.spacingSm,
       ),
       minimumSize: IOS26Theme.minimumTapSize,
-      color: selected
-          ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
-          : IOS26Theme.surfaceColor.withValues(alpha: 0.7),
+      color: selected ? secondaryButton.background : neutralButton.background,
       borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
       onPressed: () {
         setState(() {
@@ -265,7 +267,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
       child: Text(
         label,
         style: IOS26Theme.bodySmall.copyWith(
-          color: selected ? IOS26Theme.primaryColor : IOS26Theme.textPrimary,
+          color: selected
+              ? secondaryButton.foreground
+              : neutralButton.foreground,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         ),
       ),
@@ -328,6 +332,10 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     final tagId = tag.id!;
     final selectable = _selectableAffiliationIds.contains(tagId);
     final selected = _selectedAffiliationIds.contains(tagId);
+    final secondaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.secondary,
+    );
+    final neutralButton = IOS26Theme.buttonColors(IOS26ButtonVariant.neutral);
     return CupertinoButton(
       key: ValueKey('work_log_ai_summary_affiliation_$tagId'),
       padding: const EdgeInsets.symmetric(
@@ -336,8 +344,8 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
       ),
       minimumSize: IOS26Theme.minimumTapSize,
       color: selected
-          ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
-          : IOS26Theme.surfaceColor.withValues(alpha: selectable ? 0.7 : 0.45),
+          ? secondaryButton.background
+          : neutralButton.background.withValues(alpha: selectable ? 1 : 0.65),
       borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
       onPressed: !selectable
           ? null
@@ -350,9 +358,9 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
         tag.name,
         style: IOS26Theme.bodySmall.copyWith(
           color: selected
-              ? IOS26Theme.primaryColor
+              ? secondaryButton.foreground
               : (selectable
-                    ? IOS26Theme.textPrimary
+                    ? neutralButton.foreground
                     : IOS26Theme.textSecondary.withValues(alpha: 0.7)),
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         ),
@@ -361,6 +369,10 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   }
 
   Widget _buildStyleCard(AppLocalizations l10n) {
+    final secondaryButton = IOS26Theme.buttonColors(
+      IOS26ButtonVariant.secondary,
+    );
+    final neutralButton = IOS26Theme.buttonColors(IOS26ButtonVariant.neutral);
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
@@ -384,16 +396,16 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
                 ),
                 minimumSize: IOS26Theme.minimumTapSize,
                 color: selected
-                    ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
-                    : IOS26Theme.surfaceColor.withValues(alpha: 0.7),
+                    ? secondaryButton.background
+                    : neutralButton.background,
                 borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
                 onPressed: () => setState(() => _selectedStyleId = style.id),
                 child: Text(
                   _styleNameFromL10n(l10n, style.l10nKey),
                   style: IOS26Theme.bodySmall.copyWith(
                     color: selected
-                        ? IOS26Theme.primaryColor
-                        : IOS26Theme.textPrimary,
+                        ? secondaryButton.foreground
+                        : neutralButton.foreground,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
@@ -409,6 +421,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     final canGenerate = _selectedTaskIds.isNotEmpty;
     final entries = _filteredEntries;
     final totalMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
 
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
@@ -426,15 +439,15 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
             width: double.infinity,
             child: CupertinoButton(
               key: const ValueKey('work_log_ai_summary_generate_button'),
-              color: IOS26Theme.primaryColor,
+              color: primaryButton.background,
               borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
               onPressed: !canGenerate || _generating ? null : _generateSummary,
               child: _generating
-                  ? CupertinoActivityIndicator(color: IOS26Theme.onPrimaryColor)
+                  ? CupertinoActivityIndicator(color: primaryButton.foreground)
                   : Text(
                       l10n.work_log_ai_summary_generate_button,
                       style: IOS26Theme.labelLarge.copyWith(
-                        color: IOS26Theme.onPrimaryColor,
+                        color: primaryButton.foreground,
                       ),
                     ),
             ),
@@ -445,6 +458,7 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
   }
 
   Widget _buildResultCard(AppLocalizations l10n) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return GlassContainer(
       padding: const EdgeInsets.all(IOS26Theme.spacingLg),
       child: Column(
@@ -467,13 +481,13 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
               Expanded(
                 child: CupertinoButton(
                   key: const ValueKey('work_log_ai_summary_copy_button'),
-                  color: IOS26Theme.textTertiary.withValues(alpha: 0.24),
+                  color: ghostButton.background,
                   borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
                   onPressed: _copySummary,
                   child: Text(
                     l10n.work_log_ai_summary_copy_button,
                     style: IOS26Theme.labelLarge.copyWith(
-                      color: IOS26Theme.textPrimary,
+                      color: ghostButton.foreground,
                     ),
                   ),
                 ),
@@ -482,13 +496,13 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
               Expanded(
                 child: CupertinoButton(
                   key: const ValueKey('work_log_ai_summary_share_button'),
-                  color: IOS26Theme.textTertiary.withValues(alpha: 0.24),
+                  color: ghostButton.background,
                   borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
                   onPressed: _shareSummary,
                   child: Text(
                     l10n.work_log_ai_summary_share_button,
                     style: IOS26Theme.labelLarge.copyWith(
-                      color: IOS26Theme.textPrimary,
+                      color: ghostButton.foreground,
                     ),
                   ),
                 ),
@@ -505,13 +519,14 @@ class _WorkLogAiSummaryPageState extends State<WorkLogAiSummaryPage> {
     required DateTime value,
     required VoidCallback onTap,
   }) {
+    final neutralButton = IOS26Theme.buttonColors(IOS26ButtonVariant.neutral);
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(
         horizontal: IOS26Theme.spacingMd,
         vertical: IOS26Theme.spacingSm,
       ),
       minimumSize: IOS26Theme.minimumTapSize,
-      color: IOS26Theme.surfaceColor.withValues(alpha: 0.7),
+      color: neutralButton.background,
       borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
       onPressed: onTap,
       child: Row(

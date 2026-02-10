@@ -143,6 +143,8 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.itemId != null;
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
+    final primaryButton = IOS26Theme.buttonColors(IOS26ButtonVariant.primary);
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
       appBar: IOS26AppBar(
@@ -263,13 +265,13 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
               Expanded(
                 child: CupertinoButton(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  color: IOS26Theme.textTertiary.withValues(alpha: 0.3),
+                  color: ghostButton.background,
                   borderRadius: BorderRadius.circular(14),
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(
                     '取消',
                     style: IOS26Theme.labelLarge.copyWith(
-                      color: IOS26Theme.textSecondary,
+                      color: ghostButton.foreground,
                     ),
                   ),
                 ),
@@ -279,13 +281,13 @@ class _StockItemEditPageState extends State<StockItemEditPage> {
                 child: CupertinoButton(
                   key: const ValueKey('stock_item_save'),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  color: IOS26Theme.primaryColor,
+                  color: primaryButton.background,
                   borderRadius: BorderRadius.circular(14),
                   onPressed: _save,
                   child: Text(
                     '保存',
                     style: IOS26Theme.labelLarge.copyWith(
-                      color: IOS26Theme.onPrimaryColor,
+                      color: primaryButton.foreground,
                     ),
                   ),
                 ),

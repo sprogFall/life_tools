@@ -21,6 +21,7 @@ class OvercookedDateBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     final text = title == null
         ? OvercookedFormat.date(date)
         : '$title · ${OvercookedFormat.date(date)}';
@@ -39,7 +40,7 @@ class OvercookedDateBar extends StatelessWidget {
               height: 44,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+                color: ghostButton.background,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(text, style: IOS26Theme.titleSmall),
@@ -61,6 +62,7 @@ class OvercookedDateBar extends StatelessWidget {
     required VoidCallback onPressed,
     required String label,
   }) {
+    final ghostButton = IOS26Theme.buttonColors(IOS26ButtonVariant.ghost);
     return Semantics(
       button: true,
       label: label,
@@ -70,7 +72,7 @@ class OvercookedDateBar extends StatelessWidget {
         child: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: onPressed,
-          color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+          color: ghostButton.background,
           borderRadius: BorderRadius.circular(14),
           child: Icon(icon, size: 18, color: IOS26Theme.textPrimary),
         ),
