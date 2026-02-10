@@ -34,9 +34,12 @@ void main() {
       final content = await File(path).readAsString();
       final colorExpressions = _findCupertinoButtonTopLevelColorArgs(content);
       for (final expression in colorExpressions) {
-        final usesDirectThemeColor = expression.contains('IOS26Theme.');
-        final usesSemanticToken = expression.contains('buttonColors(');
-        if (usesDirectThemeColor && !usesSemanticToken) {
+        final normalized = expression.replaceAll(RegExp(r'\s+'), '');
+        final usesSemanticToken =
+            expression.contains('buttonColors(') ||
+            expression.contains('Button.background');
+        final isTransparentPassThrough = normalized == 'Colors.transparent';
+        if (!usesSemanticToken && !isTransparentPassThrough) {
           violations.add('$path -> $expression');
         }
       }
@@ -46,7 +49,7 @@ void main() {
       violations,
       isEmpty,
       reason:
-          '以下 CupertinoButton 的顶层 color 仍直接使用 IOS26Theme 颜色，请改为 IOS26Theme.buttonColors(...) 语义 token：\n${violations.join('\n')}',
+          '以下 CupertinoButton 的顶层 color 未走语义按钮 token（应使用 IOS26Theme.buttonColors(...) 的 background，或显式透明透传）：\n${violations.join('\n')}',
     );
   });
 }
