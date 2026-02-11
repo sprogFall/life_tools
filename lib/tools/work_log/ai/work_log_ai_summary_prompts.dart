@@ -1,6 +1,8 @@
+import '../../../core/ai/ai_call_source.dart';
 import '../../../core/ai/ai_use_case.dart';
 import '../models/work_task.dart';
 import '../models/work_time_entry.dart';
+import '../work_log_constants.dart';
 
 class WorkLogAiSummaryStyle {
   final String id;
@@ -24,6 +26,12 @@ class WorkLogAiSummaryPrompts {
     temperature: 0.2,
     maxOutputTokens: 1600,
     timeout: Duration(seconds: 60),
+    source: AiCallSource(
+      toolId: WorkLogConstants.toolId,
+      toolName: WorkLogConstants.toolName,
+      featureId: 'generate_summary',
+      featureName: '生成总结',
+    ),
   );
 
   static const String systemPrompt = '''

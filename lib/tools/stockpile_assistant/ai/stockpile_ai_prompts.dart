@@ -1,5 +1,7 @@
+import '../../../core/ai/ai_call_source.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_use_case.dart';
+import '../stockpile_constants.dart';
 
 class StockpileAiPrompts {
   static const AiUseCaseSpec textToIntentUseCase = AiUseCaseSpec(
@@ -10,6 +12,12 @@ class StockpileAiPrompts {
     temperature: 0.2,
     maxOutputTokens: 900,
     timeout: Duration(seconds: 60),
+    source: AiCallSource(
+      toolId: StockpileConstants.toolId,
+      toolName: StockpileConstants.toolName,
+      featureId: 'text_to_intent',
+      featureName: '文本解析',
+    ),
   );
 
   static const String textToIntentSystemPrompt = '''

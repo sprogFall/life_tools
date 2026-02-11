@@ -1,4 +1,6 @@
+import '../../../core/ai/ai_call_source.dart';
 import '../../../core/ai/ai_use_case.dart';
+import '../overcooked_constants.dart';
 
 class OvercookedRecipeAiPrompts {
   OvercookedRecipeAiPrompts._();
@@ -25,5 +27,11 @@ class OvercookedRecipeAiPrompts {
     temperature: 0.6,
     maxOutputTokens: 1200,
     timeout: Duration(seconds: 90),
+    source: AiCallSource(
+      toolId: OvercookedConstants.toolId,
+      toolName: OvercookedConstants.toolName,
+      featureId: 'generate_recipe',
+      featureName: '生成菜谱',
+    ),
   );
 }

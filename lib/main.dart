@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'l10n/app_localizations.dart';
+import 'core/ai/ai_call_history_service.dart';
 import 'core/ai/ai_config_service.dart';
 import 'core/ai/ai_service.dart';
 import 'core/backup/pages/backup_restore_page.dart';
@@ -59,6 +60,9 @@ void main() async {
 
   final aiConfigService = AiConfigService();
   await aiConfigService.init();
+
+  final aiCallHistoryService = AiCallHistoryService();
+  await aiCallHistoryService.init();
 
   final objStoreConfigService = ObjStoreConfigService(
     secretStore: PrefsSecretStore(),
@@ -117,6 +121,7 @@ void main() async {
     MyApp(
       settingsService: settingsService,
       aiConfigService: aiConfigService,
+      aiCallHistoryService: aiCallHistoryService,
       objStoreConfigService: objStoreConfigService,
       syncConfigService: syncConfigService,
       syncLocalStateService: syncLocalStateService,
@@ -129,6 +134,7 @@ void main() async {
 class MyApp extends StatefulWidget {
   final SettingsService settingsService;
   final AiConfigService aiConfigService;
+  final AiCallHistoryService aiCallHistoryService;
   final ObjStoreConfigService objStoreConfigService;
   final SyncConfigService syncConfigService;
   final SyncLocalStateService syncLocalStateService;
@@ -139,6 +145,7 @@ class MyApp extends StatefulWidget {
     super.key,
     required this.settingsService,
     required this.aiConfigService,
+    required this.aiCallHistoryService,
     required this.objStoreConfigService,
     required this.syncConfigService,
     required this.syncLocalStateService,
@@ -245,6 +252,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       providers: [
         ChangeNotifierProvider.value(value: widget.settingsService),
         ChangeNotifierProvider.value(value: widget.aiConfigService),
+        ChangeNotifierProvider.value(value: widget.aiCallHistoryService),
         ChangeNotifierProvider.value(value: widget.objStoreConfigService),
         ChangeNotifierProvider.value(value: widget.syncConfigService),
         ChangeNotifierProvider.value(value: widget.syncLocalStateService),
@@ -260,7 +268,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           },
         ),
         Provider<AiService>(
-          create: (_) => AiService(configService: widget.aiConfigService),
+          create: (_) => AiService(
+            configService: widget.aiConfigService,
+            historyService: widget.aiCallHistoryService,
+          ),
         ),
         Provider<ObjStoreService>(
           create: (_) => ObjStoreService(

@@ -9,6 +9,7 @@ import '../core/ui/app_dialogs.dart';
 import '../core/ui/app_navigator.dart';
 import '../core/ui/app_scaffold.dart';
 import '../core/ui/section_header.dart';
+import 'ai_call_history_page.dart';
 
 class AiSettingsPage extends StatefulWidget {
   const AiSettingsPage({super.key});
@@ -60,12 +61,17 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
             showBackButton: true,
             actions: [
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                key: const ValueKey('ai_history_button'),
+                padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                minimumSize: IOS26Theme.minimumTapSize,
+                onPressed: () {
+                  AppNavigator.push(context, const AiCallHistoryPage());
+                },
+                child: IOS26Icon(
+                  CupertinoIcons.time,
+                  color: IOS26Theme.primaryColor,
+                  size: 22,
                 ),
-                onPressed: () => _save(context),
-                child: Text('保存', style: IOS26Theme.labelLarge),
               ),
             ],
           ),
@@ -185,6 +191,17 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 _isTesting ? '测试中...' : '测试连接',
                 style: IOS26Theme.labelLarge,
               ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: IOS26Button(
+              key: const ValueKey('ai_save_button'),
+              variant: IOS26ButtonVariant.primary,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              onPressed: () => _save(context),
+              child: IOS26ButtonLabel('保存', style: IOS26Theme.labelLarge),
             ),
           ),
         ],

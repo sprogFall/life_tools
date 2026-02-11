@@ -1,5 +1,7 @@
+import '../../../core/ai/ai_call_source.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_use_case.dart';
+import '../work_log_constants.dart';
 
 class WorkLogAiPrompts {
   WorkLogAiPrompts._();
@@ -12,6 +14,12 @@ class WorkLogAiPrompts {
     temperature: 0.2,
     maxOutputTokens: 800,
     timeout: Duration(seconds: 60),
+    source: AiCallSource(
+      toolId: WorkLogConstants.toolId,
+      toolName: WorkLogConstants.toolName,
+      featureId: 'voice_to_intent',
+      featureName: '语音解析',
+    ),
   );
 
   static const String voiceToIntentSystemPrompt = '''

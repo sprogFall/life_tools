@@ -1,3 +1,4 @@
+import 'ai_call_source.dart';
 import 'ai_models.dart';
 import 'ai_service.dart';
 
@@ -9,6 +10,7 @@ class AiUseCaseSpec {
   final int? maxOutputTokens;
   final AiResponseFormat responseFormat;
   final Duration timeout;
+  final AiCallSource source;
 
   const AiUseCaseSpec({
     required this.id,
@@ -18,6 +20,7 @@ class AiUseCaseSpec {
     this.maxOutputTokens,
     this.responseFormat = AiResponseFormat.text,
     this.timeout = const Duration(seconds: 60),
+    this.source = AiCallSource.unknown,
   });
 }
 
@@ -69,6 +72,7 @@ class AiUseCaseExecutor {
       temperature: spec.temperature,
       maxOutputTokens: spec.maxOutputTokens,
       timeout: spec.timeout,
+      source: spec.source,
     );
   }
 }
