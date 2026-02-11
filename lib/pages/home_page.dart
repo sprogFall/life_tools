@@ -607,7 +607,14 @@ class _SettingsSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                children: [Text('设置', style: IOS26Theme.headlineMedium)],
+                children: [
+                  Text(
+                    '设置',
+                    style: IOS26Theme.headlineMedium.copyWith(
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -720,6 +727,7 @@ class _SettingsSheet extends StatelessWidget {
                 '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序',
                 style: IOS26Theme.bodySmall.copyWith(
                   color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
+                  decoration: TextDecoration.none,
                 ),
                 textAlign: TextAlign.center,
               ),

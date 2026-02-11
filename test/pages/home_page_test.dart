@@ -210,6 +210,26 @@ void main() {
       );
     });
 
+    testWidgets('设置弹出层标题与提示文案不应显示下划线', (tester) async {
+      final deps = await createMessageService(tester);
+      await tester.pumpWidget(wrap(const HomePage(), deps.messageService));
+
+      await tester.tap(find.byIcon(CupertinoIcons.gear));
+      await tester.pumpAndSettle();
+
+      final titleFinder = find.text('设置');
+      final hintFinder = find.text('在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序');
+
+      expect(titleFinder, findsOneWidget);
+      expect(hintFinder, findsOneWidget);
+
+      final titleText = tester.widget<Text>(titleFinder);
+      final hintText = tester.widget<Text>(hintFinder);
+
+      expect(titleText.style?.decoration, TextDecoration.none);
+      expect(hintText.style?.decoration, TextDecoration.none);
+    });
+
     testWidgets('设置弹出层可切换深色/跟随系统模式', (tester) async {
       final deps = await createMessageService(tester);
       await tester.pumpWidget(wrap(const HomePage(), deps.messageService));
