@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/ai/ai_call_history_service.dart';
+import 'package:life_tools/core/ai/ai_call_source.dart';
 import 'package:life_tools/core/ai/ai_config.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
@@ -101,6 +103,7 @@ void main() {
     late SyncConfigService configService;
     late SyncLocalStateService localStateService;
     late AiConfigService aiConfigService;
+    late AiCallHistoryService aiCallHistoryService;
     late SettingsService settingsService;
     late ObjStoreConfigService objStoreConfigService;
 
@@ -112,6 +115,8 @@ void main() {
       await localStateService.init();
       aiConfigService = AiConfigService();
       await aiConfigService.init();
+      aiCallHistoryService = AiCallHistoryService();
+      await aiCallHistoryService.init();
       settingsService = SettingsService();
       objStoreConfigService = ObjStoreConfigService(
         secretStore: InMemorySecretStore(),
@@ -318,10 +323,23 @@ void main() {
         ),
       );
 
+      await aiCallHistoryService.addRecord(
+        source: const AiCallSource(
+          toolId: 'work_log',
+          toolName: '工作记录',
+          featureId: 'voice_to_intent',
+          featureName: '语音解析',
+        ),
+        model: 'gpt-4o-mini',
+        prompt: 'prompt-sync',
+        response: 'response-sync',
+      );
+
       final service = SyncService(
         configService: configService,
         localStateService: localStateService,
         aiConfigService: aiConfigService,
+        aiCallHistoryService: aiCallHistoryService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(NetworkStatus.wifi),
@@ -343,6 +361,9 @@ void main() {
       expect(data.containsKey('obj_store_config'), isTrue);
       expect(data.containsKey('obj_store_secrets'), isTrue);
       expect(data.containsKey('settings'), isTrue);
+      expect(data.containsKey('ai_call_history'), isTrue);
+      final history = data['ai_call_history'] as Map<String, dynamic>;
+      expect(history['records'], isA<List<dynamic>>());
     });
 
     test('服务端返回 use_server 且包含 app_config 时，应还原配置并更新配置时间戳', () async {
@@ -372,6 +393,24 @@ void main() {
                   'tool_order': [],
                   'hidden_tool_ids': [],
                 },
+                'ai_call_history': {
+                  'retention_limit': 10,
+                  'records': [
+                    {
+                      'id': 'sync_history_1',
+                      'source': {
+                        'toolId': 'work_log',
+                        'toolName': '工作记录',
+                        'featureId': 'generate_summary',
+                        'featureName': '生成总结',
+                      },
+                      'model': 'gpt-4o-mini',
+                      'prompt': 'prompt-from-server',
+                      'response': 'response-from-server',
+                      'createdAt': 1760000000000,
+                    },
+                  ],
+                },
               },
             },
           },
@@ -381,6 +420,7 @@ void main() {
         configService: configService,
         localStateService: localStateService,
         aiConfigService: aiConfigService,
+        aiCallHistoryService: aiCallHistoryService,
         settingsService: settingsService,
         objStoreConfigService: objStoreConfigService,
         wifiService: _FakeWifiService(NetworkStatus.wifi),
@@ -392,6 +432,9 @@ void main() {
       expect(ok, isTrue);
       expect(aiConfigService.config?.model, 'm_server');
       expect(aiConfigService.config?.apiKey, 'k_server');
+      expect(aiCallHistoryService.retentionLimit, 10);
+      expect(aiCallHistoryService.records.length, 1);
+      expect(aiCallHistoryService.records.first.prompt, 'prompt-from-server');
 
       final prefs = await SharedPreferences.getInstance();
       final ts = prefs.getInt(AppConfigUpdatedAt.storageKey);

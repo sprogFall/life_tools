@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../sync/services/app_config_updated_at.dart';
 import '../utils/dev_log.dart';
 import 'ai_call_history_record.dart';
 import 'ai_call_source.dart';
@@ -30,9 +31,38 @@ class AiCallHistoryService extends ChangeNotifier {
     _retentionLimit = _normalizeRetentionLimit(rawLimit);
 
     final rawRecords = _prefs?.getString(_recordsKey);
-    _records = _decodeRecords(rawRecords);
+    _records = _decodeRecordsFromDynamic(rawRecords);
+    _trimLocalRecords();
+    await _persist(touchUpdatedAt: false);
+  }
+
+  Map<String, dynamic> exportAsMap() {
+    return <String, dynamic>{
+      'retention_limit': _retentionLimit,
+      'records': _records.map((e) => e.toMap()).toList(growable: false),
+    };
+  }
+
+  Future<void> restoreFromMap(Map<String, dynamic> map) async {
+    final hasRetentionLimit = map.containsKey('retention_limit');
+    final hasRecords = map.containsKey('records');
+    if (!hasRetentionLimit && !hasRecords) {
+      return;
+    }
+
+    final nextRetentionLimit = hasRetentionLimit
+        ? _normalizeRetentionLimit((map['retention_limit'] as num?)?.toInt())
+        : _retentionLimit;
+
+    final nextRecords = hasRecords
+        ? _decodeRecordsFromDynamic(map['records'])
+        : _records;
+
+    _retentionLimit = nextRetentionLimit;
+    _records = nextRecords;
     _trimLocalRecords();
     await _persist();
+    notifyListeners();
   }
 
   Future<void> addRecord({
@@ -83,37 +113,42 @@ class AiCallHistoryService extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<AiCallHistoryRecord> _decodeRecords(String? raw) {
-    if (raw == null || raw.trim().isEmpty) {
-      return [];
-    }
+  List<AiCallHistoryRecord> _decodeRecordsFromDynamic(dynamic raw) {
+    dynamic decoded = raw;
 
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) {
+    if (raw is String) {
+      final text = raw.trim();
+      if (text.isEmpty) {
         return [];
       }
+      try {
+        decoded = jsonDecode(text);
+      } catch (error, stackTrace) {
+        devLog(
+          '解析 AI 历史记录失败',
+          name: 'ai_call_history',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return [];
+      }
+    }
 
-      return decoded
-          .whereType<Map>()
-          .map((e) => AiCallHistoryRecord.fromMap(e.cast<String, dynamic>()))
-          .toList(growable: false)
-        ..sort((a, b) {
-          final byTime = b.createdAt.compareTo(a.createdAt);
-          if (byTime != 0) {
-            return byTime;
-          }
-          return b.id.compareTo(a.id);
-        });
-    } catch (error, stackTrace) {
-      devLog(
-        '解析 AI 历史记录失败',
-        name: 'ai_call_history',
-        error: error,
-        stackTrace: stackTrace,
-      );
+    if (decoded is! List) {
       return [];
     }
+
+    return decoded
+        .whereType<Map>()
+        .map((e) => AiCallHistoryRecord.fromMap(e.cast<String, dynamic>()))
+        .toList(growable: false)
+      ..sort((a, b) {
+        final byTime = b.createdAt.compareTo(a.createdAt);
+        if (byTime != 0) {
+          return byTime;
+        }
+        return b.id.compareTo(a.id);
+      });
   }
 
   void _trimLocalRecords() {
@@ -130,11 +165,20 @@ class AiCallHistoryService extends ChangeNotifier {
     return defaultRetentionLimit;
   }
 
-  Future<void> _persist() async {
-    await _prefs?.setInt(_retentionLimitKey, _retentionLimit);
-    await _prefs?.setString(
+  Future<void> _persist({bool touchUpdatedAt = true}) async {
+    final prefs = _prefs;
+    if (prefs == null) {
+      return;
+    }
+
+    await prefs.setInt(_retentionLimitKey, _retentionLimit);
+    await prefs.setString(
       _recordsKey,
       jsonEncode(_records.map((e) => e.toMap()).toList(growable: false)),
     );
+
+    if (touchUpdatedAt) {
+      await AppConfigUpdatedAt.touch(prefs);
+    }
   }
 }

@@ -9,6 +9,7 @@ import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../ai/ai_call_history_service.dart';
 import '../../ai/ai_config_service.dart';
 import '../../obj_store/obj_store_config_service.dart';
 import '../../services/settings_service.dart';
@@ -87,6 +88,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   BackupRestoreService _buildService(BuildContext context) {
     return BackupRestoreService(
       aiConfigService: context.read<AiConfigService>(),
+      aiCallHistoryService: context.read<AiCallHistoryService>(),
       syncConfigService: context.read<SyncConfigService>(),
       settingsService: context.read<SettingsService>(),
       objStoreConfigService: context.read<ObjStoreConfigService>(),

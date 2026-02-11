@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_call_history_service.dart';
+import 'package:life_tools/core/sync/services/app_config_updated_at.dart';
 import 'package:life_tools/core/ai/ai_call_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,6 +48,49 @@ void main() {
       expect(service.records.last.prompt, 'prompt-3');
     });
 
+    test('应支持导出并从 map 还原历史记录', () async {
+      final service = AiCallHistoryService();
+      await service.init();
+      await service.updateRetentionLimit(10);
+
+      await service.addRecord(
+        source: source,
+        model: 'gpt-test',
+        prompt: 'prompt-restore',
+        response: 'response-restore',
+        createdAt: DateTime(2026, 1, 2, 9, 30),
+      );
+
+      final snapshot = service.exportAsMap();
+
+      SharedPreferences.setMockInitialValues({});
+      final reloaded = AiCallHistoryService();
+      await reloaded.init();
+      await reloaded.restoreFromMap(snapshot);
+
+      expect(reloaded.retentionLimit, 10);
+      expect(reloaded.records.length, 1);
+      expect(reloaded.records.first.prompt, 'prompt-restore');
+      expect(reloaded.records.first.response, 'response-restore');
+    });
+
+    test('记录变化后应更新 app_config_updated_at 时间戳', () async {
+      final service = AiCallHistoryService();
+      await service.init();
+
+      final prefs = await SharedPreferences.getInstance();
+      final before = AppConfigUpdatedAt.readFrom(prefs);
+
+      await service.addRecord(
+        source: source,
+        model: 'gpt-test',
+        prompt: 'prompt-touch',
+        response: 'response-touch',
+      );
+
+      final after = AppConfigUpdatedAt.readFrom(prefs);
+      expect(after, greaterThan(before));
+    });
     test('更新保留条数后应立即生效并持久化', () async {
       final service = AiCallHistoryService();
       await service.init();

@@ -90,6 +90,7 @@ void main() async {
     configService: syncConfigService,
     localStateService: syncLocalStateService,
     aiConfigService: aiConfigService,
+    aiCallHistoryService: aiCallHistoryService,
     settingsService: settingsService,
     objStoreConfigService: objStoreConfigService,
   );

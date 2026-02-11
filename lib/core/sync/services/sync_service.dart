@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../ai/ai_call_history_service.dart';
 import '../../ai/ai_config_service.dart';
 import '../../obj_store/obj_store_config_service.dart';
 import '../../registry/tool_registry.dart';
@@ -63,6 +64,7 @@ class SyncService extends ChangeNotifier {
     required SyncConfigService configService,
     required SyncLocalStateService localStateService,
     required AiConfigService aiConfigService,
+    AiCallHistoryService? aiCallHistoryService,
     required SettingsService settingsService,
     required ObjStoreConfigService objStoreConfigService,
     WifiService? wifiService,
@@ -75,6 +77,7 @@ class SyncService extends ChangeNotifier {
        _toolProviders = List<ToolSyncProvider>.unmodifiable(
          _buildToolProviders(
            aiConfigService: aiConfigService,
+           aiCallHistoryService: aiCallHistoryService,
            syncConfigService: configService,
            settingsService: settingsService,
            objStoreConfigService: objStoreConfigService,
@@ -84,6 +87,7 @@ class SyncService extends ChangeNotifier {
 
   static List<ToolSyncProvider> _buildToolProviders({
     required AiConfigService aiConfigService,
+    AiCallHistoryService? aiCallHistoryService,
     required SyncConfigService syncConfigService,
     required SettingsService settingsService,
     required ObjStoreConfigService objStoreConfigService,
@@ -99,6 +103,7 @@ class SyncService extends ChangeNotifier {
 
     final backupRestoreService = BackupRestoreService(
       aiConfigService: aiConfigService,
+      aiCallHistoryService: aiCallHistoryService,
       syncConfigService: syncConfigService,
       settingsService: settingsService,
       objStoreConfigService: objStoreConfigService,

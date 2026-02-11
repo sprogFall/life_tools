@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config.dart';
+import 'package:life_tools/core/ai/ai_call_history_service.dart';
+import 'package:life_tools/core/ai/ai_call_source.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/obj_store/obj_store_config.dart';
@@ -215,6 +217,120 @@ void main() {
       expect(map['obj_store_secrets'], isA<Map>());
     });
 
+    test('exportAsJson 应包含 AI 调用历史配置段', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final aiCallHistoryService = AiCallHistoryService();
+      await aiCallHistoryService.init();
+      await aiCallHistoryService.updateRetentionLimit(10);
+      await aiCallHistoryService.addRecord(
+        source: const AiCallSource(
+          toolId: 'work_log',
+          toolName: '工作记录',
+          featureId: 'generate_summary',
+          featureName: '生成总结',
+        ),
+        model: 'gpt-4o-mini',
+        prompt: 'prompt history',
+        response: 'response history',
+        createdAt: DateTime(2026, 1, 5, 8, 0),
+      );
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        aiCallHistoryService: aiCallHistoryService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: const [],
+      );
+
+      final jsonText = await service.exportAsJson();
+      final map = jsonDecode(jsonText) as Map<String, dynamic>;
+
+      expect(map['ai_call_history'], isA<Map>());
+      final history = Map<String, dynamic>.from(map['ai_call_history'] as Map);
+      expect(history['retention_limit'], 10);
+      final records = history['records'] as List<dynamic>;
+      expect(records.length, 1);
+      expect((records.first as Map)['model'], 'gpt-4o-mini');
+    });
+
+    test('restoreFromJson 应还原 AI 调用历史', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final aiCallHistoryService = AiCallHistoryService();
+      await aiCallHistoryService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        aiCallHistoryService: aiCallHistoryService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: const [],
+      );
+
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': null,
+        'sync_config': null,
+        'obj_store_config': null,
+        'obj_store_secrets': null,
+        'ai_call_history': {
+          'retention_limit': 20,
+          'records': [
+            {
+              'id': 'history_1',
+              'source': {
+                'toolId': 'work_log',
+                'toolName': '工作记录',
+                'featureId': 'voice_to_intent',
+                'featureName': '语音解析',
+              },
+              'model': 'gpt-4o-mini',
+              'prompt': 'prompt restore history',
+              'response': 'response restore history',
+              'createdAt': DateTime(2026, 1, 6, 9, 30).millisecondsSinceEpoch,
+            },
+          ],
+        },
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': const <String, dynamic>{},
+      };
+
+      await service.restoreFromJson(jsonEncode(payload));
+
+      expect(aiCallHistoryService.retentionLimit, 20);
+      expect(aiCallHistoryService.records.length, 1);
+      expect(aiCallHistoryService.records.first.model, 'gpt-4o-mini');
+      expect(aiCallHistoryService.records.first.source.featureName, '语音解析');
+    });
     test('exportAsJson 遇到任一工具导出失败时应直接报错，避免生成不完整备份', () async {
       final aiConfigService = AiConfigService();
       await aiConfigService.init();
