@@ -216,12 +216,10 @@ class _AiCallHistoryPageState extends State<AiCallHistoryPage> {
                 padding: EdgeInsets.zero,
                 minimumSize: IOS26Theme.minimumTapSize,
                 onPressed: onOpenDetail,
-                child: Text(
-                  '查看详情',
-                  style: IOS26Theme.bodySmall.copyWith(
-                    color: IOS26Theme.primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: IOS26Icon(
+                  CupertinoIcons.eye,
+                  tone: IOS26IconTone.accent,
+                  size: 18,
                 ),
               ),
             ],

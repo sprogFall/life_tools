@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_call_history_service.dart';
@@ -47,7 +48,7 @@ void main() {
       expect(find.textContaining('囤货助手 · 文本解析'), findsOneWidget);
       expect(find.textContaining('模型：gpt-4o-mini'), findsOneWidget);
 
-      await tester.tap(find.text('查看详情').first);
+      await tester.tap(find.byIcon(CupertinoIcons.eye).first);
       await tester.pumpAndSettle();
 
       expect(find.text('提示词详情'), findsOneWidget);
