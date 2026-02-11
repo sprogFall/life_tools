@@ -47,7 +47,7 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
 
   Future<void> _refresh() async {
     if (_loading) return;
-    setState(() => _loading = true);
+    _loading = true;
     try {
       final repo = context.read<OvercookedRepository>();
       final tagService = context.read<TagService>();
@@ -57,16 +57,18 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
         categoryId: OvercookedTagCategories.dishType,
       );
       final stats = await repo.getRecipeStats();
-      setState(() {
-        _recipes = recipes;
-        _tagsById = {
-          for (final t in tags)
-            if (t.id != null) t.id!: t,
-        };
-        _statsById = stats;
-      });
+      if (mounted) {
+        setState(() {
+          _recipes = recipes;
+          _tagsById = {
+            for (final t in tags)
+              if (t.id != null) t.id!: t,
+          };
+          _statsById = stats;
+        });
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      _loading = false;
     }
   }
 

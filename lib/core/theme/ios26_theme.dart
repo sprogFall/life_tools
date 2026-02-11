@@ -883,7 +883,16 @@ class GlassContainer extends StatelessWidget {
           final isAnimating =
               status == AnimationStatus.forward ||
               status == AnimationStatus.reverse;
-          return _buildWithBlur(context, isAnimating ? 0 : blur);
+          if (isAnimating) {
+            return _buildWithBlur(context, 0);
+          }
+          // 路由过渡完成后，平滑渐入模糊效果，避免突变闪烁
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: blur),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            builder: (context, value, _) => _buildWithBlur(context, value),
+          );
         },
       );
     }

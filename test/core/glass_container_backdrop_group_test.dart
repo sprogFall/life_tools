@@ -17,7 +17,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final filterFinder = find.descendant(
       of: find.byType(GlassContainer),
