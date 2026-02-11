@@ -47,28 +47,35 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
 
   Future<void> _refresh() async {
     if (_loading) return;
-    _loading = true;
+    setState(() => _loading = true);
     try {
       final repo = context.read<OvercookedRepository>();
       final tagService = context.read<TagService>();
-      final recipes = await repo.listRecipes();
-      final tags = await tagService.listTagsForToolCategory(
+      final recipesFuture = repo.listRecipes();
+      final tagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.dishType,
       );
-      final stats = await repo.getRecipeStats();
+      final statsFuture = repo.getRecipeStats();
+
+      final recipes = await recipesFuture;
+      final tags = await tagsFuture;
+      final stats = await statsFuture;
+      if (!mounted) return;
+      setState(() {
+        _recipes = recipes;
+        _tagsById = {
+          for (final t in tags)
+            if (t.id != null) t.id!: t,
+        };
+        _statsById = stats;
+        _loading = false;
+      });
+    } catch (_) {
       if (mounted) {
-        setState(() {
-          _recipes = recipes;
-          _tagsById = {
-            for (final t in tags)
-              if (t.id != null) t.id!: t,
-          };
-          _statsById = stats;
-        });
+        setState(() => _loading = false);
       }
-    } finally {
-      _loading = false;
+      rethrow;
     }
   }
 

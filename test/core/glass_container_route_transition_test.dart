@@ -3,26 +3,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/theme/ios26_theme.dart';
 
 void main() {
-  testWidgets('GlassContainer 路由切换期间应禁用模糊以减少掉帧', (tester) async {
+  test('GlassContainer 仅在路由 reverse 状态禁用模糊', () {
+    expect(
+      GlassContainer.shouldDisableBlurForRouteStatus(AnimationStatus.dismissed),
+      isFalse,
+    );
+    expect(
+      GlassContainer.shouldDisableBlurForRouteStatus(AnimationStatus.forward),
+      isFalse,
+    );
+    expect(
+      GlassContainer.shouldDisableBlurForRouteStatus(AnimationStatus.completed),
+      isFalse,
+    );
+    expect(
+      GlassContainer.shouldDisableBlurForRouteStatus(AnimationStatus.reverse),
+      isTrue,
+    );
+  });
+
+  testWidgets('GlassContainer pop 期间应临时关闭模糊以减轻动画压力', (tester) async {
     final navigatorKey = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
       MaterialApp(navigatorKey: navigatorKey, home: const SizedBox.shrink()),
     );
 
     await tester.pump();
-
     navigatorKey.currentState!.push(
       MaterialPageRoute<void>(builder: (_) => const _NextPage()),
     );
-    await tester.pump(); // 启动 push 动画
+    await tester.pumpAndSettle();
+
+    navigatorKey.currentState!.pop();
+    await tester.pump(); // 启动 pop 动画
 
     final glassFinder = find.byKey(
       const ValueKey('glass_container'),
       skipOffstage: false,
-    );
-    expect(
-      find.byKey(const ValueKey('next_page'), skipOffstage: false),
-      findsOneWidget,
     );
     expect(glassFinder, findsOneWidget);
     expect(
@@ -35,14 +52,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    expect(
-      find.descendant(
-        of: glassFinder,
-        matching: find.byType(BackdropFilter),
-        skipOffstage: false,
-      ),
-      findsOneWidget,
-    );
+    expect(glassFinder, findsNothing);
   });
 }
 

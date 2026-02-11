@@ -872,6 +872,10 @@ class GlassContainer extends StatelessWidget {
     this.disableBlurDuringRouteTransition = true,
   });
 
+  static bool shouldDisableBlurForRouteStatus(AnimationStatus status) {
+    return status == AnimationStatus.reverse;
+  }
+
   @override
   Widget build(BuildContext context) {
     final routeAnimation = ModalRoute.of(context)?.animation;
@@ -879,20 +883,10 @@ class GlassContainer extends StatelessWidget {
       return AnimatedBuilder(
         animation: routeAnimation,
         builder: (context, _) {
-          final status = routeAnimation.status;
-          final isAnimating =
-              status == AnimationStatus.forward ||
-              status == AnimationStatus.reverse;
-          if (isAnimating) {
-            return _buildWithBlur(context, 0);
-          }
-          // 路由过渡完成后，平滑渐入模糊效果，避免突变闪烁
-          return TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: blur),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            builder: (context, value, _) => _buildWithBlur(context, value),
+          final shouldDisable = shouldDisableBlurForRouteStatus(
+            routeAnimation.status,
           );
+          return _buildWithBlur(context, shouldDisable ? 0 : blur);
         },
       );
     }

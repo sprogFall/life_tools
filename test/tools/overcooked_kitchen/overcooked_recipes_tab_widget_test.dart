@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/theme/ios26_theme.dart';
@@ -40,6 +42,30 @@ class _FakeOvercookedRepository extends OvercookedRepository {
   getRecipeStats() async => const {};
 }
 
+class _DelayedOvercookedRepository extends _FakeOvercookedRepository {
+  _DelayedOvercookedRepository(super.db);
+
+  final Completer<void> _loadCompleter = Completer<void>();
+
+  void completeLoad() {
+    if (_loadCompleter.isCompleted) return;
+    _loadCompleter.complete();
+  }
+
+  @override
+  Future<List<OvercookedRecipe>> listRecipes({int? typeTagId}) async {
+    await _loadCompleter.future;
+    return const <OvercookedRecipe>[];
+  }
+
+  @override
+  Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
+  getRecipeStats() async {
+    await _loadCompleter.future;
+    return const {};
+  }
+}
+
 void main() {
   group('OvercookedRecipesTab（Widget）', () {
     late Database db;
@@ -80,6 +106,30 @@ void main() {
       expect(find.text('不知道吃什么？去扭蛋机抽一个'), findsOneWidget);
       expect(find.text('去扭蛋'), findsOneWidget);
       expect(find.text('搜索菜谱'), findsOneWidget);
+    });
+
+    testWidgets('首次加载期间显示进度指示，避免空态闪现', (tester) async {
+      final delayedRepository = _DelayedOvercookedRepository(db);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: delayedRepository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedRecipesTab(onJumpToGacha: () {}),
+          ),
+        ),
+      );
+
+      expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+      expect(find.text('暂无菜谱，点右上角 + 新建'), findsNothing);
+
+      delayedRepository.completeLoad();
+      await tester.pumpAndSettle();
+
+      expect(find.text('暂无菜谱，点右上角 + 新建'), findsOneWidget);
     });
 
     testWidgets('去扭蛋按钮按下时不应改变颜色', (tester) async {
