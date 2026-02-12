@@ -44,11 +44,7 @@ void main() {
 
       await provider.importData({
         'version': 1,
-        'data': {
-          'tasks': [],
-          'time_entries': [],
-          'operation_logs': [],
-        },
+        'data': {'tasks': [], 'time_entries': [], 'operation_logs': []},
       });
 
       expect(tagRepo.workTaskTagsImportCalls, 0);

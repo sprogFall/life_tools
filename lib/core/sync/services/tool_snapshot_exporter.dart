@@ -40,4 +40,3 @@ class ToolSnapshotExporter {
     return snapshots;
   }
 }
-

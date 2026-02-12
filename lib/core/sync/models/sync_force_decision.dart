@@ -18,4 +18,3 @@ extension SyncForceDecisionJson on SyncForceDecision {
     };
   }
 }
-

@@ -52,7 +52,11 @@ void main() {
       });
 
       final api = SyncApiClient(httpClient: client);
-      final result = await api.listSyncRecords(config: config, limit: 50, beforeId: 99);
+      final result = await api.listSyncRecords(
+        config: config,
+        limit: 50,
+        beforeId: 99,
+      );
 
       expect(
         client.lastRequest?.url.toString(),
@@ -106,4 +110,3 @@ void main() {
     });
   });
 }
-

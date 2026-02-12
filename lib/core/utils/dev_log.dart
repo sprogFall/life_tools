@@ -14,4 +14,3 @@ void devLog(
     return true;
   }());
 }
-

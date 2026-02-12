@@ -56,7 +56,9 @@ void main() {
         localStateService: localStateService,
         aiConfigService: AiConfigService(),
         settingsService: SettingsService(databaseProvider: () async => throw 0),
-        objStoreConfigService: ObjStoreConfigService(secretStore: _FakeSecretStore()),
+        objStoreConfigService: ObjStoreConfigService(
+          secretStore: _FakeSecretStore(),
+        ),
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: apiClient,
         toolProviders: const [],
@@ -98,7 +100,9 @@ void main() {
         localStateService: localStateService,
         aiConfigService: AiConfigService(),
         settingsService: SettingsService(databaseProvider: () async => throw 0),
-        objStoreConfigService: ObjStoreConfigService(secretStore: _FakeSecretStore()),
+        objStoreConfigService: ObjStoreConfigService(
+          secretStore: _FakeSecretStore(),
+        ),
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: SyncApiClient(httpClient: httpClient),
         toolProviders: const [],
@@ -158,7 +162,9 @@ void main() {
         localStateService: localStateService,
         aiConfigService: AiConfigService(),
         settingsService: SettingsService(databaseProvider: () async => throw 0),
-        objStoreConfigService: ObjStoreConfigService(secretStore: _FakeSecretStore()),
+        objStoreConfigService: ObjStoreConfigService(
+          secretStore: _FakeSecretStore(),
+        ),
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: SyncApiClient(httpClient: httpClient),
         toolProviders: [toolProvider],
@@ -221,7 +227,9 @@ void main() {
         localStateService: localStateService,
         aiConfigService: AiConfigService(),
         settingsService: SettingsService(databaseProvider: () async => throw 0),
-        objStoreConfigService: ObjStoreConfigService(secretStore: _FakeSecretStore()),
+        objStoreConfigService: ObjStoreConfigService(
+          secretStore: _FakeSecretStore(),
+        ),
         wifiService: _FakeWifiService(NetworkStatus.wifi),
         apiClient: SyncApiClient(httpClient: httpClient),
         toolProviders: [toolProvider],
@@ -293,4 +301,3 @@ class _RecordingToolProvider implements ToolSyncProvider {
     imported = Map<String, dynamic>.from(data);
   }
 }
-

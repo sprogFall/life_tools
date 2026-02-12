@@ -183,7 +183,8 @@ class DataCapsuleClient {
       }
 
       return false;
-    } catch (_) {
+    } catch (e, st) {
+      devLog('探测数据胶囊公有 URL 失败: ${e.runtimeType}', error: e, stackTrace: st);
       return false;
     }
   }
@@ -229,7 +230,8 @@ class DataCapsuleClient {
       final code = resp.statusCode;
       if (code == 416) return true;
       return code >= 200 && code < 400;
-    } catch (_) {
+    } catch (e, st) {
+      devLog('探测数据胶囊私有对象失败: ${e.runtimeType}', error: e, stackTrace: st);
       return false;
     }
   }
@@ -274,7 +276,8 @@ class DataCapsuleClient {
       final bytes = await resp.stream.toBytes();
       if (bytes.isEmpty) return null;
       return bytes;
-    } catch (_) {
+    } catch (e, st) {
+      devLog('读取数据胶囊私有对象失败: ${e.runtimeType}', error: e, stackTrace: st);
       return null;
     }
   }
@@ -283,10 +286,7 @@ class DataCapsuleClient {
     try {
       resp.stream.listen((_) {}).cancel();
     } catch (e, st) {
-      devLog(
-        '取消 StreamedResponse 失败: ${e.runtimeType}',
-        stackTrace: st,
-      );
+      devLog('取消 StreamedResponse 失败: ${e.runtimeType}', stackTrace: st);
     }
   }
 

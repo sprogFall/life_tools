@@ -17,4 +17,3 @@ class AppConfigUpdatedAt {
     await prefs.setInt(storageKey, value);
   }
 }
-

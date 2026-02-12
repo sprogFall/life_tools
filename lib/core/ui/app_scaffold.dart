@@ -24,10 +24,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = Stack(
-      children: [
-        if (withBackgroundDecor) ..._buildDecorations(),
-        _buildBody(),
-      ],
+      children: [if (withBackgroundDecor) ..._buildDecorations(), _buildBody()],
     );
     return Scaffold(
       backgroundColor: backgroundColor ?? IOS26Theme.backgroundColor,
@@ -48,7 +45,7 @@ class AppScaffold extends StatelessWidget {
         // 所以这里我们不需要 SafeArea(top: true)，除非我们不想内容被遮挡。
         // iOS 风格通常是 List 可以滚到 Bar 下面。
         // 这里的策略是：让 body 占据全屏，内容自己加 Padding 或 ListView。
-        top: appBar == null, 
+        top: appBar == null,
         bottom: true,
         child: body,
       );

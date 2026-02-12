@@ -35,7 +35,8 @@ class AllMessagesPage extends StatelessWidget {
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 itemCount: messages.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final message = messages[index];
                   return _MessageListItem(message: message);

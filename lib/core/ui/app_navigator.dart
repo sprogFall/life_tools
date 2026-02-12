@@ -6,16 +6,16 @@ class AppNavigator {
 
   /// 推入新页面
   static Future<T?> push<T>(BuildContext context, Widget page) {
-    return Navigator.of(context).push<T>(
-      CupertinoPageRoute<T>(builder: (_) => page),
-    );
+    return Navigator.of(
+      context,
+    ).push<T>(CupertinoPageRoute<T>(builder: (_) => page));
   }
 
   /// 替换当前页面
   static Future<T?> pushReplacement<T>(BuildContext context, Widget page) {
-    return Navigator.of(context).pushReplacement<T, void>(
-      CupertinoPageRoute<T>(builder: (_) => page),
-    );
+    return Navigator.of(
+      context,
+    ).pushReplacement<T, void>(CupertinoPageRoute<T>(builder: (_) => page));
   }
 
   /// 推入新页面并移除直到...

@@ -32,7 +32,9 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<SyncConfigService>.value(value: configService),
-          Provider<WifiService>.value(value: _FakeWifiService(NetworkStatus.wifi)),
+          Provider<WifiService>.value(
+            value: _FakeWifiService(NetworkStatus.wifi),
+          ),
         ],
         child: const TestAppWrapper(
           locale: Locale('en', 'US'),
@@ -49,4 +51,3 @@ void main() {
     expect(find.textContaining('Sync config'), findsOneWidget);
   });
 }
-

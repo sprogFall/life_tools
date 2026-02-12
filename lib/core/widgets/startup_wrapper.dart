@@ -80,7 +80,9 @@ class _StartupWrapperState extends State<StartupWrapper> {
         // 如果是因为“正在同步中”返回 false，可能不需要报错？
         // 但 sync() 内部如果正在同步会返回 false 且设置 lastError。
         toastService.showError(
-          l10n.sync_auto_sync_failed_toast(error ?? l10n.network_status_unknown),
+          l10n.sync_auto_sync_failed_toast(
+            error ?? l10n.network_status_unknown,
+          ),
         );
       }
     }

@@ -54,7 +54,9 @@ class SyncConfig {
     if (url.isEmpty) return '';
 
     final hasScheme = url.contains('://');
-    final defaultScheme = hasScheme ? null : _inferDefaultScheme(url, serverPort);
+    final defaultScheme = hasScheme
+        ? null
+        : _inferDefaultScheme(url, serverPort);
     final withScheme = hasScheme ? url : '$defaultScheme://$url';
     final parsed = Uri.tryParse(withScheme);
     if (parsed == null || parsed.host.trim().isEmpty) {

@@ -31,7 +31,10 @@ void main() {
             'server_revision': 12,
             'updated_at_ms': 1234,
             'tools_data': {
-              'work_log': {'version': 1, 'data': {'tasks': []}},
+              'work_log': {
+                'version': 1,
+                'data': {'tasks': []},
+              },
             },
           },
         });
@@ -43,7 +46,10 @@ void main() {
       });
 
       final api = SyncApiClient(httpClient: client);
-      final snapshot = await api.getSnapshotByRevision(config: config, revision: 12);
+      final snapshot = await api.getSnapshotByRevision(
+        config: config,
+        revision: 12,
+      );
 
       expect(
         client.lastRequest?.url.toString(),
@@ -62,7 +68,10 @@ void main() {
           'server_revision': 3,
           'restored_from_revision': 1,
           'tools_data': {
-            'work_log': {'version': 1, 'data': {'tasks': []}},
+            'work_log': {
+              'version': 1,
+              'data': {'tasks': []},
+            },
           },
         });
         return http.StreamedResponse(
@@ -73,9 +82,15 @@ void main() {
       });
 
       final api = SyncApiClient(httpClient: client);
-      final result = await api.rollbackToRevision(config: config, targetRevision: 1);
+      final result = await api.rollbackToRevision(
+        config: config,
+        targetRevision: 1,
+      );
 
-      expect(client.lastRequest?.url.toString(), 'http://127.0.0.1:8080/sync/rollback');
+      expect(
+        client.lastRequest?.url.toString(),
+        'http://127.0.0.1:8080/sync/rollback',
+      );
       final req = client.lastRequest as http.Request;
       expect(req.body, contains('"user_id":"u1"'));
       expect(req.body, contains('"target_revision":1'));
@@ -101,4 +116,3 @@ void main() {
     });
   });
 }
-

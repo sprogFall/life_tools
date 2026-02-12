@@ -49,7 +49,9 @@ class SyncRecord {
     final clientTimeMs = json['client_time'];
     final clientTimeValue = clientTimeMs == null
         ? null
-        : DateTime.fromMillisecondsSinceEpoch(_readInt(clientTimeMs, fallback: 0));
+        : DateTime.fromMillisecondsSinceEpoch(
+            _readInt(clientTimeMs, fallback: 0),
+          );
 
     return SyncRecord(
       id: _readInt(json['id'], fallback: 0),
@@ -67,11 +69,13 @@ class SyncRecord {
         json['server_updated_at_ms_after'],
         fallback: 0,
       ),
-      serverRevisionBefore: _readInt(json['server_revision_before'], fallback: 0),
+      serverRevisionBefore: _readInt(
+        json['server_revision_before'],
+        fallback: 0,
+      ),
       serverRevisionAfter: _readInt(json['server_revision_after'], fallback: 0),
       diffSummary: _readMap(json['diff_summary']),
       diff: json['diff'] is Map ? _readMap(json['diff']) : null,
     );
   }
 }
-

@@ -17,9 +17,9 @@ void main() {
       MethodCall? recordedCall;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-        recordedCall = call;
-        return true;
-      });
+            recordedCall = call;
+            return true;
+          });
 
       final service = DisplayRefreshRateService();
       final ok = await service.tryRequestPreferredHz(90);
@@ -34,8 +34,8 @@ void main() {
     test('平台异常时应返回 false', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-        throw PlatformException(code: 'unavailable');
-      });
+            throw PlatformException(code: 'unavailable');
+          });
 
       final service = DisplayRefreshRateService();
       final ok = await service.tryRequestPreferredHz(90);

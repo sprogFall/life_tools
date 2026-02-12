@@ -383,7 +383,10 @@ class SyncSnapshot {
   factory SyncSnapshot.fromJson(Map<String, dynamic> json) {
     return SyncSnapshot(
       userId: (json['user_id'] as String?) ?? '',
-      serverRevision: SyncApiClient._readInt(json['server_revision'], fallback: 0),
+      serverRevision: SyncApiClient._readInt(
+        json['server_revision'],
+        fallback: 0,
+      ),
       updatedAtMs: SyncApiClient._readInt(json['updated_at_ms'], fallback: 0),
       toolsData: SyncApiClient._readToolsData(json['tools_data']),
     );
@@ -404,10 +407,16 @@ class SyncRollbackResult {
   });
 
   factory SyncRollbackResult.fromJson(Map<String, dynamic> json) {
-    final serverTimeMs = SyncApiClient._readInt(json['server_time'], fallback: 0);
+    final serverTimeMs = SyncApiClient._readInt(
+      json['server_time'],
+      fallback: 0,
+    );
     return SyncRollbackResult(
       serverTime: DateTime.fromMillisecondsSinceEpoch(serverTimeMs),
-      serverRevision: SyncApiClient._readInt(json['server_revision'], fallback: 0),
+      serverRevision: SyncApiClient._readInt(
+        json['server_revision'],
+        fallback: 0,
+      ),
       restoredFromRevision: SyncApiClient._readInt(
         json['restored_from_revision'],
         fallback: 0,

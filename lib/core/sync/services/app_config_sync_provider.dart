@@ -41,7 +41,8 @@ class AppConfigSyncProvider implements ToolSyncProvider {
     final data = Map<String, dynamic>.from(dataRaw);
     await _backupRestoreService.restoreConfigFromMap(data);
 
-    final incomingUpdatedAtMs = (snapshot['updated_at_ms'] as num?)?.toInt() ?? 0;
+    final incomingUpdatedAtMs =
+        (snapshot['updated_at_ms'] as num?)?.toInt() ?? 0;
     if (incomingUpdatedAtMs <= 0) return;
 
     final prefs = await SharedPreferences.getInstance();

@@ -14,8 +14,7 @@ class SyncRequest {
 
   Map<String, dynamic> toJson() => {
     'user_id': userId,
-    if (forceDecision != null)
-      'force_decision': forceDecision!.toJsonValue(),
+    if (forceDecision != null) 'force_decision': forceDecision!.toJsonValue(),
     'tools_data': toolsData,
   };
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import '../utils/dev_log.dart';
+
 /// 请求设备使用更高刷新率（例如 90Hz）。
 ///
 /// - 非 Android 或不支持的平台会返回 false
@@ -18,9 +20,9 @@ class DisplayRefreshRateService {
       return false;
     } on MissingPluginException {
       return false;
-    } catch (_) {
+    } catch (e, st) {
+      devLog('请求刷新率失败: ${e.runtimeType}', error: e, stackTrace: st);
       return false;
     }
   }
 }
-

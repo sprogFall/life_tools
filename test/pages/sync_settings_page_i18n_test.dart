@@ -56,7 +56,9 @@ void main() {
           ),
           ChangeNotifierProvider<SyncService>.value(value: _MockSyncService()),
           ChangeNotifierProvider<ToastService>.value(value: ToastService()),
-          Provider<WifiService>.value(value: _FakeWifiService(NetworkStatus.wifi)),
+          Provider<WifiService>.value(
+            value: _FakeWifiService(NetworkStatus.wifi),
+          ),
         ],
         child: const TestAppWrapper(
           locale: Locale('en', 'US'),

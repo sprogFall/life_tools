@@ -23,8 +23,7 @@ class SyncRequestV2 {
     'user_id': userId,
     'client_time': clientTimeMs,
     'client_state': clientState.toJson(),
-    if (forceDecision != null)
-      'force_decision': forceDecision!.toJsonValue(),
+    if (forceDecision != null) 'force_decision': forceDecision!.toJsonValue(),
     'tools_data': toolsData,
   };
 }

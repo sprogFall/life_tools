@@ -42,14 +42,14 @@ void main() {
     final hasSelectedStyle = containers.any((container) {
       final decoration = container.decoration;
       if (decoration is! BoxDecoration) return false;
-      
+
       final isPrimaryColor = decoration.color == IOS26Theme.primaryColor;
       final hasSingleShadow = (decoration.boxShadow?.length ?? 0) == 1;
       final noGradient = decoration.gradient == null;
-      
+
       return isPrimaryColor && hasSingleShadow && noGradient;
     });
-    
+
     expect(hasSelectedStyle, isTrue, reason: '应存在符合新设计规范的选中日期格');
 
     // 3. 验证未选中日期格（无背景装饰）

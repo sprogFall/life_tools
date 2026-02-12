@@ -34,4 +34,3 @@ class SyncLocalStateService extends ChangeNotifier {
 
   Future<void> clear() => setLocalUserId(null);
 }
-

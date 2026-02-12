@@ -5,14 +5,14 @@ import 'package:life_tools/core/theme/ios26_theme.dart';
 import 'package:life_tools/core/ui/app_scaffold.dart';
 
 void main() {
-  testWidgets('GlassContainer 在 BackdropGroup 下应复用 backdropKey', (tester) async {
+  testWidgets('GlassContainer 在 BackdropGroup 下应复用 backdropKey', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: BackdropGroup(
-            child: GlassContainer(
-              child: const SizedBox(width: 10, height: 10),
-            ),
+            child: GlassContainer(child: const SizedBox(width: 10, height: 10)),
           ),
         ),
       ),
@@ -33,9 +33,7 @@ void main() {
 
   testWidgets('AppScaffold 默认应提供 BackdropGroup', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: AppScaffold(body: SizedBox.shrink()),
-      ),
+      const MaterialApp(home: AppScaffold(body: SizedBox.shrink())),
     );
     expect(find.byType(BackdropGroup), findsOneWidget);
   });

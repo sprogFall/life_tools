@@ -48,16 +48,16 @@ class MessageService extends ChangeNotifier {
     bool refreshDaily = false,
   }) async {
     final trimmedBody = body.trim();
-    final existing = dedupeKey == null
-        ? null
-        : _messages.where((e) => e.dedupeKey == dedupeKey).isEmpty
-        ? null
-        : _messages.firstWhere((e) => e.dedupeKey == dedupeKey);
+    final existing = _findByDedupeKey(dedupeKey);
 
     final effectiveNow = createdAt ?? DateTime.now();
-    final effectiveExpiresAt = expiresAt ??
-        DateTime(effectiveNow.year, effectiveNow.month, effectiveNow.day)
-            .add(defaultExpiresIn);
+    final effectiveExpiresAt =
+        expiresAt ??
+        DateTime(
+          effectiveNow.year,
+          effectiveNow.month,
+          effectiveNow.day,
+        ).add(defaultExpiresIn);
     final shouldResurfaceDaily =
         refreshDaily &&
         existing != null &&
@@ -107,6 +107,14 @@ class MessageService extends ChangeNotifier {
       await _notificationService?.showMessage(title: title, body: trimmedBody);
     }
     return id;
+  }
+
+  AppMessage? _findByDedupeKey(String? dedupeKey) {
+    if (dedupeKey == null) return null;
+    for (final message in _messages) {
+      if (message.dedupeKey == dedupeKey) return message;
+    }
+    return null;
   }
 
   bool _isDifferentDay(DateTime a, DateTime b) {

@@ -125,3 +125,16 @@ dart format .
 - 变更 Flutter 侧（`lib/**`、`test/**`、平台工程或 `pubspec.yaml`）：必须执行并通过 `flutter analyze` 与 `flutter test`
 - 仅变更后端（`backend/**`）且未改动 Flutter：无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端测试
 - 建议在提交前执行 `dart format .` 保持统一格式
+
+## 全局规范与美化检查（新增归纳）
+
+1. **先检查后修复**：
+   - 先执行 `dart format --output=none --set-exit-if-changed .` 进行全量格式检查
+   - 若检测到变更，再执行 `dart format .` 一次性修复
+2. **国际化例外说明**：
+   - 当任务明确要求“排除国际化内容”时，不主动改动 i18n 文案语义与键值
+   - 若全量格式化波及 i18n 相关测试文件（如 `*_i18n_test.dart`），允许仅保留格式层面的改动
+3. **Linux 测试环境补充（sqlite3）**：
+   - 若 `flutter test` 报错 `Failed to load dynamic library 'libsqlite3.so'`，先执行：
+     - `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
+     - `LD_LIBRARY_PATH=/tmp flutter test`

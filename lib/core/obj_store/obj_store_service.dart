@@ -105,9 +105,7 @@ class ObjStoreService {
       return result;
     } catch (e) {
       // 压缩失败（如格式不支持）降级为原图
-      if (kDebugMode) {
-        print('Image compression failed: $e');
-      }
+      devLog('图片压缩失败: ${e.runtimeType}', error: e);
       return bytes;
     }
   }
@@ -333,11 +331,7 @@ class ObjStoreService {
       try {
         tmp.deleteSync();
       } catch (e, st) {
-        devLog(
-          '删除临时缓存文件失败（将继续写入覆盖）: ${tmp.path}',
-          error: e,
-          stackTrace: st,
-        );
+        devLog('删除临时缓存文件失败（将继续写入覆盖）: ${tmp.path}', error: e, stackTrace: st);
       }
     }
 

@@ -41,7 +41,10 @@ class SyncDiffPresenter {
     return _categoryNames[categoryId] ?? categoryId;
   }
 
-  static SyncDiffDisplay formatDiffItem(String toolId, Map<dynamic, dynamic> raw) {
+  static SyncDiffDisplay formatDiffItem(
+    String toolId,
+    Map<dynamic, dynamic> raw,
+  ) {
     final path = (raw['path'] as String?) ?? '';
     final change = (raw['change'] as String?) ?? '';
 
@@ -61,12 +64,20 @@ class SyncDiffPresenter {
       case 'added':
         label = '新增';
         color = CupertinoColors.activeGreen;
-        details = _formatAddedOrRemoved(toolId, raw['client'] ?? raw['server'], isAdded: true);
+        details = _formatAddedOrRemoved(
+          toolId,
+          raw['client'] ?? raw['server'],
+          isAdded: true,
+        );
         break;
       case 'removed':
         label = '删除';
         color = CupertinoColors.destructiveRed;
-        details = _formatAddedOrRemoved(toolId, raw['server'] ?? raw['client'], isAdded: false);
+        details = _formatAddedOrRemoved(
+          toolId,
+          raw['server'] ?? raw['client'],
+          isAdded: false,
+        );
         break;
       case 'value_changed':
         label = '修改';
@@ -74,9 +85,9 @@ class SyncDiffPresenter {
         final s = raw['server'];
         final c = raw['client'];
         if (s.toString().length < 20 && c.toString().length < 20) {
-           details = '$s → $c';
+          details = '$s → $c';
         } else {
-           details = '内容已变更';
+          details = '内容已变更';
         }
         break;
       case 'type_changed':
@@ -96,7 +107,11 @@ class SyncDiffPresenter {
     );
   }
 
-  static String _formatAddedOrRemoved(String toolId, dynamic data, {required bool isAdded}) {
+  static String _formatAddedOrRemoved(
+    String toolId,
+    dynamic data, {
+    required bool isAdded,
+  }) {
     if (data is! Map) {
       return isAdded ? '新增了数据' : '删除了数据';
     }
@@ -104,21 +119,22 @@ class SyncDiffPresenter {
     // Handle Tag specific logic
     // Assuming tags have 'name' and 'category_id' or similar fields
     // and usually the path contains 'tags'
-    if (data.containsKey('name') && (data.containsKey('category_id') || data.containsKey('categoryId'))) {
+    if (data.containsKey('name') &&
+        (data.containsKey('category_id') || data.containsKey('categoryId'))) {
       final name = data['name'];
       final categoryId = data['category_id'] ?? data['categoryId'];
       final categoryName = _getCategoryName(categoryId.toString());
       final toolName = getToolName(toolId);
-      
+
       return '${isAdded ? "新增" : "删除"}了$toolName下$categoryName类型的标签：【$name】';
     }
-    
+
     // Generic fallback with name/title if available
     if (data.containsKey('name')) {
-       return '${isAdded ? "新增" : "删除"}了：【${data['name']}】';
+      return '${isAdded ? "新增" : "删除"}了：【${data['name']}】';
     }
     if (data.containsKey('title')) {
-       return '${isAdded ? "新增" : "删除"}了：【${data['title']}】';
+      return '${isAdded ? "新增" : "删除"}了：【${data['title']}】';
     }
 
     return isAdded ? '新增了数据' : '删除了数据';

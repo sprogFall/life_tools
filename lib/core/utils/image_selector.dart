@@ -77,10 +77,7 @@ class ImageSelector {
       if (bytes.isEmpty) return null;
       return PickedImageBytes(filename: x.name, bytes: bytes);
     } catch (e) {
-      devLog(
-        'ImageSelector pickSingle error: ${e.runtimeType}',
-        error: e,
-      );
+      devLog('ImageSelector pickSingle error: ${e.runtimeType}', error: e);
       return null;
     }
   }
@@ -104,10 +101,7 @@ class ImageSelector {
       }
       return out;
     } catch (e) {
-      devLog(
-        'ImageSelector pickMulti error: ${e.runtimeType}',
-        error: e,
-      );
+      devLog('ImageSelector pickMulti error: ${e.runtimeType}', error: e);
       return const [];
     }
   }
@@ -170,7 +164,8 @@ class ImageSelector {
     if (path == null || path.trim().isEmpty) return null;
     try {
       return await XFile(path).readAsBytes();
-    } catch (_) {
+    } catch (e, st) {
+      devLog('读取已选择图片失败: ${e.runtimeType}', error: e, stackTrace: st);
       return null;
     }
   }

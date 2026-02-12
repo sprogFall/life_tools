@@ -18,9 +18,7 @@ class SectionHeader extends StatelessWidget {
       padding: padding,
       child: Text(
         title,
-        style: IOS26Theme.titleSmall.copyWith(
-          color: IOS26Theme.textSecondary,
-        ),
+        style: IOS26Theme.titleSmall.copyWith(color: IOS26Theme.textSecondary),
       ),
     );
   }
