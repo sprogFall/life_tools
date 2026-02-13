@@ -13,6 +13,7 @@ class OvercookedImageByKey extends StatelessWidget {
   final String? objectKey;
   final BoxFit fit;
   final double borderRadius;
+  final bool cacheOnly;
 
   const OvercookedImageByKey({
     super.key,
@@ -20,6 +21,7 @@ class OvercookedImageByKey extends StatelessWidget {
     required this.objectKey,
     this.fit = BoxFit.cover,
     this.borderRadius = 14,
+    this.cacheOnly = false,
   });
 
   @override
@@ -31,12 +33,15 @@ class OvercookedImageByKey extends StatelessWidget {
 
     if (!kIsWeb) {
       return FutureBuilder<File?>(
-        future: objStoreService.ensureCachedFile(key: key),
+        future: cacheOnly
+            ? objStoreService.getCachedFile(key: key)
+            : objStoreService.ensureCachedFile(key: key),
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return _placeholder(isLoading: true);
+            return cacheOnly ? _placeholder() : _placeholder(isLoading: true);
           }
           if (snapshot.hasError) {
+            if (cacheOnly) return _placeholder();
             if (snapshot.error is ObjStoreNotConfiguredException) {
               return _placeholder(text: '未配置资源存储');
             }
@@ -51,11 +56,13 @@ class OvercookedImageByKey extends StatelessWidget {
             );
           }
 
+          if (cacheOnly) return _placeholder();
           return _buildNetworkFallback(key: key);
         },
       );
     }
 
+    if (cacheOnly) return _placeholder();
     return _buildNetworkFallback(key: key);
   }
 

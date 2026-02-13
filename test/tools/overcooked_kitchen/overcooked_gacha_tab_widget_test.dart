@@ -1,11 +1,19 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
+import 'package:life_tools/core/obj_store/obj_store_service.dart';
+import 'package:life_tools/core/obj_store/qiniu/qiniu_client.dart';
+import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
+import 'package:life_tools/core/obj_store/storage/local_obj_store.dart';
 import 'package:life_tools/core/tags/models/tag.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/tags/tag_service.dart';
 import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_recipe.dart';
 import 'package:life_tools/tools/overcooked_kitchen/pages/tabs/overcooked_gacha_tab.dart';
 import 'package:life_tools/tools/overcooked_kitchen/repository/overcooked_repository.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -79,6 +87,44 @@ class _FakeOvercookedRepository extends OvercookedRepository {
   Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
   getRecipeStats() async {
     return recipeStats;
+  }
+}
+
+class _CountingObjStoreService extends ObjStoreService {
+  int getCachedFileCallCount = 0;
+  int ensureCachedFileCallCount = 0;
+
+  _CountingObjStoreService()
+    : super(
+        configService: ObjStoreConfigService(
+          secretStore: InMemorySecretStore(),
+        ),
+        localStore: LocalObjStore(
+          baseDirProvider: () async {
+            final dir = Directory(
+              p.join(Directory.systemTemp.path, 'gacha_cache_test'),
+            );
+            if (!dir.existsSync()) dir.createSync(recursive: true);
+            return dir;
+          },
+        ),
+        qiniuClient: QiniuClient(),
+      );
+
+  @override
+  Future<File?> getCachedFile({required String key}) async {
+    getCachedFileCallCount++;
+    return null;
+  }
+
+  @override
+  Future<File?> ensureCachedFile({
+    required String key,
+    Duration timeout = const Duration(seconds: 12),
+    Future<String> Function()? resolveUriWhenMiss,
+  }) async {
+    ensureCachedFileCallCount++;
+    return null;
   }
 }
 
@@ -266,6 +312,81 @@ void main() {
         findsOneWidget,
       );
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('抽卡浮层图片应优先读取缓存，不触发下载', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final typeTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      tagService = _FakeTagService(db, tags: [typeTag]);
+      repository = _FakeOvercookedRepository(
+        db,
+        recipes: [
+          OvercookedRecipe.create(
+            name: '红烧肉',
+            coverImageKey: 'images/r1.jpg',
+            typeTagId: typeTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 100),
+        ],
+      );
+      final objStoreService = _CountingObjStoreService();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+            Provider<ObjStoreService>.value(value: objStoreService),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+              objStoreService: objStoreService,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 2000));
+
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_draw_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_draw_card_name')),
+        findsOneWidget,
+      );
+      expect(objStoreService.getCachedFileCallCount, greaterThan(0));
+      expect(objStoreService.ensureCachedFileCallCount, 0);
     });
 
     testWidgets('抽卡流程结束后应揭晓随机菜品并进入列表', (tester) async {

@@ -728,6 +728,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
             objStoreService: objStoreService,
             objectKey: recipe.coverImageKey,
             borderRadius: 14,
+            cacheOnly: true,
           ),
         ),
         const SizedBox(height: 10),
@@ -950,6 +951,7 @@ class _PickedCard extends StatelessWidget {
               objStoreService: objStoreService,
               objectKey: recipe.coverImageKey,
               borderRadius: 14,
+              cacheOnly: false,
             ),
           ),
           const SizedBox(width: 12),
@@ -1005,11 +1007,13 @@ class _RecipeImage extends StatelessWidget {
   final ObjStoreService? objStoreService;
   final String? objectKey;
   final double borderRadius;
+  final bool cacheOnly;
 
   const _RecipeImage({
     required this.objStoreService,
     required this.objectKey,
     required this.borderRadius,
+    this.cacheOnly = false,
   });
 
   @override
@@ -1033,6 +1037,7 @@ class _RecipeImage extends StatelessWidget {
       objStoreService: service,
       objectKey: objectKey,
       borderRadius: borderRadius,
+      cacheOnly: cacheOnly,
     );
   }
 }
