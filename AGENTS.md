@@ -1,140 +1,62 @@
 # Repository Guidelines
 
-## Agent注意事项
-1. 永远用中文回答我
+## Agent 注意事项
+1. 永远用中文回答。
 
 ## 开发原则
+1. TDD：先写/补测试，再写功能；改动后必须完成对应校验。
+2. 简约：避免过度设计。
+3. 去重：避免重复逻辑，优先复用。
 
-1. **TDD（测试驱动开发）**：编写功能代码之前，先编写测试类，覆盖尽可能多的场景。每次修改后必须执行测试用例，并及时补充新功能所需的测试案例
-2. **简约原则**：不要过度设计，保持代码简洁，避免不必要的复杂化
-3. **零容忍重复**：必须复用代码，杜绝重复逻辑
-4. **中文响应**：始终使用中文进行交流和回复
-5. **改动验证要求**：
-   - 若本次改动涉及 **Flutter 侧代码/构建相关文件**（如 `lib/**`、`test/**`、平台代码 `android/**`/`ios/**`/`macos/**`/`windows/**`/`linux/**`、以及 `pubspec.yaml` 等），必须在交付前执行并通过：`flutter analyze` 与 `flutter test`
-   - 若本次改动 **仅涉及后端服务**（`backend/**`）且未改动任何 Flutter 相关目录/配置，则无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端的测试（例如：`cd backend/sync_server && .venv/bin/pytest`）
-   - 若本次改动仅为"文档类变更"（如 `README.md`、`docs/**`、`examples/**`、`*.md` 等），可不执行 `flutter analyze` / `flutter test`
-   - 若仅进行 Git 操作（如生成/整理 `git commit`，且未改动任何代码文件），可不执行 `flutter analyze` / `flutter test`
+## 规范入口（按需查阅）
+- 代码规范：`examples/code_standards.md`
+- UI 规范：`examples/ui.md`
+- AI/对象存储/标签/消息：`examples/ai.md`、`examples/objStore.md`、`examples/tags.md`、`examples/message.md`
 
-## 项目概述
+## 提交与发布流程（三段式）
+按顺序执行以下脚本：
 
-这是一个名为 "life_tools" 的 Flutter 应用，支持 Android、iOS、Web、Linux、macOS 和 Windows 多平台。使用 Dart SDK ^3.10.7。
-数据全部记录在应用本地（SQLite）
+1. `bash scripts/pre-push.sh`
+- 自动识别改动范围并执行对应校验：
+- Flutter 改动：`flutter pub get`、`flutter analyze`、`flutter test`
+- 仅后端改动：执行后端测试（默认 `backend/sync_server`）
+- 仅文档改动：跳过测试
 
-## 常用命令
+2. `bash scripts/exec-push.sh --stage-all --push --summary "你的改动摘要"`
+- 汇总改动、生成规范化 commit message、执行 commit 与 push。
 
-所有命令均兼容 Windows 系统（PowerShell/CMD）。
+3. `bash scripts/post-push.sh`
+- 轮询 GitHub Action 状态并输出 run URL/最终结论。
+- 常用参数：`--force-monitor`、`--max-polls`。
 
-### Linux 中 Flutter 的常见调用方式
+## 兼容补充规则（对齐原版）
+1. 校验分流与原版一致：
+- 涉及 Flutter 侧改动时，必须通过 `flutter analyze` 与 `flutter test`（由 `pre-push.sh` 执行）。
+- 仅后端改动时，不跑 Flutter 校验，只跑后端测试。
+- 仅文档改动时，可不执行 Flutter/后端测试。
+2. 提交信息以 `doc:` / `docs:` 开头时，远端构建默认跳过（除非显式强制监控）。
+3. `post-push.sh` 默认会对“仅 backend/docs 或 doc 前缀提交”跳过轮询；需要时用 `--force-monitor` 覆盖。
+4. Linux 下若 `flutter test` 报 `libsqlite3.so` 缺失，可先执行：
+- `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
+- `LD_LIBRARY_PATH=/tmp flutter test`
+5. 任务若明确要求“排除国际化内容”，不主动改动 i18n 文案语义与键值。
 
-在 Linux 下若 `flutter` 不在 `PATH`，可使用以下几种方式调用（任选其一）：
+## Git 提交规范
+1. 推荐格式：`type(scope): 简要说明`
+2. `type` 建议：`feat`、`fix`、`refactor`、`chore`、`docs`、`test`、`style`、`ci`、`revert`
+3. 文档提交建议用 `doc:` / `docs:` 前缀。
+4. 禁止模糊标题：`update`、`misc`、`wip`、`临时改动`。
 
-- 已加入 `PATH`：直接使用 `flutter ...`
-- 发行版/镜像预装在 `/opt`：使用 `/opt/flutter/bin/flutter ...`
-- 手动解压在用户目录：使用 `~/flutter/bin/flutter ...`
-- 安装在 `/usr/local`：使用 `/usr/local/flutter/bin/flutter ...`
-- 临时加入 `PATH`（当前终端有效）：`export PATH="$PATH:/opt/flutter/bin"`
+## 安全与隐私红线
+1. 禁止在日志/异常中输出密钥与 Token。
+2. 本地路径拼接必须防止 `../` 穿越（确保最终路径在 `baseDir` 内）。
+3. 外部服务默认 `https`；如使用 `http` 必须明确提示风险。
 
-```bash
-# 安装依赖
-flutter pub get
+## Windows 兼容
+1. 推荐在 Git Bash 或 WSL 执行 `*.sh`。
+2. PowerShell 可直接调用：`bash scripts/pre-push.sh` 等。
+3. 若 `bash` 不在 PATH，可用：`"C:\Program Files\Git\bin\bash.exe" scripts/pre-push.sh`。
 
-# 运行应用（调试模式）
-flutter run
-
-# 在指定设备上运行
-flutter run -d chrome    # Web
-flutter run -d windows   # Windows
-flutter run -d android   # Android 模拟器/真机
-
-# 构建发布版本
-flutter build apk        # Android
-flutter build ios        # iOS
-flutter build web        # Web
-
-# 运行所有测试（开发过程中频繁使用）
-flutter test
-
-# 运行单个测试文件
-flutter test test/widget_test.dart
-
-# 运行测试并生成覆盖率报告
-flutter test --coverage
-
-# 静态代码分析
-flutter analyze
-
-# 格式化代码
-dart format .
-```
-
-## 架构
-
-- **lib/main.dart** - 应用入口，包含 `MyApp` 根组件和 `MyHomePage` 主页面
-- **test/** - 使用 `flutter_test` 包的 Widget 测试
-- 使用 Material Design（`uses-material-design: true`）
-- 通过 `flutter_lints` 包进行代码检查（配置在 `analysis_options.yaml`）
-
-## AI 调用（公共入口）
-
-项目在 `lib/main.dart` 已注入 `AiService`，业务侧通过 Provider 获取后调用 `chatText(...)` 或 `chat(...)` 即可。
-
-示例代码请查看：`examples/ai.md`
-
-## 资源存储（公共入口）
-
-项目在 `lib/main.dart` 已注入 `ObjStoreService`，业务侧通过 Provider 获取后调用 `uploadBytes(...)` 或 `resolveUri(...)` 即可。
-
-示例代码请查看：`examples/objStore.md`
-
-## 标签调用（公共入口）
-
-项目在 `lib/main.dart` 已注入 `TagService`，业务侧通过 Provider 获取后调用相关方法即可。
-
-示例代码请查看：`examples/tags.md`
-
-## 消息通知（公共入口）
-
-项目在 `lib/main.dart` 已注入 `MessageService`，业务侧通过 Provider 获取后调用相关方法即可。
-
-示例代码请查看：`examples/message.md`
-
-## UI 设计规范
-
-开发页面时必须遵守 iOS 26 风格的设计主题，包括颜色、按钮样式、表单规范等。
-
-详细规范请查看：`examples/ui.md`
-
-## 代码规范
-
-开发时必须遵守异常处理、国际化、规范守护等代码审查规范。
-
-详细规范请查看：`examples/code_standards.md`
-
-## 安全与隐私规范
-
-1. **敏感信息最小暴露**：
-   - 严禁在日志/异常信息中输出密钥类信息（如 AI API Key、七牛 AK/SK、同步 Token/自定义 Header）
-   - 备份/导出/分享必须显式提供"包含敏感信息"的开关，并在 UI/文档中提示风险；默认值按产品需求决定（当前为方便迁移默认开启）
-2. **路径安全**：
-   - 任何把 `key/path` 拼接到本地目录（`baseDir`）的逻辑，必须保证最终路径仍在 `baseDir` 内（例如使用 `path.isWithin` 做边界校验），禁止 `../` 穿越
-3. **网络安全默认值**：
-   - 外部服务 URL 默认使用 `https`；若允许 `http`（如内网调试），需在 UI/文档明确提醒风险
-
-## 提交前检查
-
-- 变更 Flutter 侧（`lib/**`、`test/**`、平台工程或 `pubspec.yaml`）：必须执行并通过 `flutter analyze` 与 `flutter test`
-- 仅变更后端（`backend/**`）且未改动 Flutter：无需执行 `flutter analyze` / `flutter test`；但必须执行对应后端测试
-- 建议在提交前执行 `dart format .` 保持统一格式
-
-## 全局规范与美化检查（新增归纳）
-
-1. **先检查后修复**：
-   - 先执行 `dart format --output=none --set-exit-if-changed .` 进行全量格式检查
-   - 若检测到变更，再执行 `dart format .` 一次性修复
-2. **国际化例外说明**：
-   - 当任务明确要求“排除国际化内容”时，不主动改动 i18n 文案语义与键值
-   - 若全量格式化波及 i18n 相关测试文件（如 `*_i18n_test.dart`），允许仅保留格式层面的改动
-3. **Linux 测试环境补充（sqlite3）**：
-   - 若 `flutter test` 报错 `Failed to load dynamic library 'libsqlite3.so'`，先执行：
-     - `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
-     - `LD_LIBRARY_PATH=/tmp flutter test`
+## 格式检查
+1. 先检查：`dart format --output=none --set-exit-if-changed .`
+2. 再修复：`dart format .`

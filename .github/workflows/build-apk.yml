@@ -6,10 +6,12 @@ on:
       - main
       - dev
     paths-ignore:
-      - '**.md'
+      - '**/*.md'
       - '.gitignore'
       - '.claude/**'
       - 'backend/**'
+      - 'docs/**'
+      - 'examples/**'
 
 env:
   FLUTTER_VERSION: '3.38.6'
@@ -30,9 +32,18 @@ jobs:
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
           MESSAGE="$COMMIT_MESSAGE"
+          LOWER_MESSAGE=$(echo "$MESSAGE" | tr '[:upper:]' '[:lower:]')
+          DOC_PREFIX_REGEX='^docs?($|[:( ].*)'
           BRANCH="$BRANCH_NAME"
           echo "Commit message: $MESSAGE"
           echo "Branch: $BRANCH"
+
+          # 文档类提交（doc:/docs:/doc(...）直接跳过构建
+          if [[ "$LOWER_MESSAGE" =~ $DOC_PREFIX_REGEX ]]; then
+            echo "Commit message starts with doc/docs, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           
           # 如果是 dev 分支，自动构建 debug 包
           if [[ "$BRANCH" == "dev" ]]; then
