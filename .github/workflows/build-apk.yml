@@ -22,6 +22,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Avoid checkout post-job git cleanup warnings (exit code 128).
+          persist-credentials: false
+          set-safe-directory: false
 
       - name: Parse build type from commit message
         id: parse-build-type
