@@ -9,6 +9,11 @@ class OvercookedGachaService {
   OvercookedGachaService({OvercookedRepository? repository})
     : _repository = repository ?? OvercookedRepository();
 
+  static double weightForAverageRating(double avgRating) {
+    final normalized = avgRating.clamp(0, 5).toDouble();
+    return 1.0 + normalized * 0.5;
+  }
+
   Future<List<OvercookedRecipe>> pick({
     required List<int> typeTagIds,
     int? seed,
@@ -87,7 +92,7 @@ class OvercookedGachaService {
     for (final r in candidates) {
       final stat = r.id != null ? stats[r.id!] : null;
       final avgRating = stat?.avgRating ?? 0.0;
-      final weight = 1.0 + avgRating * 0.5;
+      final weight = weightForAverageRating(avgRating);
       weights.add(weight);
     }
 

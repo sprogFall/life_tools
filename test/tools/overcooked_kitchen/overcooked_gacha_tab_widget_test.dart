@@ -30,11 +30,16 @@ class _FakeTagService extends TagService {
 
 class _FakeOvercookedRepository extends OvercookedRepository {
   final List<OvercookedRecipe> recipes;
+  final Map<int, ({int cookCount, double avgRating, int ratingCount})>
+  recipeStats;
   final List<({DateTime date, int recipeId})> addedWishes = [];
 
   // ignore: use_super_parameters
-  _FakeOvercookedRepository(Database db, {required this.recipes})
-    : super.withDatabase(db);
+  _FakeOvercookedRepository(
+    Database db, {
+    required this.recipes,
+    this.recipeStats = const {},
+  }) : super.withDatabase(db);
 
   @override
   Future<List<OvercookedRecipe>> listRecipesByTypeTagIds(
@@ -73,7 +78,7 @@ class _FakeOvercookedRepository extends OvercookedRepository {
   @override
   Future<Map<int, ({int cookCount, double avgRating, int ratingCount})>>
   getRecipeStats() async {
-    return const {};
+    return recipeStats;
   }
 }
 
@@ -312,7 +317,7 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey('overcooked_gacha_roll_button')),
       );
-      await tester.pump(const Duration(milliseconds: 780));
+      await tester.pump(const Duration(milliseconds: 1680));
 
       expect(
         find.byKey(const ValueKey('overcooked_gacha_slot_result_reveal')),
@@ -320,6 +325,102 @@ void main() {
       );
       expect(find.text('本次抽中'), findsOneWidget);
       expect(find.text('红烧肉'), findsOneWidget);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('转动浮层应展示真实候选数据且不会过快消失', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final typeTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      tagService = _FakeTagService(db, tags: [typeTag]);
+      repository = _FakeOvercookedRepository(
+        db,
+        recipes: [
+          OvercookedRecipe.create(
+            name: '红烧肉',
+            coverImageKey: null,
+            typeTagId: typeTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 100),
+          OvercookedRecipe.create(
+            name: '青椒土豆丝',
+            coverImageKey: null,
+            typeTagId: typeTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 101),
+        ],
+        recipeStats: const {
+          100: (cookCount: 8, avgRating: 5.0, ratingCount: 6),
+          101: (cookCount: 3, avgRating: 1.0, ratingCount: 2),
+        },
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_slot_overlay')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('本轮候选'), findsOneWidget);
+      expect(find.textContaining('评分越高概率越高'), findsOneWidget);
+      expect(find.textContaining('红烧肉'), findsWidgets);
+      expect(find.textContaining('%'), findsWidgets);
+
+      await tester.pump(const Duration(milliseconds: 760));
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_slot_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_slot_result_reveal')),
+        findsNothing,
+      );
       await tester.pumpAndSettle();
     });
 

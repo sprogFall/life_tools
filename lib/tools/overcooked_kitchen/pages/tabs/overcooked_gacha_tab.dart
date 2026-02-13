@@ -35,6 +35,9 @@ class OvercookedGachaTab extends StatefulWidget {
 
 class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     with TickerProviderStateMixin {
+  static const _defaultSlotTickerLabels = ['热锅中', '翻炒中', '香味暴击'];
+  static const _slotSpinMinimumDuration = Duration(milliseconds: 1500);
+
   bool _loading = false;
   List<Tag> _typeTags = const [];
   Map<int, Tag> _tagsById = const {};
@@ -45,7 +48,8 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
   bool _showSlotOverlay = false;
   bool _showSlotResult = false;
   List<OvercookedRecipe> _slotResultRecipes = const [];
-  List<String> _slotTickerLabels = const ['热锅中', '翻炒中', '香味暴击'];
+  List<String> _slotTickerLabels = _defaultSlotTickerLabels;
+  List<_SlotRollDatum> _slotRollData = const [];
   late final AnimationController _slotSpinController;
   late final AnimationController _slotRevealController;
   late final AnimationController _rollBurstController;
@@ -56,20 +60,23 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     super.initState();
     _slotSpinController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 680),
+      duration: const Duration(milliseconds: 1120),
     );
     _slotRevealController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 980),
     );
     _rollBurstController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
     );
-    _slotRevealAnimation = CurvedAnimation(
-      parent: _slotRevealController,
-      curve: Curves.easeOutCubic,
-    );
+    _slotRevealAnimation = TweenSequence<double>([
+      TweenSequenceItem<double>(
+        tween: CurveTween(curve: Curves.easeOutCubic),
+        weight: 35,
+      ),
+      TweenSequenceItem<double>(tween: ConstantTween<double>(1), weight: 65),
+    ]).animate(_slotRevealController);
     _loadTypes();
   }
 
@@ -468,7 +475,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     });
   }
 
-  List<String> _buildSlotTickerLabels(Map<int, int> typeCounts) {
+  List<String> _buildSlotFallbackTickerLabels(Map<int, int> typeCounts) {
     final labels = <String>[];
     final sortedEntries = typeCounts.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
@@ -483,16 +490,85 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     }
 
     if (labels.isEmpty) {
-      return const ['热锅中', '翻炒中', '香味暴击'];
+      return _defaultSlotTickerLabels;
     }
     labels.shuffle(math.Random(DateTime.now().microsecondsSinceEpoch));
     if (labels.length >= 3) return labels;
     return [...labels, '大火翻炒', '随机上菜'].take(3).toList(growable: false);
   }
 
+  List<_SlotRollDatum> _buildSlotRollData({
+    required List<OvercookedRecipe> candidates,
+    required Map<int, ({int cookCount, double avgRating, int ratingCount})>
+    recipeStats,
+  }) {
+    final byType = <int, List<OvercookedRecipe>>{};
+    for (final recipe in candidates) {
+      final typeId = recipe.typeTagId;
+      if (typeId == null || !_selectedTypeIds.contains(typeId)) continue;
+      (byType[typeId] ??= <OvercookedRecipe>[]).add(recipe);
+    }
+    if (byType.isEmpty) return const [];
+
+    final data = <_SlotRollDatum>[];
+    final typeIds = byType.keys.toList()..sort();
+    for (final typeId in typeIds) {
+      final typeName = _tagsById[typeId]?.name.trim();
+      final recipes = byType[typeId] ?? const <OvercookedRecipe>[];
+      if (recipes.isEmpty) continue;
+
+      final weighted = <({OvercookedRecipe recipe, double weight})>[];
+      var totalWeight = 0.0;
+      for (final recipe in recipes) {
+        final id = recipe.id;
+        final stat = id == null ? null : recipeStats[id];
+        final avgRating = (stat?.avgRating ?? 0).clamp(0, 5).toDouble();
+        final weight = OvercookedGachaService.weightForAverageRating(avgRating);
+        weighted.add((recipe: recipe, weight: weight));
+        totalWeight += weight;
+      }
+
+      for (final item in weighted) {
+        final recipe = item.recipe;
+        final name = recipe.name.trim();
+        if (name.isEmpty) continue;
+        final probability = totalWeight <= 0
+            ? (1 / weighted.length)
+            : (item.weight / totalWeight);
+        data.add(
+          _SlotRollDatum(
+            name: name,
+            typeName: typeName,
+            probability: probability,
+          ),
+        );
+      }
+    }
+
+    data.sort((a, b) {
+      final byProbability = b.probability.compareTo(a.probability);
+      if (byProbability != 0) return byProbability;
+      return a.name.compareTo(b.name);
+    });
+    return data;
+  }
+
+  List<String> _buildSlotTickerLabelsFromRollData(List<_SlotRollDatum> data) {
+    if (data.isEmpty) return _defaultSlotTickerLabels;
+    final labels = data.map((entry) => entry.reelLabel).toList();
+    if (labels.length == 1) {
+      return [labels.first, labels.first, labels.first];
+    }
+    if (labels.length == 2) {
+      return [...labels, ...labels];
+    }
+    return labels;
+  }
+
   void _startRollEffects({
     required Map<int, int> typeCounts,
     required bool reducedMotion,
+    required List<_SlotRollDatum> slotRollData,
   }) {
     _rollBurstController.forward(from: 0);
     _slotRevealController.value = 0;
@@ -501,7 +577,10 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
       _showSlotOverlay = true;
       _showSlotResult = false;
       _slotResultRecipes = const [];
-      _slotTickerLabels = _buildSlotTickerLabels(typeCounts);
+      _slotRollData = slotRollData;
+      _slotTickerLabels = slotRollData.isEmpty
+          ? _buildSlotFallbackTickerLabels(typeCounts)
+          : _buildSlotTickerLabelsFromRollData(slotRollData);
     });
     if (reducedMotion) {
       _slotSpinController
@@ -532,6 +611,8 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
       _showSlotOverlay = false;
       _showSlotResult = false;
       _slotResultRecipes = const [];
+      _slotRollData = const [];
+      _slotTickerLabels = _defaultSlotTickerLabels;
     });
   }
 
@@ -542,6 +623,8 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
       _showSlotOverlay = false;
       _showSlotResult = false;
       _slotResultRecipes = const [];
+      _slotRollData = const [];
+      _slotTickerLabels = _defaultSlotTickerLabels;
     });
   }
 
@@ -620,15 +703,18 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
                           ),
                         ),
                       )
-                    else
+                    else ...[
+                      _buildSlotDataBasisCard(),
+                      const SizedBox(height: 10),
                       _SlotMachineReel(
                         labels: _slotTickerLabels,
                         spin: _slotSpinController,
                       ),
+                    ],
                     if (!showingResult) ...[
                       const SizedBox(height: 10),
                       Text(
-                        '咕噜咕噜... 准备开饭',
+                        '咕噜咕噜... 按候选权重滚动中',
                         style: IOS26Theme.bodySmall.copyWith(
                           color: IOS26Theme.textSecondary,
                         ),
@@ -639,6 +725,67 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotDataBasisCard() {
+    final topItems = _slotRollData.take(3).toList(growable: false);
+    return Container(
+      key: const ValueKey('overcooked_gacha_slot_data_basis'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: IOS26Theme.surfaceVariant.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: IOS26Theme.toolBlue.withValues(alpha: 0.18),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '本轮候选 ${_slotRollData.length} 道菜（评分越高概率越高）',
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (topItems.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: topItems.map(_buildSlotDataPill).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSlotDataPill(_SlotRollDatum item) {
+    final typePrefix = item.typeName == null || item.typeName!.isEmpty
+        ? ''
+        : '${item.typeName}·';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: IOS26Theme.primaryColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: IOS26Theme.primaryColor.withValues(alpha: 0.22),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        '$typePrefix${item.name} ${item.percentLabel}',
+        style: IOS26Theme.bodySmall.copyWith(
+          fontWeight: FontWeight.w600,
+          color: IOS26Theme.primaryColor,
         ),
       ),
     );
@@ -667,17 +814,34 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     final repository = context.read<OvercookedRepository>();
     final reducedMotion = _prefersReducedMotion;
     setState(() => _loading = true);
-    _startRollEffects(typeCounts: typeCounts, reducedMotion: reducedMotion);
     try {
-      if (!reducedMotion) {
-        await Future<void>.delayed(const Duration(milliseconds: 640));
-      }
+      final typeIds = typeCounts.keys.toList()..sort();
+      final slotCandidates = await repository.listRecipesByTypeTagIds(typeIds);
+      final recipeStats = await repository.getRecipeStats();
+      final slotRollData = _buildSlotRollData(
+        candidates: slotCandidates,
+        recipeStats: recipeStats,
+      );
+      _startRollEffects(
+        typeCounts: typeCounts,
+        reducedMotion: reducedMotion,
+        slotRollData: slotRollData,
+      );
+
+      final spinStartTime = DateTime.now();
       final service = OvercookedGachaService(repository: repository);
       final seed = DateTime.now().millisecondsSinceEpoch;
       final picked = await service.pickByTypeCounts(
         typeCounts: typeCounts,
         seed: seed,
       );
+      if (!reducedMotion) {
+        final elapsed = DateTime.now().difference(spinStartTime);
+        final remain = _slotSpinMinimumDuration - elapsed;
+        if (remain > Duration.zero) {
+          await Future<void>.delayed(remain);
+        }
+      }
       if (!mounted) return;
       setState(() {
         _typeCountById = typeCounts;
@@ -884,6 +1048,31 @@ class _TypeCountRow extends StatelessWidget {
   }
 }
 
+class _SlotRollDatum {
+  final String name;
+  final String? typeName;
+  final double probability;
+
+  const _SlotRollDatum({
+    required this.name,
+    required this.typeName,
+    required this.probability,
+  });
+
+  String get percentLabel {
+    final normalized = probability.clamp(0, 1).toDouble();
+    final percent = (normalized * 100).round().clamp(0, 100);
+    return '$percent%';
+  }
+
+  String get reelLabel {
+    if (typeName == null || typeName!.isEmpty) {
+      return '$name $percentLabel';
+    }
+    return '${typeName!}·$name $percentLabel';
+  }
+}
+
 class _SlotMachineReel extends StatelessWidget {
   final List<String> labels;
   final Animation<double> spin;
@@ -894,7 +1083,7 @@ class _SlotMachineReel extends StatelessWidget {
   Widget build(BuildContext context) {
     final reelLabels = labels.isEmpty ? const ['热锅中', '翻炒中', '香味暴击'] : labels;
     return Container(
-      height: 86,
+      height: 98,
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -905,22 +1094,48 @@ class _SlotMachineReel extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Row(
-        children: List.generate(
-          3,
-          (index) => Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _buildColumn(reelLabels, index),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Row(
+            children: List.generate(
+              3,
+              (index) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _buildColumn(reelLabels, index),
+                ),
+              ),
             ),
           ),
-        ),
+          IgnorePointer(
+            child: Container(
+              height: 28,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: IOS26Theme.toolOrange.withValues(alpha: 0.26),
+                  width: 1,
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    IOS26Theme.toolOrange.withValues(alpha: 0.04),
+                    IOS26Theme.primaryColor.withValues(alpha: 0.09),
+                    IOS26Theme.toolOrange.withValues(alpha: 0.04),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildColumn(List<String> labels, int columnIndex) {
-    const itemHeight = 26.0;
+    const itemHeight = 28.0;
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: DecoratedBox(
@@ -937,7 +1152,7 @@ class _SlotMachineReel extends StatelessWidget {
         child: AnimatedBuilder(
           animation: spin,
           builder: (context, child) {
-            final speedFactor = labels.length * 7;
+            final speedFactor = labels.length * 3.8;
             final raw = spin.value * speedFactor + columnIndex * 1.37;
             final current = raw.floor() % labels.length;
             final next = (current + 1) % labels.length;
@@ -960,14 +1175,17 @@ class _SlotMachineReel extends StatelessWidget {
   Widget _buildCell(String label, double height) {
     return SizedBox(
       height: height,
-      child: Center(
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: IOS26Theme.bodySmall.copyWith(
-            color: IOS26Theme.textPrimary,
-            fontWeight: FontWeight.w600,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Center(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: IOS26Theme.bodySmall.copyWith(
+              color: IOS26Theme.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
