@@ -185,6 +185,144 @@ void main() {
       ]);
     });
 
+    testWidgets('点击扭蛋后应出现老虎机转动浮层与按钮爆炸粒子', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final typeTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      tagService = _FakeTagService(db, tags: [typeTag]);
+      repository = _FakeOvercookedRepository(
+        db,
+        recipes: [
+          OvercookedRecipe.create(
+            name: '红烧肉',
+            coverImageKey: null,
+            typeTagId: typeTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 100),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      await tester.pump(const Duration(milliseconds: 80));
+
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_slot_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_roll_particle_burst')),
+        findsOneWidget,
+      );
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('扭蛋转动结束后应揭晓随机菜品', (tester) async {
+      final now = DateTime(2026, 1, 2, 10);
+      final typeTag = Tag(
+        id: 1,
+        name: '主菜',
+        color: null,
+        sortIndex: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+      tagService = _FakeTagService(db, tags: [typeTag]);
+      repository = _FakeOvercookedRepository(
+        db,
+        recipes: [
+          OvercookedRecipe.create(
+            name: '红烧肉',
+            coverImageKey: null,
+            typeTagId: typeTag.id,
+            ingredientTagIds: const [],
+            sauceTagIds: const [],
+            flavorTagIds: const [],
+            intro: '',
+            content: '',
+            detailImageKeys: const [],
+            now: now,
+          ).copyWith(id: 100),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: tagService),
+            Provider<OvercookedRepository>.value(value: repository),
+          ],
+          child: TestAppWrapper(
+            child: OvercookedGachaTab(
+              targetDate: DateTime(2026, 1, 2),
+              onTargetDateChanged: (_) {},
+              onImportToWish: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_pick_types_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('主菜'));
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_roll_button')),
+      );
+      await tester.pump(const Duration(milliseconds: 780));
+
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_slot_result_reveal')),
+        findsOneWidget,
+      );
+      expect(find.text('本次抽中'), findsOneWidget);
+      expect(find.text('红烧肉'), findsOneWidget);
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('无菜品的风格标签不可选择', (tester) async {
       final now = DateTime(2026, 1, 2, 10);
       final mainTag = Tag(

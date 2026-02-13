@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
@@ -30,7 +33,8 @@ class OvercookedGachaTab extends StatefulWidget {
   State<OvercookedGachaTab> createState() => _OvercookedGachaTabState();
 }
 
-class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
+class _OvercookedGachaTabState extends State<OvercookedGachaTab>
+    with TickerProviderStateMixin {
   bool _loading = false;
   List<Tag> _typeTags = const [];
   Map<int, Tag> _tagsById = const {};
@@ -38,11 +42,49 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
   Map<int, int> _typeCountById = {};
   Map<int, int> _typeRecipeTotalById = {};
   List<OvercookedRecipe> _picked = const [];
+  bool _showSlotOverlay = false;
+  bool _showSlotResult = false;
+  List<OvercookedRecipe> _slotResultRecipes = const [];
+  List<String> _slotTickerLabels = const ['热锅中', '翻炒中', '香味暴击'];
+  late final AnimationController _slotSpinController;
+  late final AnimationController _slotRevealController;
+  late final AnimationController _rollBurstController;
+  late final Animation<double> _slotRevealAnimation;
 
   @override
   void initState() {
     super.initState();
+    _slotSpinController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 680),
+    );
+    _slotRevealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _rollBurstController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _slotRevealAnimation = CurvedAnimation(
+      parent: _slotRevealController,
+      curve: Curves.easeOutCubic,
+    );
     _loadTypes();
+  }
+
+  @override
+  void dispose() {
+    _slotSpinController.dispose();
+    _slotRevealController.dispose();
+    _rollBurstController.dispose();
+    super.dispose();
+  }
+
+  bool get _prefersReducedMotion {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    return (mediaQuery?.disableAnimations ?? false) ||
+        (mediaQuery?.accessibleNavigation ?? false);
   }
 
   @override
@@ -191,157 +233,195 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         : entries.map((e) => '${e.name}×${e.count}').join('、');
     final canRoll = !_loading && entries.isNotEmpty && totalCount > 0;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
+    return Stack(
       children: [
-        Row(
+        ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
           children: [
-            Expanded(child: Text('扭蛋机', style: IOS26Theme.headlineMedium)),
-            IOS26Button(
-              key: const ValueKey('overcooked_gacha_roll_button'),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              variant: canRoll
-                  ? IOS26ButtonVariant.primary
-                  : IOS26ButtonVariant.ghost,
-              borderRadius: BorderRadius.circular(14),
-              onPressed: canRoll ? _roll : null,
-              child: IOS26ButtonLabel('扭蛋', style: IOS26Theme.labelLarge),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _fieldTitle('菜品风格搭配'),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 48,
-          child: IOS26Button(
-            key: const ValueKey('overcooked_gacha_pick_types_button'),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            variant: IOS26ButtonVariant.ghost,
-            borderRadius: BorderRadius.circular(14),
-            onPressed: _typeTags.isEmpty || _loading ? null : _pickTypes,
-            child: Row(
+            Row(
               children: [
-                Expanded(
-                  child: Text(
-                    typeText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: IOS26Theme.titleSmall.copyWith(
-                      color: entries.isEmpty
-                          ? IOS26Theme.textSecondary
-                          : IOS26Theme.textPrimary,
-                    ),
-                  ),
-                ),
-                IOS26Icon(
-                  CupertinoIcons.chevron_down,
-                  size: 16,
-                  color: IOS26Theme.textSecondary,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (entries.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          GlassContainer(
-            borderRadius: 18,
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                Expanded(child: Text('扭蛋机', style: IOS26Theme.headlineMedium)),
+                Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Expanded(
-                      child: Text('每种风格抽取份数', style: IOS26Theme.bodySmall),
+                    IOS26Button(
+                      key: const ValueKey('overcooked_gacha_roll_button'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      variant: canRoll
+                          ? IOS26ButtonVariant.primary
+                          : IOS26ButtonVariant.ghost,
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: canRoll ? _roll : null,
+                      child: IOS26ButtonLabel(
+                        '扭蛋',
+                        style: IOS26Theme.labelLarge,
+                      ),
                     ),
-                    Text(
-                      '共 $totalCount 道',
-                      style: IOS26Theme.bodySmall.copyWith(
-                        color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
+                    IgnorePointer(
+                      child: AnimatedBuilder(
+                        animation: _rollBurstController,
+                        builder: (context, child) {
+                          if (!_rollBurstController.isAnimating) {
+                            return const SizedBox.shrink();
+                          }
+                          final progress = _rollBurstController.value;
+                          return CustomPaint(
+                            key: const ValueKey(
+                              'overcooked_gacha_roll_particle_burst',
+                            ),
+                            size: const Size(116, 58),
+                            painter: _RollParticleBurstPainter(
+                              progress: progress,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                ...entries.map(
-                  (e) => _TypeCountRow(
-                    typeId: e.id,
-                    name: e.name,
-                    count: e.count,
-                    onChanged: _loading
-                        ? null
-                        : (next) => _onTypeCountChanged(
-                            typeId: e.id,
-                            typeName: e.name,
-                            next: next,
-                          ),
-                  ),
-                ),
               ],
             ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        OvercookedDateBar(
-          title: '导入愿望单',
-          date: widget.targetDate,
-          onPrev: () => widget.onTargetDateChanged(
-            widget.targetDate.subtract(const Duration(days: 1)),
-          ),
-          onNext: () => widget.onTargetDateChanged(
-            widget.targetDate.add(const Duration(days: 1)),
-          ),
-          onPick: () => _pickDate(initial: widget.targetDate),
-        ),
-        const SizedBox(height: 12),
-        if (_typeTags.isEmpty)
-          GlassContainer(
-            borderRadius: 18,
-            padding: const EdgeInsets.all(14),
-            color: IOS26Theme.toolPurple.withValues(alpha: 0.10),
-            border: Border.all(
-              color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
-              width: 1,
-            ),
-            child: Text(
-              '暂无“菜品风格”标签：请先在“标签管理”创建标签并关联到“胡闹厨房”后再来抽取。',
-              style: IOS26Theme.bodySmall,
-            ),
-          ),
-        const SizedBox(height: 12),
-        if (_picked.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 18),
-            child: Center(
-              child: Text(
-                '先选好风格搭配，再点“扭蛋”开抽',
-                style: IOS26Theme.bodyMedium.copyWith(
-                  color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
+            const SizedBox(height: 12),
+            _fieldTitle('菜品风格搭配'),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 48,
+              child: IOS26Button(
+                key: const ValueKey('overcooked_gacha_pick_types_button'),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                variant: IOS26ButtonVariant.ghost,
+                borderRadius: BorderRadius.circular(14),
+                onPressed: _typeTags.isEmpty || _loading ? null : _pickTypes,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        typeText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: IOS26Theme.titleSmall.copyWith(
+                          color: entries.isEmpty
+                              ? IOS26Theme.textSecondary
+                              : IOS26Theme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    IOS26Icon(
+                      CupertinoIcons.chevron_down,
+                      size: 16,
+                      color: IOS26Theme.textSecondary,
+                    ),
+                  ],
                 ),
               ),
             ),
-          )
-        else ...[
-          ..._picked.map(
-            (r) => _PickedCard(
-              recipe: r,
-              typeName: r.typeTagId == null
-                  ? null
-                  : _tagsById[r.typeTagId!]?.name,
+            if (entries.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              GlassContainer(
+                borderRadius: 18,
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text('每种风格抽取份数', style: IOS26Theme.bodySmall),
+                        ),
+                        Text(
+                          '共 $totalCount 道',
+                          style: IOS26Theme.bodySmall.copyWith(
+                            color: IOS26Theme.textSecondary.withValues(
+                              alpha: 0.9,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ...entries.map(
+                      (e) => _TypeCountRow(
+                        typeId: e.id,
+                        name: e.name,
+                        count: e.count,
+                        onChanged: _loading
+                            ? null
+                            : (next) => _onTypeCountChanged(
+                                typeId: e.id,
+                                typeName: e.name,
+                                next: next,
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            OvercookedDateBar(
+              title: '导入愿望单',
+              date: widget.targetDate,
+              onPrev: () => widget.onTargetDateChanged(
+                widget.targetDate.subtract(const Duration(days: 1)),
+              ),
+              onNext: () => widget.onTargetDateChanged(
+                widget.targetDate.add(const Duration(days: 1)),
+              ),
+              onPick: () => _pickDate(initial: widget.targetDate),
             ),
-          ),
-          const SizedBox(height: 10),
-          IOS26Button(
-            key: const ValueKey('overcooked_gacha_import_button'),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            variant: IOS26ButtonVariant.primary,
-            borderRadius: BorderRadius.circular(14),
-            onPressed: _loading ? null : _importToWish,
-            child: IOS26ButtonLabel('就你了', style: IOS26Theme.labelLarge),
-          ),
-        ],
+            const SizedBox(height: 12),
+            if (_typeTags.isEmpty)
+              GlassContainer(
+                borderRadius: 18,
+                padding: const EdgeInsets.all(14),
+                color: IOS26Theme.toolPurple.withValues(alpha: 0.10),
+                border: Border.all(
+                  color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
+                  width: 1,
+                ),
+                child: Text(
+                  '暂无“菜品风格”标签：请先在“标签管理”创建标签并关联到“胡闹厨房”后再来抽取。',
+                  style: IOS26Theme.bodySmall,
+                ),
+              ),
+            const SizedBox(height: 12),
+            if (_picked.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 18),
+                child: Center(
+                  child: Text(
+                    '先选好风格搭配，再点“扭蛋”开抽',
+                    style: IOS26Theme.bodyMedium.copyWith(
+                      color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+              )
+            else ...[
+              ..._picked.map(
+                (r) => _PickedCard(
+                  recipe: r,
+                  typeName: r.typeTagId == null
+                      ? null
+                      : _tagsById[r.typeTagId!]?.name,
+                ),
+              ),
+              const SizedBox(height: 10),
+              IOS26Button(
+                key: const ValueKey('overcooked_gacha_import_button'),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                variant: IOS26ButtonVariant.primary,
+                borderRadius: BorderRadius.circular(14),
+                onPressed: _loading ? null : _importToWish,
+                child: IOS26ButtonLabel('就你了', style: IOS26Theme.labelLarge),
+              ),
+            ],
+          ],
+        ),
+        if (_showSlotOverlay) _buildSlotOverlay(),
       ],
     );
   }
@@ -388,6 +468,182 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
     });
   }
 
+  List<String> _buildSlotTickerLabels(Map<int, int> typeCounts) {
+    final labels = <String>[];
+    final sortedEntries = typeCounts.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    for (final entry in sortedEntries) {
+      final name = _tagsById[entry.key]?.name.trim();
+      if (name == null || name.isEmpty) continue;
+      final repeat = entry.value.clamp(1, 3).toInt();
+      for (int i = 0; i < repeat; i++) {
+        labels.add('$name·准备上桌');
+      }
+    }
+
+    if (labels.isEmpty) {
+      return const ['热锅中', '翻炒中', '香味暴击'];
+    }
+    labels.shuffle(math.Random(DateTime.now().microsecondsSinceEpoch));
+    if (labels.length >= 3) return labels;
+    return [...labels, '大火翻炒', '随机上菜'].take(3).toList(growable: false);
+  }
+
+  void _startRollEffects({
+    required Map<int, int> typeCounts,
+    required bool reducedMotion,
+  }) {
+    _rollBurstController.forward(from: 0);
+    _slotRevealController.value = 0;
+    if (!mounted) return;
+    setState(() {
+      _showSlotOverlay = true;
+      _showSlotResult = false;
+      _slotResultRecipes = const [];
+      _slotTickerLabels = _buildSlotTickerLabels(typeCounts);
+    });
+    if (reducedMotion) {
+      _slotSpinController
+        ..stop()
+        ..value = 0;
+    } else {
+      _slotSpinController.repeat();
+    }
+  }
+
+  Future<void> _revealRollEffects({
+    required List<OvercookedRecipe> picked,
+    required bool reducedMotion,
+  }) async {
+    _slotSpinController.stop();
+    if (!mounted) return;
+    setState(() {
+      _showSlotResult = true;
+      _slotResultRecipes = picked;
+    });
+    if (reducedMotion) {
+      _slotRevealController.value = 1;
+    } else {
+      await _slotRevealController.forward(from: 0);
+    }
+    if (!mounted) return;
+    setState(() {
+      _showSlotOverlay = false;
+      _showSlotResult = false;
+      _slotResultRecipes = const [];
+    });
+  }
+
+  void _dismissRollEffects() {
+    _slotSpinController.stop();
+    if (!mounted) return;
+    setState(() {
+      _showSlotOverlay = false;
+      _showSlotResult = false;
+      _slotResultRecipes = const [];
+    });
+  }
+
+  Widget _buildSlotOverlay() {
+    final bool showingResult = _showSlotResult;
+    final title = showingResult ? '开盖啦' : '扭蛋机高速运转中';
+
+    return Positioned.fill(
+      child: ColoredBox(
+        color: IOS26Theme.overlayColor.withValues(alpha: 0.20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: GlassContainer(
+                key: const ValueKey('overcooked_gacha_slot_overlay'),
+                borderRadius: 22,
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title, style: IOS26Theme.titleMedium),
+                    const SizedBox(height: 12),
+                    if (showingResult)
+                      FadeTransition(
+                        opacity: _slotRevealAnimation,
+                        child: Container(
+                          key: const ValueKey(
+                            'overcooked_gacha_slot_result_reveal',
+                          ),
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                          decoration: BoxDecoration(
+                            color: IOS26Theme.surfaceColor.withValues(
+                              alpha: 0.90,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: IOS26Theme.toolOrange.withValues(
+                                alpha: 0.30,
+                              ),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '本次抽中',
+                                style: IOS26Theme.titleSmall.copyWith(
+                                  color: IOS26Theme.toolOrange,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (_slotResultRecipes.isEmpty)
+                                Text(
+                                  '这轮没有抽到菜品，换个风格再试试。',
+                                  style: IOS26Theme.bodySmall,
+                                )
+                              else
+                                ..._slotResultRecipes
+                                    .take(4)
+                                    .map(
+                                      (recipe) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 6,
+                                        ),
+                                        child: Text(
+                                          '• ${recipe.name}',
+                                          style: IOS26Theme.bodyMedium,
+                                        ),
+                                      ),
+                                    ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      _SlotMachineReel(
+                        labels: _slotTickerLabels,
+                        spin: _slotSpinController,
+                      ),
+                    if (!showingResult) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        '咕噜咕噜... 准备开饭',
+                        style: IOS26Theme.bodySmall.copyWith(
+                          color: IOS26Theme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _roll() async {
     if (_selectedTypeIds.isEmpty) {
       await OvercookedDialogs.showMessage(
@@ -408,11 +664,15 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
       return;
     }
 
+    final repository = context.read<OvercookedRepository>();
+    final reducedMotion = _prefersReducedMotion;
     setState(() => _loading = true);
+    _startRollEffects(typeCounts: typeCounts, reducedMotion: reducedMotion);
     try {
-      final service = OvercookedGachaService(
-        repository: context.read<OvercookedRepository>(),
-      );
+      if (!reducedMotion) {
+        await Future<void>.delayed(const Duration(milliseconds: 640));
+      }
+      final service = OvercookedGachaService(repository: repository);
       final seed = DateTime.now().millisecondsSinceEpoch;
       final picked = await service.pickByTypeCounts(
         typeCounts: typeCounts,
@@ -423,7 +683,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab> {
         _typeCountById = typeCounts;
         _picked = picked;
       });
+      await _revealRollEffects(picked: picked, reducedMotion: reducedMotion);
     } catch (e) {
+      _dismissRollEffects();
       if (!mounted) return;
       await OvercookedDialogs.showMessage(
         context,
@@ -619,5 +881,138 @@ class _TypeCountRow extends StatelessWidget {
         tone: enabled ? IOS26IconTone.accent : IOS26IconTone.secondary,
       ),
     );
+  }
+}
+
+class _SlotMachineReel extends StatelessWidget {
+  final List<String> labels;
+  final Animation<double> spin;
+
+  const _SlotMachineReel({required this.labels, required this.spin});
+
+  @override
+  Widget build(BuildContext context) {
+    final reelLabels = labels.isEmpty ? const ['热锅中', '翻炒中', '香味暴击'] : labels;
+    return Container(
+      height: 86,
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: IOS26Theme.surfaceColor.withValues(alpha: 0.90),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: IOS26Theme.toolPurple.withValues(alpha: 0.24),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: List.generate(
+          3,
+          (index) => Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _buildColumn(reelLabels, index),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColumn(List<String> labels, int columnIndex) {
+    const itemHeight = 26.0;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              IOS26Theme.surfaceVariant.withValues(alpha: 0.75),
+              IOS26Theme.surfaceColor.withValues(alpha: 0.95),
+            ],
+          ),
+        ),
+        child: AnimatedBuilder(
+          animation: spin,
+          builder: (context, child) {
+            final speedFactor = labels.length * 7;
+            final raw = spin.value * speedFactor + columnIndex * 1.37;
+            final current = raw.floor() % labels.length;
+            final next = (current + 1) % labels.length;
+            final shift = (raw - raw.floor()) * itemHeight;
+            return Transform.translate(
+              offset: Offset(0, -shift),
+              child: Column(
+                children: [
+                  _buildCell(labels[current], itemHeight),
+                  _buildCell(labels[next], itemHeight),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCell(String label, double height) {
+    return SizedBox(
+      height: height,
+      child: Center(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: IOS26Theme.bodySmall.copyWith(
+            color: IOS26Theme.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RollParticleBurstPainter extends CustomPainter {
+  final double progress;
+
+  const _RollParticleBurstPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final fade = (1 - progress).clamp(0.0, 1.0);
+    final glowPaint = Paint()
+      ..color = IOS26Theme.toolOrange.withValues(alpha: 0.35 * fade);
+    canvas.drawCircle(center, 8 + progress * 16, glowPaint);
+
+    final colors = [
+      IOS26Theme.toolOrange,
+      IOS26Theme.toolPink,
+      IOS26Theme.toolPurple,
+      IOS26Theme.primaryColor,
+    ];
+
+    const particleCount = 14;
+    for (int i = 0; i < particleCount; i++) {
+      final angle = (math.pi * 2 / particleCount) * i + progress * 0.45;
+      final distance = 14 + progress * 30 + (i % 3) * 2;
+      final radius = 1.4 + ((particleCount - i) % 3) * 0.7;
+      final particleAlpha = (0.86 - progress * 0.8).clamp(0.0, 1.0);
+      final paint = Paint()
+        ..color = colors[i % colors.length].withValues(alpha: particleAlpha);
+      final position = Offset(
+        center.dx + math.cos(angle) * distance,
+        center.dy + math.sin(angle) * distance,
+      );
+      canvas.drawCircle(position, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RollParticleBurstPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
