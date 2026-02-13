@@ -10,6 +10,7 @@ MONITOR="auto"
 FORCE_MONITOR="false"
 MAX_POLLS=""
 DRY_RUN="false"
+LOG_TAIL_LINES=""
 
 JSON_MODE=""
 PYTHON_CMD=()
@@ -47,6 +48,7 @@ usage() {
   --no-monitor              关闭监控
   --force-monitor           忽略 doc/backend 跳过规则，强制轮询
   --max-polls <n>           最大轮询次数（0/不传表示不限）
+  --log-lines <n>           失败日志尾部行数（默认 50，0=不获取）
 
   --dry-run
   -h, --help
@@ -88,6 +90,11 @@ parse_args() {
       --max-polls)
         [[ $# -ge 2 ]] || die "--max-polls 需要参数"
         MAX_POLLS="$2"
+        shift
+        ;;
+      --log-lines)
+        [[ $# -ge 2 ]] || die "--log-lines 需要参数"
+        LOG_TAIL_LINES="$2"
         shift
         ;;
       --dry-run)
@@ -156,6 +163,11 @@ fill_defaults() {
   if [[ -n "$MAX_POLLS" && ! "$MAX_POLLS" =~ ^[0-9]+$ ]]; then
     die "--max-polls 仅支持非负整数"
   fi
+
+  [[ -n "$LOG_TAIL_LINES" ]] || LOG_TAIL_LINES="50"
+  if [[ ! "$LOG_TAIL_LINES" =~ ^[0-9]+$ ]]; then
+    die "--log-lines 仅支持非负整数"
+  fi
 }
 
 extract_repo_from_remote() {
@@ -201,6 +213,14 @@ select_json_mode() {
   fi
 
   die "缺少 JSON 解析器：请安装 jq 或 python/python3/py"
+}
+
+gh_api() {
+  local -a headers=(-H 'Accept: application/vnd.github+json')
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    headers+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  fi
+  curl -fsSL "${headers[@]}" "$@"
 }
 
 pick_run_json() {
@@ -299,6 +319,87 @@ PY
   rm -f "$tmp"
 }
 
+extract_failed_job_ids() {
+  local jobs_json="$1"
+
+  if [[ "$JSON_MODE" == "jq" ]]; then
+    echo "$jobs_json" | jq -r '.jobs[] | select(.conclusion == "failure") | "\(.id)\t\(.name)"'
+    return
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  printf '%s' "$jobs_json" > "$tmp"
+
+  "${PYTHON_CMD[@]}" - "$tmp" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+for job in data.get("jobs") or []:
+    if job.get("conclusion") == "failure":
+        print(f"{job['id']}\t{job.get('name', '')}")
+PY
+
+  rm -f "$tmp"
+}
+
+print_job_failure_detail() {
+  local owner="$1" repo="$2" job_id="$3" job_name="$4" tail_lines="$5"
+  local log_url="https://api.github.com/repos/${owner}/${repo}/actions/jobs/${job_id}/logs"
+  local tmp_log
+  tmp_log="$(mktemp)"
+
+  if ! gh_api -o "$tmp_log" "$log_url" 2>/dev/null; then
+    log "  无法下载 job [${job_name}] 的日志"
+    rm -f "$tmp_log"
+    return
+  fi
+
+  log "─── job: ${job_name} (id=${job_id}) ───"
+
+  # Extract ##[error] annotation lines as key error messages
+  local error_lines
+  error_lines="$(grep '##\[error\]' "$tmp_log" 2>/dev/null | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z //' || true)"
+
+  if [[ -n "$error_lines" ]]; then
+    log "  错误注解:"
+    while IFS= read -r line; do
+      echo "    $line"
+    done <<< "$error_lines"
+  fi
+
+  # Print last N lines for context
+  log "  日志尾部（最后 ${tail_lines} 行）:"
+  tail -n "$tail_lines" "$tmp_log" | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z //' | while IFS= read -r line; do
+    echo "    $line"
+  done
+
+  rm -f "$tmp_log"
+}
+
+print_failure_logs() {
+  local owner="$1" repo="$2" jobs_json="$3" tail_lines="$4"
+
+  if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+    log "提示: 设置 GITHUB_TOKEN 环境变量可获取失败日志详情"
+    return
+  fi
+
+  if [[ "$tail_lines" -eq 0 ]]; then
+    return
+  fi
+
+  local job_id job_name
+  while IFS=$'\t' read -r job_id job_name; do
+    [[ -z "$job_id" ]] && continue
+    print_job_failure_detail "$owner" "$repo" "$job_id" "$job_name" "$tail_lines"
+  done < <(extract_failed_job_ids "$jobs_json")
+}
+
 should_skip_monitoring() {
   local lower_message
   local only_backend_or_docs="true"
@@ -384,7 +485,7 @@ run_monitor_loop() {
     fi
 
     runs_api="https://api.github.com/repos/${owner}/${repo}/actions/runs?head_sha=${SHA}&per_page=20"
-    if ! runs_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$runs_api")"; then
+    if ! runs_json="$(gh_api "$runs_api")"; then
       log "[try=${attempt}] 查询失败，继续重试"
       continue
     fi
@@ -414,9 +515,10 @@ run_monitor_loop() {
     fi
 
     jobs_api="https://api.github.com/repos/${owner}/${repo}/actions/runs/${run_id}/jobs"
-    if jobs_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$jobs_api")"; then
+    if jobs_json="$(gh_api "$jobs_api")"; then
       log "done: ${conclusion}"
       print_failed_steps "$jobs_json"
+      print_failure_logs "$owner" "$repo" "$jobs_json" "$LOG_TAIL_LINES"
     else
       log "done: ${conclusion}（获取 jobs 失败）"
     fi
@@ -439,7 +541,12 @@ main() {
   log "sha=$SHA"
   log "remote=$REMOTE_NAME"
   log "workflow=$WORKFLOW_NAME"
-  log "monitor=$MONITOR force_monitor=$FORCE_MONITOR max_polls=${MAX_POLLS:-0}"
+  log "monitor=$MONITOR force_monitor=$FORCE_MONITOR max_polls=${MAX_POLLS:-0} log_lines=$LOG_TAIL_LINES"
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    log "GITHUB_TOKEN: 已设置"
+  else
+    log "GITHUB_TOKEN: 未设置（失败时无法获取详细日志）"
+  fi
 
   if [[ "$MONITOR" != "true" ]]; then
     log "已关闭监控，退出"
