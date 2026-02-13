@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/obj_store/obj_store_service.dart';
 import '../../../../core/tags/models/tag.dart';
 import '../../../../core/tags/tag_service.dart';
 import '../../../../core/theme/ios26_theme.dart';
@@ -13,6 +14,7 @@ import '../../repository/overcooked_repository.dart';
 import '../../services/overcooked_gacha_service.dart';
 import '../../utils/overcooked_utils.dart';
 import '../../widgets/overcooked_date_bar.dart';
+import '../../widgets/overcooked_image.dart';
 import '../../widgets/overcooked_tag_picker_sheet.dart';
 
 class OvercookedGachaTab extends StatefulWidget {
@@ -20,6 +22,7 @@ class OvercookedGachaTab extends StatefulWidget {
   final ValueChanged<DateTime> onTargetDateChanged;
   final ValueChanged<DateTime> onImportToWish;
   final int refreshToken;
+  final ObjStoreService? objStoreService;
 
   const OvercookedGachaTab({
     super.key,
@@ -27,6 +30,7 @@ class OvercookedGachaTab extends StatefulWidget {
     required this.onTargetDateChanged,
     required this.onImportToWish,
     this.refreshToken = 0,
+    this.objStoreService,
   });
 
   @override
@@ -35,8 +39,7 @@ class OvercookedGachaTab extends StatefulWidget {
 
 class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     with TickerProviderStateMixin {
-  static const _defaultSlotTickerLabels = ['热锅中', '翻炒中', '香味暴击'];
-  static const _slotSpinMinimumDuration = Duration(milliseconds: 1500);
+  static const _singleCardFlowDuration = Duration(milliseconds: 3000);
 
   bool _loading = false;
   List<Tag> _typeTags = const [];
@@ -45,45 +48,39 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
   Map<int, int> _typeCountById = {};
   Map<int, int> _typeRecipeTotalById = {};
   List<OvercookedRecipe> _picked = const [];
-  bool _showSlotOverlay = false;
-  bool _showSlotResult = false;
-  List<OvercookedRecipe> _slotResultRecipes = const [];
-  List<String> _slotTickerLabels = _defaultSlotTickerLabels;
-  List<_SlotRollDatum> _slotRollData = const [];
-  late final AnimationController _slotSpinController;
-  late final AnimationController _slotRevealController;
+  bool _showDrawOverlay = false;
+  List<OvercookedRecipe> _drawQueue = const [];
+  int _drawCurrentIndex = -1;
+  int _drawSession = 0;
+  late final AnimationController _drawCardController;
   late final AnimationController _rollBurstController;
-  late final Animation<double> _slotRevealAnimation;
+
+  ObjStoreService? _resolveObjStoreService() {
+    if (widget.objStoreService != null) return widget.objStoreService;
+    try {
+      return context.read<ObjStoreService>();
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _slotSpinController = AnimationController(
+    _drawCardController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1120),
-    );
-    _slotRevealController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 980),
+      duration: _singleCardFlowDuration,
     );
     _rollBurstController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
     );
-    _slotRevealAnimation = TweenSequence<double>([
-      TweenSequenceItem<double>(
-        tween: CurveTween(curve: Curves.easeOutCubic),
-        weight: 35,
-      ),
-      TweenSequenceItem<double>(tween: ConstantTween<double>(1), weight: 65),
-    ]).animate(_slotRevealController);
     _loadTypes();
   }
 
   @override
   void dispose() {
-    _slotSpinController.dispose();
-    _slotRevealController.dispose();
+    _drawCardController.dispose();
     _rollBurstController.dispose();
     super.dispose();
   }
@@ -239,6 +236,7 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
         ? '未选择'
         : entries.map((e) => '${e.name}×${e.count}').join('、');
     final canRoll = !_loading && entries.isNotEmpty && totalCount > 0;
+    final objStoreService = _resolveObjStoreService();
 
     return Stack(
       children: [
@@ -410,7 +408,9 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
             else ...[
               ..._picked.map(
                 (r) => _PickedCard(
+                  key: ValueKey('overcooked_gacha_picked_card-${r.id}'),
                   recipe: r,
+                  objStoreService: objStoreService,
                   typeName: r.typeTagId == null
                       ? null
                       : _tagsById[r.typeTagId!]?.name,
@@ -428,7 +428,8 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
             ],
           ],
         ),
-        if (_showSlotOverlay) _buildSlotOverlay(),
+        if (_showDrawOverlay)
+          _buildDrawOverlay(objStoreService: objStoreService),
       ],
     );
   }
@@ -475,251 +476,121 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     });
   }
 
-  List<String> _buildSlotFallbackTickerLabels(Map<int, int> typeCounts) {
-    final labels = <String>[];
-    final sortedEntries = typeCounts.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    for (final entry in sortedEntries) {
-      final name = _tagsById[entry.key]?.name.trim();
-      if (name == null || name.isEmpty) continue;
-      final repeat = entry.value.clamp(1, 3).toInt();
-      for (int i = 0; i < repeat; i++) {
-        labels.add('$name·准备上桌');
-      }
+  OvercookedRecipe? get _drawCurrentRecipe {
+    if (_drawCurrentIndex < 0 || _drawCurrentIndex >= _drawQueue.length) {
+      return null;
     }
-
-    if (labels.isEmpty) {
-      return _defaultSlotTickerLabels;
-    }
-    labels.shuffle(math.Random(DateTime.now().microsecondsSinceEpoch));
-    if (labels.length >= 3) return labels;
-    return [...labels, '大火翻炒', '随机上菜'].take(3).toList(growable: false);
+    return _drawQueue[_drawCurrentIndex];
   }
 
-  List<_SlotRollDatum> _buildSlotRollData({
-    required List<OvercookedRecipe> candidates,
-    required Map<int, ({int cookCount, double avgRating, int ratingCount})>
-    recipeStats,
-  }) {
-    final byType = <int, List<OvercookedRecipe>>{};
-    for (final recipe in candidates) {
-      final typeId = recipe.typeTagId;
-      if (typeId == null || !_selectedTypeIds.contains(typeId)) continue;
-      (byType[typeId] ??= <OvercookedRecipe>[]).add(recipe);
-    }
-    if (byType.isEmpty) return const [];
-
-    final data = <_SlotRollDatum>[];
-    final typeIds = byType.keys.toList()..sort();
-    for (final typeId in typeIds) {
-      final typeName = _tagsById[typeId]?.name.trim();
-      final recipes = byType[typeId] ?? const <OvercookedRecipe>[];
-      if (recipes.isEmpty) continue;
-
-      final weighted = <({OvercookedRecipe recipe, double weight})>[];
-      var totalWeight = 0.0;
-      for (final recipe in recipes) {
-        final id = recipe.id;
-        final stat = id == null ? null : recipeStats[id];
-        final avgRating = (stat?.avgRating ?? 0).clamp(0, 5).toDouble();
-        final weight = OvercookedGachaService.weightForAverageRating(avgRating);
-        weighted.add((recipe: recipe, weight: weight));
-        totalWeight += weight;
-      }
-
-      for (final item in weighted) {
-        final recipe = item.recipe;
-        final name = recipe.name.trim();
-        if (name.isEmpty) continue;
-        final probability = totalWeight <= 0
-            ? (1 / weighted.length)
-            : (item.weight / totalWeight);
-        data.add(
-          _SlotRollDatum(
-            name: name,
-            typeName: typeName,
-            probability: probability,
-          ),
-        );
-      }
-    }
-
-    data.sort((a, b) {
-      final byProbability = b.probability.compareTo(a.probability);
-      if (byProbability != 0) return byProbability;
-      return a.name.compareTo(b.name);
-    });
-    return data;
+  double _segment(double value, {required double start, required double end}) {
+    if (value <= start) return 0;
+    if (value >= end) return 1;
+    return (value - start) / (end - start);
   }
 
-  List<String> _buildSlotTickerLabelsFromRollData(List<_SlotRollDatum> data) {
-    if (data.isEmpty) return _defaultSlotTickerLabels;
-    final labels = data.map((entry) => entry.reelLabel).toList();
-    if (labels.length == 1) {
-      return [labels.first, labels.first, labels.first];
-    }
-    if (labels.length == 2) {
-      return [...labels, ...labels];
-    }
-    return labels;
-  }
-
-  void _startRollEffects({
-    required Map<int, int> typeCounts,
+  void _startDrawEffects({
+    required List<OvercookedRecipe> queue,
     required bool reducedMotion,
-    required List<_SlotRollDatum> slotRollData,
   }) {
-    _rollBurstController.forward(from: 0);
-    _slotRevealController.value = 0;
+    if (reducedMotion) return;
+    _drawCardController.stop();
     if (!mounted) return;
     setState(() {
-      _showSlotOverlay = true;
-      _showSlotResult = false;
-      _slotResultRecipes = const [];
-      _slotRollData = slotRollData;
-      _slotTickerLabels = slotRollData.isEmpty
-          ? _buildSlotFallbackTickerLabels(typeCounts)
-          : _buildSlotTickerLabelsFromRollData(slotRollData);
+      _showDrawOverlay = true;
+      _drawQueue = queue;
+      _drawCurrentIndex = queue.isEmpty ? -1 : 0;
     });
-    if (reducedMotion) {
-      _slotSpinController
-        ..stop()
-        ..value = 0;
-    } else {
-      _slotSpinController.repeat();
-    }
   }
 
-  Future<void> _revealRollEffects({
+  Future<void> _revealDrawEffects({
     required List<OvercookedRecipe> picked,
     required bool reducedMotion,
   }) async {
-    _slotSpinController.stop();
-    if (!mounted) return;
-    setState(() {
-      _showSlotResult = true;
-      _slotResultRecipes = picked;
-    });
-    if (reducedMotion) {
-      _slotRevealController.value = 1;
-    } else {
-      await _slotRevealController.forward(from: 0);
+    final session = ++_drawSession;
+    if (reducedMotion || picked.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _picked = [..._picked, ...picked];
+        _showDrawOverlay = false;
+        _drawQueue = const [];
+        _drawCurrentIndex = -1;
+      });
+      return;
     }
-    if (!mounted) return;
+
+    for (int i = 0; i < picked.length; i++) {
+      if (!mounted || session != _drawSession) return;
+      setState(() => _drawCurrentIndex = i);
+      await _drawCardController.forward(from: 0);
+      if (!mounted || session != _drawSession) return;
+      setState(() {
+        _picked = [..._picked, picked[i]];
+      });
+    }
+
+    if (!mounted || session != _drawSession) return;
     setState(() {
-      _showSlotOverlay = false;
-      _showSlotResult = false;
-      _slotResultRecipes = const [];
-      _slotRollData = const [];
-      _slotTickerLabels = _defaultSlotTickerLabels;
+      _showDrawOverlay = false;
+      _drawQueue = const [];
+      _drawCurrentIndex = -1;
     });
   }
 
-  void _dismissRollEffects() {
-    _slotSpinController.stop();
+  void _dismissDrawEffects() {
+    _drawSession++;
+    _drawCardController.stop();
     if (!mounted) return;
     setState(() {
-      _showSlotOverlay = false;
-      _showSlotResult = false;
-      _slotResultRecipes = const [];
-      _slotRollData = const [];
-      _slotTickerLabels = _defaultSlotTickerLabels;
+      _showDrawOverlay = false;
+      _drawQueue = const [];
+      _drawCurrentIndex = -1;
     });
   }
 
-  Widget _buildSlotOverlay() {
-    final bool showingResult = _showSlotResult;
-    final title = showingResult ? '开盖啦' : '扭蛋机高速运转中';
+  Widget _buildDrawOverlay({required ObjStoreService? objStoreService}) {
+    final recipe = _drawCurrentRecipe;
+    final total = _drawQueue.length;
+    final joined = _picked.length.clamp(0, total);
+    final drawText = total <= 0
+        ? '抽卡准备中'
+        : '抽卡进行中 ${_drawCurrentIndex + 1}/$total';
 
     return Positioned.fill(
       child: ColoredBox(
-        color: IOS26Theme.overlayColor.withValues(alpha: 0.20),
+        color: IOS26Theme.overlayColor.withValues(alpha: 0.26),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: GlassContainer(
-                key: const ValueKey('overcooked_gacha_slot_overlay'),
+                key: const ValueKey('overcooked_gacha_draw_overlay'),
                 borderRadius: 22,
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(title, style: IOS26Theme.titleMedium),
+                    Text(drawText, style: IOS26Theme.titleMedium),
                     const SizedBox(height: 12),
-                    if (showingResult)
-                      FadeTransition(
-                        opacity: _slotRevealAnimation,
-                        child: Container(
-                          key: const ValueKey(
-                            'overcooked_gacha_slot_result_reveal',
-                          ),
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-                          decoration: BoxDecoration(
-                            color: IOS26Theme.surfaceColor.withValues(
-                              alpha: 0.90,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: IOS26Theme.toolOrange.withValues(
-                                alpha: 0.30,
-                              ),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '本次抽中',
-                                style: IOS26Theme.titleSmall.copyWith(
-                                  color: IOS26Theme.toolOrange,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              if (_slotResultRecipes.isEmpty)
-                                Text(
-                                  '这轮没有抽到菜品，换个风格再试试。',
-                                  style: IOS26Theme.bodySmall,
-                                )
-                              else
-                                ..._slotResultRecipes
-                                    .take(4)
-                                    .map(
-                                      (recipe) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 6,
-                                        ),
-                                        child: Text(
-                                          '• ${recipe.name}',
-                                          style: IOS26Theme.bodyMedium,
-                                        ),
-                                      ),
-                                    ),
-                            ],
-                          ),
-                        ),
+                    if (recipe == null)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: CupertinoActivityIndicator(),
                       )
-                    else ...[
-                      _buildSlotDataBasisCard(),
-                      const SizedBox(height: 10),
-                      _SlotMachineReel(
-                        labels: _slotTickerLabels,
-                        spin: _slotSpinController,
+                    else
+                      _buildAnimatedDrawCard(
+                        recipe: recipe,
+                        objStoreService: objStoreService,
                       ),
-                    ],
-                    if (!showingResult) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        '咕噜咕噜... 按候选权重滚动中',
-                        style: IOS26Theme.bodySmall.copyWith(
-                          color: IOS26Theme.textSecondary,
-                        ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '已加入列表 $joined/$total',
+                      key: const ValueKey('overcooked_gacha_draw_progress'),
+                      style: IOS26Theme.bodySmall.copyWith(
+                        color: IOS26Theme.textSecondary,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -730,62 +601,200 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
     );
   }
 
-  Widget _buildSlotDataBasisCard() {
-    final topItems = _slotRollData.take(3).toList(growable: false);
-    return Container(
-      key: const ValueKey('overcooked_gacha_slot_data_basis'),
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceVariant.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: IOS26Theme.toolBlue.withValues(alpha: 0.18),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '本轮候选 ${_slotRollData.length} 道菜（评分越高概率越高）',
-            style: IOS26Theme.bodySmall.copyWith(
-              color: IOS26Theme.textSecondary,
-              fontWeight: FontWeight.w600,
+  Widget _buildAnimatedDrawCard({
+    required OvercookedRecipe recipe,
+    required ObjStoreService? objStoreService,
+  }) {
+    return AnimatedBuilder(
+      animation: _drawCardController,
+      builder: (context, child) {
+        final t = _drawCardController.value;
+        final entrance = Curves.easeOutCubic.transform(
+          _segment(t, start: 0, end: 0.22),
+        );
+        final flip = Curves.easeInOutCubic.transform(
+          _segment(t, start: 0.22, end: 0.58),
+        );
+        final highlight = Curves.easeOutBack.transform(
+          _segment(t, start: 0.58, end: 0.82),
+        );
+        final settle = Curves.easeInOut.transform(
+          _segment(t, start: 0.82, end: 1),
+        );
+
+        final angle = math.pi * (1 - flip);
+        final showFront = angle <= (math.pi / 2);
+        final baseScale = 0.84 + (1 - 0.84) * entrance;
+        final focusScale = 1 + (0.10 * math.sin(math.pi * highlight));
+        final settleScale = 1 - (0.04 * settle);
+        final scale = baseScale * focusScale * settleScale;
+        final offsetY =
+            (56 * (1 - entrance)) + (-18 * highlight) + (16 * settle);
+        final glowAlpha = (0.10 + highlight * 0.22).clamp(0.0, 0.32);
+        final glowBlur = 16 + highlight * 16;
+        final typeName = recipe.typeTagId == null
+            ? null
+            : _tagsById[recipe.typeTagId!]?.name.trim();
+
+        return Transform.translate(
+          offset: Offset(0, offsetY),
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0012)
+              ..rotateY(angle),
+            child: Transform.scale(
+              scale: scale,
+              child: Container(
+                key: const ValueKey('overcooked_gacha_draw_card'),
+                width: 232,
+                height: 296,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: IOS26Theme.surfaceColor.withValues(alpha: 0.96),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: IOS26Theme.primaryColor.withValues(alpha: 0.30),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: IOS26Theme.primaryColor.withValues(
+                        alpha: glowAlpha,
+                      ),
+                      blurRadius: glowBlur,
+                      spreadRadius: 1.5,
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: showFront
+                          ? _buildDrawCardFront(
+                              recipe: recipe,
+                              typeName: typeName,
+                              objStoreService: objStoreService,
+                            )
+                          : _buildDrawCardBack(),
+                    ),
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Container(
+                          key: const ValueKey(
+                            'overcooked_gacha_draw_card_highlight',
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: RadialGradient(
+                              colors: [
+                                IOS26Theme.toolOrange.withValues(
+                                  alpha: 0.16 * highlight,
+                                ),
+                                IOS26Theme.primaryColor.withValues(
+                                  alpha: 0.10 * highlight,
+                                ),
+                                IOS26Theme.surfaceColor.withValues(alpha: 0),
+                              ],
+                              stops: const [0.0, 0.62, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          if (topItems.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: topItems.map(_buildSlotDataPill).toList(),
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildSlotDataPill(_SlotRollDatum item) {
-    final typePrefix = item.typeName == null || item.typeName!.isEmpty
-        ? ''
-        : '${item.typeName}·';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: IOS26Theme.primaryColor.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: IOS26Theme.primaryColor.withValues(alpha: 0.22),
-          width: 1,
+  Widget _buildDrawCardFront({
+    required OvercookedRecipe recipe,
+    required String? typeName,
+    required ObjStoreService? objStoreService,
+  }) {
+    final type = typeName?.trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 168,
+          width: double.infinity,
+          child: _RecipeImage(
+            objStoreService: objStoreService,
+            objectKey: recipe.coverImageKey,
+            borderRadius: 14,
+          ),
         ),
-      ),
-      child: Text(
-        '$typePrefix${item.name} ${item.percentLabel}',
-        style: IOS26Theme.bodySmall.copyWith(
-          fontWeight: FontWeight.w600,
-          color: IOS26Theme.primaryColor,
+        const SizedBox(height: 10),
+        Text(
+          recipe.name,
+          key: const ValueKey('overcooked_gacha_draw_card_name'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: IOS26Theme.titleMedium.copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (type != null && type.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: IOS26Theme.toolPurple.withValues(alpha: 0.24),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              type,
+              style: IOS26Theme.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: IOS26Theme.toolPurple,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDrawCardBack() {
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()..rotateY(math.pi),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              IOS26Theme.toolPurple.withValues(alpha: 0.28),
+              IOS26Theme.primaryColor.withValues(alpha: 0.30),
+            ],
+          ),
+          border: Border.all(
+            color: IOS26Theme.primaryColor.withValues(alpha: 0.28),
+            width: 1,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IOS26Icon(
+              CupertinoIcons.sparkles,
+              size: 26,
+              tone: IOS26IconTone.accent,
+            ),
+            const SizedBox(height: 10),
+            Text('咔哒... 抽卡中', style: IOS26Theme.titleSmall),
+          ],
         ),
       ),
     );
@@ -813,43 +822,31 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
 
     final repository = context.read<OvercookedRepository>();
     final reducedMotion = _prefersReducedMotion;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _picked = const [];
+      if (!reducedMotion) {
+        _showDrawOverlay = true;
+        _drawQueue = const [];
+        _drawCurrentIndex = -1;
+      }
+    });
+    _rollBurstController.forward(from: 0);
     try {
-      final typeIds = typeCounts.keys.toList()..sort();
-      final slotCandidates = await repository.listRecipesByTypeTagIds(typeIds);
-      final recipeStats = await repository.getRecipeStats();
-      final slotRollData = _buildSlotRollData(
-        candidates: slotCandidates,
-        recipeStats: recipeStats,
-      );
-      _startRollEffects(
-        typeCounts: typeCounts,
-        reducedMotion: reducedMotion,
-        slotRollData: slotRollData,
-      );
-
-      final spinStartTime = DateTime.now();
       final service = OvercookedGachaService(repository: repository);
       final seed = DateTime.now().millisecondsSinceEpoch;
       final picked = await service.pickByTypeCounts(
         typeCounts: typeCounts,
         seed: seed,
       );
-      if (!reducedMotion) {
-        final elapsed = DateTime.now().difference(spinStartTime);
-        final remain = _slotSpinMinimumDuration - elapsed;
-        if (remain > Duration.zero) {
-          await Future<void>.delayed(remain);
-        }
-      }
       if (!mounted) return;
       setState(() {
         _typeCountById = typeCounts;
-        _picked = picked;
       });
-      await _revealRollEffects(picked: picked, reducedMotion: reducedMotion);
+      _startDrawEffects(queue: picked, reducedMotion: reducedMotion);
+      await _revealDrawEffects(picked: picked, reducedMotion: reducedMotion);
     } catch (e) {
-      _dismissRollEffects();
+      _dismissDrawEffects();
       if (!mounted) return;
       await OvercookedDialogs.showMessage(
         context,
@@ -926,9 +923,15 @@ class _OvercookedGachaTabState extends State<OvercookedGachaTab>
 
 class _PickedCard extends StatelessWidget {
   final OvercookedRecipe recipe;
+  final ObjStoreService? objStoreService;
   final String? typeName;
 
-  const _PickedCard({required this.recipe, required this.typeName});
+  const _PickedCard({
+    super.key,
+    required this.recipe,
+    required this.objStoreService,
+    required this.typeName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -937,43 +940,99 @@ class _PickedCard extends StatelessWidget {
       borderRadius: 18,
       padding: const EdgeInsets.all(14),
       margin: const EdgeInsets.only(bottom: 10),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(recipe.name, style: IOS26Theme.titleMedium),
-          if (type != null && type.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                type,
-                style: IOS26Theme.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.toolPurple,
-                ),
-              ),
+          SizedBox(
+            width: 76,
+            height: 76,
+            child: _RecipeImage(
+              objStoreService: objStoreService,
+              objectKey: recipe.coverImageKey,
+              borderRadius: 14,
             ),
-          ],
-          if (recipe.intro.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              recipe.intro.trim(),
-              style: IOS26Theme.bodySmall.copyWith(
-                height: 1.25,
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(recipe.name, style: IOS26Theme.titleMedium),
+                if (type != null && type.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: IOS26Theme.toolPurple.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      type,
+                      style: IOS26Theme.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: IOS26Theme.toolPurple,
+                      ),
+                    ),
+                  ),
+                ],
+                if (recipe.intro.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    recipe.intro.trim(),
+                    style: IOS26Theme.bodySmall.copyWith(
+                      height: 1.25,
+                      color: IOS26Theme.textSecondary.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _RecipeImage extends StatelessWidget {
+  final ObjStoreService? objStoreService;
+  final String? objectKey;
+  final double borderRadius;
+
+  const _RecipeImage({
+    required this.objStoreService,
+    required this.objectKey,
+    required this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final service = objStoreService;
+    if (service == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '无图片',
+          style: IOS26Theme.bodySmall.copyWith(fontSize: 12),
+        ),
+      );
+    }
+
+    return OvercookedImageByKey(
+      objStoreService: service,
+      objectKey: objectKey,
+      borderRadius: borderRadius,
     );
   }
 }
@@ -1043,151 +1102,6 @@ class _TypeCountRow extends StatelessWidget {
         icon,
         size: 16,
         tone: enabled ? IOS26IconTone.accent : IOS26IconTone.secondary,
-      ),
-    );
-  }
-}
-
-class _SlotRollDatum {
-  final String name;
-  final String? typeName;
-  final double probability;
-
-  const _SlotRollDatum({
-    required this.name,
-    required this.typeName,
-    required this.probability,
-  });
-
-  String get percentLabel {
-    final normalized = probability.clamp(0, 1).toDouble();
-    final percent = (normalized * 100).round().clamp(0, 100);
-    return '$percent%';
-  }
-
-  String get reelLabel {
-    if (typeName == null || typeName!.isEmpty) {
-      return '$name $percentLabel';
-    }
-    return '${typeName!}·$name $percentLabel';
-  }
-}
-
-class _SlotMachineReel extends StatelessWidget {
-  final List<String> labels;
-  final Animation<double> spin;
-
-  const _SlotMachineReel({required this.labels, required this.spin});
-
-  @override
-  Widget build(BuildContext context) {
-    final reelLabels = labels.isEmpty ? const ['热锅中', '翻炒中', '香味暴击'] : labels;
-    return Container(
-      height: 98,
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.90),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: IOS26Theme.toolPurple.withValues(alpha: 0.24),
-          width: 1,
-        ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Row(
-            children: List.generate(
-              3,
-              (index) => Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: _buildColumn(reelLabels, index),
-                ),
-              ),
-            ),
-          ),
-          IgnorePointer(
-            child: Container(
-              height: 28,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(
-                  color: IOS26Theme.toolOrange.withValues(alpha: 0.26),
-                  width: 1,
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    IOS26Theme.toolOrange.withValues(alpha: 0.04),
-                    IOS26Theme.primaryColor.withValues(alpha: 0.09),
-                    IOS26Theme.toolOrange.withValues(alpha: 0.04),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildColumn(List<String> labels, int columnIndex) {
-    const itemHeight = 28.0;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              IOS26Theme.surfaceVariant.withValues(alpha: 0.75),
-              IOS26Theme.surfaceColor.withValues(alpha: 0.95),
-            ],
-          ),
-        ),
-        child: AnimatedBuilder(
-          animation: spin,
-          builder: (context, child) {
-            final speedFactor = labels.length * 3.8;
-            final raw = spin.value * speedFactor + columnIndex * 1.37;
-            final current = raw.floor() % labels.length;
-            final next = (current + 1) % labels.length;
-            final shift = (raw - raw.floor()) * itemHeight;
-            return Transform.translate(
-              offset: Offset(0, -shift),
-              child: Column(
-                children: [
-                  _buildCell(labels[current], itemHeight),
-                  _buildCell(labels[next], itemHeight),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCell(String label, double height) {
-    return SizedBox(
-      height: height,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Center(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: IOS26Theme.bodySmall.copyWith(
-              color: IOS26Theme.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
       ),
     );
   }

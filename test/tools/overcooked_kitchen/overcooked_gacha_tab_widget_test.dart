@@ -190,7 +190,7 @@ void main() {
       ]);
     });
 
-    testWidgets('点击扭蛋后应出现老虎机转动浮层与按钮爆炸粒子', (tester) async {
+    testWidgets('点击扭蛋后应出现抽卡浮层与按钮爆炸粒子', (tester) async {
       final now = DateTime(2026, 1, 2, 10);
       final typeTag = Tag(
         id: 1,
@@ -250,7 +250,15 @@ void main() {
       await tester.pump(const Duration(milliseconds: 80));
 
       expect(
-        find.byKey(const ValueKey('overcooked_gacha_slot_overlay')),
+        find.byKey(const ValueKey('overcooked_gacha_draw_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_draw_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_draw_card_highlight')),
         findsOneWidget,
       );
       expect(
@@ -260,7 +268,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('扭蛋转动结束后应揭晓随机菜品', (tester) async {
+    testWidgets('抽卡流程结束后应揭晓随机菜品并进入列表', (tester) async {
       final now = DateTime(2026, 1, 2, 10);
       final typeTag = Tag(
         id: 1,
@@ -317,18 +325,30 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey('overcooked_gacha_roll_button')),
       );
-      await tester.pump(const Duration(milliseconds: 1680));
+      await tester.pump(const Duration(milliseconds: 1600));
 
       expect(
-        find.byKey(const ValueKey('overcooked_gacha_slot_result_reveal')),
+        find.byKey(const ValueKey('overcooked_gacha_draw_overlay')),
         findsOneWidget,
       );
-      expect(find.text('本次抽中'), findsOneWidget);
-      expect(find.text('红烧肉'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_draw_card')),
+        findsOneWidget,
+      );
+
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_draw_overlay')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_picked_card-100')),
+        findsOneWidget,
+      );
       await tester.pumpAndSettle();
     });
 
-    testWidgets('转动浮层应展示真实候选数据且不会过快消失', (tester) async {
+    testWidgets('应按约3秒每张的节奏抽卡并逐张加入列表', (tester) async {
       final now = DateTime(2026, 1, 2, 10);
       final typeTag = Tag(
         id: 1,
@@ -397,29 +417,39 @@ void main() {
       await tester.tap(find.text('主菜'));
       await tester.tap(find.text('完成'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overcooked_gacha_count_add-1')));
+      await tester.pumpAndSettle();
 
       await tester.tap(
         find.byKey(const ValueKey('overcooked_gacha_roll_button')),
       );
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 600));
 
       expect(
-        find.byKey(const ValueKey('overcooked_gacha_slot_overlay')),
+        find.byKey(const ValueKey('overcooked_gacha_draw_overlay')),
         findsOneWidget,
       );
-      expect(find.textContaining('本轮候选'), findsOneWidget);
-      expect(find.textContaining('评分越高概率越高'), findsOneWidget);
-      expect(find.textContaining('红烧肉'), findsWidgets);
-      expect(find.textContaining('%'), findsWidgets);
+      expect(find.text('已加入列表 0/2'), findsOneWidget);
 
-      await tester.pump(const Duration(milliseconds: 760));
+      await tester.pump(const Duration(milliseconds: 3200));
+      expect(find.text('已加入列表 1/2'), findsOneWidget);
+      final firstPickedCount =
+          find.byKey(const ValueKey('overcooked_gacha_picked_card-100')).evaluate().length +
+          find.byKey(const ValueKey('overcooked_gacha_picked_card-101')).evaluate().length;
+      expect(firstPickedCount, 1);
+
+      await tester.pump(const Duration(milliseconds: 3200));
       expect(
-        find.byKey(const ValueKey('overcooked_gacha_slot_overlay')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('overcooked_gacha_slot_result_reveal')),
+        find.byKey(const ValueKey('overcooked_gacha_draw_overlay')),
         findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_picked_card-100')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('overcooked_gacha_picked_card-101')),
+        findsOneWidget,
       );
       await tester.pumpAndSettle();
     });
