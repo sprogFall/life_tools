@@ -11,6 +11,14 @@ SKIP_BACKEND_TEST="false"
 BACKEND_TEST_CMD=""
 FLUTTER_BIN=""
 DRY_RUN="false"
+REPO_ROOT=""
+OS_TYPE=""
+EFFECTIVE_SCOPE=""
+FLUTTER_PUBGET_HASH_STATE_FILE=""
+TARGETED_TEST_GUARANTEED="false"
+TARGETED_TEST_REASON=""
+TARGET_TEST_FILES=()
+CURRENT_FLUTTER_PUBGET_HASH=""
 
 log() {
   echo "[pre-push] $*"
@@ -43,6 +51,38 @@ run_shell() {
   bash -lc "$*"
 }
 
+prepare_sqlite_for_flutter_tests() {
+  if [[ "${OS_TYPE:-}" != "linux" ]]; then
+    return 0
+  fi
+
+  local sqlite_so_target="/usr/lib/x86_64-linux-gnu/libsqlite3.so.0"
+  local sqlite_so_link="/tmp/libsqlite3.so"
+
+  if [[ ! -e "$sqlite_so_target" ]]; then
+    log "未找到 $sqlite_so_target，跳过 sqlite 兼容处理"
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "[dry-run] ln -sf $sqlite_so_target $sqlite_so_link"
+  else
+    ln -sf "$sqlite_so_target" "$sqlite_so_link"
+  fi
+
+  local current_ld="${LD_LIBRARY_PATH:-}"
+  if [[ -z "$current_ld" ]]; then
+    export LD_LIBRARY_PATH="/tmp"
+  else
+    case ":$current_ld:" in
+      *":/tmp:"*) ;;
+      *) export LD_LIBRARY_PATH="/tmp:$current_ld" ;;
+    esac
+  fi
+
+  log "已启用 sqlite 兼容（Linux）"
+}
+
 usage() {
   cat <<'USAGE'
 用法:
@@ -51,6 +91,7 @@ usage() {
 功能:
   - 在 push 前执行代码校验（Flutter / Backend）
   - 自动识别改动范围并按规则执行
+  - Flutter 测试优先执行可证明覆盖的目标测试，无法证明时自动回退全量
 
 选项:
   --scope <auto|flutter|backend|docs|mixed>
@@ -149,10 +190,30 @@ detect_os() {
   esac
 }
 
+hash_stdin_sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+    return
+  fi
+
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 | awk '{print $1}'
+    return
+  fi
+
+  if command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 | awk '{print $NF}'
+    return
+  fi
+
+  die "缺少哈希命令: sha256sum/shasum/openssl 任一即可"
+}
+
 resolve_repo_root() {
   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
   [[ -n "$REPO_ROOT" ]] || die "当前目录不在 git 仓库内"
   cd "$REPO_ROOT"
+  FLUTTER_PUBGET_HASH_STATE_FILE="$(git rev-parse --git-dir)/pre-push/flutter-pub-get.hash"
 }
 
 collect_working_tree_files() {
@@ -307,13 +368,230 @@ CMD
   fi
 }
 
+compute_flutter_pub_get_hash() {
+  local flutter="$1"
+  local version_text
+  local hash_payload
+
+  version_text="$("$flutter" --version --machine 2>/dev/null || "$flutter" --version 2>/dev/null | head -n 1 || true)"
+
+  hash_payload="flutter=${version_text}"$'\n'
+  local dep_file
+  for dep_file in "pubspec.yaml" "pubspec.lock"; do
+    if [[ -f "$dep_file" ]]; then
+      hash_payload+="${dep_file}:$(git hash-object "$dep_file" 2>/dev/null || echo "hash-error")"$'\n'
+    else
+      hash_payload+="${dep_file}:missing"$'\n'
+    fi
+  done
+
+  printf '%s' "$hash_payload" | hash_stdin_sha256
+}
+
+save_flutter_pub_get_hash() {
+  local hash_value="$1"
+  local hash_dir
+
+  hash_dir="$(dirname "$FLUTTER_PUBGET_HASH_STATE_FILE")"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "[dry-run] write pub-get hash: $FLUTTER_PUBGET_HASH_STATE_FILE"
+    return
+  fi
+
+  mkdir -p "$hash_dir"
+  printf '%s' "$hash_value" > "$FLUTTER_PUBGET_HASH_STATE_FILE"
+}
+
+should_run_flutter_pub_get() {
+  local flutter="$1"
+  local current_hash previous_hash
+  local package_config=".dart_tool/package_config.json"
+
+  current_hash="$(compute_flutter_pub_get_hash "$flutter")"
+  CURRENT_FLUTTER_PUBGET_HASH="$current_hash"
+
+  if [[ ! -f "$package_config" ]]; then
+    log "未发现 ${package_config}，需要执行 flutter pub get"
+    return 0
+  fi
+
+  if [[ ! -f "$FLUTTER_PUBGET_HASH_STATE_FILE" ]]; then
+    log "未发现依赖哈希缓存，执行 flutter pub get"
+    return 0
+  fi
+
+  previous_hash="$(cat "$FLUTTER_PUBGET_HASH_STATE_FILE" 2>/dev/null || true)"
+  if [[ "$previous_hash" == "$current_hash" ]]; then
+    log "依赖哈希未变化，跳过 flutter pub get"
+    return 1
+  fi
+
+  log "依赖哈希变化，执行 flutter pub get"
+  return 0
+}
+
+should_run_pre_push_self_test() {
+  local f
+  for f in "${CHANGED_FILES[@]}"; do
+    case "$f" in
+      scripts/pre-push.sh|scripts/tests/pre-push_test.sh)
+        return 0
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  return 1
+}
+
+run_pre_push_self_test_if_needed() {
+  local self_test_script="${REPO_ROOT}/scripts/tests/pre-push_test.sh"
+
+  if ! should_run_pre_push_self_test; then
+    return 0
+  fi
+
+  if [[ ! -x "$self_test_script" ]]; then
+    die "检测到 pre-push 脚本改动，但自测脚本不可执行: $self_test_script"
+  fi
+
+  log "检测到 pre-push 相关改动，执行脚本自测: scripts/tests/pre-push_test.sh"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "[dry-run] bash scripts/tests/pre-push_test.sh"
+    return 0
+  fi
+
+  bash "$self_test_script"
+}
+
+add_target_test_file() {
+  local candidate="$1"
+  [[ -n "$candidate" ]] || return 0
+  [[ -f "$candidate" ]] || return 0
+
+  local existing
+  for existing in "${TARGET_TEST_FILES[@]:-}"; do
+    if [[ "$existing" == "$candidate" ]]; then
+      return 0
+    fi
+  done
+
+  TARGET_TEST_FILES+=("$candidate")
+}
+
+collect_tests_for_lib_file() {
+  local lib_file="$1"
+  local rel_path direct_test base_name found_match="false"
+
+  rel_path="${lib_file#lib/}"
+  direct_test="test/${rel_path%.dart}_test.dart"
+  if [[ -f "$direct_test" ]]; then
+    add_target_test_file "$direct_test"
+    found_match="true"
+  fi
+
+  base_name="$(basename "$lib_file" .dart)"
+  while IFS= read -r test_file; do
+    [[ -z "$test_file" ]] && continue
+    add_target_test_file "$test_file"
+    found_match="true"
+  done < <(find test -type f -name "${base_name}_test.dart" 2>/dev/null | sort)
+
+  if [[ "$found_match" == "true" ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+plan_targeted_flutter_tests() {
+  TARGETED_TEST_GUARANTEED="false"
+  TARGETED_TEST_REASON=""
+  TARGET_TEST_FILES=()
+
+  local flutter_changed_files=()
+  local f
+  for f in "${CHANGED_FILES[@]}"; do
+    if is_flutter_file "$f"; then
+      flutter_changed_files+=("$f")
+    fi
+  done
+
+  if [[ ${#flutter_changed_files[@]} -eq 0 ]]; then
+    TARGETED_TEST_REASON="未检测到 Flutter 侧改动"
+    return
+  fi
+
+  local changed
+  for changed in "${flutter_changed_files[@]}"; do
+    if [[ "$changed" == test/* ]]; then
+      if [[ "$changed" == *_test.dart ]]; then
+        add_target_test_file "$changed"
+        continue
+      fi
+
+      TARGETED_TEST_REASON="修改了测试支撑文件（非 _test.dart）：${changed}"
+      return
+    fi
+
+    if [[ "$changed" == lib/* ]]; then
+      if [[ "$changed" != *.dart ]]; then
+        TARGETED_TEST_REASON="检测到非 Dart 的 lib 改动：${changed}"
+        return
+      fi
+      if [[ ! -f "$changed" ]]; then
+        TARGETED_TEST_REASON="检测到删除/重命名的 Dart 文件：${changed}"
+        return
+      fi
+      if ! collect_tests_for_lib_file "$changed"; then
+        TARGETED_TEST_REASON="未找到可证明覆盖的测试：${changed}"
+        return
+      fi
+      continue
+    fi
+
+    TARGETED_TEST_REASON="包含无法建立覆盖映射的 Flutter 改动：${changed}"
+    return
+  done
+
+  if [[ ${#TARGET_TEST_FILES[@]} -eq 0 ]]; then
+    TARGETED_TEST_REASON="未生成可执行的目标测试集"
+    return
+  fi
+
+  TARGETED_TEST_GUARANTEED="true"
+}
+
+run_flutter_tests() {
+  local flutter="$1"
+  plan_targeted_flutter_tests
+
+  if [[ "$TARGETED_TEST_GUARANTEED" != "true" ]]; then
+    log "回退全量 flutter test：${TARGETED_TEST_REASON}"
+    run_cmd "$flutter" test
+    return
+  fi
+
+  log "使用变更优先测试（可证明覆盖），目标数量: ${#TARGET_TEST_FILES[@]}"
+  local test_file
+  for test_file in "${TARGET_TEST_FILES[@]}"; do
+    run_cmd "$flutter" test "$test_file"
+  done
+}
+
 run_flutter_checks() {
+  prepare_sqlite_for_flutter_tests
+
   local flutter
   flutter="$(resolve_flutter_bin)"
   log "使用 Flutter: $flutter"
 
   if [[ "$SKIP_PUB_GET" != "true" ]]; then
-    run_cmd "$flutter" pub get
+    if should_run_flutter_pub_get "$flutter"; then
+      run_cmd "$flutter" pub get
+      save_flutter_pub_get_hash "$CURRENT_FLUTTER_PUBGET_HASH"
+    fi
   else
     log "已跳过 flutter pub get"
   fi
@@ -325,7 +603,7 @@ run_flutter_checks() {
   fi
 
   if [[ "$SKIP_TEST" != "true" ]]; then
-    run_cmd "$flutter" test
+    run_flutter_tests "$flutter"
   else
     log "已跳过 flutter test"
   fi
@@ -373,6 +651,7 @@ main() {
   resolve_repo_root
   load_changed_files
   print_change_summary
+  run_pre_push_self_test_if_needed
 
   if [[ "$SCOPE" == "auto" ]]; then
     categorize_scope_auto

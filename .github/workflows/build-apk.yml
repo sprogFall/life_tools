@@ -5,21 +5,37 @@ on:
     branches:
       - main
       - dev
-    paths-ignore:
-      - '**/*.md'
-      - '.gitignore'
-      - '.claude/**'
-      - 'backend/**'
-      - 'docs/**'
-      - 'examples/**'
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'macos/**'
+      - 'windows/**'
+      - 'linux/**'
+      - 'web/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'l10n.yaml'
+      - '.github/workflows/build-apk.yml'
+
+concurrency:
+  group: build-apk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   FLUTTER_VERSION: '3.38.6'
+  FLUTTER_TEST_SHARDS: '2'
 
 jobs:
-  build-apk:
-    name: Build APK
+  prepare:
+    name: Prepare Build Context
     runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.parse-build-type.outputs.should_build }}
+      build_type: ${{ steps.parse-build-type.outputs.build_type }}
 
     steps:
       - name: Checkout code
@@ -61,52 +77,129 @@ jobs:
             exit 0
           fi
           
-          # 其他分支，检查 commit message 标签
-          if [[ "$MESSAGE" == *"[build-apk:release]"* ]]; then
-            echo "build_type=release" >> $GITHUB_OUTPUT
-            echo "Building RELEASE APK"
-          elif [[ "$MESSAGE" == *"[build-apk:debug]"* ]]; then
-            echo "build_type=debug" >> $GITHUB_OUTPUT
-            echo "Building DEBUG APK"
-          elif [[ "$MESSAGE" == *"[build-apk]"* ]]; then
-            echo "build_type=debug" >> $GITHUB_OUTPUT
-            echo "Building DEBUG APK (default)"
-          else
-            echo "No build-apk tag found, skipping build"
-            echo "should_build=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          echo "should_build=true" >> $GITHUB_OUTPUT
+          echo "Unsupported branch for this workflow, skipping build"
+          echo "should_build=false" >> $GITHUB_OUTPUT
+
+  flutter-analyze:
+    name: Flutter Analyze
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Java
-        if: steps.parse-build-type.outputs.should_build == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Setup Flutter
-        if: steps.parse-build-type.outputs.should_build == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
 
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
       - name: Get dependencies
-        if: steps.parse-build-type.outputs.should_build == 'true'
         run: flutter pub get
 
-      - name: Run tests
-        if: steps.parse-build-type.outputs.should_build == 'true'
-        run: flutter test
-
       - name: Analyze code
-        if: steps.parse-build-type.outputs.should_build == 'true'
         run: flutter analyze
 
+  flutter-test:
+    name: Flutter Test (Shard ${{ matrix.shard_index }})
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard_index: [0, 1]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run shard tests
+        run: flutter test --total-shards ${{ env.FLUTTER_TEST_SHARDS }} --shard-index ${{ matrix.shard_index }}
+
+  build-apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - flutter-analyze
+      - flutter-test
+    if: needs.prepare.outputs.should_build == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Get dependencies
+        run: flutter pub get
+
       - name: Setup Android signing (release)
-        if: steps.parse-build-type.outputs.should_build == 'true' && steps.parse-build-type.outputs.build_type == 'release'
+        if: needs.prepare.outputs.build_type == 'release'
         run: |
           if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
             echo "Missing GitHub Secret: ANDROID_KEYSTORE_BASE64" >&2
@@ -128,9 +221,8 @@ jobs:
           EOF
 
       - name: Build APK
-        if: steps.parse-build-type.outputs.should_build == 'true'
         run: |
-          BUILD_TYPE="${{ steps.parse-build-type.outputs.build_type }}"
+          BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           if [ "$BUILD_TYPE" = "release" ]; then
             flutter build apk --release
           else
@@ -138,10 +230,9 @@ jobs:
           fi
 
       - name: Get APK info
-        if: steps.parse-build-type.outputs.should_build == 'true'
         id: apk-info
         run: |
-          BUILD_TYPE="${{ steps.parse-build-type.outputs.build_type }}"
+          BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           if [ "$BUILD_TYPE" = "release" ]; then
             APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
             APK_NAME="life_tools-release-${{ github.sha }}.apk"
@@ -158,7 +249,6 @@ jobs:
           fi
 
       - name: Upload APK artifact
-        if: steps.parse-build-type.outputs.should_build == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.apk-info.outputs.apk_name }}
@@ -166,9 +256,8 @@ jobs:
           retention-days: 30
 
       - name: Create release summary
-        if: steps.parse-build-type.outputs.should_build == 'true'
         run: |
-          BUILD_TYPE="${{ steps.parse-build-type.outputs.build_type }}"
+          BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
           APK_SIZE="${{ steps.apk-info.outputs.apk_size }}"
           COMMIT_SHA="${{ github.sha }}"

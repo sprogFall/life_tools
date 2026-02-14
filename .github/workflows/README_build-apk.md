@@ -20,43 +20,52 @@ git push origin dev
 - ✅ 始终构建 debug 包
 - ✅ 适用于开发阶段的快速迭代
 
-### 2. main 分支推送（需要标签）
+### 2. main 分支推送（自动构建 release 包）
 
-当代码推送到 `main` 分支时，需要在 commit message 中包含特定标签才会触发构建。
-
-#### 构建 Debug APK
-
-在 commit message 中添加 `[build-apk]` 或 `[build-apk:debug]`：
-
-```bash
-git commit -m "[build-apk] 修复登录问题"
-# 或
-git commit -m "[build-apk:debug] 修复登录问题"
-```
-
-#### 构建 Release APK
-
-在 commit message 中添加 `[build-apk:release]`：
-
-```bash
-git commit -m "[build-apk:release] 发布 v1.0.0"
-```
+当代码推送到 `main` 分支时，会自动构建 **release APK**，无需额外标签。
 
 ## 构建规则总结
 
 | 分支 | 触发条件 | 构建类型 |
 |------|---------|---------|
 | `dev` | 任何推送 | Debug（自动） |
-| `main` | commit message 包含 `[build-apk]` | Debug |
-| `main` | commit message 包含 `[build-apk:debug]` | Debug |
-| `main` | commit message 包含 `[build-apk:release]` | Release |
+| `main` | 任何推送 | Release（自动） |
 
-## 忽略文件
+## 路径触发规则
 
-以下文件的变更不会触发构建：
-- `**.md` - 所有 Markdown 文件
-- `.gitignore`
-- `.claude/**` - Claude 配置目录
+仅当以下 Flutter 相关路径发生变更时才触发构建：
+- `lib/**`
+- `test/**`
+- `android/**`
+- `ios/**`
+- `macos/**`
+- `windows/**`
+- `linux/**`
+- `web/**`
+- `assets/**`
+- `pubspec.yaml` / `pubspec.lock`
+- `analysis_options.yaml` / `l10n.yaml`
+- `.github/workflows/build-apk.yml`
+
+因此，`backend/**`、`docs/**`、`examples/**`、Markdown-only 等改动不会触发 APK 构建。
+
+## 流水线优化
+
+### 并发取消（concurrency）
+
+- 同一分支新的构建启动后，会自动取消该分支旧的运行，避免排队堆积。
+
+### 缓存
+
+- Flutter SDK：`subosito/flutter-action` 内置缓存。
+- Gradle：`actions/setup-java` 开启 `cache: gradle`。
+- Pub 包：`actions/cache` 缓存 `~/.pub-cache`。
+
+### 并行校验
+
+- 分为 `prepare`、`flutter-analyze`、`flutter-test`、`build-apk` 四个 job。
+- `flutter-test` 采用 2 分片并行执行：`--total-shards 2`。
+- 仅当 analyze 与 test 全部通过后才进入 APK 构建阶段。
 
 ## 输出产物
 
@@ -97,25 +106,14 @@ git push origin dev
 # ✅ 自动触发 debug 构建
 ```
 
-### 测试环境（main 分支 + debug）
+### 生产发布（main 分支，自动 release）
 
 ```bash
-# 合并到 main 并构建 debug 包进行测试
+# 正式发布，推送 main 自动构建 release 包
 git checkout main
-git merge dev
-git commit -m "[build-apk] 合并用户管理功能"
+git commit -m "发布 v1.2.0 - 新增用户管理功能"
 git push origin main
-# ✅ 触发 debug 构建
-```
-
-### 生产发布（main 分支 + release）
-
-```bash
-# 正式发布，构建 release 包
-git checkout main
-git commit -m "[build-apk:release] 发布 v1.2.0 - 新增用户管理功能"
-git push origin main
-# ✅ 触发 release 构建
+# ✅ 自动触发 release 构建
 ```
 
 ## 环境变量
@@ -132,8 +130,9 @@ git push origin main
 ### 构建未触发
 
 1. **dev 分支**: 检查是否正确推送到 dev 分支
-2. **main 分支**: 检查 commit message 是否包含正确的标签
-3. 检查修改的文件是否都在忽略列表中
+2. **main 分支**: 检查是否推送到了 `main`
+3. **分支范围**: 当前 workflow 只监听 `main/dev`，其他分支不会触发
+4. 检查修改是否命中 workflow 的路径白名单（Flutter 相关路径）
 
 ### 构建失败
 
@@ -145,8 +144,8 @@ git push origin main
 
 1. **开发阶段**: 在 dev 分支上工作，自动构建 debug 包进行测试
 2. **测试验证**: 合并到 main 前先在 dev 分支验证
-3. **发布前检查**: 使用 `[build-apk]` 在 main 分支构建 debug 包进行最终测试
-4. **正式发布**: 确认无误后使用 `[build-apk:release]` 构建 release 包
+3. **主线发布**: main 分支保持可发布状态，推送即自动产出 release 包
+4. **非主分支策略**: 若需要其他分支也参与 APK 构建，可后续增加 `workflow_dispatch` 或放开分支过滤
 
 ## 注意事项
 
