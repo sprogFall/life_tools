@@ -282,6 +282,14 @@ build_commit_subject() {
   fi
   validate_summary_quality "$SUMMARY"
 
+  # 当 summary 本身已是 conventional commit 格式且用户未显式指定 type/scope 时，
+  # 直接作为完整标题，避免产生 chore(app): fix(xxx): ... 的双重前缀
+  local cc_pattern='^(feat|fix|refactor|chore|docs|doc|test|style|ci|revert|perf|build)(\([^)]+\))?: .+'
+  if [[ -z "$TYPE" && -z "$SCOPE_TAG" && "$SUMMARY" =~ $cc_pattern ]]; then
+    COMMIT_SUBJECT="$SUMMARY"
+    return
+  fi
+
   local type scope_tag
   type="$TYPE"
   scope_tag="$SCOPE_TAG"
