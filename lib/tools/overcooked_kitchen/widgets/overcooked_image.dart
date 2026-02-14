@@ -8,7 +8,7 @@ import '../../../core/obj_store/obj_store_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/widgets/ios26_image.dart';
 
-class OvercookedImageByKey extends StatelessWidget {
+class OvercookedImageByKey extends StatefulWidget {
   final ObjStoreService objStoreService;
   final String? objectKey;
   final BoxFit fit;
@@ -25,23 +25,59 @@ class OvercookedImageByKey extends StatelessWidget {
   });
 
   @override
+  State<OvercookedImageByKey> createState() => _OvercookedImageByKeyState();
+}
+
+class _OvercookedImageByKeyState extends State<OvercookedImageByKey> {
+  Future<File?>? _fileFuture;
+  String? _resolvedKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant OvercookedImageByKey oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.objectKey != widget.objectKey ||
+        oldWidget.cacheOnly != widget.cacheOnly ||
+        oldWidget.objStoreService != widget.objStoreService) {
+      _initFuture();
+    }
+  }
+
+  void _initFuture() {
+    final key = widget.objectKey?.trim();
+    _resolvedKey = key;
+    if (key == null || key.isEmpty || kIsWeb) {
+      _fileFuture = null;
+      return;
+    }
+    _fileFuture = widget.cacheOnly
+        ? widget.objStoreService.getCachedFile(key: key)
+        : widget.objStoreService.ensureCachedFile(key: key);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final key = objectKey?.trim();
+    final key = _resolvedKey;
     if (key == null || key.isEmpty) {
       return _placeholder();
     }
 
     if (!kIsWeb) {
       return FutureBuilder<File?>(
-        future: cacheOnly
-            ? objStoreService.getCachedFile(key: key)
-            : objStoreService.ensureCachedFile(key: key),
+        future: _fileFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return cacheOnly ? _placeholder() : _placeholder(isLoading: true);
+            return widget.cacheOnly
+                ? _placeholder()
+                : _placeholder(isLoading: true);
           }
           if (snapshot.hasError) {
-            if (cacheOnly) return _placeholder();
+            if (widget.cacheOnly) return _placeholder();
             if (snapshot.error is ObjStoreNotConfiguredException) {
               return _placeholder(text: '未配置资源存储');
             }
@@ -51,24 +87,24 @@ class OvercookedImageByKey extends StatelessWidget {
           final file = snapshot.data;
           if (file != null && file.existsSync()) {
             return ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: IOS26Image.file(file, fit: fit),
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+              child: IOS26Image.file(file, fit: widget.fit),
             );
           }
 
-          if (cacheOnly) return _placeholder();
+          if (widget.cacheOnly) return _placeholder();
           return _buildNetworkFallback(key: key);
         },
       );
     }
 
-    if (cacheOnly) return _placeholder();
+    if (widget.cacheOnly) return _placeholder();
     return _buildNetworkFallback(key: key);
   }
 
   Widget _buildNetworkFallback({required String key}) {
     return FutureBuilder<String>(
-      future: objStoreService.resolveUri(key: key),
+      future: widget.objStoreService.resolveUri(key: key),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return _placeholder(isLoading: true);
@@ -86,13 +122,13 @@ class OvercookedImageByKey extends StatelessWidget {
         final uri = Uri.tryParse(uriText);
         if (!kIsWeb && uri != null && uri.scheme == 'file') {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(borderRadius),
-            child: IOS26Image.file(File.fromUri(uri), fit: fit),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            child: IOS26Image.file(File.fromUri(uri), fit: widget.fit),
           );
         }
         return ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: IOS26Image.network(uriText, fit: fit),
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          child: IOS26Image.network(uriText, fit: widget.fit),
         );
       },
     );
@@ -102,7 +138,7 @@ class OvercookedImageByKey extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
       ),
       alignment: Alignment.center,
       child: isLoading
