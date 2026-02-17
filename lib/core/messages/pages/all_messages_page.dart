@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
 import '../../theme/ios26_theme.dart';
@@ -62,79 +65,123 @@ class _MessageListItem extends StatelessWidget {
 
     final content = GlassContainer(
       padding: const EdgeInsets.all(14),
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        onPressed: messageId == null
-            ? null
-            : () async {
-                if (!message.isRead) {
-                  await service.markMessageRead(messageId);
-                }
-                if (!context.mounted) return;
-                Navigator.of(context).push(
-                  CupertinoPageRoute<void>(
-                    builder: (_) => MessageDetailPage(messageId: messageId),
-                  ),
-                );
-              },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CupertinoButton(
+            key: messageId == null
+                ? null
+                : ValueKey('all_messages_content_$messageId'),
+            padding: EdgeInsets.zero,
+            onPressed: messageId == null
+                ? null
+                : () {
+                    if (!message.isRead) {
+                      unawaited(service.markMessageRead(messageId));
+                    }
+                    Navigator.of(context).push(
+                      CupertinoPageRoute<void>(
+                        builder: (_) => MessageDetailPage(messageId: messageId),
+                      ),
+                    );
+                  },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    message.title.trim().isEmpty ? '消息' : message.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: IOS26Theme.titleSmall,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        message.title.trim().isEmpty ? '消息' : message.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: IOS26Theme.titleSmall,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _formatTime(message.createdAt),
+                      style: IOS26Theme.bodySmall.copyWith(
+                        color: IOS26Theme.textTertiary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(height: 8),
                 Text(
-                  _formatTime(message.createdAt),
-                  style: IOS26Theme.bodySmall.copyWith(
-                    color: IOS26Theme.textTertiary,
+                  message.body,
+                  style: IOS26Theme.bodyMedium.copyWith(
+                    height: 1.25,
+                    color: message.isRead
+                        ? IOS26Theme.textSecondary.withValues(alpha: 0.7)
+                        : IOS26Theme.textPrimary,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              message.body,
-              style: IOS26Theme.bodyMedium.copyWith(
-                height: 1.25,
-                color: message.isRead
-                    ? IOS26Theme.textSecondary.withValues(alpha: 0.7)
-                    : IOS26Theme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                _ReadTag(isRead: message.isRead),
-                const Spacer(),
-                if (MessageNavigation.canOpen(message))
-                  Text('前往工具', style: IOS26Theme.labelLarge),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _ReadTag(isRead: message.isRead),
+              const Spacer(),
+              if (messageId != null && MessageNavigation.canOpen(message))
+                CupertinoButton(
+                  key: ValueKey('all_messages_open_tool_$messageId'),
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  onPressed: () {
+                    if (!message.isRead) {
+                      unawaited(service.markMessageRead(messageId));
+                    }
+                    MessageNavigation.open(context, message);
+                  },
+                  child: Text('前往工具', style: IOS26Theme.labelLarge),
+                ),
+            ],
+          ),
+        ],
       ),
     );
 
-    if (messageId == null || message.isRead) {
+    if (messageId == null) {
       return content;
     }
 
-    return Dismissible(
+    return Slidable(
       key: ValueKey('all_messages_item_$messageId'),
-      direction: DismissDirection.startToEnd,
-      background: _SwipeReadBackground(),
-      confirmDismiss: (_) async {
-        await service.markMessageRead(messageId);
-        return false;
-      },
+      startActionPane: message.isRead
+          ? null
+          : ActionPane(
+              motion: const DrawerMotion(),
+              extentRatio: 0.26,
+              children: [
+                SlidableAction(
+                  onPressed: (_) {
+                    unawaited(service.markMessageRead(messageId));
+                  },
+                  backgroundColor: IOS26Theme.toolGreen,
+                  foregroundColor: IOS26Theme.onPrimaryColor,
+                  icon: CupertinoIcons.check_mark_circled_solid,
+                  label: '已读',
+                ),
+              ],
+            ),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.26,
+        children: [
+          SlidableAction(
+            onPressed: (_) {
+              unawaited(service.deleteMessage(messageId));
+            },
+            backgroundColor: IOS26Theme.toolRed,
+            foregroundColor: IOS26Theme.onPrimaryColor,
+            icon: CupertinoIcons.delete_solid,
+            label: '删除',
+          ),
+        ],
+      ),
       child: content,
     );
   }
@@ -173,27 +220,6 @@ class _ReadTag extends StatelessWidget {
         style: IOS26Theme.bodySmall.copyWith(
           fontWeight: FontWeight.w600,
           color: color,
-        ),
-      ),
-    );
-  }
-}
-
-class _SwipeReadBackground extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(left: 18),
-      decoration: BoxDecoration(
-        color: IOS26Theme.toolGreen.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        '标记已读',
-        style: IOS26Theme.bodySmall.copyWith(
-          fontWeight: FontWeight.w600,
-          color: IOS26Theme.toolGreen,
         ),
       ),
     );
