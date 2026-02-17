@@ -23,6 +23,7 @@ import '../core/ui/app_navigator.dart';
 import '../core/ui/app_scaffold.dart';
 import '../core/widgets/ios26_settings_row.dart';
 import '../l10n/app_localizations.dart';
+import 'about_page.dart';
 import 'ai_settings_page.dart';
 import 'obj_store_settings_page.dart';
 import 'tool_management_page.dart';
@@ -589,151 +590,167 @@ class _SettingsSheet extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 拖拽指示器
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 36,
-              height: 5,
-              decoration: BoxDecoration(
-                color: IOS26Theme.textTertiary,
-                borderRadius: BorderRadius.circular(2.5),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // 标题
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    '设置',
-                    style: IOS26Theme.headlineMedium.copyWith(
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            // 默认工具设置
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 拖拽指示器
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 36,
+                height: 5,
                 decoration: BoxDecoration(
-                  color: IOS26Theme.backgroundColor,
-                  borderRadius: BorderRadius.circular(16),
+                  color: IOS26Theme.textTertiary,
+                  borderRadius: BorderRadius.circular(2.5),
                 ),
-                child: Consumer2<SettingsService, AiConfigService>(
-                  builder: (context, settings, aiConfig, _) {
-                    final tools = settings.getSortedTools();
-                    final aiValue = aiConfig.isConfigured
-                        ? aiConfig.config!.model
-                        : '未配置';
+              ),
+              const SizedBox(height: 20),
+              // 标题
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Text(
+                      '设置',
+                      style: IOS26Theme.headlineMedium.copyWith(
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 默认工具设置
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: IOS26Theme.backgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Consumer2<SettingsService, AiConfigService>(
+                    builder: (context, settings, aiConfig, _) {
+                      final tools = settings.getSortedTools();
+                      final aiValue = aiConfig.isConfigured
+                          ? aiConfig.config!.model
+                          : '未配置';
 
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IOS26SettingsRow(
-                          icon: CupertinoIcons.app,
-                          iconTone: IOS26IconTone.primary,
-                          title: '工具管理',
-                          value: settings.defaultToolId == null
-                              ? '默认：首页'
-                              : '默认：${tools.where((t) => t.id == settings.defaultToolId).firstOrNull?.name ?? '首页'}',
-                          onTap: () => _openToolManagement(context),
-                        ),
-                        _buildDivider(),
-                        IOS26SettingsRow(
-                          icon: CupertinoIcons.sparkles,
-                          iconTone: IOS26IconTone.accent,
-                          title: 'AI配置',
-                          value: aiValue,
-                          onTap: () => _openAiSettings(context),
-                        ),
-                        _buildDivider(),
-                        Consumer<SyncConfigService>(
-                          builder: (context, syncConfig, _) {
-                            return IOS26SettingsRow(
-                              icon: CupertinoIcons.cloud_upload,
-                              iconTone: IOS26IconTone.secondary,
-                              title: '数据同步',
-                              value: syncConfig.isConfigured ? '已配置' : '未配置',
-                              onTap: () => _openSyncSettings(context),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        Consumer<ObjStoreConfigService>(
-                          builder: (context, objStore, _) {
-                            final isQiniuPrivate =
-                                objStore.config?.qiniuIsPrivate ?? false;
-                            final isDataCapsulePrivate =
-                                objStore.config?.dataCapsuleIsPrivate ?? true;
-                            final value = switch (objStore.selectedType) {
-                              ObjStoreType.none => '未选择',
-                              ObjStoreType.local =>
-                                objStore.isConfigured ? '本地存储' : '未配置',
-                              ObjStoreType.qiniu =>
-                                objStore.isConfigured
-                                    ? (isQiniuPrivate ? '七牛云(私有)' : '七牛云(公有)')
-                                    : '未配置',
-                              ObjStoreType.dataCapsule =>
-                                objStore.isConfigured
-                                    ? (isDataCapsulePrivate
-                                          ? '数据胶囊(私有)'
-                                          : '数据胶囊(公有)')
-                                    : '未配置',
-                            };
-                            return IOS26SettingsRow(
-                              icon: CupertinoIcons.photo_on_rectangle,
-                              iconTone: IOS26IconTone.secondary,
-                              title: '资源存储',
-                              value: value,
-                              onTap: () => _openObjStoreSettings(context),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        IOS26SettingsRow(
-                          key: const ValueKey('settings_theme_mode_row'),
-                          icon: CupertinoIcons.moon_stars,
-                          iconTone: IOS26IconTone.secondary,
-                          title: l10n.settings_theme_mode_label,
-                          value: _themeModeValueText(l10n, settings.themeMode),
-                          onTap: () => _showThemeModeSheet(context, settings),
-                        ),
-                        _buildDivider(),
-                        IOS26SettingsRow(
-                          icon: CupertinoIcons.archivebox,
-                          iconTone: IOS26IconTone.warning,
-                          title: '备份与还原',
-                          value: '导入/导出',
-                          onTap: () => _openBackupRestore(context),
-                        ),
-                      ],
-                    );
-                  },
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IOS26SettingsRow(
+                            icon: CupertinoIcons.app,
+                            iconTone: IOS26IconTone.primary,
+                            title: '工具管理',
+                            value: settings.defaultToolId == null
+                                ? '默认：首页'
+                                : '默认：${tools.where((t) => t.id == settings.defaultToolId).firstOrNull?.name ?? '首页'}',
+                            onTap: () => _openToolManagement(context),
+                          ),
+                          _buildDivider(),
+                          IOS26SettingsRow(
+                            icon: CupertinoIcons.sparkles,
+                            iconTone: IOS26IconTone.accent,
+                            title: 'AI配置',
+                            value: aiValue,
+                            onTap: () => _openAiSettings(context),
+                          ),
+                          _buildDivider(),
+                          Consumer<SyncConfigService>(
+                            builder: (context, syncConfig, _) {
+                              return IOS26SettingsRow(
+                                icon: CupertinoIcons.cloud_upload,
+                                iconTone: IOS26IconTone.secondary,
+                                title: '数据同步',
+                                value: syncConfig.isConfigured ? '已配置' : '未配置',
+                                onTap: () => _openSyncSettings(context),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          Consumer<ObjStoreConfigService>(
+                            builder: (context, objStore, _) {
+                              final isQiniuPrivate =
+                                  objStore.config?.qiniuIsPrivate ?? false;
+                              final isDataCapsulePrivate =
+                                  objStore.config?.dataCapsuleIsPrivate ?? true;
+                              final value = switch (objStore.selectedType) {
+                                ObjStoreType.none => '未选择',
+                                ObjStoreType.local =>
+                                  objStore.isConfigured ? '本地存储' : '未配置',
+                                ObjStoreType.qiniu =>
+                                  objStore.isConfigured
+                                      ? (isQiniuPrivate ? '七牛云(私有)' : '七牛云(公有)')
+                                      : '未配置',
+                                ObjStoreType.dataCapsule =>
+                                  objStore.isConfigured
+                                      ? (isDataCapsulePrivate
+                                            ? '数据胶囊(私有)'
+                                            : '数据胶囊(公有)')
+                                      : '未配置',
+                              };
+                              return IOS26SettingsRow(
+                                icon: CupertinoIcons.photo_on_rectangle,
+                                iconTone: IOS26IconTone.secondary,
+                                title: '资源存储',
+                                value: value,
+                                onTap: () => _openObjStoreSettings(context),
+                              );
+                            },
+                          ),
+                          _buildDivider(),
+                          IOS26SettingsRow(
+                            key: const ValueKey('settings_theme_mode_row'),
+                            icon: CupertinoIcons.moon_stars,
+                            iconTone: IOS26IconTone.secondary,
+                            title: l10n.settings_theme_mode_label,
+                            value: _themeModeValueText(
+                              l10n,
+                              settings.themeMode,
+                            ),
+                            onTap: () => _showThemeModeSheet(context, settings),
+                          ),
+                          _buildDivider(),
+                          IOS26SettingsRow(
+                            key: const ValueKey('settings_about_row'),
+                            icon: CupertinoIcons.info_circle,
+                            iconTone: IOS26IconTone.primary,
+                            title: '关于',
+                            value: '应用介绍',
+                            onTap: () => _openAbout(context),
+                          ),
+                          _buildDivider(),
+                          IOS26SettingsRow(
+                            icon: CupertinoIcons.archivebox,
+                            iconTone: IOS26IconTone.warning,
+                            title: '备份与还原',
+                            value: '导入/导出',
+                            onTap: () => _openBackupRestore(context),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // 提示
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序',
-                style: IOS26Theme.bodySmall.copyWith(
-                  color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
-                  decoration: TextDecoration.none,
+              const SizedBox(height: 16),
+              // 提示
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  '在工具管理中设置默认进入工具与首页显示；首页长按工具可拖拽排序',
+                  style: IOS26Theme.bodySmall.copyWith(
+                    color: IOS26Theme.textSecondary.withValues(alpha: 0.8),
+                    decoration: TextDecoration.none,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
@@ -835,6 +852,14 @@ class _SettingsSheet extends StatelessWidget {
     Future<void>.microtask(() {
       if (!context.mounted) return;
       AppNavigator.push(context, const ObjStoreSettingsPage());
+    });
+  }
+
+  void _openAbout(BuildContext context) {
+    AppNavigator.pop(context);
+    Future<void>.microtask(() {
+      if (!context.mounted) return;
+      AppNavigator.push(context, const AboutPage());
     });
   }
 }

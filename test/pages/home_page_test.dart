@@ -204,10 +204,33 @@ void main() {
 
       expect(find.text('设置'), findsOneWidget);
       expect(find.text('工具管理'), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings_about_row')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('settings_theme_mode_row')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('设置弹出层点击关于应进入关于页面', (tester) async {
+      final deps = await createMessageService(tester);
+      final observer = _RecordingNavigatorObserver();
+      await tester.pumpWidget(
+        wrap(
+          const HomePage(),
+          deps.messageService,
+          navigatorObservers: [observer],
+        ),
+      );
+
+      await tester.tap(find.byIcon(CupertinoIcons.gear));
+      await tester.pumpAndSettle();
+      final initialPagePushCount = observer.pushedPageRoutesCount;
+
+      await tester.tap(find.byKey(const ValueKey('settings_about_row')));
+      await tester.pumpAndSettle();
+
+      expect(observer.pushedPageRoutesCount, initialPagePushCount + 1);
+      expect(find.text('关于'), findsOneWidget);
     });
 
     testWidgets('设置弹出层标题与提示文案不应显示下划线', (tester) async {

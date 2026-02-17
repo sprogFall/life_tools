@@ -221,10 +221,16 @@ jobs:
       - name: Build APK
         run: |
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          COMMIT_MESSAGE_BASE64="$(git log -1 --pretty=%B | base64 | tr -d '\n')"
           if [ "$BUILD_TYPE" = "release" ]; then
-            flutter build apk --release
+            flutter build apk --release \
+              --dart-define=APP_COMMIT_SHA="$COMMIT_SHA" \
+              --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64"
           else
-            flutter build apk --debug
+            flutter build apk --debug \
+              --dart-define=APP_COMMIT_SHA="$COMMIT_SHA" \
+              --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64"
           fi
 
       - name: Get APK info
