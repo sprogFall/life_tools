@@ -253,6 +253,23 @@ void main() {
       expect(hintText.style?.decoration, TextDecoration.none);
     });
 
+    testWidgets('设置弹出层顶部拖拽指示器应保持固定宽度', (tester) async {
+      final deps = await createMessageService(tester);
+      await tester.pumpWidget(wrap(const HomePage(), deps.messageService));
+
+      await tester.tap(find.byIcon(CupertinoIcons.gear));
+      await tester.pumpAndSettle();
+
+      final indicatorFinder = find.byKey(
+        const ValueKey('settings_sheet_drag_indicator'),
+      );
+      expect(indicatorFinder, findsOneWidget);
+
+      final indicatorSize = tester.getSize(indicatorFinder);
+      expect(indicatorSize.width, 36);
+      expect(indicatorSize.height, 5);
+    });
+
     testWidgets('设置弹出层可切换深色/跟随系统模式', (tester) async {
       final deps = await createMessageService(tester);
       await tester.pumpWidget(wrap(const HomePage(), deps.messageService));

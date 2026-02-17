@@ -13,6 +13,7 @@ void main() {
       expect(find.text('基础功能'), findsOneWidget);
       expect(find.textContaining('工作记录'), findsOneWidget);
       expect(find.textContaining('囤货助手'), findsOneWidget);
+      expect(find.textContaining('胡闹厨房'), findsOneWidget);
       expect(find.textContaining('数据同步'), findsOneWidget);
     });
 

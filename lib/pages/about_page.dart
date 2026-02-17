@@ -35,7 +35,7 @@ class _AboutPageState extends State<AboutPage> {
     _FeatureItem(
       icon: CupertinoIcons.flame_fill,
       tone: IOS26IconTone.warning,
-      title: '过家家厨房',
+      title: '胡闹厨房',
       description: '食谱与愿望单联动，配合抽卡记录与提醒轻松安排做饭计划。',
     ),
     _FeatureItem(

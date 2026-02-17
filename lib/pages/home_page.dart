@@ -597,13 +597,18 @@ class _SettingsSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 拖拽指示器
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 36,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: IOS26Theme.textTertiary,
-                  borderRadius: BorderRadius.circular(2.5),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Center(
+                  child: Container(
+                    key: const ValueKey('settings_sheet_drag_indicator'),
+                    width: 36,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: IOS26Theme.textTertiary,
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
