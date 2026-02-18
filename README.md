@@ -72,7 +72,7 @@ flutter run
 
 # 静态分析 + 测试
 flutter analyze
-flutter test
+bash scripts/test_flutter.sh
 
 # 格式化
 dart format .

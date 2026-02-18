@@ -8,9 +8,7 @@ import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.da
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/interfaces/tool_sync_provider.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
-import 'package:life_tools/core/sync/models/sync_request.dart';
 import 'package:life_tools/core/sync/models/sync_request_v2.dart';
-import 'package:life_tools/core/sync/models/sync_response.dart';
 import 'package:life_tools/core/sync/models/sync_response_v2.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
@@ -64,12 +62,29 @@ class _ThrowingToolSyncProvider implements ToolSyncProvider {
   Future<void> importData(Map<String, dynamic> data) async {}
 }
 
+class _ThrowingImportToolSyncProvider implements ToolSyncProvider {
+  @override
+  final String toolId;
+  final Map<String, dynamic> exported;
+
+  _ThrowingImportToolSyncProvider({
+    required this.toolId,
+    required this.exported,
+  });
+
+  @override
+  Future<Map<String, dynamic>> exportData() async => exported;
+
+  @override
+  Future<void> importData(Map<String, dynamic> data) async {
+    throw StateError('import failed');
+  }
+}
+
 class _FakeSyncApiClient extends SyncApiClient {
   SyncRequestV2? lastRequestV2;
-  SyncRequest? lastRequestV1;
 
   SyncResponseV2? v2Response;
-  SyncResponse? v1Response;
   SyncApiException? v2Exception;
 
   _FakeSyncApiClient();
@@ -83,16 +98,6 @@ class _FakeSyncApiClient extends SyncApiClient {
     lastRequestV2 = request;
     if (v2Exception != null) throw v2Exception!;
     return v2Response!;
-  }
-
-  @override
-  Future<SyncResponse> sync({
-    required SyncConfig config,
-    required SyncRequest request,
-    Duration timeout = const Duration(seconds: 120),
-  }) async {
-    lastRequestV1 = request;
-    return v1Response!;
   }
 }
 
@@ -257,7 +262,7 @@ void main() {
       expect(api.lastRequestV2?.clientState.clientIsEmpty, isTrue);
     });
 
-    test('服务端不支持 v2（404）时，回退到 v1 /sync', () async {
+    test('服务端不支持 v2（404）时，应直接失败，不再回退 v1', () async {
       final provider = _FakeToolSyncProvider(
         toolId: 'work_log',
         exported: const {
@@ -274,16 +279,6 @@ void main() {
         ..v2Exception = const SyncApiException(
           statusCode: 404,
           message: 'not found',
-        )
-        ..v1Response = SyncResponse(
-          success: true,
-          serverTime: DateTime.fromMillisecondsSinceEpoch(4000),
-          toolsData: const {
-            'work_log': {
-              'version': 1,
-              'data': {'tasks': []},
-            },
-          },
         );
 
       final service = SyncService(
@@ -298,9 +293,10 @@ void main() {
       );
 
       final ok = await service.sync();
-      expect(ok, isTrue);
-      expect(api.lastRequestV1, isNotNull);
-      expect(provider.importCalls, 1);
+      expect(ok, isFalse);
+      expect(provider.importCalls, 0);
+      expect(service.lastError, isNotNull);
+      expect(service.lastError, contains('not found'));
     });
 
     test('请求应包含 app_config 快照（与备份配置段同构）', () async {
@@ -470,6 +466,56 @@ void main() {
       expect(service.lastError, isNotNull);
       expect(service.lastError!, contains('work_log'));
       expect(service.lastError!, contains('导出'));
+    });
+
+    test('服务端下发数据时若工具导入失败，应同步失败且不推进游标', () async {
+      final provider = _ThrowingImportToolSyncProvider(
+        toolId: 'work_log',
+        exported: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1, 'title': 'local'},
+            ],
+          },
+        },
+      );
+
+      final api = _FakeSyncApiClient()
+        ..v2Response = SyncResponseV2(
+          success: true,
+          decision: SyncDecision.useServer,
+          serverTime: DateTime.fromMillisecondsSinceEpoch(8000),
+          serverRevision: 15,
+          toolsData: const {
+            'work_log': {
+              'version': 1,
+              'data': {
+                'tasks': [
+                  {'id': 9, 'title': 'server'},
+                ],
+              },
+            },
+          },
+        );
+
+      final service = SyncService(
+        configService: configService,
+        localStateService: localStateService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: [provider],
+      );
+
+      final ok = await service.sync();
+      expect(ok, isFalse);
+      expect(service.lastError, contains('work_log'));
+      expect(service.state, SyncState.failed);
+      expect(configService.config?.lastServerRevision, 7);
+      expect(configService.config?.lastSyncTime, isNull);
     });
   });
 }

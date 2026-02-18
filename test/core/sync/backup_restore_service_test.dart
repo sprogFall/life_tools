@@ -58,6 +58,33 @@ class _ThrowingToolSyncProvider implements ToolSyncProvider {
   Future<void> importData(Map<String, dynamic> data) async {}
 }
 
+class _StatefulToolSyncProvider implements ToolSyncProvider {
+  @override
+  final String toolId;
+  final bool failOnImport;
+  Map<String, dynamic> _state;
+
+  _StatefulToolSyncProvider({
+    required this.toolId,
+    required Map<String, dynamic> initialState,
+    this.failOnImport = false,
+  }) : _state = Map<String, dynamic>.from(initialState);
+
+  Map<String, dynamic> get state => _state;
+
+  @override
+  Future<Map<String, dynamic>> exportData() async =>
+      Map<String, dynamic>.from(_state);
+
+  @override
+  Future<void> importData(Map<String, dynamic> data) async {
+    if (failOnImport) {
+      throw StateError('import failed');
+    }
+    _state = Map<String, dynamic>.from(data);
+  }
+}
+
 void main() {
   group('BackupRestoreService', () {
     setUpAll(() {
@@ -612,6 +639,178 @@ void main() {
       expect(settingsService.defaultToolId, 'work_log');
       expect(tool.lastImported, isNotNull);
       expect(tool.lastImported!['version'], 1);
+    });
+
+    test('restoreFromJson 严格模式下遇到工具导入失败时应回滚并保持原配置', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+      await aiConfigService.save(
+        const AiConfig(
+          baseUrl: 'https://api.old.com',
+          apiKey: 'old_key',
+          model: 'old_model',
+          temperature: 0.5,
+          maxOutputTokens: 128,
+        ),
+      );
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final okProvider = _StatefulToolSyncProvider(
+        toolId: 'tag_manager',
+        initialState: const {
+          'version': 1,
+          'data': {'tags': []},
+        },
+      );
+      final failProvider = _StatefulToolSyncProvider(
+        toolId: 'work_log',
+        initialState: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1, 'title': 'old'},
+            ],
+          },
+        },
+        failOnImport: true,
+      );
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: [okProvider, failProvider],
+      );
+
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': const {
+          'baseUrl': 'https://api.new.com',
+          'apiKey': 'new_key',
+          'model': 'new_model',
+          'temperature': 0.7,
+          'maxOutputTokens': 256,
+        },
+        'sync_config': null,
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': {
+          'tag_manager': {
+            'version': 1,
+            'data': {
+              'tags': [
+                {'id': 1, 'name': 'new'},
+              ],
+            },
+          },
+          'work_log': {
+            'version': 1,
+            'data': {
+              'tasks': [
+                {'id': 2, 'title': 'new'},
+              ],
+            },
+          },
+        },
+      };
+
+      await expectLater(
+        service.restoreFromJson(jsonEncode(payload)),
+        throwsA(
+          predicate(
+            (e) =>
+                e is Exception &&
+                e.toString().contains('严格恢复') &&
+                e.toString().contains('work_log'),
+          ),
+        ),
+      );
+
+      expect(aiConfigService.config?.model, 'old_model');
+      expect(
+        (okProvider.state['data'] as Map<String, dynamic>)['tags'],
+        isEmpty,
+      );
+    });
+
+    test('restoreFromJson 非严格模式下允许部分导入失败并返回 failedTools', () async {
+      final aiConfigService = AiConfigService();
+      await aiConfigService.init();
+
+      final syncConfigService = SyncConfigService();
+      await syncConfigService.init();
+
+      final settingsService = SettingsService();
+      await settingsService.init();
+
+      final objStoreConfigService = ObjStoreConfigService(
+        secretStore: InMemorySecretStore(),
+      );
+      await objStoreConfigService.init();
+
+      final failProvider = _StatefulToolSyncProvider(
+        toolId: 'work_log',
+        initialState: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1},
+            ],
+          },
+        },
+        failOnImport: true,
+      );
+
+      final service = BackupRestoreService(
+        aiConfigService: aiConfigService,
+        syncConfigService: syncConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        toolProviders: [failProvider],
+      );
+
+      final payload = {
+        'version': 1,
+        'exported_at': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'ai_config': const {
+          'baseUrl': 'https://api.new.com',
+          'apiKey': 'new_key',
+          'model': 'new_model',
+          'temperature': 0.7,
+          'maxOutputTokens': 256,
+        },
+        'sync_config': null,
+        'settings': {'default_tool_id': null, 'tool_order': const <String>[]},
+        'tools': {
+          'work_log': {
+            'version': 1,
+            'data': {
+              'tasks': [
+                {'id': 2},
+              ],
+            },
+          },
+        },
+      };
+
+      final result = await service.restoreFromJson(
+        jsonEncode(payload),
+        strictMode: false,
+      );
+
+      expect(result.failedTools.keys, contains('work_log'));
+      expect(aiConfigService.config?.model, 'new_model');
     });
 
     test('restoreFromJson 缺失敏感字段时不应覆盖本地敏感信息', () async {

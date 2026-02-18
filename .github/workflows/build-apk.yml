@@ -156,7 +156,7 @@ jobs:
         run: flutter pub get
 
       - name: Run shard tests
-        run: flutter test --total-shards ${{ env.FLUTTER_TEST_SHARDS }} --shard-index ${{ matrix.shard_index }}
+        run: bash scripts/test_flutter.sh --total-shards ${{ env.FLUTTER_TEST_SHARDS }} --shard-index ${{ matrix.shard_index }}
 
   build-apk:
     name: Build APK

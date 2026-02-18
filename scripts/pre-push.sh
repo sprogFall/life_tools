@@ -565,18 +565,25 @@ plan_targeted_flutter_tests() {
 
 run_flutter_tests() {
   local flutter="$1"
+  local flutter_test_script="$REPO_ROOT/scripts/test_flutter.sh"
+  local -a test_cmd
+  if [[ -f "$flutter_test_script" ]]; then
+    test_cmd=(env FLUTTER_BIN="$flutter" bash "$flutter_test_script")
+  else
+    test_cmd=("$flutter" test)
+  fi
   plan_targeted_flutter_tests
 
   if [[ "$TARGETED_TEST_GUARANTEED" != "true" ]]; then
     log "回退全量 flutter test：${TARGETED_TEST_REASON}"
-    run_cmd "$flutter" test
+    run_cmd "${test_cmd[@]}"
     return
   fi
 
   log "使用变更优先测试（可证明覆盖），目标数量: ${#TARGET_TEST_FILES[@]}"
   local test_file
   for test_file in "${TARGET_TEST_FILES[@]}"; do
-    run_cmd "$flutter" test "$test_file"
+    run_cmd "${test_cmd[@]}" "$test_file"
   done
 }
 

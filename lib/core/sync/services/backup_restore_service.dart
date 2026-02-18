@@ -26,6 +26,16 @@ class BackupRestoreResult {
   });
 }
 
+class _StrictRestoreRollbackState {
+  final Map<String, dynamic> configSnapshot;
+  final Map<String, Map<String, dynamic>> toolSnapshots;
+
+  const _StrictRestoreRollbackState({
+    required this.configSnapshot,
+    required this.toolSnapshots,
+  });
+}
+
 /// 备份与还原（导出为 JSON / 从 JSON 导入）
 ///
 /// 设计原则：
@@ -142,7 +152,10 @@ class BackupRestoreService {
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
-  Future<BackupRestoreResult> restoreFromJson(String jsonText) async {
+  Future<BackupRestoreResult> restoreFromJson(
+    String jsonText, {
+    bool strictMode = true,
+  }) async {
     final text = jsonText.trim();
     if (text.isEmpty) {
       throw const FormatException('JSON 为空');
@@ -158,21 +171,109 @@ class BackupRestoreService {
       throw FormatException('不支持的备份版本: $version');
     }
 
-    await restoreConfigFromMap(decoded);
     final toolsNode = decoded['tools'];
     final toolsMap = toolsNode is Map
         ? Map<String, dynamic>.from(toolsNode)
         : null;
 
-    if (toolsMap == null) {
-      return const BackupRestoreResult(
-        importedTools: 0,
-        skippedTools: 0,
-        failedTools: {},
-      );
+    final rollbackState = strictMode
+        ? await _captureStrictRollbackState(toolsMap)
+        : null;
+
+    try {
+      final result = toolsMap == null
+          ? const BackupRestoreResult(
+              importedTools: 0,
+              skippedTools: 0,
+              failedTools: {},
+            )
+          : await _restoreToolsFromMap(toolsMap);
+
+      if (strictMode && result.failedTools.isNotEmpty) {
+        throw Exception(_buildStrictRestoreFailedMessage(result));
+      }
+
+      await restoreConfigFromMap(decoded);
+      return result;
+    } catch (e) {
+      if (rollbackState != null) {
+        final rollbackError = await _rollbackStrictRestore(rollbackState);
+        if (rollbackError != null) {
+          throw Exception('${_stringifyError(e)}；且回滚失败：$rollbackError');
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<_StrictRestoreRollbackState> _captureStrictRollbackState(
+    Map<String, dynamic>? toolsMap,
+  ) async {
+    final configSnapshot = await exportConfigAsMap(includeSensitive: true);
+    final toolSnapshots = await _captureToolSnapshots(toolsMap);
+    return _StrictRestoreRollbackState(
+      configSnapshot: configSnapshot,
+      toolSnapshots: toolSnapshots,
+    );
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _captureToolSnapshots(
+    Map<String, dynamic>? toolsMap,
+  ) async {
+    if (toolsMap == null || toolsMap.isEmpty) {
+      return const <String, Map<String, dynamic>>{};
     }
 
-    return _restoreToolsFromMap(toolsMap);
+    final providersById = {for (final p in toolProviders) p.toolId: p};
+    final snapshots = <String, Map<String, dynamic>>{};
+
+    for (final entry in sortToolEntries(toolsMap)) {
+      final toolId = entry.key;
+      final provider = providersById[toolId];
+      if (provider == null) continue;
+
+      try {
+        snapshots[toolId] = Map<String, dynamic>.from(
+          await provider.exportData(),
+        );
+      } catch (e) {
+        throw Exception('严格恢复准备失败：无法备份工具 $toolId 的当前数据：$e');
+      }
+    }
+
+    return snapshots;
+  }
+
+  Future<String?> _rollbackStrictRestore(
+    _StrictRestoreRollbackState state,
+  ) async {
+    final errors = <String>[];
+
+    final toolRollbackResult = await _restoreToolsFromMap(state.toolSnapshots);
+    if (toolRollbackResult.failedTools.isNotEmpty) {
+      errors.add('工具回滚失败：${toolRollbackResult.failedTools.keys.join('、')}');
+    }
+
+    try {
+      await restoreConfigFromMap(state.configSnapshot);
+    } catch (e) {
+      errors.add('配置回滚失败：${_stringifyError(e)}');
+    }
+
+    if (errors.isEmpty) return null;
+    return errors.join('；');
+  }
+
+  String _buildStrictRestoreFailedMessage(BackupRestoreResult result) {
+    return '严格恢复失败：以下工具导入失败：${result.failedTools.keys.join('、')}';
+  }
+
+  static String _stringifyError(Object e) {
+    final text = e.toString();
+    if (text.startsWith('Exception: ')) {
+      return text.substring('Exception: '.length);
+    }
+    return text;
   }
 
   static Map<String, dynamic>? _readJsonMap(dynamic value) {

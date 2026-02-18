@@ -4,7 +4,8 @@ import 'package:life_tools/core/obj_store/obj_store_config_service.dart';
 import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.dart';
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
-import 'package:life_tools/core/sync/models/sync_response.dart';
+import 'package:life_tools/core/sync/models/sync_request_v2.dart';
+import 'package:life_tools/core/sync/models/sync_response_v2.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
 import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
@@ -29,9 +30,9 @@ class _NoopSyncApiClient extends SyncApiClient {
   _NoopSyncApiClient();
 
   @override
-  Future<SyncResponse> sync({
+  Future<SyncResponseV2> syncV2({
     required SyncConfig config,
-    required request,
+    required SyncRequestV2 request,
     Duration timeout = const Duration(seconds: 120),
   }) {
     throw StateError('网络预检失败时不应调用 API');

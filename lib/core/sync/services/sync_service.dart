@@ -9,7 +9,6 @@ import '../../utils/dev_log.dart';
 import '../interfaces/tool_sync_provider.dart';
 import '../models/sync_config.dart';
 import '../models/sync_force_decision.dart';
-import '../models/sync_request.dart';
 import '../models/sync_request_v2.dart';
 import '../models/sync_response_v2.dart';
 import 'app_config_sync_provider.dart';
@@ -192,79 +191,51 @@ class SyncService extends ChangeNotifier {
         return true;
       }
 
-      // 4. 调用同步 API（优先 v2，服务端不支持则回退 v1）
-      final v2Response = await _trySyncV2(
+      // 4. 调用同步 API（仅 v2）
+      final v2Response = await _syncV2(
         config: config,
         toolsData: toolsData,
         forceDecision: forceDecision,
       );
 
-      if (v2Response != null) {
-        if (!v2Response.success) {
-          _lastError = v2Response.message ?? '同步失败';
-          _setState(SyncState.failed);
-          return false;
-        }
-
-        if (forceDecision == SyncForceDecision.useClient &&
-            v2Response.decision == SyncDecision.useServer) {
-          _lastError = '服务端未接受“覆盖服务端”的请求（可能未升级服务端），已取消导入以保护本地数据。';
-          _setState(SyncState.failed);
-          return false;
-        }
-
-        if (v2Response.decision == SyncDecision.useServer &&
-            v2Response.toolsData != null) {
-          await _distributeToolsData(v2Response.toolsData!);
-        }
-
-        if (forceDecision == SyncForceDecision.useServer &&
-            (v2Response.decision != SyncDecision.useServer ||
-                v2Response.toolsData == null)) {
-          await _clearLocalToolsDataForOverwrite();
-        }
-
-        await _configService.updateLastSyncState(
-          time: v2Response.serverTime,
-          serverRevision: v2Response.serverRevision,
-        );
-        await _localStateService.setLocalUserId(config.userId);
-
-        _setState(SyncState.success);
-        return true;
-      }
-
-      final request = SyncRequest(
-        userId: config.userId,
-        toolsData: toolsData,
-        forceDecision: forceDecision,
-      );
-      final response = await _apiClient.sync(config: config, request: request);
-
-      if (!response.success) {
-        _lastError = response.message ?? '同步失败';
+      if (!v2Response.success) {
+        _lastError = v2Response.message ?? '同步失败';
         _setState(SyncState.failed);
         return false;
       }
 
       if (forceDecision == SyncForceDecision.useClient &&
-          response.toolsData != null) {
+          v2Response.decision == SyncDecision.useServer) {
         _lastError = '服务端未接受“覆盖服务端”的请求（可能未升级服务端），已取消导入以保护本地数据。';
         _setState(SyncState.failed);
         return false;
       }
 
-      // v1：服务端若返回 tools_data，则覆盖导入
-      if (response.toolsData != null) {
-        await _distributeToolsData(response.toolsData!);
+      if (v2Response.decision == SyncDecision.useServer &&
+          v2Response.toolsData != null) {
+        final failedTools = await _distributeToolsData(v2Response.toolsData!);
+        if (failedTools.isNotEmpty) {
+          _lastError = _buildImportFailedMessage(failedTools);
+          _setState(SyncState.failed);
+          return false;
+        }
       }
 
       if (forceDecision == SyncForceDecision.useServer &&
-          response.toolsData == null) {
-        await _clearLocalToolsDataForOverwrite();
+          (v2Response.decision != SyncDecision.useServer ||
+              v2Response.toolsData == null)) {
+        final failedTools = await _clearLocalToolsDataForOverwrite();
+        if (failedTools.isNotEmpty) {
+          _lastError = _buildImportFailedMessage(failedTools);
+          _setState(SyncState.failed);
+          return false;
+        }
       }
 
-      await _configService.updateLastSyncTime(response.serverTime);
+      await _configService.updateLastSyncState(
+        time: v2Response.serverTime,
+        serverRevision: v2Response.serverRevision,
+      );
       await _localStateService.setLocalUserId(config.userId);
 
       _setState(SyncState.success);
@@ -287,7 +258,10 @@ class SyncService extends ChangeNotifier {
     Map<String, Map<String, dynamic>> toolsData,
   ) async {
     _lastError = null;
-    await _distributeToolsData(toolsData);
+    final failedTools = await _distributeToolsData(toolsData);
+    if (failedTools.isNotEmpty) {
+      _lastError = _buildImportFailedMessage(failedTools);
+    }
     notifyListeners();
     return _lastError;
   }
@@ -326,11 +300,12 @@ class SyncService extends ChangeNotifier {
   }
 
   /// 分发服务端数据给各工具
-  Future<void> _distributeToolsData(
+  Future<List<String>> _distributeToolsData(
     Map<String, Map<String, dynamic>> toolsData,
   ) async {
     final entries = sortToolEntries(toolsData);
     final providersById = {for (final p in _toolProviders) p.toolId: p};
+    final failedTools = <String>[];
 
     for (final entry in entries) {
       final toolId = entry.key;
@@ -343,9 +318,16 @@ class SyncService extends ChangeNotifier {
         await provider.importData(data);
       } catch (e, st) {
         devLog('工具 $toolId 导入数据失败: ${e.runtimeType}', stackTrace: st);
-        _lastError ??= '部分工具数据导入失败';
+        failedTools.add(toolId);
       }
     }
+
+    return failedTools;
+  }
+
+  String _buildImportFailedMessage(List<String> failedTools) {
+    final unique = failedTools.toSet().toList(growable: false);
+    return '以下工具数据导入失败：${unique.join('、')}';
   }
 
   void _setState(SyncState newState) {
@@ -353,7 +335,7 @@ class SyncService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<SyncResponseV2?> _trySyncV2({
+  Future<SyncResponseV2> _syncV2({
     required SyncConfig config,
     required Map<String, Map<String, dynamic>> toolsData,
     SyncForceDecision? forceDecision,
@@ -369,18 +351,10 @@ class SyncService extends ChangeNotifier {
       forceDecision: forceDecision,
     );
 
-    try {
-      return await _apiClient.syncV2(config: config, request: request);
-    } on SyncApiException catch (e) {
-      // 服务端未实现 v2：允许回退到 v1
-      if (e.statusCode == 404 || e.statusCode == 405) {
-        return null;
-      }
-      rethrow;
-    }
+    return _apiClient.syncV2(config: config, request: request);
   }
 
-  Future<void> _clearLocalToolsDataForOverwrite() async {
+  Future<List<String>> _clearLocalToolsDataForOverwrite() async {
     final empty = <String, Map<String, dynamic>>{};
 
     for (final provider in _toolProviders) {
@@ -398,8 +372,8 @@ class SyncService extends ChangeNotifier {
       }
     }
 
-    if (empty.isEmpty) return;
-    await _distributeToolsData(empty);
+    if (empty.isEmpty) return const [];
+    return _distributeToolsData(empty);
   }
 
   static Map<String, dynamic> _emptySnapshotFromExported(
