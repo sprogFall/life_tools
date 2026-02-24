@@ -51,3 +51,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Linux 测试环境临时符号链接（test_flutter.sh / pre-push.sh 产生）
+test/flutter
+test/libsqlite3.so
+test/libsqlite3.so.0
+test/tmp
