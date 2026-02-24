@@ -63,7 +63,9 @@ class _MessageListItem extends StatelessWidget {
     final messageId = message.id;
     final service = context.read<MessageService>();
 
+    final hasSlidable = messageId != null;
     final content = GlassContainer(
+      borderRadius: hasSlidable ? 0 : 20,
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
