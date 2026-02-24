@@ -152,7 +152,7 @@ void main() {
       expect(gachaButton.pressedOpacity, 1);
     });
 
-    testWidgets('扭蛋入口卡片在路由过渡时应关闭毛玻璃避免闪烁', (tester) async {
+    testWidgets('扭蛋入口卡片不使用毛玻璃，颜色在路由过渡时保持不变', (tester) async {
       await tester.pumpWidget(
         MultiProvider(
           providers: [
@@ -166,10 +166,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final gachaCard = tester.widget<GlassContainer>(
+      final gachaCard = tester.widget<Container>(
         find.byKey(const ValueKey('overcooked_recipes_gacha_entry_card')),
       );
-      expect(gachaCard.disableBlurDuringRouteTransition, isTrue);
+      // 使用普通 Container 而非 GlassContainer，避免路由过渡时颜色闪变
+      expect(gachaCard, isA<Container>());
+      expect(gachaCard, isNot(isA<GlassContainer>()));
     });
   });
 }

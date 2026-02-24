@@ -140,14 +140,16 @@ class _OvercookedRecipesTabState extends State<OvercookedRecipesTab> {
           if (widget.onJumpToGacha != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: GlassContainer(
+              child: Container(
                 key: const ValueKey('overcooked_recipes_gacha_entry_card'),
-                borderRadius: 18,
                 padding: const EdgeInsets.all(14),
-                color: IOS26Theme.toolOrange.withValues(alpha: 0.10),
-                border: Border.all(
-                  color: IOS26Theme.toolOrange.withValues(alpha: 0.25),
-                  width: 1,
+                decoration: BoxDecoration(
+                  color: IOS26Theme.toolOrange.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: IOS26Theme.toolOrange.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   children: [
