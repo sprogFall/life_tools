@@ -148,41 +148,44 @@ class _MessageListItem extends StatelessWidget {
       return content;
     }
 
-    return Slidable(
-      key: ValueKey('all_messages_item_$messageId'),
-      startActionPane: message.isRead
-          ? null
-          : ActionPane(
-              motion: const DrawerMotion(),
-              extentRatio: 0.26,
-              children: [
-                SlidableAction(
-                  onPressed: (_) {
-                    unawaited(service.markMessageRead(messageId));
-                  },
-                  backgroundColor: IOS26Theme.toolGreen,
-                  foregroundColor: IOS26Theme.onPrimaryColor,
-                  icon: CupertinoIcons.check_mark_circled_solid,
-                  label: '已读',
-                ),
-              ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Slidable(
+        key: ValueKey('all_messages_item_$messageId'),
+        startActionPane: message.isRead
+            ? null
+            : ActionPane(
+                motion: const StretchMotion(),
+                extentRatio: 0.26,
+                children: [
+                  SlidableAction(
+                    onPressed: (_) {
+                      unawaited(service.markMessageRead(messageId));
+                    },
+                    backgroundColor: IOS26Theme.toolGreen,
+                    foregroundColor: IOS26Theme.onPrimaryColor,
+                    icon: CupertinoIcons.check_mark_circled_solid,
+                    label: '已读',
+                  ),
+                ],
+              ),
+        endActionPane: ActionPane(
+          motion: const StretchMotion(),
+          extentRatio: 0.26,
+          children: [
+            SlidableAction(
+              onPressed: (_) {
+                unawaited(service.deleteMessage(messageId));
+              },
+              backgroundColor: IOS26Theme.toolRed,
+              foregroundColor: IOS26Theme.onPrimaryColor,
+              icon: CupertinoIcons.delete_solid,
+              label: '删除',
             ),
-      endActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        extentRatio: 0.26,
-        children: [
-          SlidableAction(
-            onPressed: (_) {
-              unawaited(service.deleteMessage(messageId));
-            },
-            backgroundColor: IOS26Theme.toolRed,
-            foregroundColor: IOS26Theme.onPrimaryColor,
-            icon: CupertinoIcons.delete_solid,
-            label: '删除',
-          ),
-        ],
+          ],
+        ),
+        child: content,
       ),
-      child: content,
     );
   }
 
