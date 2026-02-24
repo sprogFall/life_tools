@@ -1026,10 +1026,7 @@ class _RecipeImage extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius),
         ),
         alignment: Alignment.center,
-        child: Text(
-          '无图片',
-          style: IOS26Theme.bodySmall.copyWith(fontSize: 12),
-        ),
+        child: Text('无图片', style: IOS26Theme.bodySmall.copyWith(fontSize: 12)),
       );
     }
 

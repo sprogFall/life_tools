@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../theme/ios26_theme.dart';
 import '../message_navigation.dart';
 import '../message_service.dart';
@@ -16,9 +17,10 @@ class AllMessagesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
-      appBar: const IOS26AppBar(title: '全部消息', showBackButton: true),
+      appBar: IOS26AppBar(title: l10n.messages_all_title, showBackButton: true),
       body: SafeArea(
         child: BackdropGroup(
           child: Consumer<MessageService>(
@@ -27,7 +29,7 @@ class AllMessagesPage extends StatelessWidget {
               if (messages.isEmpty) {
                 return Center(
                   child: Text(
-                    '当前暂时没有消息',
+                    l10n.messages_empty,
                     style: IOS26Theme.bodyMedium.copyWith(
                       color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
                     ),
@@ -60,6 +62,7 @@ class _MessageListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final messageId = message.id;
     final service = context.read<MessageService>();
 
@@ -94,7 +97,9 @@ class _MessageListItem extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        message.title.trim().isEmpty ? '消息' : message.title,
+                        message.title.trim().isEmpty
+                            ? l10n.messages_default_title
+                            : message.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: IOS26Theme.titleSmall,
@@ -138,7 +143,10 @@ class _MessageListItem extends StatelessWidget {
                     }
                     MessageNavigation.open(context, message);
                   },
-                  child: Text('前往工具', style: IOS26Theme.labelLarge),
+                  child: Text(
+                    l10n.messages_go_to_tool,
+                    style: IOS26Theme.labelLarge,
+                  ),
                 ),
             ],
           ),
@@ -167,7 +175,7 @@ class _MessageListItem extends StatelessWidget {
                     backgroundColor: IOS26Theme.toolGreen,
                     foregroundColor: IOS26Theme.onPrimaryColor,
                     icon: CupertinoIcons.check_mark_circled_solid,
-                    label: '已读',
+                    label: l10n.messages_read_label,
                   ),
                 ],
               ),
@@ -182,7 +190,7 @@ class _MessageListItem extends StatelessWidget {
               backgroundColor: IOS26Theme.toolRed,
               foregroundColor: IOS26Theme.onPrimaryColor,
               icon: CupertinoIcons.delete_solid,
-              label: '删除',
+              label: l10n.common_delete,
             ),
           ],
         ),
@@ -208,7 +216,8 @@ class _ReadTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = isRead ? '已读' : '未读';
+    final l10n = AppLocalizations.of(context)!;
+    final text = isRead ? l10n.messages_read_label : l10n.messages_unread_label;
     final color = isRead ? IOS26Theme.textTertiary : IOS26Theme.primaryColor;
     final background = isRead
         ? IOS26Theme.textTertiary.withValues(alpha: 0.15)

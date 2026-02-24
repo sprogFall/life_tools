@@ -538,7 +538,9 @@ void main() {
       await tester.tap(find.text('主菜'));
       await tester.tap(find.text('完成'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('overcooked_gacha_count_add-1')));
+      await tester.tap(
+        find.byKey(const ValueKey('overcooked_gacha_count_add-1')),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -555,8 +557,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 3200));
       expect(find.text('已加入列表 1/2'), findsOneWidget);
       final firstPickedCount =
-          find.byKey(const ValueKey('overcooked_gacha_picked_card-100')).evaluate().length +
-          find.byKey(const ValueKey('overcooked_gacha_picked_card-101')).evaluate().length;
+          find
+              .byKey(const ValueKey('overcooked_gacha_picked_card-100'))
+              .evaluate()
+              .length +
+          find
+              .byKey(const ValueKey('overcooked_gacha_picked_card-101'))
+              .evaluate()
+              .length;
       expect(firstPickedCount, 1);
 
       await tester.pump(const Duration(milliseconds: 3200));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../theme/ios26_theme.dart';
 import '../message_navigation.dart';
 import '../message_service.dart';
@@ -13,9 +14,13 @@ class MessageDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: IOS26Theme.backgroundColor,
-      appBar: const IOS26AppBar(title: '消息详情', showBackButton: true),
+      appBar: IOS26AppBar(
+        title: l10n.messages_detail_title,
+        showBackButton: true,
+      ),
       body: SafeArea(
         child: Consumer<MessageService>(
           builder: (context, service, _) {
@@ -23,7 +28,7 @@ class MessageDetailPage extends StatelessWidget {
             if (message == null) {
               return Center(
                 child: Text(
-                  '消息不存在或已被删除',
+                  l10n.messages_not_found,
                   style: IOS26Theme.bodyMedium.copyWith(
                     color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
                   ),
@@ -40,7 +45,9 @@ class MessageDetailPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        message.title.trim().isEmpty ? '消息' : message.title,
+                        message.title.trim().isEmpty
+                            ? l10n.messages_default_title
+                            : message.title,
                         style: IOS26Theme.headlineSmall,
                       ),
                       const SizedBox(height: 10),
@@ -66,13 +73,13 @@ class MessageDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     onPressed: () => MessageNavigation.open(context, message),
                     child: IOS26ButtonLabel(
-                      '前往工具',
+                      l10n.messages_go_to_tool,
                       style: IOS26Theme.labelLarge,
                     ),
                   )
                 else
                   Text(
-                    '该消息未提供可跳转的工具路由',
+                    l10n.messages_no_route,
                     style: IOS26Theme.bodySmall.copyWith(
                       color: IOS26Theme.textSecondary.withValues(alpha: 0.7),
                     ),

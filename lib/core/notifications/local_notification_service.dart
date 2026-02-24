@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -8,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'app_notification_service.dart';
 import 'notification_id_store.dart';
+import '../utils/dev_log.dart';
 
 class LocalNotificationService implements AppNotificationService {
   static const String _channelId = 'app_messages';
@@ -31,7 +31,7 @@ class LocalNotificationService implements AppNotificationService {
       final localName = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(localName));
     } catch (e) {
-      debugPrint('初始化时区失败，将使用 UTC: $e');
+      devLog('初始化时区失败，将使用 UTC: $e', error: e);
     }
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -97,7 +97,7 @@ class LocalNotificationService implements AppNotificationService {
       final id = await _idStore!.reserve();
       await _plugin.show(id, title, body, _details());
     } catch (e) {
-      debugPrint('本地通知发送失败: $e');
+      devLog('本地通知发送失败: $e', error: e);
     }
   }
 
@@ -128,7 +128,7 @@ class LocalNotificationService implements AppNotificationService {
         payload: null,
       );
     } catch (e) {
-      debugPrint('本地通知定时发送失败: $e');
+      devLog('本地通知定时发送失败: $e', error: e);
     }
   }
 
@@ -140,7 +140,7 @@ class LocalNotificationService implements AppNotificationService {
     try {
       await _plugin.cancel(id);
     } catch (e) {
-      debugPrint('本地通知取消失败: $e');
+      devLog('本地通知取消失败: $e', error: e);
     }
   }
 }

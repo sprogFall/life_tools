@@ -9,6 +9,8 @@ import 'package:life_tools/core/registry/tool_registry.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import '../test_helpers/test_app_wrapper.dart';
+
 void main() {
   group('AllMessagesPage', () {
     setUpAll(() {
@@ -45,7 +47,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider<MessageService>.value(
           value: messageService,
-          child: const MaterialApp(home: AllMessagesPage()),
+          child: TestAppWrapper(child: const AllMessagesPage()),
         ),
       );
       await tester.pumpAndSettle();
@@ -100,7 +102,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider<MessageService>.value(
           value: messageService,
-          child: const MaterialApp(home: AllMessagesPage()),
+          child: TestAppWrapper(child: const AllMessagesPage()),
         ),
       );
       await tester.pumpAndSettle();
@@ -169,7 +171,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider<MessageService>.value(
           value: messageService,
-          child: const MaterialApp(home: AllMessagesPage()),
+          child: TestAppWrapper(child: const AllMessagesPage()),
         ),
       );
       await tester.pumpAndSettle();

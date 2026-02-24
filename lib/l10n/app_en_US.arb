@@ -491,5 +491,14 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "messages_all_title": "All Messages",
+  "messages_detail_title": "Message Detail",
+  "messages_empty": "No messages yet",
+  "messages_not_found": "Message not found or deleted",
+  "messages_default_title": "Message",
+  "messages_go_to_tool": "Go to Tool",
+  "messages_no_route": "This message does not provide a tool route",
+  "messages_read_label": "Read",
+  "messages_unread_label": "Unread"
 }

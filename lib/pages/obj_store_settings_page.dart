@@ -803,7 +803,7 @@ class _ObjStoreSettingsPageState extends State<ObjStoreSettingsPage> {
       _lastUploaded = null;
       _queryKeyController.text = '';
     });
-    // ignore: use_build_context_synchronously
+    if (!context.mounted) return;
     await AppDialogs.showInfo(context, title: '已清除', content: '资源存储配置已清除');
   }
 

@@ -921,6 +921,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String sync_auto_sync_failed_toast(Object error) {
     return '自动同步失败: $error';
   }
+
+  @override
+  String get messages_all_title => '全部消息';
+
+  @override
+  String get messages_detail_title => '消息详情';
+
+  @override
+  String get messages_empty => '当前暂时没有消息';
+
+  @override
+  String get messages_not_found => '消息不存在或已被删除';
+
+  @override
+  String get messages_default_title => '消息';
+
+  @override
+  String get messages_go_to_tool => '前往工具';
+
+  @override
+  String get messages_no_route => '该消息未提供可跳转的工具路由';
+
+  @override
+  String get messages_read_label => '已读';
+
+  @override
+  String get messages_unread_label => '未读';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -1840,4 +1867,31 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String sync_auto_sync_failed_toast(Object error) {
     return '自动同步失败: $error';
   }
+
+  @override
+  String get messages_all_title => '全部消息';
+
+  @override
+  String get messages_detail_title => '消息详情';
+
+  @override
+  String get messages_empty => '当前暂时没有消息';
+
+  @override
+  String get messages_not_found => '消息不存在或已被删除';
+
+  @override
+  String get messages_default_title => '消息';
+
+  @override
+  String get messages_go_to_tool => '前往工具';
+
+  @override
+  String get messages_no_route => '该消息未提供可跳转的工具路由';
+
+  @override
+  String get messages_read_label => '已读';
+
+  @override
+  String get messages_unread_label => '未读';
 }

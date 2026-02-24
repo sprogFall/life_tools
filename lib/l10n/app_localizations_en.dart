@@ -955,6 +955,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String sync_auto_sync_failed_toast(Object error) {
     return 'Auto sync failed: $error';
   }
+
+  @override
+  String get messages_all_title => 'All Messages';
+
+  @override
+  String get messages_detail_title => 'Message Detail';
+
+  @override
+  String get messages_empty => 'No messages yet';
+
+  @override
+  String get messages_not_found => 'Message not found or deleted';
+
+  @override
+  String get messages_default_title => 'Message';
+
+  @override
+  String get messages_go_to_tool => 'Go to Tool';
+
+  @override
+  String get messages_no_route => 'This message does not provide a tool route';
+
+  @override
+  String get messages_read_label => 'Read';
+
+  @override
+  String get messages_unread_label => 'Unread';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -1908,4 +1935,31 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String sync_auto_sync_failed_toast(Object error) {
     return 'Auto sync failed: $error';
   }
+
+  @override
+  String get messages_all_title => 'All Messages';
+
+  @override
+  String get messages_detail_title => 'Message Detail';
+
+  @override
+  String get messages_empty => 'No messages yet';
+
+  @override
+  String get messages_not_found => 'Message not found or deleted';
+
+  @override
+  String get messages_default_title => 'Message';
+
+  @override
+  String get messages_go_to_tool => 'Go to Tool';
+
+  @override
+  String get messages_no_route => 'This message does not provide a tool route';
+
+  @override
+  String get messages_read_label => 'Read';
+
+  @override
+  String get messages_unread_label => 'Unread';
 }

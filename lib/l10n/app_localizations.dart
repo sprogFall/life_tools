@@ -1737,6 +1737,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto sync failed: {error}'**
   String sync_auto_sync_failed_toast(Object error);
+
+  /// No description provided for @messages_all_title.
+  ///
+  /// In en, this message translates to:
+  /// **'All Messages'**
+  String get messages_all_title;
+
+  /// No description provided for @messages_detail_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Detail'**
+  String get messages_detail_title;
+
+  /// No description provided for @messages_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet'**
+  String get messages_empty;
+
+  /// No description provided for @messages_not_found.
+  ///
+  /// In en, this message translates to:
+  /// **'Message not found or deleted'**
+  String get messages_not_found;
+
+  /// No description provided for @messages_default_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get messages_default_title;
+
+  /// No description provided for @messages_go_to_tool.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Tool'**
+  String get messages_go_to_tool;
+
+  /// No description provided for @messages_no_route.
+  ///
+  /// In en, this message translates to:
+  /// **'This message does not provide a tool route'**
+  String get messages_no_route;
+
+  /// No description provided for @messages_read_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get messages_read_label;
+
+  /// No description provided for @messages_unread_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get messages_unread_label;
 }
 
 class _AppLocalizationsDelegate

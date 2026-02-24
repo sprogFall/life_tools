@@ -491,5 +491,14 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "messages_all_title": "全部消息",
+  "messages_detail_title": "消息详情",
+  "messages_empty": "当前暂时没有消息",
+  "messages_not_found": "消息不存在或已被删除",
+  "messages_default_title": "消息",
+  "messages_go_to_tool": "前往工具",
+  "messages_no_route": "该消息未提供可跳转的工具路由",
+  "messages_read_label": "已读",
+  "messages_unread_label": "未读"
 }

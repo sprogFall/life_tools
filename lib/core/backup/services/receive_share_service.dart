@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+
+import '../../utils/dev_log.dart';
 
 typedef OnShareReceived = void Function(String jsonText);
 
@@ -17,7 +18,7 @@ class ReceiveShareService {
     // 应用运行时收到的分享
     _subscription = ReceiveSharingIntent.instance.getMediaStream().listen(
       _handleSharedFiles,
-      onError: (err) => debugPrint('ReceiveShareService error: $err'),
+      onError: (err) => devLog('ReceiveShareService error: $err', error: err),
     );
 
     // 应用冷启动时收到的分享
@@ -38,7 +39,7 @@ class ReceiveShareService {
         _onShareReceived!(content);
         break;
       } catch (e) {
-        debugPrint('读取分享文件失败: $e');
+        devLog('读取分享文件失败: $e', error: e);
       }
     }
 
