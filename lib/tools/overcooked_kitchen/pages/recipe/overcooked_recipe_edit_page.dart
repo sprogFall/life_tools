@@ -100,22 +100,32 @@ class _OvercookedRecipeEditPageState extends State<OvercookedRecipeEditPage> {
     setState(() => _loading = true);
     try {
       final tagService = context.read<TagService>();
-      final typeTags = await tagService.listTagsForToolCategory(
+      final typeTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.dishType,
       );
-      final ingredientTags = await tagService.listTagsForToolCategory(
+      final ingredientTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.ingredient,
       );
-      final sauceTags = await tagService.listTagsForToolCategory(
+      final sauceTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.sauce,
       );
-      final flavorTags = await tagService.listTagsForToolCategory(
+      final flavorTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.flavor,
       );
+      final tagLists = await Future.wait<List<Tag>>([
+        typeTagsFuture,
+        ingredientTagsFuture,
+        sauceTagsFuture,
+        flavorTagsFuture,
+      ]);
+      final typeTags = tagLists[0];
+      final ingredientTags = tagLists[1];
+      final sauceTags = tagLists[2];
+      final flavorTags = tagLists[3];
       final all = <Tag>[
         ...typeTags,
         ...ingredientTags,

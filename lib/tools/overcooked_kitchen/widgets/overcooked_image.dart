@@ -30,6 +30,7 @@ class OvercookedImageByKey extends StatefulWidget {
 
 class _OvercookedImageByKeyState extends State<OvercookedImageByKey> {
   Future<File?>? _fileFuture;
+  Future<String>? _uriFuture;
   String? _resolvedKey;
 
   @override
@@ -51,10 +52,17 @@ class _OvercookedImageByKeyState extends State<OvercookedImageByKey> {
   void _initFuture() {
     final key = widget.objectKey?.trim();
     _resolvedKey = key;
-    if (key == null || key.isEmpty || kIsWeb) {
+    _uriFuture = null;
+    if (key == null || key.isEmpty) {
       _fileFuture = null;
       return;
     }
+
+    if (kIsWeb) {
+      _fileFuture = null;
+      return;
+    }
+
     _fileFuture = widget.cacheOnly
         ? widget.objStoreService.getCachedFile(key: key)
         : widget.objStoreService.ensureCachedFile(key: key);
@@ -103,8 +111,12 @@ class _OvercookedImageByKeyState extends State<OvercookedImageByKey> {
   }
 
   Widget _buildNetworkFallback({required String key}) {
+    final uriFuture = _uriFuture ??= widget.objStoreService.resolveUri(
+      key: key,
+    );
+
     return FutureBuilder<String>(
-      future: widget.objStoreService.resolveUri(key: key),
+      future: uriFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return _placeholder(isLoading: true);

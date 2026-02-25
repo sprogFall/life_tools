@@ -21,12 +21,18 @@ class WorkLogSyncProvider implements ToolSyncProvider {
     // 导出所有任务、工时记录、操作日志
     final tasks = await _repository.listTasks();
     final allTimeEntries = <Map<String, dynamic>>[];
+    final taskIds = tasks
+        .where((task) => task.id != null)
+        .map((task) => task.id!)
+        .toList(growable: false);
 
-    // 收集所有任务的工时记录
-    for (final task in tasks) {
-      if (task.id != null) {
-        final entries = await _repository.listTimeEntriesForTask(task.id!);
-        allTimeEntries.addAll(entries.map((e) => e.toMap()));
+    // 收集所有任务的工时记录（并行加载，降低导出耗时）
+    if (taskIds.isNotEmpty) {
+      final entriesByTask = await Future.wait(
+        taskIds.map((taskId) => _repository.listTimeEntriesForTask(taskId)),
+      );
+      for (final entries in entriesByTask) {
+        allTimeEntries.addAll(entries.map((entry) => entry.toMap()));
       }
     }
 

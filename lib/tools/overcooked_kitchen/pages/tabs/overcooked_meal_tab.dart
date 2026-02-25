@@ -77,8 +77,13 @@ class _OvercookedMealTabState extends State<OvercookedMealTab> {
 
       // 加载每个餐次的评分
       final ratingsByMealId = <int, Map<int, int>>{};
-      for (final meal in meals) {
-        ratingsByMealId[meal.id] = await repo.getRatingsForMeal(meal.id);
+      if (meals.isNotEmpty) {
+        final ratingResults = await Future.wait<Map<int, int>>(
+          meals.map((meal) => repo.getRatingsForMeal(meal.id)),
+        );
+        for (int i = 0; i < meals.length; i++) {
+          ratingsByMealId[meals[i].id] = ratingResults[i];
+        }
       }
 
       setState(() {

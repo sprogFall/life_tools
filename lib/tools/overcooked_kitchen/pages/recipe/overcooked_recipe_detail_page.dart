@@ -52,23 +52,36 @@ class _OvercookedRecipeDetailPageState
     try {
       final repo = widget.repository ?? context.read<OvercookedRepository>();
       final tagService = context.read<TagService>();
-      final r = await repo.getRecipe(widget.recipeId);
-      final typeTags = await tagService.listTagsForToolCategory(
+      final recipeFuture = repo.getRecipe(widget.recipeId);
+      final typeTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.dishType,
       );
-      final ingredientTags = await tagService.listTagsForToolCategory(
+      final ingredientTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.ingredient,
       );
-      final sauceTags = await tagService.listTagsForToolCategory(
+      final sauceTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.sauce,
       );
-      final flavorTags = await tagService.listTagsForToolCategory(
+      final flavorTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.flavor,
       );
+
+      final results = await Future.wait<Object?>([
+        recipeFuture,
+        typeTagsFuture,
+        ingredientTagsFuture,
+        sauceTagsFuture,
+        flavorTagsFuture,
+      ]);
+      final r = results[0] as OvercookedRecipe?;
+      final typeTags = results[1] as List<Tag>;
+      final ingredientTags = results[2] as List<Tag>;
+      final sauceTags = results[3] as List<Tag>;
+      final flavorTags = results[4] as List<Tag>;
       final tags = <Tag>[
         ...typeTags,
         ...ingredientTags,

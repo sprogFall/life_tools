@@ -60,14 +60,20 @@ class _OvercookedWishlistTabState extends State<OvercookedWishlistTab> {
       final recipeIds = wishes.map((e) => e.recipeId).toList();
       final selectedRecipes = await repo.listRecipesByIds(recipeIds);
 
-      final ingredientTags = await tagService.listTagsForToolCategory(
+      final ingredientTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.ingredient,
       );
-      final sauceTags = await tagService.listTagsForToolCategory(
+      final sauceTagsFuture = tagService.listTagsForToolCategory(
         toolId: OvercookedConstants.toolId,
         categoryId: OvercookedTagCategories.sauce,
       );
+      final tagLists = await Future.wait<List<Tag>>([
+        ingredientTagsFuture,
+        sauceTagsFuture,
+      ]);
+      final ingredientTags = tagLists[0];
+      final sauceTags = tagLists[1];
       final tags = <Tag>[...ingredientTags, ...sauceTags];
 
       setState(() {

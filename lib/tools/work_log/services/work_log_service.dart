@@ -124,8 +124,10 @@ class WorkLogService extends ChangeNotifier {
       _taskOffset = firstPage.length;
       _hasMoreTasks = firstPage.length >= _taskPageSize;
 
-      await _loadTaskTotalMinutes(firstPage);
-      await _loadTaskTags(firstPage);
+      await Future.wait<void>([
+        _loadTaskTotalMinutes(firstPage),
+        _loadTaskTags(firstPage),
+      ]);
     } finally {
       _loadingTasks = false;
       _safeNotify();
@@ -153,8 +155,10 @@ class WorkLogService extends ChangeNotifier {
       _tasks = [..._tasks, ...newTasks];
       _taskOffset += newTasks.length;
 
-      await _loadTaskTotalMinutes(newTasks);
-      await _loadTaskTags(newTasks);
+      await Future.wait<void>([
+        _loadTaskTotalMinutes(newTasks),
+        _loadTaskTags(newTasks),
+      ]);
     } finally {
       _loadingTasks = false;
       _safeNotify();
@@ -162,13 +166,17 @@ class WorkLogService extends ChangeNotifier {
   }
 
   Future<void> _loadTaskTotalMinutes(List<WorkTask> tasks) async {
+    final futures = <Future<void>>[];
     for (final task in tasks) {
-      if (task.id != null) {
-        _taskTotalMinutes[task.id!] = await _repository.getTotalMinutesForTask(
-          task.id!,
-        );
-      }
+      final taskId = task.id;
+      if (taskId == null) continue;
+      futures.add(
+        _repository.getTotalMinutesForTask(taskId).then((minutes) {
+          _taskTotalMinutes[taskId] = minutes;
+        }),
+      );
     }
+    await Future.wait<void>(futures);
   }
 
   Future<void> _loadTaskTags(List<WorkTask> tasks) async {

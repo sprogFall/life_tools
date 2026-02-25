@@ -89,7 +89,7 @@ class _OvercookedImageViewerPageState extends State<OvercookedImageViewerPage> {
   }
 }
 
-class _DiskPreferredImageView extends StatelessWidget {
+class _DiskPreferredImageView extends StatefulWidget {
   final String objectKey;
   final ObjStoreService objStore;
   final ValueChanged<bool> onZoomChanged;
@@ -101,9 +101,36 @@ class _DiskPreferredImageView extends StatelessWidget {
   });
 
   @override
+  State<_DiskPreferredImageView> createState() =>
+      _DiskPreferredImageViewState();
+}
+
+class _DiskPreferredImageViewState extends State<_DiskPreferredImageView> {
+  Future<File?>? _fileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DiskPreferredImageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.objectKey != widget.objectKey ||
+        oldWidget.objStore != widget.objStore) {
+      _resetFuture();
+    }
+  }
+
+  void _resetFuture() {
+    _fileFuture = widget.objStore.ensureCachedFile(key: widget.objectKey);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<File?>(
-      future: objStore.ensureCachedFile(key: objectKey),
+      future: _fileFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CupertinoActivityIndicator());
@@ -117,13 +144,13 @@ class _DiskPreferredImageView extends StatelessWidget {
         final f = snapshot.data;
         if (f == null || !f.existsSync()) {
           return _NetworkImageView(
-            objectKey: objectKey,
-            objStore: objStore,
-            onZoomChanged: onZoomChanged,
+            objectKey: widget.objectKey,
+            objStore: widget.objStore,
+            onZoomChanged: widget.onZoomChanged,
           );
         }
         return _ZoomableImage(
-          onZoomChanged: onZoomChanged,
+          onZoomChanged: widget.onZoomChanged,
           child: IOS26Image.file(f, fit: BoxFit.contain),
         );
       },
@@ -131,7 +158,7 @@ class _DiskPreferredImageView extends StatelessWidget {
   }
 }
 
-class _NetworkImageView extends StatelessWidget {
+class _NetworkImageView extends StatefulWidget {
   final String objectKey;
   final ObjStoreService objStore;
   final ValueChanged<bool> onZoomChanged;
@@ -143,9 +170,35 @@ class _NetworkImageView extends StatelessWidget {
   });
 
   @override
+  State<_NetworkImageView> createState() => _NetworkImageViewState();
+}
+
+class _NetworkImageViewState extends State<_NetworkImageView> {
+  Future<String>? _uriFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant _NetworkImageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.objectKey != widget.objectKey ||
+        oldWidget.objStore != widget.objStore) {
+      _resetFuture();
+    }
+  }
+
+  void _resetFuture() {
+    _uriFuture = widget.objStore.resolveUri(key: widget.objectKey);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
-      future: objStore.resolveUri(key: objectKey),
+      future: _uriFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CupertinoActivityIndicator());
@@ -180,7 +233,10 @@ class _NetworkImageView extends StatelessWidget {
                 },
               );
 
-        return _ZoomableImage(onZoomChanged: onZoomChanged, child: image);
+        return _ZoomableImage(
+          onZoomChanged: widget.onZoomChanged,
+          child: image,
+        );
       },
     );
   }
