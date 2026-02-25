@@ -47,6 +47,7 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
     super.initState();
     _service = widget.service ?? StockpileService();
     _ownsService = widget.service == null;
+    _tab = _service.stockStatus == StockItemStockStatus.depleted ? 1 : 0;
     // 预热囤货助手的标签（含分类），用于列表展示“物品类型/位置”。
     TagService? tagService;
     try {
@@ -145,8 +146,6 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    _buildSegmented(),
-                    const SizedBox(height: 10),
                     Expanded(child: _buildList()),
                   ],
                 ),
@@ -160,41 +159,37 @@ class _StockpileToolPageState extends State<StockpileToolPage> {
             ],
           ),
         ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
     );
   }
 
-  Widget _buildSegmented() {
-    return Consumer<StockpileService>(
-      builder: (context, service, _) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: CupertinoSlidingSegmentedControl<int>(
-            groupValue: _tab,
-            backgroundColor: IOS26Theme.textTertiary.withValues(alpha: 0.25),
-            thumbColor: IOS26Theme.surfaceColor.withValues(alpha: 0.9),
-            children: const {
-              0: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                child: Text('在库'),
-              ),
-              1: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                child: Text('已耗尽'),
-              ),
-            },
-            onValueChanged: (value) async {
-              if (value == null) return;
-              setState(() => _tab = value);
-              await service.setStockStatus(
-                value == 0
-                    ? StockItemStockStatus.inStock
-                    : StockItemStockStatus.depleted,
-              );
-            },
-          ),
-        );
-      },
+  Widget _buildBottomNav() {
+    return BottomNavigationBar(
+      currentIndex: _tab,
+      onTap: _switchTab,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: IOS26Theme.primaryColor,
+      unselectedItemColor: IOS26Theme.textSecondary,
+      backgroundColor: IOS26Theme.surfaceColor,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.archivebox),
+          label: '在库',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.archivebox_fill),
+          label: '已耗尽',
+        ),
+      ],
+    );
+  }
+
+  Future<void> _switchTab(int value) async {
+    if (_tab == value) return;
+    setState(() => _tab = value);
+    await _service.setStockStatus(
+      value == 0 ? StockItemStockStatus.inStock : StockItemStockStatus.depleted,
     );
   }
 

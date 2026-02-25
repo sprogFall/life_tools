@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
@@ -61,10 +62,10 @@ void main() {
     );
     await tester.pump();
 
-    final segmented = tester.widget<CupertinoSlidingSegmentedControl<int>>(
-      find.byType(CupertinoSlidingSegmentedControl<int>),
-    );
-    segmented.onValueChanged.call(1);
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
+    expect(find.byType(CupertinoSlidingSegmentedControl<int>), findsNothing);
+
+    await tester.tap(find.text('已耗尽'));
     await tester.pump();
     await _pumpUntil(tester, () => find.text('牛奶').evaluate().isNotEmpty);
 
