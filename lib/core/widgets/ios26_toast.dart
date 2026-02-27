@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
@@ -42,6 +43,27 @@ class ToastService extends ChangeNotifier {
 
   ToastData? get toast => _toast;
 
+  static String _sanitizeMessage(String message) {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) return '';
+
+    final lines = trimmed.split(RegExp(r'\r?\n'));
+    while (lines.isNotEmpty) {
+      final last = lines.last.trim();
+      if (last.isEmpty) {
+        lines.removeLast();
+        continue;
+      }
+      if (RegExp(r'^_+$').hasMatch(last)) {
+        lines.removeLast();
+        continue;
+      }
+      break;
+    }
+
+    return lines.join('\n').trim();
+  }
+
   void showSuccess(String message, {Duration duration = defaultDuration}) {
     show(message, variant: ToastVariant.success, duration: duration);
   }
@@ -55,8 +77,8 @@ class ToastService extends ChangeNotifier {
     ToastVariant variant = ToastVariant.info,
     Duration duration = defaultDuration,
   }) {
-    final trimmed = message.trim();
-    if (trimmed.isEmpty) return;
+    final sanitized = _sanitizeMessage(message);
+    if (sanitized.isEmpty) return;
 
     _hideTimer?.cancel();
     _clearTimer?.cancel();
@@ -64,7 +86,7 @@ class ToastService extends ChangeNotifier {
     final id = ++_seq;
     _toast = ToastData(
       id: id,
-      message: trimmed,
+      message: sanitized,
       variant: variant,
       visible: true,
     );
@@ -113,6 +135,8 @@ class IOS26ToastOverlay extends StatelessWidget {
     if (toast == null) return const SizedBox.shrink();
 
     final paddingBottom = MediaQuery.paddingOf(context).bottom;
+    final gestureBottom = MediaQuery.systemGestureInsetsOf(context).bottom;
+    final bottomInset = math.max(paddingBottom, gestureBottom);
     final isVisible = toast.visible;
 
     final (icon, color) = switch (toast.variant) {
@@ -139,7 +163,7 @@ class IOS26ToastOverlay extends StatelessWidget {
             IOS26Theme.spacingXl,
             0,
             IOS26Theme.spacingXl,
-            IOS26Theme.spacingXl + paddingBottom,
+            IOS26Theme.spacingXl + bottomInset,
           ),
           child: AnimatedSlide(
             offset: isVisible ? Offset.zero : const Offset(0, 0.15),
