@@ -70,4 +70,86 @@ void main() {
     final edgeInsets = padding.padding as EdgeInsets;
     expect(edgeInsets.bottom, IOS26Theme.spacingXl + 34);
   });
+
+  testWidgets('IOS26ToastOverlay 底部 padding 在无 insets 时应有保底抬高', (tester) async {
+    late ToastService service;
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ToastService>(
+        create: (_) {
+          service = ToastService();
+          return service;
+        },
+        child: MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(400, 800),
+              padding: EdgeInsets.zero,
+              viewPadding: EdgeInsets.zero,
+              viewInsets: EdgeInsets.zero,
+              systemGestureInsets: EdgeInsets.zero,
+            ),
+            child: const Stack(
+              children: [SizedBox.expand(), IOS26ToastOverlay()],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    service.show('测试文案');
+    await tester.pump();
+
+    final overlayRow = find.byKey(IOS26ToastOverlay.overlayKey);
+    expect(overlayRow, findsOneWidget);
+
+    final paddingFinder = find.ancestor(
+      of: overlayRow,
+      matching: find.byWidgetPredicate((widget) {
+        if (widget is! Padding) return false;
+        final edgeInsets = widget.padding;
+        if (edgeInsets is! EdgeInsets) return false;
+        return edgeInsets.left == IOS26Theme.spacingXl &&
+            edgeInsets.right == IOS26Theme.spacingXl &&
+            edgeInsets.top == 0;
+      }),
+    );
+    expect(paddingFinder, findsOneWidget);
+
+    final padding = tester.widget<Padding>(paddingFinder);
+    final edgeInsets = padding.padding as EdgeInsets;
+    expect(edgeInsets.bottom, IOS26Theme.spacingXl + IOS26Theme.spacingXxl);
+  });
+
+  testWidgets('IOS26ToastOverlay 文案样式应强制无下划线', (tester) async {
+    late ToastService service;
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ToastService>(
+        create: (_) {
+          service = ToastService();
+          return service;
+        },
+        child: const MaterialApp(
+          home: Stack(children: [SizedBox.expand(), IOS26ToastOverlay()]),
+        ),
+      ),
+    );
+
+    service.show('测试文案');
+    await tester.pump();
+
+    final overlayRow = find.byKey(IOS26ToastOverlay.overlayKey);
+    expect(overlayRow, findsOneWidget);
+
+    final textFinder = find.descendant(
+      of: overlayRow,
+      matching: find.text('测试文案'),
+    );
+    expect(textFinder, findsOneWidget);
+
+    final text = tester.widget<Text>(textFinder);
+    expect(text.style, isNotNull);
+    expect(text.style!.decoration, TextDecoration.none);
+  });
 }

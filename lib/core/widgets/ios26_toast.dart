@@ -134,9 +134,18 @@ class IOS26ToastOverlay extends StatelessWidget {
     final toast = context.select((ToastService s) => s.toast);
     if (toast == null) return const SizedBox.shrink();
 
-    final paddingBottom = MediaQuery.paddingOf(context).bottom;
-    final gestureBottom = MediaQuery.systemGestureInsetsOf(context).bottom;
-    final bottomInset = math.max(paddingBottom, gestureBottom);
+    final mq = MediaQuery.of(context);
+    final paddingBottom = mq.padding.bottom;
+    final viewPaddingBottom = mq.viewPadding.bottom;
+    final viewInsetsBottom = mq.viewInsets.bottom;
+    final gestureBottom = mq.systemGestureInsets.bottom;
+    final baseInset = math.max(
+      math.max(paddingBottom, viewPaddingBottom),
+      math.max(viewInsetsBottom, gestureBottom),
+    );
+    // 某些设备/模式下 insets 可能意外为 0（但底部仍有手势条/导航条等系统元素），
+    // 这里给一个保底的抬高距离，避免 Toast 太贴底导致“像双下划线”的观感。
+    final bottomInset = math.max(baseInset, IOS26Theme.spacingXxl);
     final isVisible = toast.visible;
 
     final (icon, color) = switch (toast.variant) {
@@ -194,7 +203,9 @@ class IOS26ToastOverlay extends StatelessWidget {
                       Flexible(
                         child: Text(
                           toast.message,
-                          style: IOS26Theme.bodyLarge,
+                          style: IOS26Theme.bodyLarge.copyWith(
+                            decoration: TextDecoration.none,
+                          ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
