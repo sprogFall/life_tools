@@ -8,6 +8,8 @@ import 'package:life_tools/core/ai/ai_errors.dart';
 import 'package:life_tools/core/ai/ai_models.dart';
 import 'package:life_tools/core/ai/openai_client.dart';
 
+import '../../test_helpers/recording_http_client.dart';
+
 void main() {
   group('OpenAiClient', () {
     test('baseUrl不含/v1时应自动补全chat/completions路径', () async {
@@ -172,6 +174,56 @@ void main() {
       );
 
       expect(result.text, '转写文本');
+    });
+
+    test('chatCompletionsStream 应按分片返回文本与思考过程', () async {
+      final streamClient = RecordingHttpClient((request) async {
+        expect(request.method, 'POST');
+        expect(
+          request.url.toString(),
+          'https://example.com/v1/chat/completions',
+        );
+        final req = request as http.Request;
+        final body = jsonDecode(req.body) as Map<String, dynamic>;
+        expect(body['stream'], isTrue);
+        expect(body['model'], 'gpt-4o-mini');
+
+        final sse = [
+          'data: {"choices":[{"delta":{"reasoning_content":"先看"}}]}\n\n',
+          'data: {"choices":[{"delta":{"reasoning_content":"数据"}}]}\n\n',
+          'data: {"choices":[{"delta":{"content":"结论："}}]}\n\n',
+          'data: {"choices":[{"delta":{"content":"完成"}}]}\n\n',
+          'data: [DONE]\n\n',
+        ].join();
+
+        return http.StreamedResponse(
+          Stream.value(utf8.encode(sse)),
+          200,
+          headers: {'Content-Type': 'text/event-stream'},
+        );
+      });
+
+      final client = OpenAiClient(httpClient: streamClient);
+      const config = AiConfig(
+        baseUrl: 'https://example.com',
+        apiKey: 'test-key',
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        maxOutputTokens: 128,
+      );
+
+      final chunks = await client
+          .chatCompletionsStream(
+            config: config,
+            request: const AiChatRequest(messages: [AiMessage.user('hi')]),
+          )
+          .toList();
+
+      expect(chunks.length, 4);
+      expect(chunks[0].reasoningDelta, '先看');
+      expect(chunks[1].reasoningDelta, '数据');
+      expect(chunks[2].textDelta, '结论：');
+      expect(chunks[3].textDelta, '完成');
     });
   });
 }

@@ -36,5 +36,16 @@ class AiChatRequest {
 
 class AiChatResult {
   final String text;
-  const AiChatResult({required this.text});
+  final String reasoning;
+
+  const AiChatResult({required this.text, this.reasoning = ''});
+}
+
+class AiChatStreamChunk {
+  final String textDelta;
+  final String reasoningDelta;
+
+  const AiChatStreamChunk({this.textDelta = '', this.reasoningDelta = ''});
+
+  bool get isEmpty => textDelta.isEmpty && reasoningDelta.isEmpty;
 }

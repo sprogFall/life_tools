@@ -11,6 +11,8 @@ import '../models/xiao_mi_message.dart';
 import '../repository/xiao_mi_repository.dart';
 
 class XiaoMiChatService extends ChangeNotifier {
+  static const String assistantThinkingMetadataKey = 'thinking';
+
   final XiaoMiRepository _repository;
   final AiService _aiService;
   final DateTime Function() _nowProvider;
@@ -38,6 +40,10 @@ class XiaoMiChatService extends ChangeNotifier {
   XiaoMiConversation? get currentConversation => _currentConversation;
   List<XiaoMiMessage> get messages => _messages;
   bool get sending => _sending;
+  bool get hasStreamingAssistantDraft =>
+      _messages.isNotEmpty &&
+      _messages.last.role == XiaoMiMessageRole.assistant &&
+      _messages.last.id == null;
 
   List<XiaoMiQuickPrompt> get quickPrompts => _promptResolver.quickPrompts;
 
@@ -144,25 +150,72 @@ class XiaoMiChatService extends ChangeNotifier {
         currentUserPrompt: resolved.aiPrompt,
       );
 
-      final result = await _aiService.chat(
+      final answerBuffer = StringBuffer();
+      final thinkingBuffer = StringBuffer();
+      XiaoMiMessage? streamingAssistantMessage;
+
+      await for (final chunk in _aiService.chatStream(
         messages: aiMessages,
         temperature: XiaoMiAiPrompts.chatUseCase.temperature,
         maxOutputTokens: XiaoMiAiPrompts.chatUseCase.maxOutputTokens,
         timeout: XiaoMiAiPrompts.chatUseCase.timeout,
         // 聊天工具本身已存储会话历史；同时避免把“隐式注入数据”写入全局 AI 历史，这里不写入 source。
         source: null,
-      );
+      )) {
+        if (chunk.textDelta.isNotEmpty) {
+          answerBuffer.write(chunk.textDelta);
+        }
+        if (chunk.reasoningDelta.isNotEmpty) {
+          thinkingBuffer.write(chunk.reasoningDelta);
+        }
 
-      final assistantText = result.text.trim();
+        if (chunk.isEmpty) {
+          continue;
+        }
+
+        final metadata = _buildAssistantMetadata(thinkingBuffer.toString());
+        if (streamingAssistantMessage == null) {
+          streamingAssistantMessage = XiaoMiMessage.create(
+            conversationId: activeId,
+            role: XiaoMiMessageRole.assistant,
+            content: answerBuffer.toString(),
+            metadata: metadata,
+            createdAt: _nowProvider(),
+          );
+          _messages = [..._messages, streamingAssistantMessage];
+        } else {
+          streamingAssistantMessage = streamingAssistantMessage.copyWith(
+            content: answerBuffer.toString(),
+            metadata: metadata,
+          );
+          _messages = [
+            ..._messages.sublist(0, _messages.length - 1),
+            streamingAssistantMessage,
+          ];
+        }
+        notifyListeners();
+      }
+
+      final assistantText = answerBuffer.toString().trim();
+      final assistantMetadata = _buildAssistantMetadata(
+        thinkingBuffer.toString(),
+      );
       final assistantMessage = XiaoMiMessage.create(
         conversationId: activeId,
         role: XiaoMiMessageRole.assistant,
         content: assistantText,
-        metadata: null,
-        createdAt: _nowProvider(),
+        metadata: assistantMetadata,
+        createdAt: streamingAssistantMessage?.createdAt ?? _nowProvider(),
       );
       await _repository.addMessage(assistantMessage);
-      _messages = [..._messages, assistantMessage];
+      if (streamingAssistantMessage == null) {
+        _messages = [..._messages, assistantMessage];
+      } else {
+        _messages = [
+          ..._messages.sublist(0, _messages.length - 1),
+          assistantMessage,
+        ];
+      }
       await _autoTitleIfNeeded(activeId);
       await refreshConversations();
       notifyListeners();
@@ -237,5 +290,13 @@ class XiaoMiChatService extends ChangeNotifier {
         ),
       ),
     ];
+  }
+
+  Map<String, dynamic>? _buildAssistantMetadata(String thinking) {
+    final trimmedThinking = thinking.trim();
+    if (trimmedThinking.isEmpty) {
+      return null;
+    }
+    return <String, dynamic>{assistantThinkingMetadataKey: trimmedThinking};
   }
 }

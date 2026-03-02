@@ -65,5 +65,41 @@ void main() {
         AiResponseFormat.jsonObject,
       );
     });
+
+    test('chatStream 应返回流式分片', () async {
+      final configService = AiConfigService();
+      await configService.init();
+      await configService.save(
+        const AiConfig(
+          baseUrl: 'https://example.com',
+          apiKey: 'k',
+          model: 'm',
+          temperature: 0.2,
+          maxOutputTokens: 128,
+        ),
+      );
+
+      final fakeClient = FakeOpenAiClient(
+        replyText: 'hello',
+        streamReply: const [
+          AiChatStreamChunk(textDelta: 'A'),
+          AiChatStreamChunk(reasoningDelta: '思考'),
+          AiChatStreamChunk(textDelta: 'B'),
+        ],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final chunks = await aiService
+          .chatStream(messages: const [AiMessage.user('请流式返回')])
+          .toList();
+
+      expect(chunks.length, 3);
+      expect(chunks[0].textDelta, 'A');
+      expect(chunks[1].reasoningDelta, '思考');
+      expect(chunks[2].textDelta, 'B');
+    });
   });
 }

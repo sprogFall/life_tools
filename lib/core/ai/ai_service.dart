@@ -62,6 +62,42 @@ class AiService {
     return result;
   }
 
+  Stream<AiChatStreamChunk> chatStream({
+    required List<AiMessage> messages,
+    double? temperature,
+    int? maxOutputTokens,
+    AiResponseFormat responseFormat = AiResponseFormat.text,
+    Duration timeout = const Duration(seconds: 60),
+    AiCallSource? source,
+  }) async* {
+    final config = _configService.config;
+    if (config == null || !config.isValid) {
+      throw const AiNotConfiguredException('请先在设置中完成 AI 配置');
+    }
+
+    final responseBuffer = StringBuffer();
+    await for (final chunk in _client.chatCompletionsStream(
+      config: config,
+      request: AiChatRequest(
+        messages: messages,
+        temperature: temperature,
+        maxOutputTokens: maxOutputTokens,
+        responseFormat: responseFormat,
+      ),
+      timeout: timeout,
+    )) {
+      responseBuffer.write(chunk.textDelta);
+      yield chunk;
+    }
+
+    await _saveHistoryIfNeeded(
+      source: source,
+      model: config.model,
+      prompt: _buildPromptSnapshot(messages),
+      response: responseBuffer.toString(),
+    );
+  }
+
   /// 便捷方法：传入 prompt（可选 systemPrompt/history），返回纯文本内容。
   ///
   /// 当你希望 AI 返回 JSON 给业务侧解析时，传 `responseFormat: AiResponseFormat.jsonObject`。

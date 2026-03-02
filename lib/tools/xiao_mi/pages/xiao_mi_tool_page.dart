@@ -297,7 +297,11 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
             IOS26Theme.spacingXl,
             IOS26Theme.spacingMd,
           ),
-          itemCount: messages.length + (service.sending ? 1 : 0),
+          itemCount:
+              messages.length +
+              ((service.sending && !service.hasStreamingAssistantDraft)
+                  ? 1
+                  : 0),
           itemBuilder: (context, index) {
             if (index >= messages.length) {
               return const _TypingIndicator();
@@ -495,6 +499,12 @@ class _MessageBubble extends StatelessWidget {
     final fg = isUser ? IOS26Theme.textPrimary : IOS26Theme.textPrimary;
 
     final presetId = (message.metadata ?? const {})['presetId'] as String?;
+    final thinking =
+        ((message.metadata ??
+                    const {})[XiaoMiChatService.assistantThinkingMetadataKey]
+                as String?)
+            ?.trim() ??
+        '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: IOS26Theme.spacingXs),
@@ -534,11 +544,87 @@ class _MessageBubble extends StatelessWidget {
                     )
                   else
                     IOS26MarkdownBody(data: message.content),
+                  if (!isUser && thinking.isNotEmpty) ...[
+                    const SizedBox(height: IOS26Theme.spacingSm),
+                    _ThinkingPanel(thinking: thinking),
+                  ],
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ThinkingPanel extends StatefulWidget {
+  final String thinking;
+
+  const _ThinkingPanel({required this.thinking});
+
+  @override
+  State<_ThinkingPanel> createState() => _ThinkingPanelState();
+}
+
+class _ThinkingPanelState extends State<_ThinkingPanel> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: IOS26Theme.surfaceColor.withValues(alpha: 0.56),
+        borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
+        border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          IOS26Button.plain(
+            padding: const EdgeInsets.symmetric(
+              horizontal: IOS26Theme.spacingSm,
+              vertical: IOS26Theme.spacingXs,
+            ),
+            onPressed: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                const IOS26Icon(
+                  CupertinoIcons.lightbulb,
+                  tone: IOS26IconTone.accent,
+                  size: 16,
+                ),
+                const SizedBox(width: IOS26Theme.spacingXs),
+                Expanded(
+                  child: Text(
+                    '思考过程',
+                    style: IOS26Theme.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: IOS26Theme.textSecondary,
+                    ),
+                  ),
+                ),
+                IOS26Icon(
+                  _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  tone: IOS26IconTone.secondary,
+                  size: 14,
+                ),
+              ],
+            ),
+          ),
+          if (_expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                IOS26Theme.spacingSm,
+                0,
+                IOS26Theme.spacingSm,
+                IOS26Theme.spacingSm,
+              ),
+              child: IOS26MarkdownBody(data: widget.thinking),
+            ),
+        ],
       ),
     );
   }
