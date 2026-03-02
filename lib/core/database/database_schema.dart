@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 18;
+  static const int version = 19;
   static const int _maxOperationLogRecords = 10;
 
   static Future<void> onConfigure(Database db) async {
@@ -30,6 +30,7 @@ class DatabaseSchema {
     await _createStockpileTables(db);
     await _createOvercookedTablesV15(db);
     await _createOvercookedRatingTable(db);
+    await _createXiaoMiTables(db);
   }
 
   static Future<void> onUpgrade(
@@ -87,6 +88,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 18) {
       await _upgradeToVersion18(db);
+    }
+    if (oldVersion < 19) {
+      await _upgradeToVersion19(db);
     }
   }
 
@@ -969,6 +973,38 @@ WHERE tool_id = ? AND category_id = ?
     // v18: 操作日志最多保留最近 10 条，避免备份/同步体积膨胀。
     await _createOperationLogTables(db);
     await _trimOperationLogs(db);
+  }
+
+  static Future<void> _upgradeToVersion19(Database db) async {
+    // v19: 新增“小蜜”AI 聊天工具表。
+    await _createXiaoMiTables(db);
+  }
+
+  static Future<void> _createXiaoMiTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS xiao_mi_conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS xiao_mi_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        conversation_id INTEGER NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (conversation_id) REFERENCES xiao_mi_conversations(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_xiao_mi_messages_conversation_id_created_at ON xiao_mi_messages(conversation_id, created_at ASC, id ASC)',
+    );
   }
 
   static Future<void> _trimOperationLogs(DatabaseExecutor db) async {

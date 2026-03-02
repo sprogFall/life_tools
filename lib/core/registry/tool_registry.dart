@@ -13,6 +13,7 @@ import '../../tools/tag_manager/pages/tag_manager_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
 import '../../tools/work_log/repository/work_log_repository.dart';
 import '../../tools/work_log/sync/work_log_sync_provider.dart';
+import '../../tools/xiao_mi/pages/xiao_mi_tool_page.dart';
 
 /// 工具注册表，管理所有可用工具
 class ToolRegistry {
@@ -84,6 +85,17 @@ class ToolRegistry {
         color: IOS26Theme.toolOrange,
         pageBuilder: () => OvercookedToolPage(repository: overcookedRepository),
         syncProvider: overcookedSyncProvider,
+      ),
+    );
+
+    register(
+      ToolInfo(
+        id: 'xiao_mi',
+        name: '小蜜',
+        description: 'AI 聊天与总结',
+        icon: CupertinoIcons.chat_bubble_2_fill,
+        color: IOS26Theme.toolPink,
+        pageBuilder: () => const XiaoMiToolPage(),
       ),
     );
 

@@ -24,6 +24,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get common_save => 'Save';
 
   @override
+  String get common_ok => 'OK';
+
+  @override
+  String get common_close => 'Close';
+
+  @override
+  String get common_rename => 'Rename';
+
+  @override
   String get common_loading => 'Loading...';
 
   @override
@@ -94,6 +103,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tool_work_log_name => 'Work Log';
+
+  @override
+  String get xiao_mi_title => 'XiaoMi';
+
+  @override
+  String get xiao_mi_input_placeholder =>
+      'Type a message, e.g. Yearly work summary';
+
+  @override
+  String get xiao_mi_send => 'Send';
+
+  @override
+  String get xiao_mi_empty_title => 'Chat with XiaoMi';
+
+  @override
+  String get xiao_mi_empty_subtitle =>
+      'Ask anything, or try \"Yearly work summary\" to summarize your work logs.';
+
+  @override
+  String get xiao_mi_conversations_title => 'Conversations';
+
+  @override
+  String get xiao_mi_conversations_open_semantic => 'Open conversations';
+
+  @override
+  String get xiao_mi_new_chat => 'New Chat';
+
+  @override
+  String get xiao_mi_new_chat_semantic => 'Start a new chat';
+
+  @override
+  String get xiao_mi_scroll_to_bottom_semantic => 'Scroll to bottom';
+
+  @override
+  String get xiao_mi_ai_not_configured_title => 'AI not configured';
+
+  @override
+  String get xiao_mi_ai_not_configured_content =>
+      'Please configure Base URL / Key / model in AI Settings first.';
+
+  @override
+  String get xiao_mi_no_work_log_title => 'No work logs';
+
+  @override
+  String get xiao_mi_no_work_log_content =>
+      'No work logs found for this year. Add some in Work Log and try again.';
+
+  @override
+  String get xiao_mi_send_failed_title => 'Send failed';
+
+  @override
+  String xiao_mi_send_failed_content(Object error) {
+    return 'Please check your network and AI settings, then try again.\\nError: $error';
+  }
+
+  @override
+  String get xiao_mi_conversations_empty =>
+      'No conversations yet. Tap \"New Chat\" to start.';
+
+  @override
+  String get xiao_mi_conversation_more_semantic => 'More actions';
+
+  @override
+  String get xiao_mi_conversation_actions_title => 'Conversation actions';
+
+  @override
+  String get xiao_mi_conversation_rename_title => 'Rename conversation';
+
+  @override
+  String get xiao_mi_conversation_rename_placeholder => 'e.g. Yearly summary';
+
+  @override
+  String get xiao_mi_conversation_delete_title => 'Delete conversation?';
+
+  @override
+  String get xiao_mi_conversation_delete_content =>
+      'This will remove all messages in this conversation.';
+
+  @override
+  String get xiao_mi_preset_work_log_year_summary =>
+      'Preset: Yearly work summary';
+
+  @override
+  String get xiao_mi_preset_custom => 'Preset: Custom';
 
   @override
   String get work_log_ai_entry => 'AI Entry';
@@ -1004,6 +1097,15 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String get common_save => 'Save';
 
   @override
+  String get common_ok => 'OK';
+
+  @override
+  String get common_close => 'Close';
+
+  @override
+  String get common_rename => 'Rename';
+
+  @override
   String get common_loading => 'Loading...';
 
   @override
@@ -1074,6 +1176,90 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get tool_work_log_name => 'Work Log';
+
+  @override
+  String get xiao_mi_title => 'XiaoMi';
+
+  @override
+  String get xiao_mi_input_placeholder =>
+      'Type a message, e.g. Yearly work summary';
+
+  @override
+  String get xiao_mi_send => 'Send';
+
+  @override
+  String get xiao_mi_empty_title => 'Chat with XiaoMi';
+
+  @override
+  String get xiao_mi_empty_subtitle =>
+      'Ask anything, or try \"Yearly work summary\" to summarize your work logs.';
+
+  @override
+  String get xiao_mi_conversations_title => 'Conversations';
+
+  @override
+  String get xiao_mi_conversations_open_semantic => 'Open conversations';
+
+  @override
+  String get xiao_mi_new_chat => 'New Chat';
+
+  @override
+  String get xiao_mi_new_chat_semantic => 'Start a new chat';
+
+  @override
+  String get xiao_mi_scroll_to_bottom_semantic => 'Scroll to bottom';
+
+  @override
+  String get xiao_mi_ai_not_configured_title => 'AI not configured';
+
+  @override
+  String get xiao_mi_ai_not_configured_content =>
+      'Please configure Base URL / Key / model in AI Settings first.';
+
+  @override
+  String get xiao_mi_no_work_log_title => 'No work logs';
+
+  @override
+  String get xiao_mi_no_work_log_content =>
+      'No work logs found for this year. Add some in Work Log and try again.';
+
+  @override
+  String get xiao_mi_send_failed_title => 'Send failed';
+
+  @override
+  String xiao_mi_send_failed_content(Object error) {
+    return 'Please check your network and AI settings, then try again.\\nError: $error';
+  }
+
+  @override
+  String get xiao_mi_conversations_empty =>
+      'No conversations yet. Tap \"New Chat\" to start.';
+
+  @override
+  String get xiao_mi_conversation_more_semantic => 'More actions';
+
+  @override
+  String get xiao_mi_conversation_actions_title => 'Conversation actions';
+
+  @override
+  String get xiao_mi_conversation_rename_title => 'Rename conversation';
+
+  @override
+  String get xiao_mi_conversation_rename_placeholder => 'e.g. Yearly summary';
+
+  @override
+  String get xiao_mi_conversation_delete_title => 'Delete conversation?';
+
+  @override
+  String get xiao_mi_conversation_delete_content =>
+      'This will remove all messages in this conversation.';
+
+  @override
+  String get xiao_mi_preset_work_log_year_summary =>
+      'Preset: Yearly work summary';
+
+  @override
+  String get xiao_mi_preset_custom => 'Preset: Custom';
 
   @override
   String get work_log_ai_entry => 'AI Entry';

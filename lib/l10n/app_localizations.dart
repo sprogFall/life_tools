@@ -130,6 +130,24 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get common_save;
 
+  /// No description provided for @common_ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get common_ok;
+
+  /// No description provided for @common_close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get common_close;
+
+  /// No description provided for @common_rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get common_rename;
+
   /// No description provided for @common_loading.
   ///
   /// In en, this message translates to:
@@ -261,6 +279,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Work Log'**
   String get tool_work_log_name;
+
+  /// No description provided for @xiao_mi_title.
+  ///
+  /// In en, this message translates to:
+  /// **'XiaoMi'**
+  String get xiao_mi_title;
+
+  /// No description provided for @xiao_mi_input_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a message, e.g. Yearly work summary'**
+  String get xiao_mi_input_placeholder;
+
+  /// No description provided for @xiao_mi_send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get xiao_mi_send;
+
+  /// No description provided for @xiao_mi_empty_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with XiaoMi'**
+  String get xiao_mi_empty_title;
+
+  /// No description provided for @xiao_mi_empty_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything, or try \"Yearly work summary\" to summarize your work logs.'**
+  String get xiao_mi_empty_subtitle;
+
+  /// No description provided for @xiao_mi_conversations_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get xiao_mi_conversations_title;
+
+  /// No description provided for @xiao_mi_conversations_open_semantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Open conversations'**
+  String get xiao_mi_conversations_open_semantic;
+
+  /// No description provided for @xiao_mi_new_chat.
+  ///
+  /// In en, this message translates to:
+  /// **'New Chat'**
+  String get xiao_mi_new_chat;
+
+  /// No description provided for @xiao_mi_new_chat_semantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new chat'**
+  String get xiao_mi_new_chat_semantic;
+
+  /// No description provided for @xiao_mi_scroll_to_bottom_semantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to bottom'**
+  String get xiao_mi_scroll_to_bottom_semantic;
+
+  /// No description provided for @xiao_mi_ai_not_configured_title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI not configured'**
+  String get xiao_mi_ai_not_configured_title;
+
+  /// No description provided for @xiao_mi_ai_not_configured_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Please configure Base URL / Key / model in AI Settings first.'**
+  String get xiao_mi_ai_not_configured_content;
+
+  /// No description provided for @xiao_mi_no_work_log_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No work logs'**
+  String get xiao_mi_no_work_log_title;
+
+  /// No description provided for @xiao_mi_no_work_log_content.
+  ///
+  /// In en, this message translates to:
+  /// **'No work logs found for this year. Add some in Work Log and try again.'**
+  String get xiao_mi_no_work_log_content;
+
+  /// No description provided for @xiao_mi_send_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Send failed'**
+  String get xiao_mi_send_failed_title;
+
+  /// No description provided for @xiao_mi_send_failed_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your network and AI settings, then try again.\\nError: {error}'**
+  String xiao_mi_send_failed_content(Object error);
+
+  /// No description provided for @xiao_mi_conversations_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet. Tap \"New Chat\" to start.'**
+  String get xiao_mi_conversations_empty;
+
+  /// No description provided for @xiao_mi_conversation_more_semantic.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get xiao_mi_conversation_more_semantic;
+
+  /// No description provided for @xiao_mi_conversation_actions_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation actions'**
+  String get xiao_mi_conversation_actions_title;
+
+  /// No description provided for @xiao_mi_conversation_rename_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename conversation'**
+  String get xiao_mi_conversation_rename_title;
+
+  /// No description provided for @xiao_mi_conversation_rename_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Yearly summary'**
+  String get xiao_mi_conversation_rename_placeholder;
+
+  /// No description provided for @xiao_mi_conversation_delete_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete conversation?'**
+  String get xiao_mi_conversation_delete_title;
+
+  /// No description provided for @xiao_mi_conversation_delete_content.
+  ///
+  /// In en, this message translates to:
+  /// **'This will remove all messages in this conversation.'**
+  String get xiao_mi_conversation_delete_content;
+
+  /// No description provided for @xiao_mi_preset_work_log_year_summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset: Yearly work summary'**
+  String get xiao_mi_preset_work_log_year_summary;
+
+  /// No description provided for @xiao_mi_preset_custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset: Custom'**
+  String get xiao_mi_preset_custom;
 
   /// No description provided for @work_log_ai_entry.
   ///

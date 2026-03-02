@@ -24,6 +24,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get common_save => '保存';
 
   @override
+  String get common_ok => '知道了';
+
+  @override
+  String get common_close => '关闭';
+
+  @override
+  String get common_rename => '重命名';
+
+  @override
   String get common_loading => '加载中...';
 
   @override
@@ -90,6 +99,84 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tool_work_log_name => '工作记录';
+
+  @override
+  String get xiao_mi_title => '小蜜';
+
+  @override
+  String get xiao_mi_input_placeholder => '输入消息，例如：今年工作总结';
+
+  @override
+  String get xiao_mi_send => '发送';
+
+  @override
+  String get xiao_mi_empty_title => '和小蜜聊点什么？';
+
+  @override
+  String get xiao_mi_empty_subtitle => '你可以直接提问，或试试「今年工作总结」让小蜜基于工作记录生成总结。';
+
+  @override
+  String get xiao_mi_conversations_title => '历史会话';
+
+  @override
+  String get xiao_mi_conversations_open_semantic => '打开历史会话';
+
+  @override
+  String get xiao_mi_new_chat => '新聊天';
+
+  @override
+  String get xiao_mi_new_chat_semantic => '新建聊天';
+
+  @override
+  String get xiao_mi_scroll_to_bottom_semantic => '滚动到底部';
+
+  @override
+  String get xiao_mi_ai_not_configured_title => 'AI 未配置';
+
+  @override
+  String get xiao_mi_ai_not_configured_content =>
+      '请先在「AI配置」中完成 Base URL / Key / 模型设置。';
+
+  @override
+  String get xiao_mi_no_work_log_title => '没有工作记录';
+
+  @override
+  String get xiao_mi_no_work_log_content => '今年暂无可用的工作记录，先去「工作记录」补充数据再来试试。';
+
+  @override
+  String get xiao_mi_send_failed_title => '发送失败';
+
+  @override
+  String xiao_mi_send_failed_content(Object error) {
+    return '请检查网络与 AI 配置后重试。\\n错误：$error';
+  }
+
+  @override
+  String get xiao_mi_conversations_empty => '暂无会话，点右上角「新聊天」开始。';
+
+  @override
+  String get xiao_mi_conversation_more_semantic => '更多操作';
+
+  @override
+  String get xiao_mi_conversation_actions_title => '会话操作';
+
+  @override
+  String get xiao_mi_conversation_rename_title => '重命名会话';
+
+  @override
+  String get xiao_mi_conversation_rename_placeholder => '例如：年度总结';
+
+  @override
+  String get xiao_mi_conversation_delete_title => '删除会话？';
+
+  @override
+  String get xiao_mi_conversation_delete_content => '删除后将同时移除该会话的所有消息。';
+
+  @override
+  String get xiao_mi_preset_work_log_year_summary => '预选：今年工作总结';
+
+  @override
+  String get xiao_mi_preset_custom => '预选：自定义';
 
   @override
   String get work_log_ai_entry => 'AI录入';
@@ -970,6 +1057,15 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get common_save => '保存';
 
   @override
+  String get common_ok => '知道了';
+
+  @override
+  String get common_close => '关闭';
+
+  @override
+  String get common_rename => '重命名';
+
+  @override
   String get common_loading => '加载中...';
 
   @override
@@ -1036,6 +1132,84 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get tool_work_log_name => '工作记录';
+
+  @override
+  String get xiao_mi_title => '小蜜';
+
+  @override
+  String get xiao_mi_input_placeholder => '输入消息，例如：今年工作总结';
+
+  @override
+  String get xiao_mi_send => '发送';
+
+  @override
+  String get xiao_mi_empty_title => '和小蜜聊点什么？';
+
+  @override
+  String get xiao_mi_empty_subtitle => '你可以直接提问，或试试「今年工作总结」让小蜜基于工作记录生成总结。';
+
+  @override
+  String get xiao_mi_conversations_title => '历史会话';
+
+  @override
+  String get xiao_mi_conversations_open_semantic => '打开历史会话';
+
+  @override
+  String get xiao_mi_new_chat => '新聊天';
+
+  @override
+  String get xiao_mi_new_chat_semantic => '新建聊天';
+
+  @override
+  String get xiao_mi_scroll_to_bottom_semantic => '滚动到底部';
+
+  @override
+  String get xiao_mi_ai_not_configured_title => 'AI 未配置';
+
+  @override
+  String get xiao_mi_ai_not_configured_content =>
+      '请先在「AI配置」中完成 Base URL / Key / 模型设置。';
+
+  @override
+  String get xiao_mi_no_work_log_title => '没有工作记录';
+
+  @override
+  String get xiao_mi_no_work_log_content => '今年暂无可用的工作记录，先去「工作记录」补充数据再来试试。';
+
+  @override
+  String get xiao_mi_send_failed_title => '发送失败';
+
+  @override
+  String xiao_mi_send_failed_content(Object error) {
+    return '请检查网络与 AI 配置后重试。\\n错误：$error';
+  }
+
+  @override
+  String get xiao_mi_conversations_empty => '暂无会话，点右上角「新聊天」开始。';
+
+  @override
+  String get xiao_mi_conversation_more_semantic => '更多操作';
+
+  @override
+  String get xiao_mi_conversation_actions_title => '会话操作';
+
+  @override
+  String get xiao_mi_conversation_rename_title => '重命名会话';
+
+  @override
+  String get xiao_mi_conversation_rename_placeholder => '例如：年度总结';
+
+  @override
+  String get xiao_mi_conversation_delete_title => '删除会话？';
+
+  @override
+  String get xiao_mi_conversation_delete_content => '删除后将同时移除该会话的所有消息。';
+
+  @override
+  String get xiao_mi_preset_work_log_year_summary => '预选：今年工作总结';
+
+  @override
+  String get xiao_mi_preset_custom => '预选：自定义';
 
   @override
   String get work_log_ai_entry => 'AI录入';

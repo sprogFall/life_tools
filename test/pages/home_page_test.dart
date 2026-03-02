@@ -15,6 +15,7 @@ import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
 import 'package:life_tools/core/sync/services/wifi_service.dart';
+import 'package:life_tools/core/theme/ios26_theme.dart';
 import 'package:life_tools/l10n/app_localizations.dart';
 import 'package:life_tools/pages/home_page.dart';
 import 'package:provider/provider.dart';
@@ -156,7 +157,7 @@ void main() {
     testWidgets('应渲染应用标题', (WidgetTester tester) async {
       final deps = await createMessageService(tester);
       await tester.pumpWidget(wrap(const HomePage(), deps.messageService));
-      expect(find.text('小蜜'), findsOneWidget);
+      expect(find.text('小蜜'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('无消息时应展示空态文案', (WidgetTester tester) async {
@@ -337,8 +338,12 @@ void main() {
       );
 
       final initialPagePushCount = observer.pushedPageRoutesCount;
+      final titleFinder = find.descendant(
+        of: find.byType(IOS26AppBar),
+        matching: find.text('小蜜'),
+      );
       for (int i = 0; i < 6; i++) {
-        await tester.tap(find.text('小蜜'));
+        await tester.tap(titleFinder);
         await tester.pump(const Duration(milliseconds: 16));
       }
       await tester.pumpAndSettle();
@@ -376,8 +381,12 @@ void main() {
       );
 
       final initialPagePushCount = observer.pushedPageRoutesCount;
+      final titleFinder = find.descendant(
+        of: find.byType(IOS26AppBar),
+        matching: find.text('小蜜'),
+      );
       for (int i = 0; i < 6; i++) {
-        await tester.tap(find.text('小蜜'));
+        await tester.tap(titleFinder);
         await tester.pump(const Duration(milliseconds: 16));
       }
       await tester.pumpAndSettle();

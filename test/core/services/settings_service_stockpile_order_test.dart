@@ -48,6 +48,7 @@ void main() {
         'work_log',
         'stockpile_assistant',
         'overcooked_kitchen',
+        'xiao_mi',
         'tag_manager',
       ]);
     });
