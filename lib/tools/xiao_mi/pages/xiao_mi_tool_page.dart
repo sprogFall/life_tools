@@ -755,6 +755,9 @@ class _MessageBubble extends StatelessWidget {
   String? _resolveTriggerHint(AppLocalizations l10n, String? presetId) {
     if (presetId == null || presetId.trim().isEmpty) return null;
     return switch (presetId) {
+      'work_log_week_summary' => l10n.xiao_mi_message_trigger_custom,
+      'work_log_month_summary' => l10n.xiao_mi_message_trigger_custom,
+      'work_log_quarter_summary' => l10n.xiao_mi_message_trigger_custom,
       'work_log_year_summary' =>
         l10n.xiao_mi_message_trigger_work_log_year_summary,
       _ => l10n.xiao_mi_message_trigger_custom,

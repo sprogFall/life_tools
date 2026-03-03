@@ -5,6 +5,7 @@ import '../../../core/ai/ai_service.dart';
 import '../../../core/ai/ai_use_case.dart';
 import '../../work_log/repository/work_log_repository.dart';
 import '../ai/xiao_mi_ai_prompts.dart';
+import '../ai/xiao_mi_chat_pre_route.dart';
 import '../ai/xiao_mi_prompt_resolver.dart';
 import '../models/xiao_mi_conversation.dart';
 import '../models/xiao_mi_message.dart';
@@ -150,7 +151,29 @@ class XiaoMiChatService extends ChangeNotifier {
     notifyListeners();
     try {
       final now = _nowProvider();
-      final resolved = await _promptResolver.resolveUserInput(text);
+      final preRouteDecision = await _preRouteUserInput(
+        history: _messages,
+        userInput: text,
+      );
+      var resolved = XiaoMiResolvedPrompt(
+        displayText: text,
+        aiPrompt: text,
+        metadata: null,
+      );
+      String? directAssistantAnswer;
+
+      if (preRouteDecision is XiaoMiPreRouteSpecialCall) {
+        resolved = await _promptResolver.resolveSpecialCall(
+          callId: preRouteDecision.callId,
+          displayText: text,
+          arguments: preRouteDecision.arguments,
+        );
+      } else if (preRouteDecision is XiaoMiPreRouteDirectAnswer) {
+        final directAnswer = preRouteDecision.answer.trim();
+        if (directAnswer.isNotEmpty) {
+          directAssistantAnswer = directAnswer;
+        }
+      }
 
       final userMessage = XiaoMiMessage.create(
         conversationId: activeId,
@@ -162,6 +185,22 @@ class XiaoMiChatService extends ChangeNotifier {
       await _repository.addMessage(userMessage);
       _messages = [..._messages, userMessage];
       notifyListeners();
+
+      if (directAssistantAnswer != null) {
+        final directAssistantMessage = XiaoMiMessage.create(
+          conversationId: activeId,
+          role: XiaoMiMessageRole.assistant,
+          content: directAssistantAnswer,
+          metadata: _buildAssistantMetadata(preRouteDecision.reasoning),
+          createdAt: _nowProvider(),
+        );
+        await _repository.addMessage(directAssistantMessage);
+        _messages = [..._messages, directAssistantMessage];
+        await _autoTitleIfNeeded(activeId);
+        await refreshConversations();
+        notifyListeners();
+        return;
+      }
 
       final historyWithoutCurrentUserMessage = _messages.length <= 1
           ? const <XiaoMiMessage>[]
@@ -246,6 +285,44 @@ class XiaoMiChatService extends ChangeNotifier {
     }
   }
 
+  Future<XiaoMiPreRouteDecision> _preRouteUserInput({
+    required List<XiaoMiMessage> history,
+    required String userInput,
+  }) async {
+    final result = await _aiService.chat(
+      messages: _buildPreRouteMessages(
+        history: history,
+        currentUserInput: userInput,
+      ),
+      temperature: XiaoMiAiPrompts.preRouteUseCase.temperature,
+      maxOutputTokens: XiaoMiAiPrompts.preRouteUseCase.maxOutputTokens,
+      timeout: XiaoMiAiPrompts.preRouteUseCase.timeout,
+      // 预选过程是中间态，不单独写入全局历史。
+      source: null,
+    );
+    return XiaoMiPreRouteParser.parse(
+      modelText: result.text,
+      reasoning: result.reasoning,
+    );
+  }
+
+  List<AiMessage> _buildPreRouteMessages({
+    required List<XiaoMiMessage> history,
+    required String currentUserInput,
+  }) {
+    final aiHistory = _buildAiHistory(history);
+    return <AiMessage>[
+      AiMessage.system(XiaoMiAiPrompts.preRouteUseCase.systemPrompt),
+      ...aiHistory,
+      AiMessage.user(
+        AiPromptComposer.compose(
+          inputLabel: XiaoMiAiPrompts.preRouteUseCase.inputLabel,
+          userInput: currentUserInput,
+        ),
+      ),
+    ];
+  }
+
   Future<void> _autoTitleIfNeeded(int conversationId) async {
     final convo = _currentConversation;
     if (convo == null || convo.id != conversationId) return;
@@ -276,31 +353,7 @@ class XiaoMiChatService extends ChangeNotifier {
     required List<XiaoMiMessage> history,
     required String currentUserPrompt,
   }) {
-    const maxHistoryMessages = 20;
-    final effectiveHistory = history
-        .where(
-          (m) =>
-              m.role == XiaoMiMessageRole.user ||
-              m.role == XiaoMiMessageRole.assistant,
-        )
-        .toList(growable: false);
-
-    final trimmedHistory = effectiveHistory.length <= maxHistoryMessages
-        ? effectiveHistory
-        : effectiveHistory.sublist(
-            effectiveHistory.length - maxHistoryMessages,
-          );
-
-    final aiHistory = trimmedHistory
-        .map(
-          (m) => switch (m.role) {
-            XiaoMiMessageRole.user => AiMessage.user(m.content),
-            XiaoMiMessageRole.assistant => AiMessage.assistant(m.content),
-            _ => AiMessage.user(m.content),
-          },
-        )
-        .toList(growable: false);
-
+    final aiHistory = _buildAiHistory(history);
     return <AiMessage>[
       AiMessage.system(XiaoMiAiPrompts.chatUseCase.systemPrompt),
       ...aiHistory,
@@ -311,6 +364,31 @@ class XiaoMiChatService extends ChangeNotifier {
         ),
       ),
     ];
+  }
+
+  List<AiMessage> _buildAiHistory(List<XiaoMiMessage> history) {
+    const maxHistoryMessages = 20;
+    final effectiveHistory = history
+        .where(
+          (m) =>
+              m.role == XiaoMiMessageRole.user ||
+              m.role == XiaoMiMessageRole.assistant,
+        )
+        .toList(growable: false);
+    final trimmedHistory = effectiveHistory.length <= maxHistoryMessages
+        ? effectiveHistory
+        : effectiveHistory.sublist(
+            effectiveHistory.length - maxHistoryMessages,
+          );
+    return trimmedHistory
+        .map(
+          (m) => switch (m.role) {
+            XiaoMiMessageRole.user => AiMessage.user(m.content),
+            XiaoMiMessageRole.assistant => AiMessage.assistant(m.content),
+            _ => AiMessage.user(m.content),
+          },
+        )
+        .toList(growable: false);
   }
 
   Map<String, dynamic>? _buildAssistantMetadata(String thinking) {
