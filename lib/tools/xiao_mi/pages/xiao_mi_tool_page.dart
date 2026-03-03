@@ -181,28 +181,6 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
         body: BackdropGroup(
           child: Stack(
             children: [
-              Positioned(
-                top: -80,
-                left: -80,
-                child: _GlowCircle(
-                  size: 240,
-                  colors: [
-                    IOS26Theme.toolPink.withValues(alpha: 0.16),
-                    IOS26Theme.toolPink.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-              Positioned(
-                bottom: -110,
-                right: -110,
-                child: _GlowCircle(
-                  size: 280,
-                  colors: [
-                    IOS26Theme.toolPurple.withValues(alpha: 0.12),
-                    IOS26Theme.toolPurple.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
               SafeArea(
                 child: Column(
                   children: [
@@ -345,13 +323,13 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
                 end: Alignment.bottomCenter,
                 colors: [
                   IOS26Theme.backgroundColor.withValues(alpha: 0),
-                  IOS26Theme.backgroundColor.withValues(alpha: 0.86),
+                  IOS26Theme.backgroundColor.withValues(alpha: 0.92),
                 ],
               ),
               border: Border(
                 top: BorderSide(
-                  color: IOS26Theme.glassBorderColor.withValues(alpha: 0.55),
-                  width: 0.8,
+                  color: IOS26Theme.glassBorderColor.withValues(alpha: 0.35),
+                  width: 0.5,
                 ),
               ),
             ),
@@ -386,24 +364,15 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
                   const SizedBox(width: IOS26Theme.spacingSm),
                   IOS26Button(
                     onPressed: service.sending ? null : _send,
-                    variant: IOS26ButtonVariant.highlight,
+                    variant: IOS26ButtonVariant.primary,
                     borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: IOS26Theme.spacingMd,
-                      vertical: IOS26Theme.spacingSm,
-                    ),
+                    minimumSize: const Size(36, 36),
+                    padding: const EdgeInsets.all(IOS26Theme.spacingSm),
                     child: service.sending
                         ? const CupertinoActivityIndicator()
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const IOS26ButtonIcon(
-                                CupertinoIcons.arrow_up,
-                                size: 16,
-                              ),
-                              const SizedBox(width: IOS26Theme.spacingXs),
-                              IOS26ButtonLabel(l10n.xiao_mi_send),
-                            ],
+                        : const IOS26ButtonIcon(
+                            CupertinoIcons.arrow_up,
+                            size: 16,
                           ),
                   ),
                 ],
@@ -416,6 +385,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
   }
 }
 
+// ignore: unused_element
 class _GlowCircle extends StatelessWidget {
   final double size;
   final List<Color> colors;
@@ -452,32 +422,35 @@ class _WelcomePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        IOS26Theme.spacingSm,
+        IOS26Theme.spacingLg,
         IOS26Theme.spacingXxl,
-        IOS26Theme.spacingSm,
+        IOS26Theme.spacingLg,
         IOS26Theme.spacingXl,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             title,
+            textAlign: TextAlign.center,
             style: IOS26Theme.displayLarge.copyWith(
               color: IOS26Theme.textPrimary,
-              fontSize: 30,
+              fontSize: 28,
             ),
           ),
           const SizedBox(height: IOS26Theme.spacingSm),
           Text(
             subtitle,
+            textAlign: TextAlign.center,
             style: IOS26Theme.bodyMedium.copyWith(
               color: IOS26Theme.textSecondary,
-              height: 1.4,
+              height: 1.5,
             ),
           ),
           if (prompts.isNotEmpty) ...[
             const SizedBox(height: IOS26Theme.spacingLg),
             Wrap(
+              alignment: WrapAlignment.center,
               spacing: IOS26Theme.spacingSm,
               runSpacing: IOS26Theme.spacingSm,
               children: prompts
@@ -535,8 +508,7 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.role == XiaoMiMessageRole.user;
     final maxWidth = MediaQuery.sizeOf(context).width * (isUser ? 0.74 : 0.90);
-    final userBg = IOS26Theme.primaryColor.withValues(alpha: 0.13);
-    final userBorder = IOS26Theme.primaryColor.withValues(alpha: 0.20);
+    final userBg = IOS26Theme.primaryColor.withValues(alpha: 0.10);
     final fg = IOS26Theme.textPrimary;
 
     final presetId = (message.metadata ?? const {})['presetId'] as String?;
@@ -556,10 +528,7 @@ class _MessageBubble extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: isUser ? userBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(
-                isUser ? IOS26Theme.radiusXl : IOS26Theme.radiusMd,
-              ),
-              border: isUser ? Border.all(color: userBorder, width: 0.8) : null,
+              borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -688,12 +657,8 @@ class _PresetBadge extends StatelessWidget {
     };
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: IOS26Theme.toolPurple.withValues(alpha: 0.10),
+        color: IOS26Theme.primaryColor.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-        border: Border.all(
-          color: IOS26Theme.toolPurple.withValues(alpha: 0.25),
-          width: 1,
-        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -704,7 +669,7 @@ class _PresetBadge extends StatelessWidget {
           label,
           style: IOS26Theme.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: IOS26Theme.toolPurple,
+            color: IOS26Theme.primaryColor,
           ),
         ),
       ),
@@ -722,12 +687,8 @@ class _QuickPromptChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.75),
+        color: IOS26Theme.surfaceColor.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-        border: Border.all(
-          color: IOS26Theme.textTertiary.withValues(alpha: 0.35),
-          width: 1,
-        ),
       ),
       child: IOS26Button.plain(
         padding: const EdgeInsets.symmetric(
