@@ -177,6 +177,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
       value: _service,
       child: Scaffold(
         backgroundColor: IOS26Theme.backgroundColor,
+        resizeToAvoidBottomInset: true,
         body: BackdropGroup(
           child: Stack(
             children: [
@@ -274,9 +275,26 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
       builder: (context, service, _) {
         final messages = service.messages;
         if (messages.isEmpty) {
-          return _EmptyState(
-            title: l10n.xiao_mi_empty_title,
-            subtitle: l10n.xiao_mi_empty_subtitle,
+          return ListView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              IOS26Theme.spacingXl,
+              IOS26Theme.spacingMd,
+              IOS26Theme.spacingXl,
+              IOS26Theme.spacingXl,
+            ),
+            children: [
+              _WelcomePanel(
+                title: l10n.xiao_mi_empty_title,
+                subtitle: l10n.xiao_mi_empty_subtitle,
+                prompts: service.quickPrompts,
+                onTapPrompt: (prompt) {
+                  _inputController.text = prompt.text;
+                  FocusScope.of(context).requestFocus(_inputFocusNode);
+                },
+              ),
+            ],
           );
         }
 
@@ -314,82 +332,60 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
   }
 
   Widget _buildInputBar(AppLocalizations l10n) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Consumer<XiaoMiChatService>(
       builder: (context, service, _) {
         return SafeArea(
           top: false,
           child: Padding(
-            padding: EdgeInsets.only(bottom: bottomInset),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(IOS26Theme.radiusXl),
+            padding: const EdgeInsets.fromLTRB(
+              IOS26Theme.spacingXl,
+              IOS26Theme.spacingSm,
+              IOS26Theme.spacingXl,
+              IOS26Theme.spacingSm,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: IOS26Theme.surfaceColor.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(IOS26Theme.radiusXl),
+                border: Border.all(
+                  color: IOS26Theme.glassBorderColor,
+                  width: 0.8,
+                ),
               ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: IOS26Theme.glassColor,
-                    border: Border(
-                      top: BorderSide(
-                        color: IOS26Theme.glassBorderColor,
-                        width: 0.6,
-                      ),
+              padding: const EdgeInsets.fromLTRB(
+                IOS26Theme.spacingSm,
+                IOS26Theme.spacingSm,
+                IOS26Theme.spacingSm,
+                IOS26Theme.spacingSm,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: CupertinoTextField(
+                      controller: _inputController,
+                      focusNode: _inputFocusNode,
+                      placeholder: l10n.xiao_mi_input_placeholder,
+                      maxLines: 5,
+                      minLines: 1,
+                      decoration: IOS26Theme.textFieldDecoration(),
+                      style: IOS26Theme.bodyLarge,
+                      enabled: !service.sending,
                     ),
                   ),
-                  padding: const EdgeInsets.fromLTRB(
-                    IOS26Theme.spacingXl,
-                    IOS26Theme.spacingSm,
-                    IOS26Theme.spacingXl,
-                    IOS26Theme.spacingSm,
+                  const SizedBox(width: IOS26Theme.spacingSm),
+                  IOS26Button(
+                    onPressed: service.sending ? null : _send,
+                    variant: IOS26ButtonVariant.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: IOS26Theme.spacingLg,
+                      vertical: IOS26Theme.spacingSm,
+                    ),
+                    child: service.sending
+                        ? const CupertinoActivityIndicator()
+                        : IOS26ButtonLabel(l10n.xiao_mi_send),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (service.quickPrompts.isNotEmpty) ...[
-                        _QuickPromptBar(
-                          prompts: service.quickPrompts,
-                          onTap: (prompt) {
-                            _inputController.text = prompt.text;
-                            FocusScope.of(
-                              context,
-                            ).requestFocus(_inputFocusNode);
-                          },
-                        ),
-                        const SizedBox(height: IOS26Theme.spacingSm),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: CupertinoTextField(
-                              controller: _inputController,
-                              focusNode: _inputFocusNode,
-                              placeholder: l10n.xiao_mi_input_placeholder,
-                              maxLines: 5,
-                              minLines: 1,
-                              decoration: IOS26Theme.textFieldDecoration(),
-                              style: IOS26Theme.bodyLarge,
-                              enabled: !service.sending,
-                            ),
-                          ),
-                          const SizedBox(width: IOS26Theme.spacingSm),
-                          IOS26Button(
-                            onPressed: service.sending ? null : _send,
-                            variant: IOS26ButtonVariant.primary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: IOS26Theme.spacingLg,
-                              vertical: IOS26Theme.spacingSm,
-                            ),
-                            child: service.sending
-                                ? const CupertinoActivityIndicator()
-                                : IOS26ButtonLabel(l10n.xiao_mi_send),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
           ),
@@ -418,42 +414,62 @@ class _GlowCircle extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _WelcomePanel extends StatelessWidget {
   final String title;
   final String subtitle;
+  final List<XiaoMiQuickPrompt> prompts;
+  final ValueChanged<XiaoMiQuickPrompt> onTapPrompt;
 
-  const _EmptyState({required this.title, required this.subtitle});
+  const _WelcomePanel({
+    required this.title,
+    required this.subtitle,
+    required this.prompts,
+    required this.onTapPrompt,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: GlassContainer(
-        padding: const EdgeInsets.all(IOS26Theme.spacingXl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IOS26Icon(
-              CupertinoIcons.sparkles,
-              tone: IOS26IconTone.accent,
-              size: 26,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        IOS26Theme.spacingSm,
+        IOS26Theme.spacingXxl,
+        IOS26Theme.spacingSm,
+        IOS26Theme.spacingXl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: IOS26Theme.displayLarge.copyWith(
+              color: IOS26Theme.textPrimary,
+              fontSize: 30,
             ),
-            const SizedBox(height: IOS26Theme.spacingMd),
-            Text(
-              title,
-              style: IOS26Theme.titleLarge,
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: IOS26Theme.spacingSm),
+          Text(
+            subtitle,
+            style: IOS26Theme.bodyMedium.copyWith(
+              color: IOS26Theme.textSecondary,
+              height: 1.4,
             ),
-            const SizedBox(height: IOS26Theme.spacingXs),
-            Text(
-              subtitle,
-              style: IOS26Theme.bodySmall.copyWith(
-                color: IOS26Theme.textSecondary.withValues(alpha: 0.9),
-                height: 1.35,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          if (prompts.isNotEmpty) ...[
+            const SizedBox(height: IOS26Theme.spacingLg),
+            Wrap(
+              spacing: IOS26Theme.spacingSm,
+              runSpacing: IOS26Theme.spacingSm,
+              children: prompts
+                  .map(
+                    (prompt) => _QuickPromptChip(
+                      prompt: prompt,
+                      onTap: () => onTapPrompt(prompt),
+                    ),
+                  )
+                  .toList(growable: false),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -465,16 +481,24 @@ class _TypingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: IOS26Theme.spacingSm),
+      padding: const EdgeInsets.symmetric(
+        vertical: IOS26Theme.spacingSm,
+        horizontal: IOS26Theme.spacingSm,
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: GlassContainer(
-          padding: const EdgeInsets.symmetric(
-            horizontal: IOS26Theme.spacingMd,
-            vertical: IOS26Theme.spacingSm,
-          ),
-          borderRadius: IOS26Theme.radiusLg,
-          child: const CupertinoActivityIndicator(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CupertinoActivityIndicator(),
+            const SizedBox(width: IOS26Theme.spacingXs),
+            Text(
+              '思考中…',
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -489,14 +513,10 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.role == XiaoMiMessageRole.user;
-    final maxWidth = MediaQuery.sizeOf(context).width * 0.74;
-    final bg = isUser
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
-        : IOS26Theme.surfaceColor.withValues(alpha: 0.75);
-    final border = isUser
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.22)
-        : IOS26Theme.glassBorderColor;
-    final fg = isUser ? IOS26Theme.textPrimary : IOS26Theme.textPrimary;
+    final maxWidth = MediaQuery.sizeOf(context).width * (isUser ? 0.74 : 0.90);
+    final userBg = IOS26Theme.primaryColor.withValues(alpha: 0.13);
+    final userBorder = IOS26Theme.primaryColor.withValues(alpha: 0.20);
+    final fg = IOS26Theme.textPrimary;
 
     final presetId = (message.metadata ?? const {})['presetId'] as String?;
     final thinking =
@@ -514,9 +534,11 @@ class _MessageBubble extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(IOS26Theme.radiusXl),
-              border: Border.all(color: border, width: 1),
+              color: isUser ? userBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(
+                isUser ? IOS26Theme.radiusXl : IOS26Theme.radiusMd,
+              ),
+              border: isUser ? Border.all(color: userBorder, width: 0.8) : null,
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -572,60 +594,61 @@ class _ThinkingPanelState extends State<_ThinkingPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.56),
-        borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-        border: Border.all(color: IOS26Theme.glassBorderColor, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          IOS26Button.plain(
-            padding: const EdgeInsets.symmetric(
-              horizontal: IOS26Theme.spacingSm,
-              vertical: IOS26Theme.spacingXs,
-            ),
-            onPressed: () => setState(() => _expanded = !_expanded),
-            child: Row(
-              children: [
-                const IOS26Icon(
-                  CupertinoIcons.lightbulb,
-                  tone: IOS26IconTone.accent,
-                  size: 16,
-                ),
-                const SizedBox(width: IOS26Theme.spacingXs),
-                Expanded(
-                  child: Text(
-                    '思考过程',
-                    style: IOS26Theme.bodySmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: IOS26Theme.textSecondary,
-                    ),
-                  ),
-                ),
-                IOS26Icon(
-                  _expanded
-                      ? CupertinoIcons.chevron_up
-                      : CupertinoIcons.chevron_down,
-                  tone: IOS26IconTone.secondary,
-                  size: 14,
-                ),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IOS26Button.plain(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 0,
+            vertical: IOS26Theme.spacingXs,
           ),
-          if (_expanded)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                IOS26Theme.spacingSm,
-                0,
-                IOS26Theme.spacingSm,
-                IOS26Theme.spacingSm,
+          onPressed: () => setState(() => _expanded = !_expanded),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const IOS26Icon(
+                CupertinoIcons.lightbulb,
+                tone: IOS26IconTone.accent,
+                size: 15,
               ),
-              child: IOS26MarkdownBody(data: widget.thinking),
+              const SizedBox(width: IOS26Theme.spacingXs),
+              Text(
+                '思考过程',
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: IOS26Theme.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              IOS26Icon(
+                _expanded
+                    ? CupertinoIcons.chevron_up
+                    : CupertinoIcons.chevron_down,
+                tone: IOS26IconTone.secondary,
+                size: 12,
+              ),
+            ],
+          ),
+        ),
+        if (_expanded)
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: IOS26Theme.textTertiary.withValues(alpha: 0.6),
+                  width: 2,
+                ),
+              ),
             ),
-        ],
-      ),
+            padding: const EdgeInsets.fromLTRB(
+              IOS26Theme.spacingSm,
+              0,
+              0,
+              IOS26Theme.spacingXs,
+            ),
+            child: IOS26MarkdownBody(data: widget.thinking),
+          ),
+      ],
     );
   }
 }
@@ -663,30 +686,6 @@ class _PresetBadge extends StatelessWidget {
             color: IOS26Theme.toolPurple,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _QuickPromptBar extends StatelessWidget {
-  final List<XiaoMiQuickPrompt> prompts;
-  final ValueChanged<XiaoMiQuickPrompt> onTap;
-
-  const _QuickPromptBar({required this.prompts, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: prompts.length,
-        separatorBuilder: (_, _) => const SizedBox(width: IOS26Theme.spacingSm),
-        itemBuilder: (context, index) {
-          final prompt = prompts[index];
-          return _QuickPromptChip(prompt: prompt, onTap: () => onTap(prompt));
-        },
       ),
     );
   }
