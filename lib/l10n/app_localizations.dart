@@ -430,6 +430,42 @@ abstract class AppLocalizations {
   /// **'Preset: Custom'**
   String get xiao_mi_preset_custom;
 
+  /// No description provided for @xiao_mi_message_selected_count.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String xiao_mi_message_selected_count(int count);
+
+  /// No description provided for @xiao_mi_message_copy_done_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Message copied to clipboard'**
+  String get xiao_mi_message_copy_done_content;
+
+  /// No description provided for @xiao_mi_message_delete_selected_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected messages?'**
+  String get xiao_mi_message_delete_selected_title;
+
+  /// No description provided for @xiao_mi_message_delete_selected_content.
+  ///
+  /// In en, this message translates to:
+  /// **'You selected {count} messages. This action cannot be undone.'**
+  String xiao_mi_message_delete_selected_content(int count);
+
+  /// No description provided for @xiao_mi_message_trigger_work_log_year_summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Triggered: Yearly work summary'**
+  String get xiao_mi_message_trigger_work_log_year_summary;
+
+  /// No description provided for @xiao_mi_message_trigger_custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Triggered: Preset context'**
+  String get xiao_mi_message_trigger_custom;
+
   /// No description provided for @work_log_ai_entry.
   ///
   /// In en, this message translates to:

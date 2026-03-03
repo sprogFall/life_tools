@@ -113,6 +113,27 @@ class XiaoMiChatService extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteMessages(Set<int> messageIds) async {
+    final activeConversationId = _currentConversation?.id;
+    if (activeConversationId == null) return;
+    if (messageIds.isEmpty) return;
+
+    final deletedCount = await _repository.deleteMessages(
+      conversationId: activeConversationId,
+      messageIds: messageIds,
+      now: _nowProvider(),
+    );
+    if (deletedCount <= 0) return;
+
+    _messages = _messages
+        .where(
+          (message) => message.id == null || !messageIds.contains(message.id),
+        )
+        .toList(growable: false);
+    await refreshConversations();
+    notifyListeners();
+  }
+
   Future<void> send(String rawText) async {
     if (_sending) return;
     final convoId = _currentConversation?.id;

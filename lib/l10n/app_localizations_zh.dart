@@ -179,6 +179,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get xiao_mi_preset_custom => '预选：自定义';
 
   @override
+  String xiao_mi_message_selected_count(int count) {
+    return '已选择 $count 条';
+  }
+
+  @override
+  String get xiao_mi_message_copy_done_content => '消息内容已复制到剪切板';
+
+  @override
+  String get xiao_mi_message_delete_selected_title => '删除选中消息？';
+
+  @override
+  String xiao_mi_message_delete_selected_content(int count) {
+    return '已选择 $count 条消息，删除后不可恢复。';
+  }
+
+  @override
+  String get xiao_mi_message_trigger_work_log_year_summary => '已触发：年度工作总结';
+
+  @override
+  String get xiao_mi_message_trigger_custom => '已触发：预设上下文';
+
+  @override
   String get work_log_ai_entry => 'AI录入';
 
   @override
@@ -1210,6 +1232,28 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get xiao_mi_preset_custom => '预选：自定义';
+
+  @override
+  String xiao_mi_message_selected_count(int count) {
+    return '已选择 $count 条';
+  }
+
+  @override
+  String get xiao_mi_message_copy_done_content => '消息内容已复制到剪切板';
+
+  @override
+  String get xiao_mi_message_delete_selected_title => '删除选中消息？';
+
+  @override
+  String xiao_mi_message_delete_selected_content(int count) {
+    return '已选择 $count 条消息，删除后不可恢复。';
+  }
+
+  @override
+  String get xiao_mi_message_trigger_work_log_year_summary => '已触发：年度工作总结';
+
+  @override
+  String get xiao_mi_message_trigger_custom => '已触发：预设上下文';
 
   @override
   String get work_log_ai_entry => 'AI录入';

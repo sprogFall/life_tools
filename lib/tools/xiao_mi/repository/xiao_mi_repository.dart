@@ -115,4 +115,30 @@ class XiaoMiRepository {
     );
     return rows.map(XiaoMiMessage.fromMap).toList(growable: false);
   }
+
+  Future<int> deleteMessages({
+    required int conversationId,
+    required Iterable<int> messageIds,
+    required DateTime now,
+  }) async {
+    final ids = messageIds.toSet();
+    if (ids.isEmpty) return 0;
+
+    final db = await _database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    return db.transaction((txn) async {
+      final deletedCount = await txn.delete(
+        'xiao_mi_messages',
+        where: 'conversation_id = ? AND id IN ($placeholders)',
+        whereArgs: [conversationId, ...ids],
+      );
+      await txn.update(
+        'xiao_mi_conversations',
+        <String, Object?>{'updated_at': now.millisecondsSinceEpoch},
+        where: 'id = ?',
+        whereArgs: [conversationId],
+      );
+      return deletedCount;
+    });
+  }
 }

@@ -117,5 +117,53 @@ void main() {
       final messages = await repository.listMessages(convoId);
       expect(messages, isEmpty);
     });
+
+    test('应支持按 id 批量删除会话内消息', () async {
+      final now = DateTime(2026, 1, 1, 8);
+      final convoId = await repository.createConversation(
+        XiaoMiConversation.create(title: '', now: now),
+      );
+
+      final firstId = await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: convoId,
+          role: XiaoMiMessageRole.user,
+          content: '第一条',
+          createdAt: now.add(const Duration(seconds: 1)),
+        ),
+      );
+      await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: convoId,
+          role: XiaoMiMessageRole.assistant,
+          content: '第二条',
+          createdAt: now.add(const Duration(seconds: 2)),
+        ),
+      );
+      final thirdId = await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: convoId,
+          role: XiaoMiMessageRole.user,
+          content: '第三条',
+          createdAt: now.add(const Duration(seconds: 3)),
+        ),
+      );
+
+      final touchedAt = now.add(const Duration(minutes: 1));
+      final deletedCount = await repository.deleteMessages(
+        conversationId: convoId,
+        messageIds: [firstId, thirdId],
+        now: touchedAt,
+      );
+
+      expect(deletedCount, 2);
+      final messages = await repository.listMessages(convoId);
+      expect(messages.length, 1);
+      expect(messages.single.content, '第二条');
+
+      final convo = await repository.getConversation(convoId);
+      expect(convo, isNotNull);
+      expect(convo!.updatedAt, touchedAt);
+    });
   });
 }

@@ -189,6 +189,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get xiao_mi_preset_custom => 'Preset: Custom';
 
   @override
+  String xiao_mi_message_selected_count(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get xiao_mi_message_copy_done_content => 'Message copied to clipboard';
+
+  @override
+  String get xiao_mi_message_delete_selected_title =>
+      'Delete selected messages?';
+
+  @override
+  String xiao_mi_message_delete_selected_content(int count) {
+    return 'You selected $count messages. This action cannot be undone.';
+  }
+
+  @override
+  String get xiao_mi_message_trigger_work_log_year_summary =>
+      'Triggered: Yearly work summary';
+
+  @override
+  String get xiao_mi_message_trigger_custom => 'Triggered: Preset context';
+
+  @override
   String get work_log_ai_entry => 'AI Entry';
 
   @override
@@ -1260,6 +1284,30 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get xiao_mi_preset_custom => 'Preset: Custom';
+
+  @override
+  String xiao_mi_message_selected_count(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get xiao_mi_message_copy_done_content => 'Message copied to clipboard';
+
+  @override
+  String get xiao_mi_message_delete_selected_title =>
+      'Delete selected messages?';
+
+  @override
+  String xiao_mi_message_delete_selected_content(int count) {
+    return 'You selected $count messages. This action cannot be undone.';
+  }
+
+  @override
+  String get xiao_mi_message_trigger_work_log_year_summary =>
+      'Triggered: Yearly work summary';
+
+  @override
+  String get xiao_mi_message_trigger_custom => 'Triggered: Preset context';
 
   @override
   String get work_log_ai_entry => 'AI Entry';

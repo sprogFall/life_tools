@@ -63,6 +63,26 @@
   "xiao_mi_conversation_delete_content": "删除后将同时移除该会话的所有消息。",
   "xiao_mi_preset_work_log_year_summary": "预选：今年工作总结",
   "xiao_mi_preset_custom": "预选：自定义",
+  "xiao_mi_message_selected_count": "已选择 {count} 条",
+  "@xiao_mi_message_selected_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "xiao_mi_message_copy_done_content": "消息内容已复制到剪切板",
+  "xiao_mi_message_delete_selected_title": "删除选中消息？",
+  "xiao_mi_message_delete_selected_content": "已选择 {count} 条消息，删除后不可恢复。",
+  "@xiao_mi_message_delete_selected_content": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "xiao_mi_message_trigger_work_log_year_summary": "已触发：年度工作总结",
+  "xiao_mi_message_trigger_custom": "已触发：预设上下文",
   "work_log_ai_entry": "AI录入",
   "work_log_ai_summary_entry": "AI总结",
   "work_log_ai_summary_title": "AI总结",

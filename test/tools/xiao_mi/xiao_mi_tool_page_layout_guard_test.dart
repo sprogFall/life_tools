@@ -60,5 +60,19 @@ void main() {
       expect(sheetSource, contains('ListView.builder('));
       expect(sheetSource, isNot(contains('ListView.separated(')));
     });
+
+    test('助手消息应使用气泡容器且不再渲染预选 badge', () {
+      expect(source, contains('final assistantBg ='));
+      expect(source, isNot(contains('isUser ? userBg : Colors.transparent')));
+      expect(source, isNot(contains('class _PresetBadge')));
+    });
+
+    test('消息气泡应提供复制按钮并支持长按进入多选删除', () {
+      expect(source, contains('Clipboard.setData'));
+      expect(source, contains('onLongPress'));
+      expect(source, contains('_selectionMode'));
+      expect(source, contains('_selectedMessageIds'));
+      expect(source, contains('deleteMessages('));
+    });
   });
 }

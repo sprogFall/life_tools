@@ -117,6 +117,68 @@ void main() {
       expect(persistedAssistant.content, '第一段');
       expect((persistedAssistant.metadata ?? const {})['thinking'], '先分析再归纳');
     });
+
+    test('deleteMessages 应支持删除多条消息并更新内存列表', () async {
+      final base = DateTime(2026, 1, 1, 8, 0, 0);
+      var now = base;
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final aiService = AiService(
+        configService: configService,
+        client: FakeOpenAiClient(replyText: 'ok'),
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+        ),
+      );
+      await service.init();
+      final convoId = service.currentConversation!.id!;
+
+      final firstId = await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: convoId,
+          role: XiaoMiMessageRole.user,
+          content: 'A',
+          createdAt: base.add(const Duration(seconds: 10)),
+        ),
+      );
+      await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: convoId,
+          role: XiaoMiMessageRole.assistant,
+          content: 'B',
+          createdAt: base.add(const Duration(seconds: 11)),
+        ),
+      );
+      final thirdId = await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: convoId,
+          role: XiaoMiMessageRole.user,
+          content: 'C',
+          createdAt: base.add(const Duration(seconds: 12)),
+        ),
+      );
+
+      await service.openConversation(convoId);
+      expect(service.messages.length, 3);
+
+      await service.deleteMessages({firstId, thirdId});
+
+      expect(service.messages.length, 1);
+      expect(service.messages.single.content, 'B');
+      final persisted = await repository.listMessages(convoId);
+      expect(persisted.length, 1);
+      expect(persisted.single.content, 'B');
+    });
   });
 }
 

@@ -63,6 +63,26 @@
   "xiao_mi_conversation_delete_content": "This will remove all messages in this conversation.",
   "xiao_mi_preset_work_log_year_summary": "Preset: Yearly work summary",
   "xiao_mi_preset_custom": "Preset: Custom",
+  "xiao_mi_message_selected_count": "{count} selected",
+  "@xiao_mi_message_selected_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "xiao_mi_message_copy_done_content": "Message copied to clipboard",
+  "xiao_mi_message_delete_selected_title": "Delete selected messages?",
+  "xiao_mi_message_delete_selected_content": "You selected {count} messages. This action cannot be undone.",
+  "@xiao_mi_message_delete_selected_content": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "xiao_mi_message_trigger_work_log_year_summary": "Triggered: Yearly work summary",
+  "xiao_mi_message_trigger_custom": "Triggered: Preset context",
   "work_log_ai_entry": "AI Entry",
   "work_log_ai_summary_entry": "AI Summary",
   "work_log_ai_summary_title": "AI Summary",
