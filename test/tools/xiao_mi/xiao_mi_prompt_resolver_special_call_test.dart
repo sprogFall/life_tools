@@ -80,6 +80,58 @@ void main() {
       expect(resolved.aiPrompt, isNot(contains('内容：月外记录')));
     });
 
+    test('work_log_month_summary 指定 year/month 时应按指定月份统计', () async {
+      final now = DateTime(2026, 3, 20, 9);
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务D',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 15),
+          minutes: 40,
+          content: '一月记录',
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 3, 10),
+          minutes: 30,
+          content: '三月记录',
+          now: now,
+        ),
+      );
+
+      final resolver = XiaoMiPromptResolver(
+        workLogRepository: repository,
+        nowProvider: () => now,
+      );
+
+      final resolved = await resolver.resolveSpecialCall(
+        callId: 'work_log_month_summary',
+        displayText: '今年一月份工作总结',
+        arguments: const <String, Object?>{'year': 2026, 'month': 1},
+      );
+
+      expect(
+        (resolved.metadata ?? const {})['presetId'],
+        'work_log_month_summary',
+      );
+      expect(resolved.aiPrompt, contains('时间范围：2026-01-01 至 2026-01-31（含）'));
+      expect(resolved.aiPrompt, contains('内容：一月记录'));
+      expect(resolved.aiPrompt, isNot(contains('内容：三月记录')));
+    });
+
     test('work_log_week_summary 应按周一到周日统计', () async {
       final now = DateTime(2026, 5, 20, 9); // 周三
       final taskId = await repository.createTask(

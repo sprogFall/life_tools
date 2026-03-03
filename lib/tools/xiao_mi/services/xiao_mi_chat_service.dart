@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/ai/ai_errors.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/ai/ai_use_case.dart';
@@ -13,6 +14,7 @@ import '../repository/xiao_mi_repository.dart';
 
 class XiaoMiChatService extends ChangeNotifier {
   static const String assistantThinkingMetadataKey = 'thinking';
+  static const String assistantErrorMetadataKey = 'error';
 
   final XiaoMiRepository _repository;
   final AiService _aiService;
@@ -151,8 +153,31 @@ class XiaoMiChatService extends ChangeNotifier {
     notifyListeners();
     try {
       final now = _nowProvider();
+      final userMessageId = await _repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: activeId,
+          role: XiaoMiMessageRole.user,
+          content: text,
+          metadata: null,
+          createdAt: now,
+        ),
+      );
+      var userMessage = XiaoMiMessage(
+        id: userMessageId,
+        conversationId: activeId,
+        role: XiaoMiMessageRole.user,
+        content: text,
+        metadata: null,
+        createdAt: now,
+      );
+      _messages = [..._messages, userMessage];
+      notifyListeners();
+
+      final historyWithoutCurrentUserMessage = _messages.length <= 1
+          ? const <XiaoMiMessage>[]
+          : _messages.sublist(0, _messages.length - 1);
       final preRouteDecision = await _preRouteUserInput(
-        history: _messages,
+        history: historyWithoutCurrentUserMessage,
         userInput: text,
       );
       var resolved = XiaoMiResolvedPrompt(
@@ -160,7 +185,6 @@ class XiaoMiChatService extends ChangeNotifier {
         aiPrompt: text,
         metadata: null,
       );
-      String? directAssistantAnswer;
 
       if (preRouteDecision is XiaoMiPreRouteSpecialCall) {
         resolved = await _promptResolver.resolveSpecialCall(
@@ -168,43 +192,22 @@ class XiaoMiChatService extends ChangeNotifier {
           displayText: text,
           arguments: preRouteDecision.arguments,
         );
-      } else if (preRouteDecision is XiaoMiPreRouteDirectAnswer) {
-        final directAnswer = preRouteDecision.answer.trim();
-        if (directAnswer.isNotEmpty) {
-          directAssistantAnswer = directAnswer;
-        }
       }
 
-      final userMessage = XiaoMiMessage.create(
-        conversationId: activeId,
-        role: XiaoMiMessageRole.user,
-        content: resolved.displayText,
-        metadata: resolved.metadata,
-        createdAt: now,
-      );
-      await _repository.addMessage(userMessage);
-      _messages = [..._messages, userMessage];
-      notifyListeners();
-
-      if (directAssistantAnswer != null) {
-        final directAssistantMessage = XiaoMiMessage.create(
-          conversationId: activeId,
-          role: XiaoMiMessageRole.assistant,
-          content: directAssistantAnswer,
-          metadata: _buildAssistantMetadata(preRouteDecision.reasoning),
-          createdAt: _nowProvider(),
+      if (resolved.displayText != userMessage.content ||
+          resolved.metadata != null) {
+        userMessage = userMessage.copyWith(
+          content: resolved.displayText,
+          metadata: resolved.metadata,
         );
-        await _repository.addMessage(directAssistantMessage);
-        _messages = [..._messages, directAssistantMessage];
-        await _autoTitleIfNeeded(activeId);
-        await refreshConversations();
+        await _repository.updateMessage(userMessage);
+        _messages = [
+          ..._messages.sublist(0, _messages.length - 1),
+          userMessage,
+        ];
         notifyListeners();
-        return;
       }
 
-      final historyWithoutCurrentUserMessage = _messages.length <= 1
-          ? const <XiaoMiMessage>[]
-          : _messages.sublist(0, _messages.length - 1);
       final aiMessages = _buildAiMessages(
         history: historyWithoutCurrentUserMessage,
         currentUserPrompt: resolved.aiPrompt,
@@ -279,6 +282,11 @@ class XiaoMiChatService extends ChangeNotifier {
       await _autoTitleIfNeeded(activeId);
       await refreshConversations();
       notifyListeners();
+    } catch (error) {
+      await _appendAssistantErrorMessage(
+        conversationId: activeId,
+        error: error,
+      );
     } finally {
       _sending = false;
       notifyListeners();
@@ -398,4 +406,72 @@ class XiaoMiChatService extends ChangeNotifier {
     }
     return <String, dynamic>{assistantThinkingMetadataKey: trimmedThinking};
   }
+
+  Future<void> _appendAssistantErrorMessage({
+    required int conversationId,
+    required Object error,
+  }) async {
+    if (hasStreamingAssistantDraft) {
+      _messages = _messages.sublist(0, _messages.length - 1);
+    }
+    final payload = _resolveAssistantErrorPayload(error);
+    final metadata = <String, dynamic>{
+      assistantErrorMetadataKey: <String, dynamic>{
+        'type': payload.type,
+        'title': payload.title,
+        'reason': payload.reason,
+      },
+    };
+    final message = XiaoMiMessage.create(
+      conversationId: conversationId,
+      role: XiaoMiMessageRole.assistant,
+      content: payload.content,
+      metadata: metadata,
+      createdAt: _nowProvider(),
+    );
+    await _repository.addMessage(message);
+    _messages = [..._messages, message];
+    await _autoTitleIfNeeded(conversationId);
+    await refreshConversations();
+    notifyListeners();
+  }
+
+  _AssistantErrorPayload _resolveAssistantErrorPayload(Object error) {
+    if (error is AiNotConfiguredException) {
+      return _AssistantErrorPayload(
+        type: 'ai_not_configured',
+        title: 'AI 未配置',
+        content: 'AI 未配置，请先到设置中完成配置后再试。',
+        reason: error.toString(),
+      );
+    }
+    if (error is XiaoMiNoWorkLogDataException) {
+      return _AssistantErrorPayload(
+        type: 'work_log_no_data',
+        title: '暂无可用工作记录',
+        content: '未找到符合条件的工作记录，无法生成总结。',
+        reason: error.toString(),
+      );
+    }
+    return _AssistantErrorPayload(
+      type: 'send_failed',
+      title: '发送失败',
+      content: '本次发送失败，请稍后重试。',
+      reason: error.toString(),
+    );
+  }
+}
+
+class _AssistantErrorPayload {
+  final String type;
+  final String title;
+  final String content;
+  final String reason;
+
+  const _AssistantErrorPayload({
+    required this.type,
+    required this.title,
+    required this.content,
+    required this.reason,
+  });
 }

@@ -5,6 +5,8 @@ import 'package:life_tools/core/ai/openai_client.dart';
 class FakeOpenAiClient extends OpenAiClient {
   AiConfig? lastConfig;
   AiChatRequest? lastRequest;
+  int chatCompletionsCallCount = 0;
+  int chatCompletionsStreamCallCount = 0;
   final AiChatResult reply;
   final Duration responseDelay;
   final List<AiChatStreamChunk> streamReply;
@@ -24,6 +26,7 @@ class FakeOpenAiClient extends OpenAiClient {
     required AiChatRequest request,
     Duration timeout = const Duration(seconds: 60),
   }) async {
+    chatCompletionsCallCount += 1;
     lastConfig = config;
     lastRequest = request;
     if (responseDelay > Duration.zero) {
@@ -38,6 +41,7 @@ class FakeOpenAiClient extends OpenAiClient {
     required AiChatRequest request,
     Duration timeout = const Duration(seconds: 60),
   }) async* {
+    chatCompletionsStreamCallCount += 1;
     lastConfig = config;
     lastRequest = request;
 

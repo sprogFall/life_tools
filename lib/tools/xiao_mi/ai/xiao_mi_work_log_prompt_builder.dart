@@ -13,9 +13,31 @@ class XiaoMiWorkLogSummaryPromptBuilder {
 
   Future<String?> buildCurrentWeek({String? styleId}) {
     final today = _normalizeDay(_nowProvider());
-    final start = today.subtract(
-      Duration(days: today.weekday - DateTime.monday),
-    );
+    return buildWeekByAnchor(anchorDate: today, styleId: styleId);
+  }
+
+  Future<String?> buildCurrentMonth({String? styleId}) {
+    final today = _normalizeDay(_nowProvider());
+    return buildMonth(year: today.year, month: today.month, styleId: styleId);
+  }
+
+  Future<String?> buildCurrentQuarter({String? styleId}) {
+    final today = _normalizeDay(_nowProvider());
+    final quarter = ((today.month - 1) ~/ 3) + 1;
+    return buildQuarter(year: today.year, quarter: quarter, styleId: styleId);
+  }
+
+  Future<String?> buildCurrentYear({String? styleId}) {
+    final today = _normalizeDay(_nowProvider());
+    return buildYear(year: today.year, styleId: styleId);
+  }
+
+  Future<String?> buildWeekByAnchor({
+    required DateTime anchorDate,
+    String? styleId,
+  }) {
+    final day = _normalizeDay(anchorDate);
+    final start = day.subtract(Duration(days: day.weekday - DateTime.monday));
     final endInclusive = start.add(const Duration(days: 6));
     return _buildRange(
       start: start,
@@ -27,10 +49,13 @@ class XiaoMiWorkLogSummaryPromptBuilder {
     );
   }
 
-  Future<String?> buildCurrentMonth({String? styleId}) {
-    final today = _normalizeDay(_nowProvider());
-    final start = DateTime(today.year, today.month, 1);
-    final endInclusive = DateTime(today.year, today.month + 1, 0);
+  Future<String?> buildMonth({
+    required int year,
+    required int month,
+    String? styleId,
+  }) {
+    final start = DateTime(year, month, 1);
+    final endInclusive = DateTime(year, month + 1, 0);
     return _buildRange(
       start: start,
       endInclusive: endInclusive,
@@ -41,11 +66,14 @@ class XiaoMiWorkLogSummaryPromptBuilder {
     );
   }
 
-  Future<String?> buildCurrentQuarter({String? styleId}) {
-    final today = _normalizeDay(_nowProvider());
-    final quarterStartMonth = ((today.month - 1) ~/ 3) * 3 + 1;
-    final start = DateTime(today.year, quarterStartMonth, 1);
-    final endInclusive = DateTime(today.year, quarterStartMonth + 3, 0);
+  Future<String?> buildQuarter({
+    required int year,
+    required int quarter,
+    String? styleId,
+  }) {
+    final quarterStartMonth = (quarter - 1) * 3 + 1;
+    final start = DateTime(year, quarterStartMonth, 1);
+    final endInclusive = DateTime(year, quarterStartMonth + 3, 0);
     return _buildRange(
       start: start,
       endInclusive: endInclusive,
@@ -56,10 +84,9 @@ class XiaoMiWorkLogSummaryPromptBuilder {
     );
   }
 
-  Future<String?> buildCurrentYear({String? styleId}) {
-    final today = _normalizeDay(_nowProvider());
-    final start = DateTime(today.year, 1, 1);
-    final endInclusive = DateTime(today.year, 12, 31);
+  Future<String?> buildYear({required int year, String? styleId}) {
+    final start = DateTime(year, 1, 1);
+    final endInclusive = DateTime(year, 12, 31);
     return _buildRange(
       start: start,
       endInclusive: endInclusive,

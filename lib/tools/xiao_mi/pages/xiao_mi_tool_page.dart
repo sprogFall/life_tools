@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/ai/ai_errors.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/ui/app_dialogs.dart';
@@ -14,7 +13,6 @@ import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../core/widgets/ios26_markdown.dart';
 import '../../../core/widgets/ios26_sheet_header.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../pages/ai_settings_page.dart';
 import '../../../pages/home_page.dart';
 import '../ai/xiao_mi_prompt_resolver.dart';
 import '../models/xiao_mi_conversation.dart';
@@ -108,55 +106,17 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
   }
 
   Future<void> _send() async {
-    final text = _inputController.text;
-    final trimmed = text.trim();
+    final trimmed = _inputController.text.trim();
     if (trimmed.isEmpty) return;
 
     _inputController.clear();
     unawaited(_scrollToBottom(animated: true));
 
-    try {
-      await _service.send(trimmed);
-      if (!mounted) return;
-      await Future<void>.delayed(const Duration(milliseconds: 60));
-      if (!mounted) return;
-      unawaited(_scrollToBottom(animated: true));
-    } on AiNotConfiguredException {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      final go = await AppDialogs.showConfirm(
-        context,
-        title: l10n.xiao_mi_ai_not_configured_title,
-        content: l10n.xiao_mi_ai_not_configured_content,
-        cancelText: l10n.common_cancel,
-        confirmText: l10n.common_go_settings,
-      );
-      if (!mounted || !go) return;
-      Navigator.of(
-        context,
-      ).push(CupertinoPageRoute(builder: (_) => const AiSettingsPage()));
-      _inputController.text = text;
-    } on XiaoMiNoWorkLogDataException catch (_) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      await AppDialogs.showInfo(
-        context,
-        title: l10n.xiao_mi_no_work_log_title,
-        content: l10n.xiao_mi_no_work_log_content,
-        buttonText: l10n.common_ok,
-      );
-      _inputController.text = text;
-    } catch (e) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      await AppDialogs.showInfo(
-        context,
-        title: l10n.xiao_mi_send_failed_title,
-        content: l10n.xiao_mi_send_failed_content(e.toString()),
-        buttonText: l10n.common_ok,
-      );
-      _inputController.text = text;
-    }
+    await _service.send(trimmed);
+    if (!mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    if (!mounted) return;
+    unawaited(_scrollToBottom(animated: true));
   }
 
   Future<void> _openConversationSheet() async {
@@ -642,6 +602,7 @@ class _MessageBubble extends StatelessWidget {
     final maxWidth = MediaQuery.sizeOf(context).width * (isUser ? 0.74 : 0.90);
     final userBg = IOS26Theme.primaryColor.withValues(alpha: 0.10);
     final assistantBg = IOS26Theme.surfaceColor.withValues(alpha: 0.84);
+    final errorBg = IOS26Theme.toolRed.withValues(alpha: 0.12);
     final fg = IOS26Theme.textPrimary;
 
     final presetId = (message.metadata ?? const {})['presetId'] as String?;
@@ -652,6 +613,8 @@ class _MessageBubble extends StatelessWidget {
                 as String?)
             ?.trim() ??
         '';
+    final errorData = _resolveErrorData(message.metadata);
+    final isErrorMessage = !isUser && errorData != null;
     final canSelect = message.id != null;
 
     return Padding(
@@ -666,12 +629,18 @@ class _MessageBubble extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: isUser ? userBg : assistantBg,
+                color: isUser
+                    ? userBg
+                    : (isErrorMessage ? errorBg : assistantBg),
                 borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
                 border: Border.all(
                   color: selected
                       ? IOS26Theme.primaryColor.withValues(alpha: 0.48)
-                      : IOS26Theme.glassBorderColor.withValues(alpha: 0.40),
+                      : (isErrorMessage
+                            ? IOS26Theme.toolRed.withValues(alpha: 0.38)
+                            : IOS26Theme.glassBorderColor.withValues(
+                                alpha: 0.40,
+                              )),
                   width: selected ? 1.2 : 0.6,
                 ),
               ),
@@ -685,39 +654,18 @@ class _MessageBubble extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        if (selectionMode && canSelect)
-                          IOS26Icon(
-                            selected
-                                ? CupertinoIcons.check_mark_circled_solid
-                                : CupertinoIcons.circle,
-                            tone: selected
-                                ? IOS26IconTone.accent
-                                : IOS26IconTone.secondary,
-                            size: 16,
-                          ),
-                        if (selectionMode && canSelect)
-                          const SizedBox(width: IOS26Theme.spacingXs),
-                        const Spacer(),
-                        IOS26Button.plain(
-                          key: ValueKey(
-                            'xiao_mi_message_copy_${message.id ?? message.createdAt.millisecondsSinceEpoch}',
-                          ),
-                          minimumSize: Size.zero,
-                          padding: EdgeInsets.zero,
-                          onPressed: onCopy,
-                          child: Text(
-                            l10n.work_log_ai_summary_copy_button,
-                            style: IOS26Theme.bodySmall.copyWith(
-                              color: IOS26Theme.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: IOS26Theme.spacingXs),
+                    if (selectionMode && canSelect) ...[
+                      IOS26Icon(
+                        selected
+                            ? CupertinoIcons.check_mark_circled_solid
+                            : CupertinoIcons.circle,
+                        tone: selected
+                            ? IOS26IconTone.accent
+                            : IOS26IconTone.secondary,
+                        size: 16,
+                      ),
+                      const SizedBox(height: IOS26Theme.spacingXs),
+                    ],
                     if (isUser)
                       SelectableText(
                         message.content,
@@ -725,6 +673,36 @@ class _MessageBubble extends StatelessWidget {
                           color: fg,
                           height: 1.35,
                         ),
+                      )
+                    else if (isErrorMessage)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const IOS26Icon(
+                                CupertinoIcons.exclamationmark_triangle_fill,
+                                tone: IOS26IconTone.danger,
+                                size: 14,
+                              ),
+                              const SizedBox(width: IOS26Theme.spacingXs),
+                              Expanded(
+                                child: SelectableText(
+                                  message.content,
+                                  style: IOS26Theme.bodyMedium.copyWith(
+                                    color: fg,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (errorData.reason.isNotEmpty) ...[
+                            const SizedBox(height: IOS26Theme.spacingSm),
+                            _ErrorReasonPanel(reason: errorData.reason),
+                          ],
+                        ],
                       )
                     else
                       IOS26MarkdownBody(data: message.content),
@@ -738,10 +716,29 @@ class _MessageBubble extends StatelessWidget {
                         ),
                       ),
                     ],
-                    if (!isUser && thinking.isNotEmpty) ...[
+                    if (!isUser && !isErrorMessage && thinking.isNotEmpty) ...[
                       const SizedBox(height: IOS26Theme.spacingSm),
                       _ThinkingPanel(thinking: thinking),
                     ],
+                    const SizedBox(height: IOS26Theme.spacingXs),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IOS26Button.plain(
+                        key: ValueKey(
+                          'xiao_mi_message_copy_${message.id ?? message.createdAt.millisecondsSinceEpoch}',
+                        ),
+                        minimumSize: Size.zero,
+                        padding: EdgeInsets.zero,
+                        onPressed: onCopy,
+                        child: Text(
+                          l10n.work_log_ai_summary_copy_button,
+                          style: IOS26Theme.bodySmall.copyWith(
+                            color: IOS26Theme.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -763,6 +760,23 @@ class _MessageBubble extends StatelessWidget {
       _ => l10n.xiao_mi_message_trigger_custom,
     };
   }
+
+  _MessageErrorData? _resolveErrorData(Map<String, dynamic>? metadata) {
+    final value =
+        (metadata ??
+        const <String, dynamic>{})[XiaoMiChatService.assistantErrorMetadataKey];
+    if (value is! Map) return null;
+    final map = value.cast<Object?, Object?>();
+    final reason = (map['reason']?.toString() ?? '').trim();
+    if (reason.isEmpty) return null;
+    return _MessageErrorData(reason: reason);
+  }
+}
+
+class _MessageErrorData {
+  final String reason;
+
+  const _MessageErrorData({required this.reason});
 }
 
 class _ThinkingPanel extends StatefulWidget {
@@ -772,6 +786,85 @@ class _ThinkingPanel extends StatefulWidget {
 
   @override
   State<_ThinkingPanel> createState() => _ThinkingPanelState();
+}
+
+class _ErrorReasonPanel extends StatefulWidget {
+  final String reason;
+
+  const _ErrorReasonPanel({required this.reason});
+
+  @override
+  State<_ErrorReasonPanel> createState() => _ErrorReasonPanelState();
+}
+
+class _ErrorReasonPanelState extends State<_ErrorReasonPanel> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IOS26Button.plain(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 0,
+            vertical: IOS26Theme.spacingXs,
+          ),
+          onPressed: () => setState(() => _expanded = !_expanded),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const IOS26Icon(
+                CupertinoIcons.info_circle,
+                tone: IOS26IconTone.danger,
+                size: 14,
+              ),
+              const SizedBox(width: IOS26Theme.spacingXs),
+              Text(
+                '查看错误原因',
+                style: IOS26Theme.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: IOS26Theme.toolRed,
+                ),
+              ),
+              const SizedBox(width: 4),
+              IOS26Icon(
+                _expanded
+                    ? CupertinoIcons.chevron_up
+                    : CupertinoIcons.chevron_down,
+                tone: IOS26IconTone.secondary,
+                size: 12,
+              ),
+            ],
+          ),
+        ),
+        if (_expanded)
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: IOS26Theme.toolRed.withValues(alpha: 0.5),
+                  width: 2,
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(
+              IOS26Theme.spacingSm,
+              0,
+              0,
+              IOS26Theme.spacingXs,
+            ),
+            child: SelectableText(
+              widget.reason,
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textSecondary,
+                height: 1.35,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _ThinkingPanelState extends State<_ThinkingPanel> {

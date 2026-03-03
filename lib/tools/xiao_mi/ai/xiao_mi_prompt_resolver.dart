@@ -92,6 +92,7 @@ class XiaoMiPromptResolver {
     final normalizedCallId = callId.trim();
     final normalizedDisplayText = displayText.trim();
     final styleId = _resolveStyleId(arguments);
+    final now = _normalizeDay(_nowProvider());
     final builder = XiaoMiWorkLogSummaryPromptBuilder(
       repository: _workLogRepository,
       nowProvider: _nowProvider,
@@ -99,9 +100,16 @@ class XiaoMiPromptResolver {
 
     switch (normalizedCallId) {
       case 'work_log_week_summary':
-        final prompt = await builder.buildCurrentWeek(styleId: styleId);
+        final anchorDate =
+            _resolveDate(arguments['date']) ??
+            _resolveDate(arguments['anchor_date']) ??
+            now;
+        final prompt = await builder.buildWeekByAnchor(
+          anchorDate: anchorDate,
+          styleId: styleId,
+        );
         if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('本周没有可用的工作记录，无法生成总结');
+          throw const XiaoMiNoWorkLogDataException('该周没有可用的工作记录，无法生成总结');
         }
         return _buildTriggeredPrompt(
           displayText: normalizedDisplayText,
@@ -109,9 +117,17 @@ class XiaoMiPromptResolver {
           presetId: workLogWeekSummary.id,
         );
       case 'work_log_month_summary':
-        final prompt = await builder.buildCurrentMonth(styleId: styleId);
+        final month = _resolveMonth(arguments['month']);
+        final year = _resolveYear(arguments['year']) ?? now.year;
+        final prompt = month == null
+            ? await builder.buildCurrentMonth(styleId: styleId)
+            : await builder.buildMonth(
+                year: year,
+                month: month,
+                styleId: styleId,
+              );
         if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('本月没有可用的工作记录，无法生成总结');
+          throw const XiaoMiNoWorkLogDataException('该月份没有可用的工作记录，无法生成总结');
         }
         return _buildTriggeredPrompt(
           displayText: normalizedDisplayText,
@@ -119,9 +135,17 @@ class XiaoMiPromptResolver {
           presetId: workLogMonthSummary.id,
         );
       case 'work_log_quarter_summary':
-        final prompt = await builder.buildCurrentQuarter(styleId: styleId);
+        final quarter = _resolveQuarter(arguments['quarter']);
+        final year = _resolveYear(arguments['year']) ?? now.year;
+        final prompt = quarter == null
+            ? await builder.buildCurrentQuarter(styleId: styleId)
+            : await builder.buildQuarter(
+                year: year,
+                quarter: quarter,
+                styleId: styleId,
+              );
         if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('本季度没有可用的工作记录，无法生成总结');
+          throw const XiaoMiNoWorkLogDataException('该季度没有可用的工作记录，无法生成总结');
         }
         return _buildTriggeredPrompt(
           displayText: normalizedDisplayText,
@@ -129,9 +153,12 @@ class XiaoMiPromptResolver {
           presetId: workLogQuarterSummary.id,
         );
       case 'work_log_year_summary':
-        final prompt = await builder.buildCurrentYear(styleId: styleId);
+        final year = _resolveYear(arguments['year']);
+        final prompt = year == null
+            ? await builder.buildCurrentYear(styleId: styleId)
+            : await builder.buildYear(year: year, styleId: styleId);
         if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('今年没有可用的工作记录，无法生成总结');
+          throw const XiaoMiNoWorkLogDataException('该年份没有可用的工作记录，无法生成总结');
         }
         return _buildTriggeredPrompt(
           displayText: normalizedDisplayText,
@@ -168,5 +195,41 @@ class XiaoMiPromptResolver {
     final normalized = value.toString().trim();
     if (normalized.isEmpty) return null;
     return normalized;
+  }
+
+  static DateTime _normalizeDay(DateTime dateTime) {
+    return DateTime(dateTime.year, dateTime.month, dateTime.day);
+  }
+
+  static DateTime? _resolveDate(Object? value) {
+    if (value == null) return null;
+    final parsed = DateTime.tryParse(value.toString().trim());
+    if (parsed == null) return null;
+    return _normalizeDay(parsed);
+  }
+
+  static int? _resolveYear(Object? value) {
+    final parsed = _resolveInt(value);
+    if (parsed == null || parsed < 1970 || parsed > 9999) return null;
+    return parsed;
+  }
+
+  static int? _resolveMonth(Object? value) {
+    final parsed = _resolveInt(value);
+    if (parsed == null || parsed < 1 || parsed > 12) return null;
+    return parsed;
+  }
+
+  static int? _resolveQuarter(Object? value) {
+    final parsed = _resolveInt(value);
+    if (parsed == null || parsed < 1 || parsed > 4) return null;
+    return parsed;
+  }
+
+  static int? _resolveInt(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString().trim());
   }
 }

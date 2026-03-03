@@ -2,18 +2,24 @@
 
 ## 1. 路由机制
 
-小蜜聊天发送消息后，先进入「预选路由」阶段：
+小蜜聊天发送消息后，固定执行两次 AI 调用：
 
-1. AI 判断是否需要触发特殊调用。
-2. 如果需要，返回结构化 JSON：
+1. 第一次（非流式）：只做路由判断，返回 JSON。
+2. 第二次（流式）：产出最终回答（无论是否触发 special_call，都走流式）。
+
+第一次路由结果示例：
 
 ```json
 {"type":"special_call","call":"work_log_month_summary","arguments":{"style":"review"}}
 ```
 
-3. 如果不需要，直接返回普通文本回答。
+未触发示例：
 
-客户端只对 `type = special_call` 做后续特殊处理；否则按普通聊天消息处理。
+```json
+{"type":"no_special_call"}
+```
+
+客户端只在第一次的 `type = special_call` 时注入特殊上下文；其余场景按普通聊天上下文进入第二次流式回答。
 
 ## 2. 当前支持的 special_call 能力
 
@@ -27,11 +33,19 @@
 ## 3. arguments 约定
 
 - `style`（可选）：`concise | review | risk | highlight | management`
+- `date`（可选）：`YYYY-MM-DD`，用于指定某一周（按该日期所在周统计）
+- `year`（可选）：年份整数
+- `month`（可选）：`1-12`，与 `year` 组合指定某个月
+- `quarter`（可选）：`1-4`，与 `year` 组合指定某个季度
 
 示例：
 
 ```json
 {"type":"special_call","call":"work_log_week_summary","arguments":{"style":"risk"}}
+```
+
+```json
+{"type":"special_call","call":"work_log_month_summary","arguments":{"year":2026,"month":1,"style":"review"}}
 ```
 
 ## 4. UI 提示行为

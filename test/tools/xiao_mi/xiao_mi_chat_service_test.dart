@@ -56,7 +56,7 @@ void main() {
       await db.close();
     });
 
-    test('send 非特殊调用时应直接使用预选回答', () async {
+    test('send 非特殊调用时应先路由再走流式回答', () async {
       var now = DateTime(2026, 1, 1, 8, 0, 0);
       DateTime nextNow() {
         final value = now;
@@ -65,8 +65,11 @@ void main() {
       }
 
       final fakeClient = FakeOpenAiClient(
-        replyText: '这是预选阶段直接回答',
-        streamReply: const [AiChatStreamChunk(textDelta: '不应走到这里')],
+        replyText: '{"type":"no_special_call"}',
+        streamReply: const [
+          AiChatStreamChunk(textDelta: '流式'),
+          AiChatStreamChunk(textDelta: '回答'),
+        ],
       );
       final aiService = AiService(
         configService: configService,
@@ -88,7 +91,9 @@ void main() {
       expect(service.messages.first.role, XiaoMiMessageRole.user);
       expect(service.messages.first.content, '你好');
       expect(service.messages.last.role, XiaoMiMessageRole.assistant);
-      expect(service.messages.last.content, '这是预选阶段直接回答');
+      expect(service.messages.last.content, '流式回答');
+      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 
     test('send 预选返回 special_call 时应注入年度总结数据并流式回答', () async {
@@ -193,6 +198,52 @@ void main() {
         fakeClient.lastRequest!.messages.last.content,
         contains('内容：完成核心模块'),
       );
+      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
+    test('send 失败时应在会话中写入错误消息并附带原因', () async {
+      var now = DateTime(2026, 1, 1, 8, 0, 0);
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      await configService.clear();
+      final fakeClient = FakeOpenAiClient(
+        replyText: '{"type":"no_special_call"}',
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+        ),
+      );
+      await service.init();
+
+      await service.send('测试错误展示');
+
+      expect(service.messages.length, 2);
+      expect(service.messages.first.role, XiaoMiMessageRole.user);
+      expect(service.messages.last.role, XiaoMiMessageRole.assistant);
+      expect(service.messages.last.content, 'AI 未配置，请先到设置中完成配置后再试。');
+      final errorMeta =
+          (service.messages.last.metadata ??
+          const <String, dynamic>{})[XiaoMiChatService
+              .assistantErrorMetadataKey];
+      expect(errorMeta, isA<Map>());
+      final errorMap = (errorMeta as Map).cast<String, dynamic>();
+      expect(errorMap['type'], 'ai_not_configured');
+      expect((errorMap['reason'] as String), contains('请先在设置中完成 AI 配置'));
+      expect(fakeClient.chatCompletionsCallCount, 0);
+      expect(fakeClient.chatCompletionsStreamCallCount, 0);
     });
 
     test('deleteMessages 应支持删除多条消息并更新内存列表', () async {

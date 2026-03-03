@@ -105,6 +105,18 @@ class XiaoMiRepository {
     });
   }
 
+  Future<void> updateMessage(XiaoMiMessage message) async {
+    final messageId = message.id;
+    if (messageId == null) return;
+    final db = await _database;
+    await db.update(
+      'xiao_mi_messages',
+      message.toMap(includeId: false),
+      where: 'id = ?',
+      whereArgs: [messageId],
+    );
+  }
+
   Future<List<XiaoMiMessage>> listMessages(int conversationId) async {
     final db = await _database;
     final rows = await db.query(

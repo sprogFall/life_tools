@@ -16,12 +16,23 @@ class XiaoMiAiPrompts {
 
 可选 arguments：
 - style: concise|review|risk|highlight|management（用于指定总结风格）
+- date: YYYY-MM-DD（用于指定“某一周”）
+- year: 年份整数（用于指定“某一年/某月/某季度”）
+- month: 1-12（用于指定“某个月”）
+- quarter: 1-4（用于指定“某个季度”）
+
+参数规则：
+1) 用户提到“今年一月份/2025年1月”这类明确月份时，必须使用 work_log_month_summary，并补充 year/month。
+2) 用户提到“2025年Q2/第二季度”这类明确季度时，必须使用 work_log_quarter_summary，并补充 year/quarter。
+3) 用户提到“2025年总结”这类明确年份时，必须使用 work_log_year_summary，并补充 year。
 
 输出规则（必须严格遵守）：
-1) 若需要触发特殊调用，只输出一个 JSON 对象，不要任何额外文字：
-{"type":"special_call","call":"work_log_week_summary","arguments":{"style":"concise"}}
-2) 若不需要触发特殊调用，直接输出你给用户的最终回答正文（纯文本，不要 JSON）。
-3) 禁止输出 Markdown 代码块。
+1) 只输出一个 JSON 对象，不要任何额外文字。
+2) 触发特殊调用时输出：
+{"type":"special_call","call":"work_log_month_summary","arguments":{"year":2026,"month":1,"style":"review"}}
+3) 不触发时输出：
+{"type":"no_special_call"}
+4) 禁止输出 Markdown 代码块。
 ''';
 
   static const String systemPrompt = '''
