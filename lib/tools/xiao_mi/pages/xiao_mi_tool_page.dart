@@ -78,7 +78,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
       if (!_showScrollToBottom && _service.messages.isNotEmpty) {
-        unawaited(_scrollToBottom(animated: true));
+        _scrollToBottom(animated: false);
       }
     });
   }
