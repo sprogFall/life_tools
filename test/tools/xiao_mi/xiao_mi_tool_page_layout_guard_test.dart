@@ -10,7 +10,7 @@ void main() {
 
     test('输入区不应叠加 viewInsets 底部 padding（避免键盘顶起空白）', () {
       final inputBarStart = source.indexOf('Widget _buildInputBar');
-      final inputBarEnd = source.indexOf('class _GlowCircle');
+      final inputBarEnd = source.indexOf('class _WelcomePanel');
       final inputBarSource = source.substring(inputBarStart, inputBarEnd);
       expect(
         inputBarSource,
@@ -40,7 +40,7 @@ void main() {
 
     test('输入区应采用顶部融合样式而非独立卡片', () {
       final inputBarStart = source.indexOf('Widget _buildInputBar');
-      final inputBarEnd = source.indexOf('class _GlowCircle');
+      final inputBarEnd = source.indexOf('class _WelcomePanel');
       final inputBarSource = source.substring(inputBarStart, inputBarEnd);
       expect(inputBarSource, contains('border: Border('));
       expect(inputBarSource, contains('top: BorderSide('));

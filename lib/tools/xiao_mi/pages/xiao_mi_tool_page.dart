@@ -29,7 +29,8 @@ class XiaoMiToolPage extends StatefulWidget {
   State<XiaoMiToolPage> createState() => _XiaoMiToolPageState();
 }
 
-class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
+class _XiaoMiToolPageState extends State<XiaoMiToolPage>
+    with WidgetsBindingObserver {
   late final XiaoMiChatService _service;
   late final bool _ownsService;
 
@@ -41,6 +42,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _ownsService = widget.service == null;
     _service =
         widget.service ??
@@ -51,6 +53,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
@@ -68,6 +71,16 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
     final shouldShow = position.maxScrollExtent - position.pixels > 240;
     if (shouldShow == _showScrollToBottom) return;
     setState(() => _showScrollToBottom = shouldShow);
+  }
+
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (!_showScrollToBottom && _service.messages.isNotEmpty) {
+        unawaited(_scrollToBottom(animated: true));
+      }
+    });
   }
 
   void _navigateToHome(BuildContext context) {
@@ -381,26 +394,6 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage> {
           ),
         );
       },
-    );
-  }
-}
-
-// ignore: unused_element
-class _GlowCircle extends StatelessWidget {
-  final double size;
-  final List<Color> colors;
-
-  const _GlowCircle({required this.size, required this.colors});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(colors: colors),
-      ),
     );
   }
 }
