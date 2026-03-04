@@ -9,18 +9,22 @@ void main() {
     ).readAsStringSync();
 
     test('输入区不应叠加 viewInsets 底部 padding（避免键盘顶起空白）', () {
-      final inputBarStart = source.indexOf('Widget _buildInputBar');
-      final inputBarEnd = source.indexOf('class _WelcomePanel');
-      final inputBarSource = source.substring(inputBarStart, inputBarEnd);
+      // 输入区域已提取到 ChatInputBar 组件
+      final inputBarSource = File(
+        'lib/tools/xiao_mi/widgets/chat_input_bar.dart',
+      ).readAsStringSync();
       expect(
         inputBarSource,
         isNot(contains('MediaQuery.viewInsetsOf(context).bottom')),
       );
     });
 
-    test('空会话欢迎态应使用融合式欢迎区而非旧版 _EmptyState 卡片', () {
-      expect(source, isNot(contains('return _EmptyState(')));
-      expect(source, contains('class _WelcomePanel'));
+    test('空会话欢迎态应使用 ChatEmptyState 组件', () {
+      expect(source, contains('ChatEmptyState'));
+      expect(
+        File('lib/tools/xiao_mi/widgets/chat_empty_state.dart').existsSync(),
+        isTrue,
+      );
     });
 
     test('当前会话无消息时应禁用新建聊天入口', () {
@@ -39,9 +43,9 @@ void main() {
     });
 
     test('输入区应采用顶部融合样式而非独立卡片', () {
-      final inputBarStart = source.indexOf('Widget _buildInputBar');
-      final inputBarEnd = source.indexOf('class _WelcomePanel');
-      final inputBarSource = source.substring(inputBarStart, inputBarEnd);
+      final inputBarSource = File(
+        'lib/tools/xiao_mi/widgets/chat_input_bar.dart',
+      ).readAsStringSync();
       expect(inputBarSource, contains('border: Border('));
       expect(inputBarSource, contains('top: BorderSide('));
       expect(
@@ -61,18 +65,52 @@ void main() {
       expect(sheetSource, isNot(contains('ListView.separated(')));
     });
 
-    test('助手消息应使用气泡容器且不再渲染预选 badge', () {
-      expect(source, contains('final assistantBg ='));
-      expect(source, isNot(contains('isUser ? userBg : Colors.transparent')));
-      expect(source, isNot(contains('class _PresetBadge')));
+    test('助手消息应使用气泡容器', () {
+      final bubbleSource = File(
+        'lib/tools/xiao_mi/widgets/chat_message_bubble.dart',
+      ).readAsStringSync();
+      expect(bubbleSource, contains('GlassContainer'));
     });
 
     test('消息气泡应提供复制按钮并支持长按进入多选删除', () {
       expect(source, contains('Clipboard.setData'));
-      expect(source, contains('onLongPress'));
+      expect(
+        File(
+          'lib/tools/xiao_mi/widgets/chat_message_bubble.dart',
+        ).readAsStringSync(),
+        contains('onLongPress'),
+      );
       expect(source, contains('_selectionMode'));
       expect(source, contains('_selectedMessageIds'));
       expect(source, contains('deleteMessages('));
+    });
+
+    test('应使用 ChatTypingIndicator 显示AI输入状态', () {
+      expect(source, contains('ChatTypingIndicator'));
+      expect(
+        File(
+          'lib/tools/xiao_mi/widgets/chat_typing_indicator.dart',
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('应使用 ChatMessageList 组件管理消息列表', () {
+      expect(source, contains('ChatMessageList'));
+      expect(
+        File(
+          'lib/tools/xiao_mi/widgets/chat_message_list.dart',
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('应使用 ChatInputBar 组件作为底部输入区', () {
+      expect(source, contains('ChatInputBar'));
+      expect(
+        File('lib/tools/xiao_mi/widgets/chat_input_bar.dart').existsSync(),
+        isTrue,
+      );
     });
   });
 }

@@ -10,7 +10,6 @@ import '../../../core/ai/ai_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/ui/app_dialogs.dart';
 import '../../../core/widgets/ios26_home_leading_button.dart';
-import '../../../core/widgets/ios26_markdown.dart';
 import '../../../core/widgets/ios26_sheet_header.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../pages/home_page.dart';
@@ -18,6 +17,8 @@ import '../ai/xiao_mi_prompt_resolver.dart';
 import '../models/xiao_mi_conversation.dart';
 import '../models/xiao_mi_message.dart';
 import '../services/xiao_mi_chat_service.dart';
+import '../widgets/chat_input_bar.dart';
+import '../widgets/chat_message_list.dart';
 
 class XiaoMiToolPage extends StatefulWidget {
   final XiaoMiChatService? service;
@@ -158,10 +159,13 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     });
   }
 
-  void _onTapMessage(XiaoMiMessage message) {
+  void _onTapMessage(XiaoMiMessage message, XiaoMiChatService service) {
     if (!_selectionMode) return;
     final messageId = message.id;
     if (messageId == null) return;
+
+    // 清理已过期的选中项
+    _cleanupStaleSelections(service);
 
     setState(() {
       if (!_selectedMessageIds.add(messageId)) {
@@ -171,6 +175,22 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
         _selectionMode = false;
       }
     });
+  }
+
+  /// 清理已不存在的选中项
+  void _cleanupStaleSelections(XiaoMiChatService service) {
+    final messages = service.messages;
+    final availableIds = messages
+        .map((message) => message.id)
+        .whereType<int>()
+        .toSet();
+    final staleSelected = _selectedMessageIds.difference(availableIds);
+    if (staleSelected.isNotEmpty) {
+      _selectedMessageIds.removeAll(staleSelected);
+      if (_selectedMessageIds.isEmpty) {
+        _selectionMode = false;
+      }
+    }
   }
 
   void _exitSelectionMode() {
@@ -216,6 +236,11 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     _exitSelectionMode();
   }
 
+  void _onTapPrompt(XiaoMiQuickPrompt prompt) {
+    _inputController.text = prompt.text;
+    FocusScope.of(context).requestFocus(_inputFocusNode);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -225,18 +250,19 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
         backgroundColor: IOS26Theme.backgroundColor,
         resizeToAvoidBottomInset: true,
         body: BackdropGroup(
-          child: Stack(
-            children: [
-              SafeArea(
-                child: Column(
-                  children: [
-                    Consumer<XiaoMiChatService>(
-                      builder: (context, service, _) {
-                        final title = service.currentConversation?.title.trim();
-                        final canCreateConversation =
-                            !service.sending && service.messages.isNotEmpty;
-                        final selectedCount = _selectedMessageIds.length;
-                        return IOS26AppBar(
+          child: Consumer<XiaoMiChatService>(
+            builder: (context, service, _) {
+              final title = service.currentConversation?.title.trim();
+              final canCreateConversation =
+                  !service.sending && service.messages.isNotEmpty;
+              final selectedCount = _selectedMessageIds.length;
+
+              return Stack(
+                children: [
+                  SafeArea(
+                    child: Column(
+                      children: [
+                        IOS26AppBar(
                           title: _selectionMode
                               ? l10n.xiao_mi_message_selected_count(
                                   selectedCount,
@@ -285,677 +311,55 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
                                   ),
                                   const SizedBox(width: IOS26Theme.spacingXs),
                                 ],
-                        );
-                      },
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(child: _buildMessageList(l10n)),
-                          if (!_selectionMode) _buildInputBar(l10n),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_showScrollToBottom)
-                Positioned(
-                  right: IOS26Theme.spacingXl,
-                  bottom: 110,
-                  child: IOS26IconButton(
-                    icon: CupertinoIcons.arrow_down,
-                    semanticLabel: l10n.xiao_mi_scroll_to_bottom_semantic,
-                    onPressed: () => _scrollToBottom(animated: true),
-                    tone: IOS26IconTone.accent,
-                    style: IOS26IconButtonStyle.chip,
-                    padding: const EdgeInsets.all(IOS26Theme.spacingSm),
-                    borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageList(AppLocalizations l10n) {
-    return Consumer<XiaoMiChatService>(
-      builder: (context, service, _) {
-        final messages = service.messages;
-        final availableIds = messages
-            .map((message) => message.id)
-            .whereType<int>()
-            .toSet();
-        final staleSelected = _selectedMessageIds.difference(availableIds);
-        if (staleSelected.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            setState(() {
-              _selectedMessageIds.removeAll(staleSelected);
-              if (_selectedMessageIds.isEmpty) {
-                _selectionMode = false;
-              }
-            });
-          });
-        }
-
-        if (messages.isEmpty) {
-          return ListView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
-              IOS26Theme.spacingXl,
-              IOS26Theme.spacingMd,
-              IOS26Theme.spacingXl,
-              IOS26Theme.spacingXl,
-            ),
-            children: [
-              _WelcomePanel(
-                title: l10n.xiao_mi_empty_title,
-                subtitle: l10n.xiao_mi_empty_subtitle,
-                prompts: service.quickPrompts,
-                onTapPrompt: (prompt) {
-                  _inputController.text = prompt.text;
-                  FocusScope.of(context).requestFocus(_inputFocusNode);
-                },
-              ),
-            ],
-          );
-        }
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          if (!_scrollController.hasClients) return;
-          if (!_showScrollToBottom) {
-            unawaited(_scrollToBottom(animated: true));
-          }
-        });
-
-        return ListView.builder(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(
-            IOS26Theme.spacingXl,
-            IOS26Theme.spacingMd,
-            IOS26Theme.spacingXl,
-            IOS26Theme.spacingMd,
-          ),
-          itemCount:
-              messages.length +
-              ((service.sending && !service.hasStreamingAssistantDraft)
-                  ? 1
-                  : 0),
-          itemBuilder: (context, index) {
-            if (index >= messages.length) {
-              return const _TypingIndicator();
-            }
-            final message = messages[index];
-            final messageId = message.id;
-            return _MessageBubble(
-              key: ValueKey('xiao_mi_message_${messageId ?? 'draft_$index'}'),
-              message: message,
-              selectionMode: _selectionMode,
-              selected:
-                  messageId != null && _selectedMessageIds.contains(messageId),
-              onTap: () => _onTapMessage(message),
-              onLongPress: () => _onLongPressMessage(message, service),
-              onCopy: () => _copyMessageContent(message.content),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildInputBar(AppLocalizations l10n) {
-    return Consumer<XiaoMiChatService>(
-      builder: (context, service, _) {
-        return SafeArea(
-          top: false,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  IOS26Theme.backgroundColor.withValues(alpha: 0),
-                  IOS26Theme.backgroundColor.withValues(alpha: 0.92),
-                ],
-              ),
-              border: Border(
-                top: BorderSide(
-                  color: IOS26Theme.glassBorderColor.withValues(alpha: 0.35),
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                IOS26Theme.spacingXl,
-                IOS26Theme.spacingSm,
-                IOS26Theme.spacingXl,
-                IOS26Theme.spacingSm,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: CupertinoTextField(
-                      controller: _inputController,
-                      focusNode: _inputFocusNode,
-                      placeholder: l10n.xiao_mi_input_placeholder,
-                      maxLines: 5,
-                      minLines: 1,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: IOS26Theme.spacingMd,
-                        vertical: IOS26Theme.spacingSm,
-                      ),
-                      decoration: IOS26Theme.textFieldDecoration(
-                        radius: IOS26Theme.radiusXl,
-                      ),
-                      style: IOS26Theme.bodyLarge,
-                      enabled: !service.sending,
-                    ),
-                  ),
-                  const SizedBox(width: IOS26Theme.spacingSm),
-                  IOS26Button(
-                    onPressed: service.sending ? null : _send,
-                    variant: IOS26ButtonVariant.primary,
-                    borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-                    minimumSize: const Size(36, 36),
-                    padding: const EdgeInsets.all(IOS26Theme.spacingSm),
-                    child: service.sending
-                        ? const CupertinoActivityIndicator()
-                        : const IOS26ButtonIcon(
-                            CupertinoIcons.arrow_up,
-                            size: 16,
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _WelcomePanel extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final List<XiaoMiQuickPrompt> prompts;
-  final ValueChanged<XiaoMiQuickPrompt> onTapPrompt;
-
-  const _WelcomePanel({
-    required this.title,
-    required this.subtitle,
-    required this.prompts,
-    required this.onTapPrompt,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        IOS26Theme.spacingLg,
-        IOS26Theme.spacingXxl,
-        IOS26Theme.spacingLg,
-        IOS26Theme.spacingXl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: IOS26Theme.displayLarge.copyWith(
-              color: IOS26Theme.textPrimary,
-              fontSize: 28,
-            ),
-          ),
-          const SizedBox(height: IOS26Theme.spacingSm),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: IOS26Theme.bodyMedium.copyWith(
-              color: IOS26Theme.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          if (prompts.isNotEmpty) ...[
-            const SizedBox(height: IOS26Theme.spacingLg),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: IOS26Theme.spacingSm,
-              runSpacing: IOS26Theme.spacingSm,
-              children: prompts
-                  .map(
-                    (prompt) => _QuickPromptChip(
-                      prompt: prompt,
-                      onTap: () => onTapPrompt(prompt),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: IOS26Theme.spacingSm,
-        horizontal: IOS26Theme.spacingSm,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CupertinoActivityIndicator(),
-            const SizedBox(width: IOS26Theme.spacingXs),
-            Text(
-              '思考中…',
-              style: IOS26Theme.bodySmall.copyWith(
-                color: IOS26Theme.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MessageBubble extends StatelessWidget {
-  final XiaoMiMessage message;
-  final bool selectionMode;
-  final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-  final VoidCallback onCopy;
-
-  const _MessageBubble({
-    super.key,
-    required this.message,
-    required this.selectionMode,
-    required this.selected,
-    required this.onTap,
-    required this.onLongPress,
-    required this.onCopy,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final isUser = message.role == XiaoMiMessageRole.user;
-    final maxWidth = MediaQuery.sizeOf(context).width * (isUser ? 0.74 : 0.90);
-    final userBg = IOS26Theme.primaryColor.withValues(alpha: 0.10);
-    final assistantBg = IOS26Theme.surfaceColor.withValues(alpha: 0.84);
-    final errorBg = IOS26Theme.toolRed.withValues(alpha: 0.12);
-    final fg = IOS26Theme.textPrimary;
-
-    final presetId = (message.metadata ?? const {})['presetId'] as String?;
-    final triggerHint = _resolveTriggerHint(l10n, presetId);
-    final thinking =
-        ((message.metadata ??
-                    const {})[XiaoMiChatService.assistantThinkingMetadataKey]
-                as String?)
-            ?.trim() ??
-        '';
-    final errorData = _resolveErrorData(message.metadata);
-    final isErrorMessage = !isUser && errorData != null;
-    final canSelect = message.id != null;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: IOS26Theme.spacingXs),
-      child: Align(
-        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: GestureDetector(
-            onTap: selectionMode ? onTap : null,
-            onLongPress: onLongPress,
-            behavior: HitTestBehavior.opaque,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: isUser
-                    ? userBg
-                    : (isErrorMessage ? errorBg : assistantBg),
-                borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-                border: Border.all(
-                  color: selected
-                      ? IOS26Theme.primaryColor.withValues(alpha: 0.48)
-                      : (isErrorMessage
-                            ? IOS26Theme.toolRed.withValues(alpha: 0.38)
-                            : IOS26Theme.glassBorderColor.withValues(
-                                alpha: 0.40,
-                              )),
-                  width: selected ? 1.2 : 0.6,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  IOS26Theme.spacingMd,
-                  IOS26Theme.spacingSm,
-                  IOS26Theme.spacingMd,
-                  IOS26Theme.spacingSm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (selectionMode && canSelect) ...[
-                      IOS26Icon(
-                        selected
-                            ? CupertinoIcons.check_mark_circled_solid
-                            : CupertinoIcons.circle,
-                        tone: selected
-                            ? IOS26IconTone.accent
-                            : IOS26IconTone.secondary,
-                        size: 16,
-                      ),
-                      const SizedBox(height: IOS26Theme.spacingXs),
-                    ],
-                    if (isUser)
-                      SelectableText(
-                        message.content,
-                        style: IOS26Theme.bodyLarge.copyWith(
-                          color: fg,
-                          height: 1.35,
                         ),
-                      )
-                    else if (isErrorMessage)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        Expanded(
+                          child: Column(
                             children: [
-                              const IOS26Icon(
-                                CupertinoIcons.exclamationmark_triangle_fill,
-                                tone: IOS26IconTone.danger,
-                                size: 14,
-                              ),
-                              const SizedBox(width: IOS26Theme.spacingXs),
                               Expanded(
-                                child: SelectableText(
-                                  message.content,
-                                  style: IOS26Theme.bodyMedium.copyWith(
-                                    color: fg,
-                                    height: 1.35,
-                                  ),
+                                child: ChatMessageList(
+                                  scrollController: _scrollController,
+                                  onScrollToBottom: () =>
+                                      _scrollToBottom(animated: true),
+                                  onLongPressMessage: _onLongPressMessage,
+                                  onTapMessage: (message) =>
+                                      _onTapMessage(message, service),
+                                  onCopyMessage: _copyMessageContent,
+                                  onTapPrompt: _onTapPrompt,
+                                  selectionMode: _selectionMode,
+                                  selectedMessageIds: _selectedMessageIds,
                                 ),
                               ),
+                              if (!_selectionMode)
+                                ChatInputBar(
+                                  controller: _inputController,
+                                  focusNode: _inputFocusNode,
+                                  sending: service.sending,
+                                  onSend: _send,
+                                ),
                             ],
                           ),
-                          if (errorData.reason.isNotEmpty) ...[
-                            const SizedBox(height: IOS26Theme.spacingSm),
-                            _ErrorReasonPanel(reason: errorData.reason),
-                          ],
-                        ],
-                      )
-                    else
-                      IOS26MarkdownBody(data: message.content),
-                    if (isUser && triggerHint != null) ...[
-                      const SizedBox(height: IOS26Theme.spacingXs),
-                      Text(
-                        triggerHint,
-                        style: IOS26Theme.bodySmall.copyWith(
-                          color: IOS26Theme.textTertiary,
-                          height: 1.25,
                         ),
-                      ),
-                    ],
-                    if (!isUser && !isErrorMessage && thinking.isNotEmpty) ...[
-                      const SizedBox(height: IOS26Theme.spacingSm),
-                      _ThinkingPanel(thinking: thinking),
-                    ],
-                    const SizedBox(height: IOS26Theme.spacingXs),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IOS26Button.plain(
-                        key: ValueKey(
-                          'xiao_mi_message_copy_${message.id ?? message.createdAt.millisecondsSinceEpoch}',
-                        ),
-                        minimumSize: Size.zero,
-                        padding: EdgeInsets.zero,
-                        onPressed: onCopy,
-                        child: Text(
-                          l10n.work_log_ai_summary_copy_button,
-                          style: IOS26Theme.bodySmall.copyWith(
-                            color: IOS26Theme.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      ],
+                    ),
+                  ),
+                  if (_showScrollToBottom)
+                    Positioned(
+                      right: IOS26Theme.spacingXl,
+                      bottom: 110,
+                      child: IOS26IconButton(
+                        icon: CupertinoIcons.arrow_down,
+                        semanticLabel: l10n.xiao_mi_scroll_to_bottom_semantic,
+                        onPressed: () => _scrollToBottom(animated: true),
+                        tone: IOS26IconTone.accent,
+                        style: IOS26IconButtonStyle.chip,
+                        padding: const EdgeInsets.all(IOS26Theme.spacingSm),
+                        borderRadius:
+                            BorderRadius.circular(IOS26Theme.radiusFull),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String? _resolveTriggerHint(AppLocalizations l10n, String? presetId) {
-    if (presetId == null || presetId.trim().isEmpty) return null;
-    return switch (presetId) {
-      'work_log_week_summary' => l10n.xiao_mi_message_trigger_custom,
-      'work_log_month_summary' => l10n.xiao_mi_message_trigger_custom,
-      'work_log_quarter_summary' => l10n.xiao_mi_message_trigger_custom,
-      'work_log_year_summary' =>
-        l10n.xiao_mi_message_trigger_work_log_year_summary,
-      _ => l10n.xiao_mi_message_trigger_custom,
-    };
-  }
-
-  _MessageErrorData? _resolveErrorData(Map<String, dynamic>? metadata) {
-    final value =
-        (metadata ??
-        const <String, dynamic>{})[XiaoMiChatService.assistantErrorMetadataKey];
-    if (value is! Map) return null;
-    final map = value.cast<Object?, Object?>();
-    final reason = (map['reason']?.toString() ?? '').trim();
-    if (reason.isEmpty) return null;
-    return _MessageErrorData(reason: reason);
-  }
-}
-
-class _MessageErrorData {
-  final String reason;
-
-  const _MessageErrorData({required this.reason});
-}
-
-class _ThinkingPanel extends StatefulWidget {
-  final String thinking;
-
-  const _ThinkingPanel({required this.thinking});
-
-  @override
-  State<_ThinkingPanel> createState() => _ThinkingPanelState();
-}
-
-class _ErrorReasonPanel extends StatefulWidget {
-  final String reason;
-
-  const _ErrorReasonPanel({required this.reason});
-
-  @override
-  State<_ErrorReasonPanel> createState() => _ErrorReasonPanelState();
-}
-
-class _ErrorReasonPanelState extends State<_ErrorReasonPanel> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        IOS26Button.plain(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 0,
-            vertical: IOS26Theme.spacingXs,
-          ),
-          onPressed: () => setState(() => _expanded = !_expanded),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const IOS26Icon(
-                CupertinoIcons.info_circle,
-                tone: IOS26IconTone.danger,
-                size: 14,
-              ),
-              const SizedBox(width: IOS26Theme.spacingXs),
-              Text(
-                '查看错误原因',
-                style: IOS26Theme.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.toolRed,
-                ),
-              ),
-              const SizedBox(width: 4),
-              IOS26Icon(
-                _expanded
-                    ? CupertinoIcons.chevron_up
-                    : CupertinoIcons.chevron_down,
-                tone: IOS26IconTone.secondary,
-                size: 12,
-              ),
-            ],
-          ),
-        ),
-        if (_expanded)
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: IOS26Theme.toolRed.withValues(alpha: 0.5),
-                  width: 2,
-                ),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(
-              IOS26Theme.spacingSm,
-              0,
-              0,
-              IOS26Theme.spacingXs,
-            ),
-            child: SelectableText(
-              widget.reason,
-              style: IOS26Theme.bodySmall.copyWith(
-                color: IOS26Theme.textSecondary,
-                height: 1.35,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ThinkingPanelState extends State<_ThinkingPanel> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        IOS26Button.plain(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 0,
-            vertical: IOS26Theme.spacingXs,
-          ),
-          onPressed: () => setState(() => _expanded = !_expanded),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const IOS26Icon(
-                CupertinoIcons.lightbulb,
-                tone: IOS26IconTone.accent,
-                size: 15,
-              ),
-              const SizedBox(width: IOS26Theme.spacingXs),
-              Text(
-                '思考过程',
-                style: IOS26Theme.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: IOS26Theme.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              IOS26Icon(
-                _expanded
-                    ? CupertinoIcons.chevron_up
-                    : CupertinoIcons.chevron_down,
-                tone: IOS26IconTone.secondary,
-                size: 12,
-              ),
-            ],
-          ),
-        ),
-        if (_expanded)
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: IOS26Theme.textTertiary.withValues(alpha: 0.6),
-                  width: 2,
-                ),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(
-              IOS26Theme.spacingSm,
-              0,
-              0,
-              IOS26Theme.spacingXs,
-            ),
-            child: IOS26MarkdownBody(data: widget.thinking),
-          ),
-      ],
-    );
-  }
-}
-
-class _QuickPromptChip extends StatelessWidget {
-  final XiaoMiQuickPrompt prompt;
-  final VoidCallback onTap;
-
-  const _QuickPromptChip({required this.prompt, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: IOS26Theme.surfaceColor.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
-      ),
-      child: IOS26Button.plain(
-        padding: const EdgeInsets.symmetric(
-          horizontal: IOS26Theme.spacingMd,
-          vertical: 6,
-        ),
-        minimumSize: IOS26Theme.minimumTapSize,
-        onPressed: onTap,
-        child: Text(
-          prompt.text,
-          style: IOS26Theme.bodySmall.copyWith(
-            fontWeight: FontWeight.w600,
-            color: IOS26Theme.textPrimary,
+                ],
+              );
+            },
           ),
         ),
       ),
