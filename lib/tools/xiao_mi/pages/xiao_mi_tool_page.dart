@@ -318,6 +318,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
                               Expanded(
                                 child: ChatMessageList(
                                   scrollController: _scrollController,
+                                  showScrollToBottom: _showScrollToBottom,
                                   onScrollToBottom: () =>
                                       _scrollToBottom(animated: true),
                                   onLongPressMessage: _onLongPressMessage,
@@ -353,8 +354,9 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
                         tone: IOS26IconTone.accent,
                         style: IOS26IconButtonStyle.chip,
                         padding: const EdgeInsets.all(IOS26Theme.spacingSm),
-                        borderRadius:
-                            BorderRadius.circular(IOS26Theme.radiusFull),
+                        borderRadius: BorderRadius.circular(
+                          IOS26Theme.radiusFull,
+                        ),
                       ),
                     ),
                 ],

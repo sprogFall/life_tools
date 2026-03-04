@@ -20,7 +20,10 @@ void main() {
     });
 
     test('空会话欢迎态应使用 ChatEmptyState 组件', () {
-      expect(source, contains('ChatEmptyState'));
+      final messageListSource = File(
+        'lib/tools/xiao_mi/widgets/chat_message_list.dart',
+      ).readAsStringSync();
+      expect(messageListSource, contains('ChatEmptyState'));
       expect(
         File('lib/tools/xiao_mi/widgets/chat_empty_state.dart').existsSync(),
         isTrue,
@@ -86,7 +89,10 @@ void main() {
     });
 
     test('应使用 ChatTypingIndicator 显示AI输入状态', () {
-      expect(source, contains('ChatTypingIndicator'));
+      final messageListSource = File(
+        'lib/tools/xiao_mi/widgets/chat_message_list.dart',
+      ).readAsStringSync();
+      expect(messageListSource, contains('ChatTypingIndicator'));
       expect(
         File(
           'lib/tools/xiao_mi/widgets/chat_typing_indicator.dart',
@@ -98,9 +104,7 @@ void main() {
     test('应使用 ChatMessageList 组件管理消息列表', () {
       expect(source, contains('ChatMessageList'));
       expect(
-        File(
-          'lib/tools/xiao_mi/widgets/chat_message_list.dart',
-        ).existsSync(),
+        File('lib/tools/xiao_mi/widgets/chat_message_list.dart').existsSync(),
         isTrue,
       );
     });

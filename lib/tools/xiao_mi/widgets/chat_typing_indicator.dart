@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/ios26_theme.dart';
-import '../../../core/widgets/glass_container.dart';
 
 /// ChatGPT风格打字指示器动画
 class ChatTypingIndicator extends StatefulWidget {
@@ -25,28 +24,26 @@ class _ChatTypingIndicatorState extends State<ChatTypingIndicator>
     super.initState();
     _controllers = List.generate(
       _dotCount,
-      (index) => AnimationController(
-        vsync: this,
-        duration: _animationDuration,
-      ),
+      (index) => AnimationController(vsync: this, duration: _animationDuration),
     );
 
     _animations = _controllers.map((controller) {
       return TweenSequence<double>([
         TweenSequenceItem(
-          tween: Tween(begin: 0.0, end: 1.0)
-              .chain(CurveTween(curve: Curves.easeOutCubic)),
+          tween: Tween(
+            begin: 0.0,
+            end: 1.0,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
           weight: 25,
         ),
         TweenSequenceItem(
-          tween: Tween(begin: 1.0, end: 0.0)
-              .chain(CurveTween(curve: Curves.easeInCubic)),
+          tween: Tween(
+            begin: 1.0,
+            end: 0.0,
+          ).chain(CurveTween(curve: Curves.easeInCubic)),
           weight: 25,
         ),
-        TweenSequenceItem(
-          tween: ConstantTween(0.0),
-          weight: 50,
-        ),
+        TweenSequenceItem(tween: ConstantTween(0.0), weight: 50),
       ]).animate(controller);
     }).toList();
 

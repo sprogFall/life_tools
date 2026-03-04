@@ -1,9 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/ios26_theme.dart';
-import '../../../core/widgets/glass_container.dart';
 import '../../../core/widgets/ios26_markdown.dart';
 import '../../../l10n/app_localizations.dart';
 import '../models/xiao_mi_message.dart';
@@ -46,8 +44,9 @@ class ChatMessageBubble extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment:
-              isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: isUser
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           children: [
             // AI头像（只在AI消息且需要显示时）
             if (!isUser && showAvatar) ...[
@@ -59,8 +58,9 @@ class ChatMessageBubble extends StatelessWidget {
             Flexible(
               flex: 4,
               child: Column(
-                crossAxisAlignment:
-                    isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment: isUser
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
                   _buildBubbleContent(context, l10n, isUser),
                   // 复制按钮（hover效果）
@@ -87,16 +87,13 @@ class ChatMessageBubble extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            IOS26Theme.primaryColor,
-            IOS26Theme.secondaryColor,
-          ],
+          colors: [IOS26Theme.primaryColor, IOS26Theme.secondaryColor],
         ),
       ),
-      child: const Icon(
+      child: const IOS26Icon(
         CupertinoIcons.bubble_left_fill,
         size: 14,
-        color: Colors.white,
+        tone: IOS26IconTone.onAccent,
       ),
     );
   }
@@ -156,19 +153,19 @@ class ChatMessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (selectionMode && message.id != null) ...[
-              Icon(
+              IOS26Icon(
                 selected
                     ? CupertinoIcons.check_mark_circled_solid
                     : CupertinoIcons.circle,
                 size: 16,
-                color: Colors.white.withValues(alpha: 0.9),
+                color: IOS26Theme.onPrimaryColor.withValues(alpha: 0.9),
               ),
               const SizedBox(height: IOS26Theme.spacingXs),
             ],
             SelectableText(
               message.content,
               style: IOS26Theme.bodyLarge.copyWith(
-                color: Colors.white,
+                color: IOS26Theme.onPrimaryColor,
                 height: 1.35,
               ),
             ),
@@ -177,7 +174,7 @@ class ChatMessageBubble extends StatelessWidget {
               Text(
                 triggerHint,
                 style: IOS26Theme.bodySmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: IOS26Theme.onPrimaryColor.withValues(alpha: 0.7),
                   height: 1.25,
                 ),
               ),
@@ -227,12 +224,12 @@ class ChatMessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (selectionMode && message.id != null) ...[
-              Icon(
+              IOS26Icon(
                 selected
                     ? CupertinoIcons.check_mark_circled_solid
                     : CupertinoIcons.circle,
                 size: 16,
-                color: IOS26Theme.primaryColor,
+                tone: IOS26IconTone.accent,
               ),
               const SizedBox(height: IOS26Theme.spacingXs),
             ],
@@ -250,17 +247,20 @@ class ChatMessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorContent(AppLocalizations l10n, _MessageErrorData errorData) {
+  Widget _buildErrorContent(
+    AppLocalizations l10n,
+    _MessageErrorData errorData,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
+            IOS26Icon(
               CupertinoIcons.exclamationmark_triangle_fill,
               size: 14,
-              color: IOS26Theme.toolRed,
+              tone: IOS26IconTone.danger,
             ),
             const SizedBox(width: IOS26Theme.spacingXs),
             Expanded(
@@ -331,10 +331,10 @@ class _ErrorReasonPanelState extends State<_ErrorReasonPanel> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              IOS26Icon(
                 CupertinoIcons.info_circle,
                 size: 14,
-                color: IOS26Theme.toolRed,
+                tone: IOS26IconTone.danger,
               ),
               const SizedBox(width: IOS26Theme.spacingXs),
               Text(
@@ -345,12 +345,12 @@ class _ErrorReasonPanelState extends State<_ErrorReasonPanel> {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
+              IOS26Icon(
                 _expanded
                     ? CupertinoIcons.chevron_up
                     : CupertinoIcons.chevron_down,
                 size: 12,
-                color: IOS26Theme.textTertiary,
+                tone: IOS26IconTone.secondary,
               ),
             ],
           ),
@@ -395,7 +395,6 @@ class _CopyButton extends StatefulWidget {
 }
 
 class _CopyButtonState extends State<_CopyButton> {
-  bool _hovered = false;
   bool _copied = false;
 
   void _handleTap() {
@@ -410,42 +409,38 @@ class _CopyButtonState extends State<_CopyButton> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: _handleTap,
-        child: AnimatedOpacity(
-          opacity: _hovered || _copied ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 150),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: IOS26Theme.spacingSm,
-              vertical: 2,
+    return GestureDetector(
+      onTap: _handleTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: IOS26Theme.spacingSm,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: IOS26Theme.surfaceColor.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusSm),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IOS26Icon(
+              _copied ? CupertinoIcons.checkmark : CupertinoIcons.doc_on_doc,
+              size: 10,
+              color: _copied
+                  ? IOS26Theme.primaryColor
+                  : IOS26Theme.textTertiary,
             ),
-            decoration: BoxDecoration(
-              color: IOS26Theme.surfaceColor.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(IOS26Theme.radiusSm),
+            const SizedBox(width: 2),
+            Text(
+              _copied ? '已复制' : '复制',
+              style: IOS26Theme.bodySmall.copyWith(
+                fontSize: 10,
+                color: _copied
+                    ? IOS26Theme.primaryColor
+                    : IOS26Theme.textTertiary,
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _copied ? CupertinoIcons.checkmark : CupertinoIcons.doc_on_doc,
-                  size: 10,
-                  color: IOS26Theme.textTertiary,
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  _copied ? '已复制' : '复制',
-                  style: IOS26Theme.bodySmall.copyWith(
-                    fontSize: 10,
-                    color: IOS26Theme.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );

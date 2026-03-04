@@ -23,6 +23,7 @@ class ChatMessageList extends StatelessWidget {
   final void Function(XiaoMiQuickPrompt) onTapPrompt;
   final bool selectionMode;
   final Set<int> selectedMessageIds;
+  final bool showScrollToBottom;
 
   const ChatMessageList({
     super.key,
@@ -34,6 +35,7 @@ class ChatMessageList extends StatelessWidget {
     required this.onTapPrompt,
     required this.selectionMode,
     required this.selectedMessageIds,
+    this.showScrollToBottom = false,
   });
 
   /// 判断是否显示头像（当消息角色变化时显示）
@@ -72,10 +74,12 @@ class ChatMessageList extends StatelessWidget {
           );
         }
 
-        // 自动滚动到底部
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          onScrollToBottom();
-        });
+        // 自动滚动到底部（仅在未手动上滑时）
+        if (!showScrollToBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            onScrollToBottom();
+          });
+        }
 
         return ListView.builder(
           controller: scrollController,

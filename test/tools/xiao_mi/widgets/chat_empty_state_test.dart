@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:namer/tools/xiao_mi/ai/xiao_mi_prompt_resolver.dart';
-import 'package:namer/tools/xiao_mi/widgets/chat_empty_state.dart';
+import 'package:life_tools/tools/xiao_mi/ai/xiao_mi_prompt_resolver.dart';
+import 'package:life_tools/tools/xiao_mi/widgets/chat_empty_state.dart';
 
 void main() {
   group('ChatEmptyState', () {
@@ -26,16 +26,8 @@ void main() {
 
     testWidgets('显示快捷提示按钮', (tester) async {
       final prompts = [
-        const XiaoMiQuickPrompt(
-          id: 'test1',
-          text: '测试提示1',
-          description: '描述1',
-        ),
-        const XiaoMiQuickPrompt(
-          id: 'test2',
-          text: '测试提示2',
-          description: '描述2',
-        ),
+        const XiaoMiQuickPrompt(id: 'test1', text: '测试提示1', description: '描述1'),
+        const XiaoMiQuickPrompt(id: 'test2', text: '测试提示2', description: '描述2'),
       ];
 
       await tester.pumpWidget(
@@ -98,7 +90,10 @@ void main() {
       );
 
       // 验证头像容器存在（使用Cupertino图标）
-      expect(find.byIcon(CupertinoIcons.bubble_left_bubble_right_fill), findsOneWidget);
+      expect(
+        find.byIcon(CupertinoIcons.bubble_left_bubble_right_fill),
+        findsOneWidget,
+      );
     });
   });
 }

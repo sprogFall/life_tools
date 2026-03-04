@@ -1,9 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/ios26_theme.dart';
-import '../../../core/widgets/glass_container.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// ChatGPT风格底部输入栏
@@ -111,13 +108,6 @@ class _ChatInputBarState extends State<ChatInputBar>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // 语音按钮（占位）
-                _VoiceButton(
-                  onPressed: () {
-                    // TODO: 语音输入功能
-                  },
-                ),
-                const SizedBox(width: IOS26Theme.spacingSm),
                 // 输入框
                 Expanded(
                   child: _InputField(
@@ -129,10 +119,7 @@ class _ChatInputBarState extends State<ChatInputBar>
                 ),
                 const SizedBox(width: IOS26Theme.spacingSm),
                 // 发送按钮
-                _SendButton(
-                  sending: widget.sending,
-                  onPressed: _handleSend,
-                ),
+                _SendButton(sending: widget.sending, onPressed: _handleSend),
               ],
             ),
           ),
@@ -209,12 +196,11 @@ class _SendButton extends StatelessWidget {
               : LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    IOS26Theme.primaryColor,
-                    IOS26Theme.secondaryColor,
-                  ],
+                  colors: [IOS26Theme.primaryColor, IOS26Theme.secondaryColor],
                 ),
-          color: sending ? IOS26Theme.surfaceColor.withValues(alpha: 0.5) : null,
+          color: sending
+              ? IOS26Theme.surfaceColor.withValues(alpha: 0.5)
+              : null,
         ),
         child: Center(
           child: sending
@@ -222,52 +208,11 @@ class _SendButton extends StatelessWidget {
                   radius: 10,
                   color: IOS26Theme.textSecondary,
                 )
-              : const Icon(
+              : const IOS26Icon(
                   CupertinoIcons.arrow_up,
                   size: 18,
-                  color: Colors.white,
+                  tone: IOS26IconTone.onAccent,
                 ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VoiceButton extends StatefulWidget {
-  final VoidCallback onPressed;
-
-  const _VoiceButton({required this.onPressed});
-
-  @override
-  State<_VoiceButton> createState() => _VoiceButtonState();
-}
-
-class _VoiceButtonState extends State<_VoiceButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onPressed,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _pressed
-              ? IOS26Theme.surfaceColor.withValues(alpha: 0.8)
-              : IOS26Theme.surfaceColor.withValues(alpha: 0.4),
-        ),
-        child: Center(
-          child: Icon(
-            CupertinoIcons.mic,
-            size: 18,
-            color: IOS26Theme.textSecondary,
-          ),
         ),
       ),
     );

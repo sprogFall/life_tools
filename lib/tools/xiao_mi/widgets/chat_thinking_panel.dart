@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/widgets/ios26_markdown.dart';
@@ -58,9 +57,7 @@ class _ChatThinkingPanelState extends State<ChatThinkingPanel>
         GestureDetector(
           onTap: _toggleExpanded,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              vertical: IOS26Theme.spacingXs,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: IOS26Theme.spacingXs),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -79,10 +76,10 @@ class _ChatThinkingPanelState extends State<ChatThinkingPanel>
                       ],
                     ),
                   ),
-                  child: const Icon(
+                  child: const IOS26Icon(
                     CupertinoIcons.lightbulb_fill,
                     size: 10,
-                    color: Colors.white,
+                    tone: IOS26IconTone.onAccent,
                   ),
                 ),
                 const SizedBox(width: IOS26Theme.spacingXs),
@@ -99,10 +96,10 @@ class _ChatThinkingPanelState extends State<ChatThinkingPanel>
                   builder: (context, child) {
                     return Transform.rotate(
                       angle: _rotationAnimation.value * 3.14159,
-                      child: Icon(
+                      child: IOS26Icon(
                         CupertinoIcons.chevron_down,
                         size: 12,
-                        color: IOS26Theme.textTertiary,
+                        tone: IOS26IconTone.secondary,
                       ),
                     );
                   },
@@ -132,8 +129,9 @@ class _ChatThinkingPanelState extends State<ChatThinkingPanel>
             ),
             child: IOS26MarkdownBody(data: widget.thinking),
           ),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
           sizeCurve: Curves.easeInOut,
         ),

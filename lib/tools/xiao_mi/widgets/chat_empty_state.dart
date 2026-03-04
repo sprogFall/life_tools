@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 import '../../../core/theme/ios26_theme.dart';
-import '../../../core/widgets/glass_container.dart';
 import '../ai/xiao_mi_prompt_resolver.dart';
 
 /// ChatGPT风格空状态/欢迎页
@@ -54,10 +52,7 @@ class ChatEmptyState extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    IOS26Theme.primaryColor,
-                    IOS26Theme.secondaryColor,
-                  ],
+                  colors: [IOS26Theme.primaryColor, IOS26Theme.secondaryColor],
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -67,10 +62,10 @@ class ChatEmptyState extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: IOS26Icon(
                 CupertinoIcons.bubble_left_bubble_right_fill,
                 size: 28,
-                color: Colors.white,
+                tone: IOS26IconTone.onAccent,
               ),
             ),
             const SizedBox(height: IOS26Theme.spacingLg),
@@ -134,7 +129,7 @@ class _QuickPromptChip extends StatelessWidget {
           horizontal: IOS26Theme.spacingMd,
           vertical: 8,
         ),
-        minSize: IOS26Theme.minimumTapSize.height,
+        minimumSize: IOS26Theme.minimumTapSize,
         onPressed: onTap,
         child: Text(
           prompt.text,
