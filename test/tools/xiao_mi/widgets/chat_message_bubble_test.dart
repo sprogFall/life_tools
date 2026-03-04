@@ -161,5 +161,65 @@ void main() {
 
       expect(find.text('思考过程'), findsOneWidget);
     });
+
+    testWidgets('非选择模式下用户消息也应展示复制按钮并可触发回调', (tester) async {
+      var copied = false;
+      final message = XiaoMiMessage(
+        id: 2,
+        conversationId: 1,
+        role: XiaoMiMessageRole.user,
+        content: '用户可复制内容',
+        metadata: null,
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () => copied = true,
+          ),
+        ),
+      );
+
+      expect(find.text('复制'), findsOneWidget);
+      await tester.tap(find.text('复制'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(copied, isTrue);
+      expect(find.text('已复制'), findsNothing);
+    });
+
+    testWidgets('选择模式下不应展示复制按钮', (tester) async {
+      final message = XiaoMiMessage(
+        id: 3,
+        conversationId: 1,
+        role: XiaoMiMessageRole.assistant,
+        content: '选择模式消息',
+        metadata: null,
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: true,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('复制'), findsNothing);
+      expect(find.text('已复制'), findsNothing);
+    });
   });
 }

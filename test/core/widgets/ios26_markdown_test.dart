@@ -17,4 +17,10 @@ void main() {
     expect(codeBackgroundColor, isNotNull);
     expect(codeBackgroundColor, isNot(IOS26Theme.backgroundColor));
   });
+
+  test('Markdown 表格默认应启用可横向滚动的列宽策略', () {
+    final styleSheet = ios26MarkdownStyleSheet();
+
+    expect(styleSheet.tableColumnWidth, isA<IntrinsicColumnWidth>());
+  });
 }

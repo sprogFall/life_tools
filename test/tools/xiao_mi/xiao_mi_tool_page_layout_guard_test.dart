@@ -68,11 +68,12 @@ void main() {
       expect(sheetSource, isNot(contains('ListView.separated(')));
     });
 
-    test('助手消息应使用气泡容器', () {
+    test('助手消息应全幅展示而非气泡容器', () {
       final bubbleSource = File(
         'lib/tools/xiao_mi/widgets/chat_message_bubble.dart',
       ).readAsStringSync();
-      expect(bubbleSource, contains('GlassContainer'));
+      expect(bubbleSource, isNot(contains('GlassContainer')));
+      expect(bubbleSource, contains('Expanded('));
     });
 
     test('消息气泡应提供复制按钮并支持长按进入多选删除', () {
@@ -86,6 +87,11 @@ void main() {
       expect(source, contains('_selectionMode'));
       expect(source, contains('_selectedMessageIds'));
       expect(source, contains('deleteMessages('));
+    });
+
+    test('复制后应仅显示浮窗提示而不是确认弹窗', () {
+      expect(source, isNot(contains('AppDialogs.showInfo(')));
+      expect(source, contains('context.read<ToastService>().showSuccess'));
     });
 
     test('应使用 ChatTypingIndicator 显示AI输入状态', () {

@@ -11,6 +11,7 @@ import '../../../core/theme/ios26_theme.dart';
 import '../../../core/ui/app_dialogs.dart';
 import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../core/widgets/ios26_sheet_header.dart';
+import '../../../core/widgets/ios26_toast.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../pages/home_page.dart';
 import '../ai/xiao_mi_prompt_resolver.dart';
@@ -207,11 +208,8 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    await AppDialogs.showInfo(
-      context,
-      title: l10n.work_log_ai_summary_copy_done_title,
-      content: l10n.xiao_mi_message_copy_done_content,
-      buttonText: l10n.common_ok,
+    context.read<ToastService>().showSuccess(
+      l10n.xiao_mi_message_copy_done_content,
     );
   }
 

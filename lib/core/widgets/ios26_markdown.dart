@@ -76,6 +76,11 @@ MarkdownStyleSheet ios26MarkdownStyleSheet({
       color: resolvedLink,
       decoration: TextDecoration.underline,
     ),
+    tableColumnWidth: const IntrinsicColumnWidth(),
+    tableCellsPadding: const EdgeInsets.symmetric(
+      horizontal: IOS26Theme.spacingSm,
+      vertical: IOS26Theme.spacingXs,
+    ),
   );
 }
 
