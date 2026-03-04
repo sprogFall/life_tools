@@ -4,6 +4,9 @@ import 'package:markdown/markdown.dart' as md;
 
 import '../theme/ios26_theme.dart';
 
+const double _tableCellMinWidth = 136;
+const double _tableCellMaxWidth = 240;
+
 MarkdownStyleSheet ios26MarkdownStyleSheet({
   Color? accentColor,
   Color? codeColor,
@@ -76,7 +79,13 @@ MarkdownStyleSheet ios26MarkdownStyleSheet({
       color: resolvedLink,
       decoration: TextDecoration.underline,
     ),
-    tableColumnWidth: const IntrinsicColumnWidth(),
+    tableColumnWidth: const MaxColumnWidth(
+      FixedColumnWidth(_tableCellMinWidth),
+      MinColumnWidth(
+        IntrinsicColumnWidth(),
+        FixedColumnWidth(_tableCellMaxWidth),
+      ),
+    ),
     tableCellsPadding: const EdgeInsets.symmetric(
       horizontal: IOS26Theme.spacingSm,
       vertical: IOS26Theme.spacingXs,

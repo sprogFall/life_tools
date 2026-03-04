@@ -18,9 +18,19 @@ void main() {
     expect(codeBackgroundColor, isNot(IOS26Theme.backgroundColor));
   });
 
-  test('Markdown 表格默认应启用可横向滚动的列宽策略', () {
+  test('Markdown 表格默认应启用移动端友好列宽策略', () {
     final styleSheet = ios26MarkdownStyleSheet();
+    final columnWidth = styleSheet.tableColumnWidth;
 
-    expect(styleSheet.tableColumnWidth, isA<IntrinsicColumnWidth>());
+    expect(columnWidth, isA<MaxColumnWidth>());
+    final maxWidth = columnWidth! as MaxColumnWidth;
+    expect(maxWidth.a, isA<FixedColumnWidth>());
+    expect((maxWidth.a as FixedColumnWidth).value, closeTo(136, 0.01));
+
+    expect(maxWidth.b, isA<MinColumnWidth>());
+    final minWidth = maxWidth.b as MinColumnWidth;
+    expect(minWidth.a, isA<IntrinsicColumnWidth>());
+    expect(minWidth.b, isA<FixedColumnWidth>());
+    expect((minWidth.b as FixedColumnWidth).value, closeTo(240, 0.01));
   });
 }

@@ -97,6 +97,32 @@ class XiaoMiWorkLogSummaryPromptBuilder {
     );
   }
 
+  Future<String?> buildDateRange({
+    required DateTime start,
+    required DateTime endInclusive,
+    String? styleId,
+  }) {
+    final normalizedStart = _normalizeDay(start);
+    final normalizedEnd = _normalizeDay(endInclusive);
+    final rangeStart = normalizedStart.isBefore(normalizedEnd)
+        ? normalizedStart
+        : normalizedEnd;
+    final rangeEnd = normalizedStart.isBefore(normalizedEnd)
+        ? normalizedEnd
+        : normalizedStart;
+    return _buildRange(
+      start: rangeStart,
+      endInclusive: rangeEnd,
+      style: _resolveStyle(
+        preferredStyleId: styleId,
+        fallbackStyleId: _resolveRangeFallbackStyle(
+          start: rangeStart,
+          endInclusive: rangeEnd,
+        ),
+      ),
+    );
+  }
+
   Future<String?> _buildRange({
     required DateTime start,
     required DateTime endInclusive,
@@ -149,6 +175,16 @@ class XiaoMiWorkLogSummaryPromptBuilder {
       return WorkLogAiSummaryPrompts.resolveStyle(styleId);
     }
     return WorkLogAiSummaryPrompts.resolveStyle(fallbackStyleId);
+  }
+
+  static String _resolveRangeFallbackStyle({
+    required DateTime start,
+    required DateTime endInclusive,
+  }) {
+    final totalDays = endInclusive.difference(start).inDays + 1;
+    if (totalDays <= 14) return 'concise';
+    if (totalDays <= 62) return 'review';
+    return 'management';
   }
 }
 

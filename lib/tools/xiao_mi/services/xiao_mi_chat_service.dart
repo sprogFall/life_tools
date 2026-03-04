@@ -319,8 +319,16 @@ class XiaoMiChatService extends ChangeNotifier {
     required String currentUserInput,
   }) {
     final aiHistory = _buildAiHistory(history);
+    final nowText = _formatDateForPrompt(_nowProvider());
+    final systemPrompt =
+        '''
+${XiaoMiAiPrompts.preRouteUseCase.systemPrompt}
+
+系统当前日期（本地）：$nowText
+处理“本周/本月/本季度/今年”等相对时间时，必须基于该日期计算。
+''';
     return <AiMessage>[
-      AiMessage.system(XiaoMiAiPrompts.preRouteUseCase.systemPrompt),
+      AiMessage.system(systemPrompt),
       ...aiHistory,
       AiMessage.user(
         AiPromptComposer.compose(
@@ -329,6 +337,11 @@ class XiaoMiChatService extends ChangeNotifier {
         ),
       ),
     ];
+  }
+
+  static String _formatDateForPrompt(DateTime dateTime) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${dateTime.year}-${two(dateTime.month)}-${two(dateTime.day)}';
   }
 
   Future<void> _autoTitleIfNeeded(int conversationId) async {

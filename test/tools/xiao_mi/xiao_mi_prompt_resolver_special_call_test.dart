@@ -233,5 +233,112 @@ void main() {
       expect(resolved.aiPrompt, contains('内容：季度内记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：季度外记录')));
     });
+
+    test('work_log_range_summary 应支持 YYYYMMDD 日期区间', () async {
+      final now = DateTime(2026, 8, 20, 9);
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务E',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 1, 15),
+          minutes: 35,
+          content: '年度内记录',
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2025, 12, 31),
+          minutes: 20,
+          content: '年度外记录',
+          now: now,
+        ),
+      );
+
+      final resolver = XiaoMiPromptResolver(
+        workLogRepository: repository,
+        nowProvider: () => now,
+      );
+
+      final resolved = await resolver.resolveSpecialCall(
+        callId: 'work_log_range_summary',
+        displayText: '今年工作总结',
+        arguments: const <String, Object?>{
+          'start_date': '20260101',
+          'end_date': '20261231',
+        },
+      );
+
+      expect(
+        (resolved.metadata ?? const {})['presetId'],
+        'work_log_year_summary',
+      );
+      expect(resolved.aiPrompt, contains('时间范围：2026-01-01 至 2026-12-31（含）'));
+      expect(resolved.aiPrompt, contains('内容：年度内记录'));
+      expect(resolved.aiPrompt, isNot(contains('内容：年度外记录')));
+    });
+
+    test('今年工作总结应优先按当前年统计，忽略错误 year 参数', () async {
+      final now = DateTime(2026, 8, 20, 9);
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务F',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 6, 1),
+          minutes: 25,
+          content: '今年记录',
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2025, 6, 1),
+          minutes: 30,
+          content: '去年记录',
+          now: now,
+        ),
+      );
+
+      final resolver = XiaoMiPromptResolver(
+        workLogRepository: repository,
+        nowProvider: () => now,
+      );
+
+      final resolved = await resolver.resolveSpecialCall(
+        callId: 'work_log_year_summary',
+        displayText: '今年工作总结',
+        arguments: const <String, Object?>{'year': 2025},
+      );
+
+      expect(
+        (resolved.metadata ?? const {})['presetId'],
+        'work_log_year_summary',
+      );
+      expect(resolved.aiPrompt, contains('时间范围：2026-01-01 至 2026-12-31（含）'));
+      expect(resolved.aiPrompt, contains('内容：今年记录'));
+      expect(resolved.aiPrompt, isNot(contains('内容：去年记录')));
+    });
   });
 }

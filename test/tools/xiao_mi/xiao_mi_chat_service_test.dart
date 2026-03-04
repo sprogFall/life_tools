@@ -202,6 +202,89 @@ void main() {
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 
+    test('send 预选返回 work_log_range_summary 时应按日期区间注入工作记录', () async {
+      var now = DateTime(2026, 1, 1, 8, 0, 0);
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final workLogRepository = FakeWorkLogRepository();
+      final taskId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '任务范围',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 1, 1, 9),
+        ),
+      );
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 2, 3),
+          minutes: 45,
+          content: '年度范围内',
+          now: DateTime(2026, 2, 3, 9),
+        ),
+      );
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2025, 12, 31),
+          minutes: 30,
+          content: '年度范围外',
+          now: DateTime(2025, 12, 31, 9),
+        ),
+      );
+
+      final fakeClient = FakeOpenAiClient(
+        replyText:
+            '{"type":"special_call","call":"work_log_range_summary","arguments":{"start_date":"20260101","end_date":"20261231"}}',
+        streamReply: const [AiChatStreamChunk(textDelta: '范围总结完成')],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: workLogRepository,
+        ),
+      );
+      await service.init();
+      await service.send('今年工作总结');
+
+      expect(service.messages.length, 2);
+      expect(service.messages.last.content, '范围总结完成');
+      expect(
+        (service.messages.first.metadata ?? const {})['presetId'],
+        'work_log_year_summary',
+      );
+      expect(fakeClient.lastRequest, isNotNull);
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('时间范围：2026-01-01 至 2026-12-31（含）'),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('内容：年度范围内'),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        isNot(contains('内容：年度范围外')),
+      );
+      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
     test('send 失败时应在会话中写入错误消息并附带原因', () async {
       var now = DateTime(2026, 1, 1, 8, 0, 0);
       DateTime nextNow() {
