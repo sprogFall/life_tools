@@ -4,8 +4,7 @@ import 'package:markdown/markdown.dart' as md;
 
 import '../theme/ios26_theme.dart';
 
-const double _tableCellMinWidth = 136;
-const double _tableCellMaxWidth = 240;
+const double _tableCellWidth = 220;
 
 MarkdownStyleSheet ios26MarkdownStyleSheet({
   Color? accentColor,
@@ -79,13 +78,8 @@ MarkdownStyleSheet ios26MarkdownStyleSheet({
       color: resolvedLink,
       decoration: TextDecoration.underline,
     ),
-    tableColumnWidth: const MaxColumnWidth(
-      FixedColumnWidth(_tableCellMinWidth),
-      MinColumnWidth(
-        IntrinsicColumnWidth(),
-        FixedColumnWidth(_tableCellMaxWidth),
-      ),
-    ),
+    // flutter_markdown 仅在 Fixed/Intrinsic 列宽时启用表格横向滚动。
+    tableColumnWidth: const FixedColumnWidth(_tableCellWidth),
     tableCellsPadding: const EdgeInsets.symmetric(
       horizontal: IOS26Theme.spacingSm,
       vertical: IOS26Theme.spacingXs,
