@@ -17,6 +17,7 @@ class ChatMessageBubble extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onCopy;
+  final VoidCallback onExport;
 
   const ChatMessageBubble({
     super.key,
@@ -27,6 +28,7 @@ class ChatMessageBubble extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onCopy,
+    required this.onExport,
   });
 
   @override
@@ -63,7 +65,7 @@ class ChatMessageBubble extends StatelessWidget {
               _buildUserBubble(l10n),
               if (!selectionMode) ...[
                 const SizedBox(height: 2),
-                _CopyButton(onCopy: onCopy),
+                _MessageActions(onCopy: onCopy, onExport: onExport),
               ],
             ],
           ),
@@ -87,7 +89,7 @@ class ChatMessageBubble extends StatelessWidget {
               _buildAiContent(context, l10n),
               if (!selectionMode) ...[
                 const SizedBox(height: 2),
-                _CopyButton(onCopy: onCopy),
+                _MessageActions(onCopy: onCopy, onExport: onExport),
               ],
             ],
           ),
@@ -386,6 +388,25 @@ class _ErrorReasonPanelState extends State<_ErrorReasonPanel> {
   }
 }
 
+class _MessageActions extends StatelessWidget {
+  final VoidCallback onCopy;
+  final VoidCallback onExport;
+
+  const _MessageActions({required this.onCopy, required this.onExport});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _CopyButton(onCopy: onCopy),
+        const SizedBox(width: IOS26Theme.spacingXs),
+        _ExportButton(onExport: onExport),
+      ],
+    );
+  }
+}
+
 class _CopyButton extends StatefulWidget {
   final VoidCallback onCopy;
 
@@ -410,8 +431,48 @@ class _CopyButtonState extends State<_CopyButton> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return _MessageActionChip(
+      icon: _copied ? CupertinoIcons.checkmark : CupertinoIcons.doc_on_doc,
+      label: _copied ? '已复制' : '复制',
+      active: _copied,
       onTap: _handleTap,
+    );
+  }
+}
+
+class _ExportButton extends StatelessWidget {
+  final VoidCallback onExport;
+
+  const _ExportButton({required this.onExport});
+
+  @override
+  Widget build(BuildContext context) {
+    return _MessageActionChip(
+      icon: CupertinoIcons.arrow_up_doc,
+      label: '导出',
+      onTap: onExport,
+    );
+  }
+}
+
+class _MessageActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _MessageActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? IOS26Theme.primaryColor : IOS26Theme.textTertiary;
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: IOS26Theme.spacingSm,
@@ -424,22 +485,11 @@ class _CopyButtonState extends State<_CopyButton> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IOS26Icon(
-              _copied ? CupertinoIcons.checkmark : CupertinoIcons.doc_on_doc,
-              size: 10,
-              color: _copied
-                  ? IOS26Theme.primaryColor
-                  : IOS26Theme.textTertiary,
-            ),
+            IOS26Icon(icon, size: 10, color: color),
             const SizedBox(width: 2),
             Text(
-              _copied ? '已复制' : '复制',
-              style: IOS26Theme.bodySmall.copyWith(
-                fontSize: 10,
-                color: _copied
-                    ? IOS26Theme.primaryColor
-                    : IOS26Theme.textTertiary,
-              ),
+              label,
+              style: IOS26Theme.bodySmall.copyWith(fontSize: 10, color: color),
             ),
           ],
         ),

@@ -20,6 +20,7 @@ class ChatMessageList extends StatelessWidget {
   final void Function(XiaoMiMessage, XiaoMiChatService) onLongPressMessage;
   final void Function(XiaoMiMessage) onTapMessage;
   final Future<void> Function(String) onCopyMessage;
+  final Future<void> Function(XiaoMiMessage) onExportMessage;
   final void Function(XiaoMiQuickPrompt) onTapPrompt;
   final bool selectionMode;
   final Set<int> selectedMessageIds;
@@ -32,6 +33,7 @@ class ChatMessageList extends StatelessWidget {
     required this.onLongPressMessage,
     required this.onTapMessage,
     required this.onCopyMessage,
+    required this.onExportMessage,
     required this.onTapPrompt,
     required this.selectionMode,
     required this.selectedMessageIds,
@@ -115,6 +117,7 @@ class ChatMessageList extends StatelessWidget {
               onTap: () => onTapMessage(message),
               onLongPress: () => onLongPressMessage(message, service),
               onCopy: () => onCopyMessage(message.content),
+              onExport: () => onExportMessage(message),
             );
           },
         );

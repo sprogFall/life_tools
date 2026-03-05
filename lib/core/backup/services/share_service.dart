@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,6 +16,35 @@ class ShareService {
     String jsonText,
     String fileName,
   ) async {
+    return shareTextFile(
+      jsonText,
+      fileName,
+      subject: '小蜜备份文件',
+      mimeType: 'text/plain',
+    );
+  }
+
+  static Future<ShareResult> shareTextFile(
+    String text,
+    String fileName, {
+    String subject = '小蜜导出文件',
+    String mimeType = 'text/plain',
+  }) async {
+    final bytes = utf8.encode(text);
+    return shareBinaryFile(
+      Uint8List.fromList(bytes),
+      fileName,
+      subject: subject,
+      mimeType: mimeType,
+    );
+  }
+
+  static Future<ShareResult> shareBinaryFile(
+    Uint8List bytes,
+    String fileName, {
+    String subject = '小蜜导出文件',
+    String mimeType = 'application/octet-stream',
+  }) async {
     final tempDir = await getTemporaryDirectory();
     final shareDir = Directory('${tempDir.path}/$_shareTempFolder');
     await shareDir.create(recursive: true);
@@ -25,11 +55,11 @@ class ShareService {
     );
 
     final file = File('${shareDir.path}/$fileName');
-    await file.writeAsString(jsonText, encoding: utf8);
+    await file.writeAsBytes(bytes, flush: true);
 
     final result = await Share.shareXFiles([
-      XFile(file.path, mimeType: 'text/plain'),
-    ], subject: '小蜜备份文件');
+      XFile(file.path, mimeType: mimeType),
+    ], subject: subject);
 
     await cleanupShareTempFiles(
       directory: shareDir,

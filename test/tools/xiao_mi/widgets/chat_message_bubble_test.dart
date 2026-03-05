@@ -35,6 +35,7 @@ void main() {
             onTap: () {},
             onLongPress: () {},
             onCopy: () {},
+            onExport: () {},
           ),
         ),
       );
@@ -65,6 +66,7 @@ void main() {
             onTap: () {},
             onLongPress: () {},
             onCopy: () {},
+            onExport: () {},
           ),
         ),
       );
@@ -93,6 +95,7 @@ void main() {
             onTap: () {},
             onLongPress: () {},
             onCopy: () {},
+            onExport: () {},
           ),
         ),
       );
@@ -124,6 +127,7 @@ void main() {
             onTap: () {},
             onLongPress: () => longPressed = true,
             onCopy: () {},
+            onExport: () {},
           ),
         ),
       );
@@ -155,6 +159,7 @@ void main() {
             onTap: () {},
             onLongPress: () {},
             onCopy: () {},
+            onExport: () {},
           ),
         ),
       );
@@ -182,6 +187,7 @@ void main() {
             onTap: () {},
             onLongPress: () {},
             onCopy: () => copied = true,
+            onExport: () {},
           ),
         ),
       );
@@ -193,6 +199,37 @@ void main() {
 
       expect(copied, isTrue);
       expect(find.text('已复制'), findsNothing);
+    });
+
+    testWidgets('非选择模式下应展示导出按钮并触发回调', (tester) async {
+      var exported = false;
+      final message = XiaoMiMessage(
+        id: 4,
+        conversationId: 1,
+        role: XiaoMiMessageRole.assistant,
+        content: '导出测试',
+        metadata: null,
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+            onExport: () => exported = true,
+          ),
+        ),
+      );
+
+      expect(find.text('导出'), findsOneWidget);
+      await tester.tap(find.text('导出'));
+      await tester.pump();
+      expect(exported, isTrue);
     });
 
     testWidgets('选择模式下不应展示复制按钮', (tester) async {
@@ -214,12 +251,14 @@ void main() {
             onTap: () {},
             onLongPress: () {},
             onCopy: () {},
+            onExport: () {},
           ),
         ),
       );
 
       expect(find.text('复制'), findsNothing);
       expect(find.text('已复制'), findsNothing);
+      expect(find.text('导出'), findsNothing);
     });
   });
 }

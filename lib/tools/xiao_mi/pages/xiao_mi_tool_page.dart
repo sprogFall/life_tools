@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/ui/app_dialogs.dart';
+import '../../../core/utils/dev_log.dart';
 import '../../../core/widgets/ios26_home_leading_button.dart';
 import '../../../core/widgets/ios26_sheet_header.dart';
 import '../../../core/widgets/ios26_toast.dart';
@@ -18,6 +19,7 @@ import '../ai/xiao_mi_prompt_resolver.dart';
 import '../models/xiao_mi_conversation.dart';
 import '../models/xiao_mi_message.dart';
 import '../services/xiao_mi_chat_service.dart';
+import '../services/xiao_mi_message_export_service.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_message_list.dart';
 
@@ -33,6 +35,7 @@ class XiaoMiToolPage extends StatefulWidget {
 class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     with WidgetsBindingObserver {
   late final XiaoMiChatService _service;
+  late final XiaoMiMessageExportService _messageExportService;
   late final bool _ownsService;
 
   final _inputController = TextEditingController();
@@ -50,6 +53,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     _service =
         widget.service ??
         XiaoMiChatService(aiService: context.read<AiService>());
+    _messageExportService = XiaoMiMessageExportService();
     _scrollController.addListener(_handleScroll);
     Future.microtask(() => _service.init());
   }
@@ -213,6 +217,67 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     );
   }
 
+  Future<void> _exportMessage(XiaoMiMessage message) async {
+    final text = message.content.trim();
+    if (text.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final format = await _pickExportFormat(l10n);
+    if (!mounted || format == null) return;
+
+    final formatLabel = switch (format) {
+      XiaoMiMessageExportFormat.markdown => 'MD (.md)',
+      XiaoMiMessageExportFormat.pdf => 'PDF (.pdf)',
+    };
+
+    final confirmed = await AppDialogs.showConfirm(
+      context,
+      title: '确认导出消息？',
+      content: '将以 $formatLabel 格式导出当前消息，并拉起系统分享。',
+      cancelText: l10n.common_cancel,
+      confirmText: l10n.common_confirm,
+    );
+    if (!mounted || !confirmed) return;
+
+    try {
+      await _messageExportService.exportMessage(
+        message: message,
+        format: format,
+      );
+    } catch (error, stackTrace) {
+      devLog(
+        'xiao_mi_message_export_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      context.read<ToastService>().showError('导出失败，请稍后重试');
+    }
+  }
+
+  Future<XiaoMiMessageExportFormat?> _pickExportFormat(AppLocalizations l10n) {
+    return AppDialogs.showActionSheet<XiaoMiMessageExportFormat>(
+      context,
+      title: '选择导出格式',
+      actions: [
+        CupertinoActionSheetAction(
+          onPressed: () =>
+              Navigator.pop(context, XiaoMiMessageExportFormat.markdown),
+          child: const Text('MD (.md)'),
+        ),
+        CupertinoActionSheetAction(
+          onPressed: () =>
+              Navigator.pop(context, XiaoMiMessageExportFormat.pdf),
+          child: const Text('PDF (.pdf)'),
+        ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        onPressed: () => Navigator.pop(context),
+        child: Text(l10n.common_cancel),
+      ),
+    );
+  }
+
   Future<void> _deleteSelectedMessages(XiaoMiChatService service) async {
     final selectedCount = _selectedMessageIds.length;
     if (selectedCount == 0) return;
@@ -323,6 +388,7 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
                                   onTapMessage: (message) =>
                                       _onTapMessage(message, service),
                                   onCopyMessage: _copyMessageContent,
+                                  onExportMessage: _exportMessage,
                                   onTapPrompt: _onTapPrompt,
                                   selectionMode: _selectionMode,
                                   selectedMessageIds: _selectedMessageIds,
