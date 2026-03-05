@@ -165,8 +165,57 @@ void main() {
 
       expect(sharedBytes, isNotNull);
       expect(sharedBytes, isNotEmpty);
-      expect(printed.join('\n'), isNot(contains('Unable to find a font to draw')));
+      expect(
+        printed.join('\n'),
+        isNot(contains('Unable to find a font to draw')),
+      );
       expect(printed.join('\n'), isNot(contains('has no Unicode support')));
+    });
+
+    test('导出超长内容时不应因默认页数上限而失败', () async {
+      Uint8List? sharedBytes;
+      final veryLongContent = List<String>.generate(
+        24000,
+        (index) => 'long-content-line-$index',
+      ).join('\n');
+
+      final service = XiaoMiMessageExportService(
+        now: () => DateTime(2026, 3, 5, 12, 34, 56),
+        resolvePdfFont: () async => pw.Font.helvetica(),
+        shareTextFile:
+            ({
+              required String text,
+              required String fileName,
+              required String subject,
+              required String mimeType,
+            }) async {
+              fail('PDF 导出不应调用文本分享');
+            },
+        shareBinaryFile:
+            ({
+              required Uint8List bytes,
+              required String fileName,
+              required String subject,
+              required String mimeType,
+            }) async {
+              sharedBytes = bytes;
+            },
+      );
+
+      await service.exportMessage(
+        message: XiaoMiMessage(
+          id: 4,
+          conversationId: 1,
+          role: XiaoMiMessageRole.assistant,
+          content: veryLongContent,
+          metadata: null,
+          createdAt: messageTime,
+        ),
+        format: XiaoMiMessageExportFormat.pdf,
+      );
+
+      expect(sharedBytes, isNotNull);
+      expect(sharedBytes, isNotEmpty);
     });
   });
 }

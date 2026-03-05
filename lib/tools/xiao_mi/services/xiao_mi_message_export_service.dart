@@ -1,3 +1,4 @@
+import 'dart:convert' show LineSplitter;
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
@@ -197,6 +198,7 @@ $content
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(24),
+        maxPages: 200,
         theme: font == null
             ? null
             : pw.ThemeData.withFont(
@@ -205,9 +207,37 @@ $content
                 italic: font,
                 boldItalic: font,
               ),
-        build: (context) => [pw.Text(markdown)],
+        build: (context) => _buildPdfTextBlocks(markdown),
       ),
     );
     return document.save();
+  }
+
+  static List<pw.Widget> _buildPdfTextBlocks(String markdown) {
+    final widgets = <pw.Widget>[];
+    for (final line in LineSplitter.split(markdown)) {
+      if (line.trim().isEmpty) {
+        widgets.add(pw.SizedBox(height: 6));
+        continue;
+      }
+      for (final chunk in _splitLongLine(line)) {
+        widgets.add(pw.Text(chunk));
+      }
+    }
+    if (widgets.isEmpty) {
+      widgets.add(pw.Text(' '));
+    }
+    return widgets;
+  }
+
+  static List<String> _splitLongLine(String line, {int maxRunes = 400}) {
+    final runes = line.runes.toList(growable: false);
+    if (runes.length <= maxRunes) return [line];
+    final chunks = <String>[];
+    for (var i = 0; i < runes.length; i += maxRunes) {
+      final end = (i + maxRunes < runes.length) ? i + maxRunes : runes.length;
+      chunks.add(String.fromCharCodes(runes.sublist(i, end)));
+    }
+    return chunks;
   }
 }
