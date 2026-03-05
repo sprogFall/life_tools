@@ -221,18 +221,14 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     final text = message.content.trim();
     if (text.isEmpty) return;
 
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await AppDialogs.showConfirm(
-      context,
-      title: '确认导出消息？',
-      content: '将以 MD (.md) 格式导出当前消息，并拉起系统分享。',
-      cancelText: l10n.common_cancel,
-      confirmText: l10n.common_confirm,
-    );
-    if (!mounted || !confirmed) return;
+    final format = await _pickExportFormat();
+    if (!mounted || format == null) return;
 
     try {
-      await _messageExportService.exportMessage(message: message);
+      await _messageExportService.exportMessage(
+        message: message,
+        format: format,
+      );
     } catch (error, stackTrace) {
       devLog(
         'xiao_mi_message_export_failed',
@@ -242,6 +238,15 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
       if (!mounted) return;
       context.read<ToastService>().showError('导出失败，请稍后重试');
     }
+  }
+
+  Future<XiaoMiMessageExportFormat?> _pickExportFormat() {
+    return showModalBottomSheet<XiaoMiMessageExportFormat>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _XiaoMiExportFormatSheet(),
+    );
   }
 
   Future<void> _deleteSelectedMessages(XiaoMiChatService service) async {
@@ -392,6 +397,186 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _XiaoMiExportFormatSheet extends StatefulWidget {
+  const _XiaoMiExportFormatSheet();
+
+  @override
+  State<_XiaoMiExportFormatSheet> createState() =>
+      _XiaoMiExportFormatSheetState();
+}
+
+class _XiaoMiExportFormatSheetState extends State<_XiaoMiExportFormatSheet> {
+  XiaoMiMessageExportFormat _selectedFormat =
+      XiaoMiMessageExportFormat.markdown;
+
+  void _submit() {
+    Navigator.pop(context, _selectedFormat);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          IOS26Theme.spacingMd,
+          0,
+          IOS26Theme.spacingMd,
+          bottomInset + IOS26Theme.spacingMd,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusXl),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(
+                IOS26Theme.spacingXl,
+                IOS26Theme.spacingLg,
+                IOS26Theme.spacingXl,
+                IOS26Theme.spacingXl,
+              ),
+              color: IOS26Theme.surfaceColor.withValues(alpha: 0.98),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        '导出为',
+                        style: IOS26Theme.titleMedium.copyWith(
+                          color: IOS26Theme.textPrimary,
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IOS26IconButton(
+                          icon: CupertinoIcons.xmark,
+                          semanticLabel: AppLocalizations.of(
+                            context,
+                          )!.common_close,
+                          onPressed: () => Navigator.pop(context),
+                          tone: IOS26IconTone.secondary,
+                          style: IOS26IconButtonStyle.chip,
+                          padding: const EdgeInsets.all(IOS26Theme.spacingXs),
+                          minimumSize: const Size(32, 32),
+                          size: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: IOS26Theme.spacingLg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ExportFormatOptionCard(
+                          icon: CupertinoIcons.doc_plaintext,
+                          label: 'TXT 文件',
+                          selected:
+                              _selectedFormat == XiaoMiMessageExportFormat.text,
+                          onTap: () => setState(
+                            () => _selectedFormat =
+                                XiaoMiMessageExportFormat.text,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: IOS26Theme.spacingMd),
+                      Expanded(
+                        child: _ExportFormatOptionCard(
+                          icon: CupertinoIcons.doc_text,
+                          label: 'Markdown',
+                          selected:
+                              _selectedFormat ==
+                              XiaoMiMessageExportFormat.markdown,
+                          onTap: () => setState(
+                            () => _selectedFormat =
+                                XiaoMiMessageExportFormat.markdown,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: IOS26Theme.spacingXl),
+                  SizedBox(
+                    width: double.infinity,
+                    child: IOS26Button(
+                      onPressed: _submit,
+                      variant: IOS26ButtonVariant.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+                      child: const IOS26ButtonLabel('导出'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExportFormatOptionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ExportFormatOptionCard({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = IOS26Theme.buttonColors(
+      selected ? IOS26ButtonVariant.secondary : IOS26ButtonVariant.neutral,
+    );
+    return IOS26Button.plain(
+      onPressed: onTap,
+      borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+      padding: const EdgeInsets.symmetric(
+        horizontal: IOS26Theme.spacingSm,
+        vertical: IOS26Theme.spacingMd,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+          border: Border.all(
+            color: colors.border.withValues(alpha: selected ? 0.9 : 0.56),
+            width: selected ? 1.2 : 0.9,
+          ),
+        ),
+        child: SizedBox(
+          height: 90,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IOS26Icon(icon, size: 24, color: colors.foreground),
+                const SizedBox(height: IOS26Theme.spacingSm),
+                Text(
+                  label,
+                  style: IOS26Theme.bodySmall.copyWith(
+                    color: colors.foreground,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -9,6 +9,8 @@ typedef XiaoMiShareTextFile =
       required String mimeType,
     });
 
+enum XiaoMiMessageExportFormat { markdown, text }
+
 class XiaoMiMessageExportService {
   XiaoMiMessageExportService({
     DateTime Function()? now,
@@ -21,15 +23,29 @@ class XiaoMiMessageExportService {
   final DateTime Function() _now;
   final XiaoMiShareTextFile _shareTextFile;
 
-  Future<void> exportMessage({required XiaoMiMessage message}) async {
-    final markdown = buildMarkdown(message);
-    final fileName = _buildFileName();
+  Future<void> exportMessage({
+    required XiaoMiMessage message,
+    required XiaoMiMessageExportFormat format,
+  }) async {
+    final content = _buildExportContent(message, format);
+    final fileName = _buildFileName(format);
+    final mimeType = _mimeTypeFor(format);
     await _shareTextFile(
-      text: markdown,
+      text: content,
       fileName: fileName,
       subject: _shareSubject,
-      mimeType: 'text/markdown',
+      mimeType: mimeType,
     );
+  }
+
+  String _buildExportContent(
+    XiaoMiMessage message,
+    XiaoMiMessageExportFormat format,
+  ) {
+    return switch (format) {
+      XiaoMiMessageExportFormat.markdown => buildMarkdown(message),
+      XiaoMiMessageExportFormat.text => buildText(message),
+    };
   }
 
   String buildMarkdown(XiaoMiMessage message) {
@@ -52,7 +68,27 @@ $content
 ''';
   }
 
-  String _buildFileName() {
+  String buildText(XiaoMiMessage message) {
+    final roleText = switch (message.role) {
+      XiaoMiMessageRole.user => '用户',
+      XiaoMiMessageRole.assistant => '小蜜',
+      XiaoMiMessageRole.system => '系统',
+    };
+    final createdAt = _formatDateTime(message.createdAt);
+    final content = message.content.trim();
+    return '''
+小蜜聊天消息
+
+角色：$roleText
+时间：$createdAt
+
+--------------------
+
+$content
+''';
+  }
+
+  String _buildFileName(XiaoMiMessageExportFormat format) {
     final now = _now();
     final y = now.year.toString().padLeft(4, '0');
     final m = now.month.toString().padLeft(2, '0');
@@ -60,8 +96,19 @@ $content
     final hh = now.hour.toString().padLeft(2, '0');
     final mm = now.minute.toString().padLeft(2, '0');
     final ss = now.second.toString().padLeft(2, '0');
+    final ext = switch (format) {
+      XiaoMiMessageExportFormat.markdown => 'md',
+      XiaoMiMessageExportFormat.text => 'txt',
+    };
     return 'xiao_mi_message_$y$m$d'
-        '_$hh$mm$ss.md';
+        '_$hh$mm$ss.$ext';
+  }
+
+  static String _mimeTypeFor(XiaoMiMessageExportFormat format) {
+    return switch (format) {
+      XiaoMiMessageExportFormat.markdown => 'text/markdown',
+      XiaoMiMessageExportFormat.text => 'text/plain',
+    };
   }
 
   static String _formatDateTime(DateTime value) {

@@ -434,6 +434,7 @@ class _CopyButtonState extends State<_CopyButton> {
   @override
   Widget build(BuildContext context) {
     return _MessageActionChip(
+      chipKey: const ValueKey('xiao_mi_copy_action_chip'),
       icon: _copied ? CupertinoIcons.checkmark : CupertinoIcons.doc_on_doc,
       label: _copied ? '已复制' : '复制',
       active: _copied,
@@ -442,77 +443,31 @@ class _CopyButtonState extends State<_CopyButton> {
   }
 }
 
-class _ExportButton extends StatefulWidget {
+class _ExportButton extends StatelessWidget {
   final VoidCallback onExport;
 
   const _ExportButton({required this.onExport});
 
   @override
-  State<_ExportButton> createState() => _ExportButtonState();
-}
-
-class _ExportButtonState extends State<_ExportButton> {
-  bool _expanded = false;
-
-  void _toggle() {
-    setState(() => _expanded = !_expanded);
-  }
-
-  void _exportMarkdown() {
-    widget.onExport();
-    if (!mounted) return;
-    setState(() => _expanded = false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          transitionBuilder: (child, animation) {
-            final slide = Tween<Offset>(
-              begin: const Offset(0.2, 0),
-              end: Offset.zero,
-            ).animate(animation);
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(position: slide, child: child),
-            );
-          },
-          child: _expanded
-              ? Row(
-                  key: const ValueKey('xiao_mi_export_md_option'),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _MessageActionChip(
-                      icon: CupertinoIcons.doc_text,
-                      label: 'MD',
-                      onTap: _exportMarkdown,
-                    ),
-                    const SizedBox(width: IOS26Theme.spacingXs),
-                  ],
-                )
-              : const SizedBox.shrink(),
-        ),
-        _MessageActionChip(
-          icon: CupertinoIcons.arrow_up_doc,
-          label: _expanded ? '收起' : '导出',
-          onTap: _toggle,
-        ),
-      ],
+    return _MessageActionChip(
+      chipKey: const ValueKey('xiao_mi_export_action_chip'),
+      icon: CupertinoIcons.arrow_up_doc,
+      label: '导出',
+      onTap: onExport,
     );
   }
 }
 
 class _MessageActionChip extends StatelessWidget {
+  final Key? chipKey;
   final IconData icon;
   final String label;
   final bool active;
   final VoidCallback onTap;
 
   const _MessageActionChip({
+    this.chipKey,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -521,26 +476,39 @@ class _MessageActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? IOS26Theme.primaryColor : IOS26Theme.textTertiary;
+    final variant = active
+        ? IOS26ButtonVariant.secondary
+        : IOS26ButtonVariant.neutral;
+    final colors = IOS26Theme.buttonColors(variant);
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        key: chipKey,
+        constraints: const BoxConstraints(minHeight: 30),
         padding: const EdgeInsets.symmetric(
-          horizontal: IOS26Theme.spacingSm,
-          vertical: 2,
+          horizontal: IOS26Theme.spacingMd,
+          vertical: 6,
         ),
         decoration: BoxDecoration(
-          color: IOS26Theme.surfaceColor.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(IOS26Theme.radiusSm),
+          color: colors.background,
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+          border: Border.all(
+            color: colors.border.withValues(alpha: active ? 0.82 : 0.58),
+            width: 0.8,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IOS26Icon(icon, size: 10, color: color),
-            const SizedBox(width: 2),
+            IOS26Icon(icon, size: 12, color: colors.foreground),
+            const SizedBox(width: IOS26Theme.spacingXs),
             Text(
               label,
-              style: IOS26Theme.bodySmall.copyWith(fontSize: 10, color: color),
+              style: IOS26Theme.bodySmall.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colors.foreground,
+              ),
             ),
           ],
         ),

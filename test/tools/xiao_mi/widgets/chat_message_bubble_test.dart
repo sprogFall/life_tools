@@ -201,7 +201,7 @@ void main() {
       expect(find.text('已复制'), findsNothing);
     });
 
-    testWidgets('非选择模式下 AI 消息导出按钮应展开选项并在点击 MD 时触发回调', (tester) async {
+    testWidgets('非选择模式下 AI 消息点击导出应直接触发回调', (tester) async {
       var exported = false;
       final message = XiaoMiMessage(
         id: 4,
@@ -229,14 +229,48 @@ void main() {
       expect(find.text('导出'), findsOneWidget);
       await tester.tap(find.text('导出'));
       await tester.pump();
-      expect(exported, isFalse);
-      expect(find.text('MD'), findsOneWidget);
-      expect(find.text('收起'), findsOneWidget);
-
-      await tester.tap(find.text('MD'));
-      await tester.pump();
       expect(exported, isTrue);
-      expect(find.text('MD'), findsNothing);
+    });
+
+    testWidgets('复制和导出按钮应使用更清晰的尺寸与字重', (tester) async {
+      final message = XiaoMiMessage(
+        id: 6,
+        conversationId: 1,
+        role: XiaoMiMessageRole.assistant,
+        content: '样式检查',
+        metadata: null,
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+            onExport: () {},
+          ),
+        ),
+      );
+
+      final copyChipRect = tester.getRect(
+        find.byKey(const ValueKey('xiao_mi_copy_action_chip')),
+      );
+      final exportChipRect = tester.getRect(
+        find.byKey(const ValueKey('xiao_mi_export_action_chip')),
+      );
+      expect(copyChipRect.height, greaterThanOrEqualTo(28));
+      expect(exportChipRect.height, greaterThanOrEqualTo(28));
+
+      final copyLabel = tester.widget<Text>(find.text('复制'));
+      final exportLabel = tester.widget<Text>(find.text('导出'));
+      expect(copyLabel.style?.fontSize, greaterThanOrEqualTo(12));
+      expect(exportLabel.style?.fontSize, greaterThanOrEqualTo(12));
+      expect(copyLabel.style?.fontWeight, FontWeight.w600);
+      expect(exportLabel.style?.fontWeight, FontWeight.w600);
     });
 
     testWidgets('非选择模式下用户消息不应展示导出按钮', (tester) async {

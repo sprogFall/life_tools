@@ -37,6 +37,7 @@ void main() {
           metadata: null,
           createdAt: messageTime,
         ),
+        format: XiaoMiMessageExportFormat.markdown,
       );
 
       expect(sharedFileName, 'xiao_mi_message_20260305_123456.md');
@@ -71,12 +72,54 @@ void main() {
           metadata: null,
           createdAt: messageTime,
         ),
+        format: XiaoMiMessageExportFormat.markdown,
       );
 
       expect(sharedText, isNotNull);
       expect(sharedText, startsWith('# 小蜜聊天消息'));
       expect(sharedText, contains('- 时间：2026-03-05 08:30:00'));
       expect(sharedText, contains('输出一段带前后空白的正文'));
+    });
+
+    test('导出 TXT 应走文本分享并生成 txt 文件', () async {
+      String? sharedText;
+      String? sharedFileName;
+      String? sharedMimeType;
+
+      final service = XiaoMiMessageExportService(
+        now: () => DateTime(2026, 3, 5, 12, 34, 56),
+        shareTextFile:
+            ({
+              required String text,
+              required String fileName,
+              required String subject,
+              required String mimeType,
+            }) async {
+              sharedText = text;
+              sharedFileName = fileName;
+              sharedMimeType = mimeType;
+            },
+      );
+
+      await service.exportMessage(
+        message: XiaoMiMessage(
+          id: 9,
+          conversationId: 1,
+          role: XiaoMiMessageRole.assistant,
+          content: 'TXT 导出正文',
+          metadata: null,
+          createdAt: messageTime,
+        ),
+        format: XiaoMiMessageExportFormat.text,
+      );
+
+      expect(sharedFileName, 'xiao_mi_message_20260305_123456.txt');
+      expect(sharedMimeType, 'text/plain');
+      expect(sharedText, isNotNull);
+      expect(sharedText, startsWith('小蜜聊天消息'));
+      expect(sharedText, isNot(contains('# 小蜜聊天消息')));
+      expect(sharedText, contains('角色：小蜜'));
+      expect(sharedText, contains('TXT 导出正文'));
     });
   });
 }
