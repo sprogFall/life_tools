@@ -4,6 +4,7 @@ import '../../../core/ai/ai_errors.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/ai/ai_use_case.dart';
+import '../../overcooked_kitchen/repository/overcooked_repository.dart';
 import '../../work_log/repository/work_log_repository.dart';
 import '../ai/xiao_mi_ai_prompts.dart';
 import '../ai/xiao_mi_chat_pre_route.dart';
@@ -37,7 +38,10 @@ class XiaoMiChatService extends ChangeNotifier {
        _nowProvider = nowProvider ?? DateTime.now,
        _promptResolver =
            promptResolver ??
-           XiaoMiPromptResolver(workLogRepository: WorkLogRepository());
+           XiaoMiPromptResolver(
+             workLogRepository: WorkLogRepository(),
+             overcookedRepository: OvercookedRepository(),
+           );
 
   List<XiaoMiConversation> get conversations => _conversations;
   XiaoMiConversation? get currentConversation => _currentConversation;

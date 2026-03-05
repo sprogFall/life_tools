@@ -1,4 +1,6 @@
 import '../../work_log/repository/work_log_repository_base.dart';
+import '../../overcooked_kitchen/models/overcooked_recipe.dart';
+import '../../overcooked_kitchen/repository/overcooked_repository.dart';
 import 'xiao_mi_work_log_prompt_builder.dart';
 
 class XiaoMiQuickPrompt {
@@ -36,12 +38,15 @@ class XiaoMiNoWorkLogDataException implements Exception {
 
 class XiaoMiPromptResolver {
   final WorkLogRepositoryBase _workLogRepository;
+  final OvercookedRepository? _overcookedRepository;
   final DateTime Function() _nowProvider;
 
   const XiaoMiPromptResolver({
     required WorkLogRepositoryBase workLogRepository,
+    OvercookedRepository? overcookedRepository,
     DateTime Function()? nowProvider,
   }) : _workLogRepository = workLogRepository,
+       _overcookedRepository = overcookedRepository,
        _nowProvider = nowProvider ?? DateTime.now;
 
   static const XiaoMiQuickPrompt workLogYearSummary = XiaoMiQuickPrompt(
@@ -82,27 +87,48 @@ class XiaoMiPromptResolver {
   }) async {
     final normalizedCallId = callId.trim();
     final normalizedDisplayText = displayText.trim();
+    if (_isWorkLogSpecialCall(normalizedCallId)) {
+      return _resolveWorkLogSpecialCall(
+        callId: normalizedCallId,
+        displayText: normalizedDisplayText,
+        arguments: arguments,
+      );
+    }
+    if (normalizedCallId == 'overcooked_context_query') {
+      return _resolveOvercookedContextQuery(
+        displayText: normalizedDisplayText,
+        arguments: arguments,
+      );
+    }
+    return _buildTriggeredPrompt(
+      displayText: normalizedDisplayText,
+      aiPrompt: normalizedDisplayText,
+    );
+  }
+
+  Future<XiaoMiResolvedPrompt> _resolveWorkLogSpecialCall({
+    required String callId,
+    required String displayText,
+    required Map<String, Object?> arguments,
+  }) async {
     final styleId = _resolveStyleId(arguments);
     final now = _normalizeDay(_nowProvider());
     final builder = XiaoMiWorkLogSummaryPromptBuilder(
       repository: _workLogRepository,
       nowProvider: _nowProvider,
     );
-
     final dateRange = _resolveCallDateRange(
-      callId: normalizedCallId,
+      callId: callId,
       arguments: arguments,
-      displayText: normalizedDisplayText,
+      displayText: displayText,
       now: now,
     );
-
     if (dateRange == null) {
       return _buildTriggeredPrompt(
-        displayText: normalizedDisplayText,
-        aiPrompt: normalizedDisplayText,
+        displayText: displayText,
+        aiPrompt: displayText,
       );
     }
-
     final prompt = await builder.buildDateRange(
       start: dateRange.start,
       endInclusive: dateRange.endInclusive,
@@ -112,11 +138,341 @@ class XiaoMiPromptResolver {
       throw const XiaoMiNoWorkLogDataException('该时间范围没有可用的工作记录，无法生成总结');
     }
     return _buildTriggeredPrompt(
-      displayText: normalizedDisplayText,
+      displayText: displayText,
       aiPrompt: prompt,
       queryStart: dateRange.start,
       queryEnd: dateRange.endInclusive,
+      extraMetadata: const <String, dynamic>{'triggerTool': 'work_log'},
     );
+  }
+
+  Future<XiaoMiResolvedPrompt> _resolveOvercookedContextQuery({
+    required String displayText,
+    required Map<String, Object?> arguments,
+  }) async {
+    final repository = _overcookedRepository;
+    if (repository == null) {
+      return _buildTriggeredPrompt(
+        displayText: displayText,
+        aiPrompt: displayText,
+        extraMetadata: const <String, dynamic>{'triggerTool': 'overcooked'},
+      );
+    }
+
+    final now = _normalizeDay(_nowProvider());
+    final queryType = _resolveOvercookedQueryType(
+      arguments: arguments,
+      displayText: displayText,
+    );
+
+    if (queryType == 'cooked_on_date') {
+      final queryDate = _resolveOvercookedQueryDate(
+        arguments: arguments,
+        displayText: displayText,
+        now: now,
+      );
+      if (queryDate == null) {
+        return _buildTriggeredPrompt(
+          displayText: displayText,
+          aiPrompt: displayText,
+          extraMetadata: const <String, dynamic>{'triggerTool': 'overcooked'},
+        );
+      }
+      final prompt = await _buildOvercookedCookedOnDatePrompt(
+        repository: repository,
+        displayText: displayText,
+        queryDate: queryDate,
+      );
+      return _buildTriggeredPrompt(
+        displayText: displayText,
+        aiPrompt: prompt,
+        extraMetadata: <String, dynamic>{
+          'triggerTool': 'overcooked',
+          'queryType': 'cooked_on_date',
+          'queryDate': _formatDateIso(queryDate),
+        },
+      );
+    }
+
+    final recipeName = _resolveOvercookedRecipeName(
+      arguments: arguments,
+      displayText: displayText,
+    );
+    if (recipeName == null) {
+      return _buildTriggeredPrompt(
+        displayText: displayText,
+        aiPrompt: displayText,
+        extraMetadata: const <String, dynamic>{'triggerTool': 'overcooked'},
+      );
+    }
+
+    final matchedRecipes = await _searchOvercookedRecipes(
+      repository: repository,
+      recipeName: recipeName,
+    );
+    if (matchedRecipes.isEmpty) {
+      return _buildTriggeredPrompt(
+        displayText: displayText,
+        aiPrompt: displayText,
+        extraMetadata: <String, dynamic>{
+          'triggerTool': 'overcooked',
+          'queryType': 'recipe_lookup',
+          'recipeName': recipeName,
+          'matchedCount': 0,
+        },
+      );
+    }
+
+    final prompt = _buildOvercookedRecipeLookupPrompt(
+      displayText: displayText,
+      queryName: recipeName,
+      recipes: matchedRecipes,
+    );
+    return _buildTriggeredPrompt(
+      displayText: displayText,
+      aiPrompt: prompt,
+      extraMetadata: <String, dynamic>{
+        'triggerTool': 'overcooked',
+        'queryType': 'recipe_lookup',
+        'recipeName': recipeName,
+        'matchedCount': matchedRecipes.length,
+      },
+    );
+  }
+
+  Future<String> _buildOvercookedCookedOnDatePrompt({
+    required OvercookedRepository repository,
+    required String displayText,
+    required DateTime queryDate,
+  }) async {
+    final meals = await repository.listMealsForDate(queryDate);
+    final recipeIds = <int>[];
+    for (final meal in meals) {
+      recipeIds.addAll(meal.recipeIds);
+    }
+    final uniqueRecipeIds = recipeIds.toSet().toList(growable: false);
+    final recipes = uniqueRecipeIds.isEmpty
+        ? const <OvercookedRecipe>[]
+        : await repository.listRecipesByIds(uniqueRecipeIds);
+    final recipeNameById = <int, String>{
+      for (final recipe in recipes)
+        if (recipe.id != null) recipe.id!: recipe.name.trim(),
+    };
+    final recipeCountByName = <String, int>{};
+    for (final recipeId in recipeIds) {
+      final name = recipeNameById[recipeId];
+      if (name == null || name.trim().isEmpty) continue;
+      recipeCountByName[name] = (recipeCountByName[name] ?? 0) + 1;
+    }
+    final sortedRecipeCounts = recipeCountByName.entries.toList(growable: false)
+      ..sort((a, b) {
+        if (a.value != b.value) return b.value.compareTo(a.value);
+        return a.key.compareTo(b.key);
+      });
+    final mealLines = <String>[];
+    for (int i = 0; i < meals.length; i++) {
+      final meal = meals[i];
+      final dishNames = meal.recipeIds
+          .map((id) => recipeNameById[id] ?? '未知菜谱#$id')
+          .toList(growable: false);
+      final note = meal.note.trim();
+      mealLines.add(
+        '${i + 1}. 餐次#${meal.id}：${dishNames.isEmpty ? '无菜品' : dishNames.join('、')}${note.isEmpty ? '' : '；备注：$note'}',
+      );
+    }
+    final recipeCountLines = sortedRecipeCounts
+        .map((entry) => '- ${entry.key}：${entry.value} 次')
+        .join('\n');
+    final hasData = meals.isNotEmpty;
+    final queryDateText = _formatDateIso(queryDate);
+    return '''
+以下是胡闹厨房做菜记录查询结果（仅来自本地已保存数据）：
+- 查询日期：$queryDateText
+- 餐次数：${meals.length}
+- 菜品条目数：${recipeIds.length}
+
+菜品统计：
+${recipeCountLines.isEmpty ? '- (无)' : recipeCountLines}
+
+餐次明细：
+${mealLines.isEmpty ? '- (无)' : mealLines.join('\n')}
+
+回答要求：
+1) 仅基于以上记录回答用户“某天做了什么菜”的问题。
+2) 若记录为空，明确告知“当天没有做菜记录”。
+3) 不要编造未在记录中出现的菜品。
+
+用户问题：$displayText
+${hasData ? '' : '提示：当天暂无做菜记录。'}
+''';
+  }
+
+  Future<List<OvercookedRecipe>> _searchOvercookedRecipes({
+    required OvercookedRepository repository,
+    required String recipeName,
+  }) async {
+    final normalizedName = _normalizeText(recipeName);
+    if (normalizedName.isEmpty) return const <OvercookedRecipe>[];
+    final allRecipes = await repository.listRecipes();
+    final exactMatches = <OvercookedRecipe>[];
+    final fuzzyMatches = <OvercookedRecipe>[];
+    for (final recipe in allRecipes) {
+      final candidateName = recipe.name.trim();
+      if (candidateName.isEmpty) continue;
+      final normalizedCandidate = _normalizeText(candidateName);
+      if (normalizedCandidate == normalizedName) {
+        exactMatches.add(recipe);
+        continue;
+      }
+      if (normalizedCandidate.contains(normalizedName) ||
+          normalizedName.contains(normalizedCandidate)) {
+        fuzzyMatches.add(recipe);
+      }
+    }
+    final merged = <OvercookedRecipe>[...exactMatches, ...fuzzyMatches];
+    return merged.length <= 5
+        ? merged
+        : merged.sublist(0, 5).toList(growable: false);
+  }
+
+  static String _buildOvercookedRecipeLookupPrompt({
+    required String displayText,
+    required String queryName,
+    required List<OvercookedRecipe> recipes,
+  }) {
+    final recipeBlocks = <String>[];
+    for (int i = 0; i < recipes.length; i++) {
+      final recipe = recipes[i];
+      final intro = recipe.intro.trim().isEmpty ? '未填写' : recipe.intro.trim();
+      final content = recipe.content.trim().isEmpty
+          ? '未填写'
+          : recipe.content.trim();
+      recipeBlocks.add('''
+${i + 1}. 菜名：${recipe.name}
+   简介：$intro
+   菜谱正文：$content
+''');
+    }
+    return '''
+以下是胡闹厨房菜谱查询结果（仅来自本地已保存数据）：
+- 查询菜名：$queryName
+- 命中菜谱数：${recipes.length}
+
+命中内容：
+${recipeBlocks.join('\n')}
+
+回答要求：
+1) 优先基于命中菜谱回答用户问题。
+2) 若用户问“怎么做/做法”，直接给出与菜谱一致的步骤与要点。
+3) 若命中多条，先说明差异再给推荐。
+4) 不要编造与菜谱冲突的信息；若字段缺失请明确说明。
+
+用户问题：$displayText
+''';
+  }
+
+  static bool _isWorkLogSpecialCall(String callId) {
+    return callId == 'work_log_range_summary' ||
+        callId == 'work_log_week_summary' ||
+        callId == 'work_log_month_summary' ||
+        callId == 'work_log_quarter_summary' ||
+        callId == 'work_log_year_summary';
+  }
+
+  static String _resolveOvercookedQueryType({
+    required Map<String, Object?> arguments,
+    required String displayText,
+  }) {
+    final candidate =
+        _resolveStringArgument(
+          arguments,
+          keys: const <String>['query_type', 'queryType', 'type'],
+        )?.toLowerCase() ??
+        '';
+    if (candidate == 'cooked_on_date' ||
+        candidate == 'meal_on_date' ||
+        candidate == 'date_query') {
+      return 'cooked_on_date';
+    }
+    if (candidate == 'recipe_lookup' ||
+        candidate == 'recipe_query' ||
+        candidate == 'dish_lookup') {
+      return 'recipe_lookup';
+    }
+    if (_resolveStringArgument(
+          arguments,
+          keys: const <String>['date', 'day', 'query_date', 'queryDate'],
+        ) !=
+        null) {
+      return 'cooked_on_date';
+    }
+    if (_resolveStringArgument(
+          arguments,
+          keys: const <String>[
+            'recipe_name',
+            'recipeName',
+            'dish_name',
+            'dishName',
+            'name',
+            'keyword',
+          ],
+        ) !=
+        null) {
+      return 'recipe_lookup';
+    }
+    final normalizedText = _normalizeText(displayText);
+    if (normalizedText.contains('做了什么菜') ||
+        normalizedText.contains('吃了什么菜') ||
+        normalizedText.contains('当天做了什么')) {
+      return 'cooked_on_date';
+    }
+    return 'recipe_lookup';
+  }
+
+  static DateTime? _resolveOvercookedQueryDate({
+    required Map<String, Object?> arguments,
+    required String displayText,
+    required DateTime now,
+  }) {
+    final fromArgs =
+        _resolveDate(arguments['date']) ??
+        _resolveDate(arguments['day']) ??
+        _resolveDate(arguments['query_date']) ??
+        _resolveDate(arguments['queryDate']) ??
+        _resolveDate(arguments['target_date']);
+    if (fromArgs != null) return fromArgs;
+    final fromText = _resolveDateFromText(displayText);
+    if (fromText != null) return fromText;
+    return _resolveRelativeDateByText(displayText, now);
+  }
+
+  static String? _resolveOvercookedRecipeName({
+    required Map<String, Object?> arguments,
+    required String displayText,
+  }) {
+    final fromArguments = _resolveStringArgument(
+      arguments,
+      keys: const <String>[
+        'recipe_name',
+        'recipeName',
+        'dish_name',
+        'dishName',
+        'name',
+        'keyword',
+      ],
+    );
+    if (fromArguments != null && fromArguments.isNotEmpty) {
+      return fromArguments;
+    }
+    final normalized = displayText.trim();
+    if (normalized.isEmpty) return null;
+    final matched = RegExp(
+      r'^(.{1,24}?)(怎么做|做法|如何做|怎么烧|怎么炒|怎么煮|咋做|怎么弄)',
+    ).firstMatch(normalized);
+    if (matched == null) return null;
+    final candidate = matched.group(1)?.trim();
+    if (candidate == null || candidate.isEmpty) return null;
+    return candidate;
   }
 
   static _DateRange? _resolveCallDateRange({
@@ -148,8 +504,9 @@ class XiaoMiPromptResolver {
         );
       case 'work_log_month_summary':
         final preferCurrent = _isCurrentMonthRequest(displayText);
-        final month = (preferCurrent ? null : _resolveMonth(arguments['month']))
-            ?? now.month;
+        final month =
+            (preferCurrent ? null : _resolveMonth(arguments['month'])) ??
+            now.month;
         final year = preferCurrent
             ? now.year
             : (_resolveYear(arguments['year']) ?? now.year);
@@ -159,10 +516,9 @@ class XiaoMiPromptResolver {
         );
       case 'work_log_quarter_summary':
         final preferCurrent = _isCurrentQuarterRequest(displayText);
-        final quarter = (preferCurrent
-                ? null
-                : _resolveQuarter(arguments['quarter']))
-            ?? ((now.month - 1) ~/ 3 + 1);
+        final quarter =
+            (preferCurrent ? null : _resolveQuarter(arguments['quarter'])) ??
+            ((now.month - 1) ~/ 3 + 1);
         final year = preferCurrent
             ? now.year
             : (_resolveYear(arguments['year']) ?? now.year);
@@ -189,6 +545,7 @@ class XiaoMiPromptResolver {
     required String aiPrompt,
     DateTime? queryStart,
     DateTime? queryEnd,
+    Map<String, dynamic> extraMetadata = const <String, dynamic>{},
   }) {
     return XiaoMiResolvedPrompt(
       displayText: displayText,
@@ -197,6 +554,7 @@ class XiaoMiPromptResolver {
         'triggerSource': 'pre_route',
         if (queryStart != null) 'queryStartDate': _formatDateIso(queryStart),
         if (queryEnd != null) 'queryEndDate': _formatDateIso(queryEnd),
+        ...extraMetadata,
       },
     );
   }
@@ -228,6 +586,19 @@ class XiaoMiPromptResolver {
         DateTime.tryParse(raw) ?? DateTime.tryParse(raw.replaceAll('/', '-'));
     if (parsed == null) return null;
     return _normalizeDay(parsed);
+  }
+
+  static String? _resolveStringArgument(
+    Map<String, Object?> arguments, {
+    required List<String> keys,
+  }) {
+    for (final key in keys) {
+      final value = arguments[key];
+      if (value == null) continue;
+      final text = value.toString().trim();
+      if (text.isNotEmpty) return text;
+    }
+    return null;
   }
 
   static int? _resolveYear(Object? value) {
@@ -268,6 +639,47 @@ class XiaoMiPromptResolver {
       return null;
     }
     return parsed;
+  }
+
+  static DateTime? _resolveDateFromText(String rawText) {
+    final text = rawText.trim();
+    if (text.isEmpty) return null;
+    final compactMatch = RegExp(r'(?<!\d)(\d{8})(?!\d)').firstMatch(text);
+    if (compactMatch != null) {
+      return _resolveCompactDate(compactMatch.group(1)!);
+    }
+
+    final ymdMatch = RegExp(
+      r'(?<!\d)(\d{4})[年/\-.](\d{1,2})[月/\-.](\d{1,2})(?:日|号)?(?!\d)',
+    ).firstMatch(text);
+    if (ymdMatch != null) {
+      final year = int.tryParse(ymdMatch.group(1)!);
+      final month = int.tryParse(ymdMatch.group(2)!);
+      final day = int.tryParse(ymdMatch.group(3)!);
+      if (year == null || month == null || day == null) return null;
+      final parsed = DateTime(year, month, day);
+      if (parsed.year == year && parsed.month == month && parsed.day == day) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  static DateTime? _resolveRelativeDateByText(String text, DateTime now) {
+    final normalized = _normalizeText(text);
+    if (normalized.contains('今天')) {
+      return now;
+    }
+    if (normalized.contains('昨天')) {
+      return now.subtract(const Duration(days: 1));
+    }
+    if (normalized.contains('前天')) {
+      return now.subtract(const Duration(days: 2));
+    }
+    if (normalized.contains('明天')) {
+      return now.add(const Duration(days: 1));
+    }
+    return null;
   }
 
   static _DateRange _resolveDateRange({

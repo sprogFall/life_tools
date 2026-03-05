@@ -4,6 +4,8 @@ import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/ai/ai_models.dart';
 import 'package:life_tools/core/ai/ai_service.dart';
 import 'package:life_tools/core/database/database_schema.dart';
+import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_recipe.dart';
+import 'package:life_tools/tools/overcooked_kitchen/repository/overcooked_repository.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
 import 'package:life_tools/tools/xiao_mi/ai/xiao_mi_prompt_resolver.dart';
@@ -288,6 +290,72 @@ void main() {
       expect(
         fakeClient.lastRequest!.messages.last.content,
         isNot(contains('内容：年度范围外')),
+      );
+      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
+    test('send 预选返回 overcooked_context_query 时应注入胡闹厨房菜谱信息', () async {
+      var now = DateTime(2026, 1, 1, 8, 0, 0);
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final overcookedRepository = OvercookedRepository.withDatabase(db);
+      await overcookedRepository.createRecipe(
+        OvercookedRecipe.create(
+          name: '宫保鸡丁',
+          coverImageKey: null,
+          typeTagId: null,
+          ingredientTagIds: const [],
+          sauceTagIds: const [],
+          flavorTagIds: const [],
+          intro: '下饭菜',
+          content: '步骤1：滑油。步骤2：爆香。',
+          detailImageKeys: const [],
+          now: DateTime(2026, 1, 2, 9),
+        ),
+      );
+
+      final fakeClient = FakeOpenAiClient(
+        replyText:
+            '{"type":"special_call","call":"overcooked_context_query","arguments":{"query_type":"recipe_lookup","recipe_name":"宫保鸡丁"}}',
+        streamReply: const [AiChatStreamChunk(textDelta: '按已有菜谱回复')],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+          overcookedRepository: overcookedRepository,
+        ),
+      );
+      await service.init();
+      await service.send('宫保鸡丁怎么做');
+
+      expect(service.messages.length, 2);
+      expect(service.messages.last.content, '按已有菜谱回复');
+      expect(
+        (service.messages.first.metadata ?? const {})['triggerSource'],
+        'pre_route',
+      );
+      expect(fakeClient.lastRequest, isNotNull);
+      expect(fakeClient.lastRequest!.messages.last.content, contains('宫保鸡丁'));
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('胡闹厨房菜谱查询结果'),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('菜谱正文：步骤1：滑油。步骤2：爆香。'),
       );
       expect(fakeClient.chatCompletionsCallCount, 1);
       expect(fakeClient.chatCompletionsStreamCallCount, 1);

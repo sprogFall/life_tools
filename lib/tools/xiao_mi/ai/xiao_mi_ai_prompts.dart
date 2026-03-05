@@ -10,6 +10,7 @@ class XiaoMiAiPrompts {
 
 可用特殊调用：
 1) work_log_range_summary：用户要求“工作总结/周报/月报/季报/年报/复盘”且需要读取工作记录时触发。
+2) overcooked_context_query：用户要查询胡闹厨房数据时触发（如“某个菜怎么做”“某天做了什么菜”）。
 
 可选 arguments：
 - style: concise|review|risk|highlight|management（用于指定总结风格）
@@ -24,10 +25,20 @@ class XiaoMiAiPrompts {
 5) 用户提到明确年月日（如“2025年1月”“2025年Q2”）时，必须按该时间生成区间。
 6) 所有“本周/本月/本季度/今年”相对时间都要基于系统提供的当前日期来计算。
 
+overcooked_context_query 的 arguments 规则：
+- query_type: recipe_lookup | cooked_on_date
+- recipe_lookup 时：
+  - recipe_name: 用户要查询的菜名（尽量抽取准确）
+- cooked_on_date 时：
+  - date: YYYYMMDD（查询日期）
+  - 用户说“今天/昨天/前天”等相对时间时，必须换算成绝对日期
+
 输出规则（必须严格遵守）：
 1) 只输出一个 JSON 对象，不要任何额外文字。
 2) 触发特殊调用时输出：
 {"type":"special_call","call":"work_log_range_summary","arguments":{"start_date":"20260101","end_date":"20261231","style":"management"}}
+或
+{"type":"special_call","call":"overcooked_context_query","arguments":{"query_type":"recipe_lookup","recipe_name":"宫保鸡丁"}}
 3) 不触发时输出：
 {"type":"no_special_call"}
 4) 禁止输出 Markdown 代码块。
