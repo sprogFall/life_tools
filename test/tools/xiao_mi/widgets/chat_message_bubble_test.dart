@@ -201,7 +201,7 @@ void main() {
       expect(find.text('已复制'), findsNothing);
     });
 
-    testWidgets('非选择模式下应展示导出按钮并触发回调', (tester) async {
+    testWidgets('非选择模式下 AI 消息应展示导出按钮并触发回调', (tester) async {
       var exported = false;
       final message = XiaoMiMessage(
         id: 4,
@@ -230,6 +230,35 @@ void main() {
       await tester.tap(find.text('导出'));
       await tester.pump();
       expect(exported, isTrue);
+    });
+
+    testWidgets('非选择模式下用户消息不应展示导出按钮', (tester) async {
+      var exported = false;
+      final message = XiaoMiMessage(
+        id: 5,
+        conversationId: 1,
+        role: XiaoMiMessageRole.user,
+        content: '用户消息不支持导出',
+        metadata: null,
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+            onExport: () => exported = true,
+          ),
+        ),
+      );
+
+      expect(find.text('导出'), findsNothing);
+      expect(exported, isFalse);
     });
 
     testWidgets('选择模式下不应展示复制按钮', (tester) async {

@@ -2,8 +2,10 @@ import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../../../core/backup/services/share_service.dart';
+import '../../../core/utils/dev_log.dart';
 import '../models/xiao_mi_message.dart';
 
 enum XiaoMiMessageExportFormat { markdown, pdf }
@@ -25,6 +27,7 @@ typedef XiaoMiShareBinaryFile =
     });
 
 typedef XiaoMiBuildPdfBytes = Future<Uint8List> Function(String markdown);
+typedef XiaoMiResolvePdfFont = Future<pw.Font?> Function();
 
 class XiaoMiMessageExportService {
   XiaoMiMessageExportService({
@@ -32,17 +35,20 @@ class XiaoMiMessageExportService {
     XiaoMiShareTextFile? shareTextFile,
     XiaoMiShareBinaryFile? shareBinaryFile,
     XiaoMiBuildPdfBytes? buildPdfBytes,
+    XiaoMiResolvePdfFont? resolvePdfFont,
   }) : _now = now ?? DateTime.now,
        _shareTextFile = shareTextFile ?? _defaultShareTextFile,
        _shareBinaryFile = shareBinaryFile ?? _defaultShareBinaryFile,
-       _buildPdfBytes = buildPdfBytes ?? _defaultBuildPdfBytes;
+       _customBuildPdfBytes = buildPdfBytes,
+       _resolvePdfFont = resolvePdfFont ?? _defaultResolvePdfFont;
 
   static const String _shareSubject = '小蜜消息导出';
 
   final DateTime Function() _now;
   final XiaoMiShareTextFile _shareTextFile;
   final XiaoMiShareBinaryFile _shareBinaryFile;
-  final XiaoMiBuildPdfBytes _buildPdfBytes;
+  final XiaoMiBuildPdfBytes? _customBuildPdfBytes;
+  final XiaoMiResolvePdfFont _resolvePdfFont;
 
   Future<void> exportMessage({
     required XiaoMiMessage message,
@@ -60,7 +66,10 @@ class XiaoMiMessageExportService {
       return;
     }
 
-    final pdfBytes = await _buildPdfBytes(markdown);
+    final customBuildPdfBytes = _customBuildPdfBytes;
+    final pdfBytes = customBuildPdfBytes != null
+        ? await customBuildPdfBytes(markdown)
+        : await _buildPdfBytes(markdown);
     await _shareBinaryFile(
       bytes: pdfBytes,
       fileName: fileName,
@@ -136,15 +145,37 @@ $content
     );
   }
 
-  static Future<Uint8List> _defaultBuildPdfBytes(String markdown) async {
+  Future<Uint8List> _buildPdfBytes(String markdown) async {
     final document = pw.Document();
+    final font = await _resolvePdfFont();
     document.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(24),
+        theme: font == null
+            ? null
+            : pw.ThemeData.withFont(
+                base: font,
+                bold: font,
+                italic: font,
+                boldItalic: font,
+              ),
         build: (context) => [pw.Text(markdown)],
       ),
     );
     return document.save();
+  }
+
+  static Future<pw.Font?> _defaultResolvePdfFont() async {
+    try {
+      return await PdfGoogleFonts.notoSansSCRegular();
+    } catch (error, stackTrace) {
+      devLog(
+        'xiao_mi_pdf_font_load_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
   }
 }

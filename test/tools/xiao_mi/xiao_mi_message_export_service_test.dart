@@ -113,5 +113,47 @@ void main() {
       expect(sharedSubject, '小蜜消息导出');
       expect(sharedMimeType, 'application/pdf');
     });
+
+    test('默认 PDF 构建在中文内容下也应导出成功', () async {
+      Uint8List? sharedBytes;
+
+      final service = XiaoMiMessageExportService(
+        now: () => DateTime(2026, 3, 5, 12, 34, 56),
+        resolvePdfFont: () async => null,
+        shareTextFile:
+            ({
+              required String text,
+              required String fileName,
+              required String subject,
+              required String mimeType,
+            }) async {
+              fail('PDF 导出不应调用文本分享');
+            },
+        shareBinaryFile:
+            ({
+              required Uint8List bytes,
+              required String fileName,
+              required String subject,
+              required String mimeType,
+            }) async {
+              sharedBytes = bytes;
+            },
+      );
+
+      await service.exportMessage(
+        message: XiaoMiMessage(
+          id: 3,
+          conversationId: 1,
+          role: XiaoMiMessageRole.assistant,
+          content: '这是一段中文内容，用于验证 PDF 导出。',
+          metadata: null,
+          createdAt: messageTime,
+        ),
+        format: XiaoMiMessageExportFormat.pdf,
+      );
+
+      expect(sharedBytes, isNotNull);
+      expect(sharedBytes, isNotEmpty);
+    });
   });
 }

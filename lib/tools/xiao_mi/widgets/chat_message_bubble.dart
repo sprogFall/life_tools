@@ -65,7 +65,7 @@ class ChatMessageBubble extends StatelessWidget {
               _buildUserBubble(l10n),
               if (!selectionMode) ...[
                 const SizedBox(height: 2),
-                _MessageActions(onCopy: onCopy, onExport: onExport),
+                _MessageActions(onCopy: onCopy),
               ],
             ],
           ),
@@ -390,9 +390,9 @@ class _ErrorReasonPanelState extends State<_ErrorReasonPanel> {
 
 class _MessageActions extends StatelessWidget {
   final VoidCallback onCopy;
-  final VoidCallback onExport;
+  final VoidCallback? onExport;
 
-  const _MessageActions({required this.onCopy, required this.onExport});
+  const _MessageActions({required this.onCopy, this.onExport});
 
   @override
   Widget build(BuildContext context) {
@@ -400,8 +400,10 @@ class _MessageActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _CopyButton(onCopy: onCopy),
-        const SizedBox(width: IOS26Theme.spacingXs),
-        _ExportButton(onExport: onExport),
+        if (onExport != null) ...[
+          const SizedBox(width: IOS26Theme.spacingXs),
+          _ExportButton(onExport: onExport!),
+        ],
       ],
     );
   }
