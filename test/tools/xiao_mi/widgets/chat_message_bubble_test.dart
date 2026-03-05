@@ -201,7 +201,7 @@ void main() {
       expect(find.text('已复制'), findsNothing);
     });
 
-    testWidgets('非选择模式下 AI 消息应展示导出按钮并触发回调', (tester) async {
+    testWidgets('非选择模式下 AI 消息导出按钮应展开选项并在点击 MD 时触发回调', (tester) async {
       var exported = false;
       final message = XiaoMiMessage(
         id: 4,
@@ -229,7 +229,14 @@ void main() {
       expect(find.text('导出'), findsOneWidget);
       await tester.tap(find.text('导出'));
       await tester.pump();
+      expect(exported, isFalse);
+      expect(find.text('MD'), findsOneWidget);
+      expect(find.text('收起'), findsOneWidget);
+
+      await tester.tap(find.text('MD'));
+      await tester.pump();
       expect(exported, isTrue);
+      expect(find.text('MD'), findsNothing);
     });
 
     testWidgets('非选择模式下用户消息不应展示导出按钮', (tester) async {

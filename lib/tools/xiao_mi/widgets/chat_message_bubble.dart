@@ -442,17 +442,66 @@ class _CopyButtonState extends State<_CopyButton> {
   }
 }
 
-class _ExportButton extends StatelessWidget {
+class _ExportButton extends StatefulWidget {
   final VoidCallback onExport;
 
   const _ExportButton({required this.onExport});
 
   @override
+  State<_ExportButton> createState() => _ExportButtonState();
+}
+
+class _ExportButtonState extends State<_ExportButton> {
+  bool _expanded = false;
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+  }
+
+  void _exportMarkdown() {
+    widget.onExport();
+    if (!mounted) return;
+    setState(() => _expanded = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return _MessageActionChip(
-      icon: CupertinoIcons.arrow_up_doc,
-      label: '导出',
-      onTap: onExport,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          transitionBuilder: (child, animation) {
+            final slide = Tween<Offset>(
+              begin: const Offset(0.2, 0),
+              end: Offset.zero,
+            ).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: slide, child: child),
+            );
+          },
+          child: _expanded
+              ? Row(
+                  key: const ValueKey('xiao_mi_export_md_option'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MessageActionChip(
+                      icon: CupertinoIcons.doc_text,
+                      label: 'MD',
+                      onTap: _exportMarkdown,
+                    ),
+                    const SizedBox(width: IOS26Theme.spacingXs),
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
+        _MessageActionChip(
+          icon: CupertinoIcons.arrow_up_doc,
+          label: _expanded ? '收起' : '导出',
+          onTap: _toggle,
+        ),
+      ],
     );
   }
 }

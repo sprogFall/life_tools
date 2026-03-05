@@ -222,28 +222,17 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
     if (text.isEmpty) return;
 
     final l10n = AppLocalizations.of(context)!;
-    final format = await _pickExportFormat(l10n);
-    if (!mounted || format == null) return;
-
-    final formatLabel = switch (format) {
-      XiaoMiMessageExportFormat.markdown => 'MD (.md)',
-      XiaoMiMessageExportFormat.pdf => 'PDF (.pdf)',
-    };
-
     final confirmed = await AppDialogs.showConfirm(
       context,
       title: '确认导出消息？',
-      content: '将以 $formatLabel 格式导出当前消息，并拉起系统分享。',
+      content: '将以 MD (.md) 格式导出当前消息，并拉起系统分享。',
       cancelText: l10n.common_cancel,
       confirmText: l10n.common_confirm,
     );
     if (!mounted || !confirmed) return;
 
     try {
-      await _messageExportService.exportMessage(
-        message: message,
-        format: format,
-      );
+      await _messageExportService.exportMessage(message: message);
     } catch (error, stackTrace) {
       devLog(
         'xiao_mi_message_export_failed',
@@ -253,29 +242,6 @@ class _XiaoMiToolPageState extends State<XiaoMiToolPage>
       if (!mounted) return;
       context.read<ToastService>().showError('导出失败，请稍后重试');
     }
-  }
-
-  Future<XiaoMiMessageExportFormat?> _pickExportFormat(AppLocalizations l10n) {
-    return AppDialogs.showActionSheet<XiaoMiMessageExportFormat>(
-      context,
-      title: '选择导出格式',
-      actions: [
-        CupertinoActionSheetAction(
-          onPressed: () =>
-              Navigator.pop(context, XiaoMiMessageExportFormat.markdown),
-          child: const Text('MD (.md)'),
-        ),
-        CupertinoActionSheetAction(
-          onPressed: () =>
-              Navigator.pop(context, XiaoMiMessageExportFormat.pdf),
-          child: const Text('PDF (.pdf)'),
-        ),
-      ],
-      cancelButton: CupertinoActionSheetAction(
-        onPressed: () => Navigator.pop(context),
-        child: Text(l10n.common_cancel),
-      ),
-    );
   }
 
   Future<void> _deleteSelectedMessages(XiaoMiChatService service) async {

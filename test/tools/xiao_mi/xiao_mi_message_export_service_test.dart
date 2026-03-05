@@ -1,13 +1,8 @@
-import 'dart:typed_data';
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/tools/xiao_mi/models/xiao_mi_message.dart';
 import 'package:life_tools/tools/xiao_mi/services/xiao_mi_message_export_service.dart';
-import 'package:pdf/widgets.dart' as pw;
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
   group('XiaoMiMessageExportService', () {
     final messageTime = DateTime(2026, 3, 5, 8, 30, 0);
 
@@ -31,15 +26,6 @@ void main() {
               sharedSubject = subject;
               sharedMimeType = mimeType;
             },
-        shareBinaryFile:
-            ({
-              required Uint8List bytes,
-              required String fileName,
-              required String subject,
-              required String mimeType,
-            }) async {
-              fail('Markdown 导出不应调用二进制分享');
-            },
       );
 
       await service.exportMessage(
@@ -51,7 +37,6 @@ void main() {
           metadata: null,
           createdAt: messageTime,
         ),
-        format: XiaoMiMessageExportFormat.markdown,
       );
 
       expect(sharedFileName, 'xiao_mi_message_20260305_123456.md');
@@ -61,19 +46,11 @@ void main() {
       expect(sharedText, contains('今天完成了接口联调'));
     });
 
-    test('导出 PDF 应先生成 PDF 字节并走二进制分享', () async {
-      String? pdfSourceMarkdown;
-      Uint8List? sharedBytes;
-      String? sharedFileName;
-      String? sharedSubject;
-      String? sharedMimeType;
+    test('导出内容应保留 Markdown 标题与时间信息', () async {
+      String? sharedText;
 
       final service = XiaoMiMessageExportService(
         now: () => DateTime(2026, 3, 5, 12, 34, 56),
-        buildPdfBytes: (markdown) async {
-          pdfSourceMarkdown = markdown;
-          return Uint8List.fromList([1, 2, 3, 4]);
-        },
         shareTextFile:
             ({
               required String text,
@@ -81,141 +58,25 @@ void main() {
               required String subject,
               required String mimeType,
             }) async {
-              fail('PDF 导出不应调用文本分享');
-            },
-        shareBinaryFile:
-            ({
-              required Uint8List bytes,
-              required String fileName,
-              required String subject,
-              required String mimeType,
-            }) async {
-              sharedBytes = bytes;
-              sharedFileName = fileName;
-              sharedSubject = subject;
-              sharedMimeType = mimeType;
+              sharedText = text;
             },
       );
 
       await service.exportMessage(
         message: XiaoMiMessage(
-          id: 2,
+          id: 8,
           conversationId: 1,
           role: XiaoMiMessageRole.assistant,
-          content: '建议先补测试再实现功能。',
+          content: '  输出一段带前后空白的正文  ',
           metadata: null,
           createdAt: messageTime,
         ),
-        format: XiaoMiMessageExportFormat.pdf,
       );
 
-      expect(pdfSourceMarkdown, contains('角色：小蜜'));
-      expect(pdfSourceMarkdown, contains('建议先补测试再实现功能。'));
-      expect(sharedBytes, Uint8List.fromList([1, 2, 3, 4]));
-      expect(sharedFileName, 'xiao_mi_message_20260305_123456.pdf');
-      expect(sharedSubject, '小蜜消息导出');
-      expect(sharedMimeType, 'application/pdf');
-    });
-
-    test('即使字体解析回退 Type1 字体也不应出现缺字报错', () async {
-      Uint8List? sharedBytes;
-      final printed = <String>[];
-
-      await runZoned(
-        () async {
-          final service = XiaoMiMessageExportService(
-            now: () => DateTime(2026, 3, 5, 12, 34, 56),
-            resolvePdfFont: () async => pw.Font.helvetica(),
-            shareTextFile:
-                ({
-                  required String text,
-                  required String fileName,
-                  required String subject,
-                  required String mimeType,
-                }) async {
-                  fail('PDF 导出不应调用文本分享');
-                },
-            shareBinaryFile:
-                ({
-                  required Uint8List bytes,
-                  required String fileName,
-                  required String subject,
-                  required String mimeType,
-                }) async {
-                  sharedBytes = bytes;
-                },
-          );
-
-          await service.exportMessage(
-            message: XiaoMiMessage(
-              id: 3,
-              conversationId: 1,
-              role: XiaoMiMessageRole.assistant,
-              content: '这是一段中文内容，用于验证 PDF 导出。',
-              metadata: null,
-              createdAt: messageTime,
-            ),
-            format: XiaoMiMessageExportFormat.pdf,
-          );
-        },
-        zoneSpecification: ZoneSpecification(
-          print: (self, parent, zone, line) => printed.add(line),
-        ),
-      );
-
-      expect(sharedBytes, isNotNull);
-      expect(sharedBytes, isNotEmpty);
-      expect(
-        printed.join('\n'),
-        isNot(contains('Unable to find a font to draw')),
-      );
-      expect(printed.join('\n'), isNot(contains('has no Unicode support')));
-    });
-
-    test('导出超长内容时不应因默认页数上限而失败', () async {
-      Uint8List? sharedBytes;
-      final veryLongContent = List<String>.generate(
-        24000,
-        (index) => 'long-content-line-$index',
-      ).join('\n');
-
-      final service = XiaoMiMessageExportService(
-        now: () => DateTime(2026, 3, 5, 12, 34, 56),
-        resolvePdfFont: () async => pw.Font.helvetica(),
-        shareTextFile:
-            ({
-              required String text,
-              required String fileName,
-              required String subject,
-              required String mimeType,
-            }) async {
-              fail('PDF 导出不应调用文本分享');
-            },
-        shareBinaryFile:
-            ({
-              required Uint8List bytes,
-              required String fileName,
-              required String subject,
-              required String mimeType,
-            }) async {
-              sharedBytes = bytes;
-            },
-      );
-
-      await service.exportMessage(
-        message: XiaoMiMessage(
-          id: 4,
-          conversationId: 1,
-          role: XiaoMiMessageRole.assistant,
-          content: veryLongContent,
-          metadata: null,
-          createdAt: messageTime,
-        ),
-        format: XiaoMiMessageExportFormat.pdf,
-      );
-
-      expect(sharedBytes, isNotNull);
-      expect(sharedBytes, isNotEmpty);
+      expect(sharedText, isNotNull);
+      expect(sharedText, startsWith('# 小蜜聊天消息'));
+      expect(sharedText, contains('- 时间：2026-03-05 08:30:00'));
+      expect(sharedText, contains('输出一段带前后空白的正文'));
     });
   });
 }

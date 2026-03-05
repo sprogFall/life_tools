@@ -1,15 +1,5 @@
-import 'dart:convert' show LineSplitter;
-import 'dart:typed_data';
-
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-
 import '../../../core/backup/services/share_service.dart';
-import '../../../core/utils/dev_log.dart';
 import '../models/xiao_mi_message.dart';
-
-enum XiaoMiMessageExportFormat { markdown, pdf }
 
 typedef XiaoMiShareTextFile =
     Future<void> Function({
@@ -19,67 +9,26 @@ typedef XiaoMiShareTextFile =
       required String mimeType,
     });
 
-typedef XiaoMiShareBinaryFile =
-    Future<void> Function({
-      required Uint8List bytes,
-      required String fileName,
-      required String subject,
-      required String mimeType,
-    });
-
-typedef XiaoMiBuildPdfBytes = Future<Uint8List> Function(String markdown);
-typedef XiaoMiResolvePdfFont = Future<pw.Font?> Function();
-
 class XiaoMiMessageExportService {
   XiaoMiMessageExportService({
     DateTime Function()? now,
     XiaoMiShareTextFile? shareTextFile,
-    XiaoMiShareBinaryFile? shareBinaryFile,
-    XiaoMiBuildPdfBytes? buildPdfBytes,
-    XiaoMiResolvePdfFont? resolvePdfFont,
   }) : _now = now ?? DateTime.now,
-       _shareTextFile = shareTextFile ?? _defaultShareTextFile,
-       _shareBinaryFile = shareBinaryFile ?? _defaultShareBinaryFile,
-       _customBuildPdfBytes = buildPdfBytes,
-       _resolvePdfFont = resolvePdfFont ?? _defaultResolvePdfFont;
+       _shareTextFile = shareTextFile ?? _defaultShareTextFile;
 
   static const String _shareSubject = '小蜜消息导出';
 
   final DateTime Function() _now;
   final XiaoMiShareTextFile _shareTextFile;
-  final XiaoMiShareBinaryFile _shareBinaryFile;
-  final XiaoMiBuildPdfBytes? _customBuildPdfBytes;
-  final XiaoMiResolvePdfFont _resolvePdfFont;
-  Future<pw.Font?>? _bundledFontFuture;
 
-  static const String _bundledFontAssetPath =
-      'assets/fonts/NotoSansSC-Regular.ttf';
-
-  Future<void> exportMessage({
-    required XiaoMiMessage message,
-    required XiaoMiMessageExportFormat format,
-  }) async {
+  Future<void> exportMessage({required XiaoMiMessage message}) async {
     final markdown = buildMarkdown(message);
-    final fileName = _buildFileName(format);
-    if (format == XiaoMiMessageExportFormat.markdown) {
-      await _shareTextFile(
-        text: markdown,
-        fileName: fileName,
-        subject: _shareSubject,
-        mimeType: 'text/markdown',
-      );
-      return;
-    }
-
-    final customBuildPdfBytes = _customBuildPdfBytes;
-    final pdfBytes = customBuildPdfBytes != null
-        ? await customBuildPdfBytes(markdown)
-        : await _buildPdfBytes(markdown);
-    await _shareBinaryFile(
-      bytes: pdfBytes,
+    final fileName = _buildFileName();
+    await _shareTextFile(
+      text: markdown,
       fileName: fileName,
       subject: _shareSubject,
-      mimeType: 'application/pdf',
+      mimeType: 'text/markdown',
     );
   }
 
@@ -103,7 +52,7 @@ $content
 ''';
   }
 
-  String _buildFileName(XiaoMiMessageExportFormat format) {
+  String _buildFileName() {
     final now = _now();
     final y = now.year.toString().padLeft(4, '0');
     final m = now.month.toString().padLeft(2, '0');
@@ -111,9 +60,8 @@ $content
     final hh = now.hour.toString().padLeft(2, '0');
     final mm = now.minute.toString().padLeft(2, '0');
     final ss = now.second.toString().padLeft(2, '0');
-    final ext = format == XiaoMiMessageExportFormat.markdown ? 'md' : 'pdf';
     return 'xiao_mi_message_$y$m$d'
-        '_$hh$mm$ss.$ext';
+        '_$hh$mm$ss.md';
   }
 
   static String _formatDateTime(DateTime value) {
@@ -134,110 +82,5 @@ $content
       subject: subject,
       mimeType: mimeType,
     );
-  }
-
-  static Future<void> _defaultShareBinaryFile({
-    required Uint8List bytes,
-    required String fileName,
-    required String subject,
-    required String mimeType,
-  }) async {
-    await ShareService.shareBinaryFile(
-      bytes,
-      fileName,
-      subject: subject,
-      mimeType: mimeType,
-    );
-  }
-
-  static bool _isType1Font(pw.Font font) => font.font != null;
-
-  static Future<pw.Font?> _defaultResolvePdfFont() async => null;
-
-  Future<pw.Font?> _loadBundledPdfFont() {
-    return _bundledFontFuture ??= _tryLoadBundledPdfFont();
-  }
-
-  static Future<pw.Font?> _tryLoadBundledPdfFont() async {
-    try {
-      final data = await rootBundle.load(_bundledFontAssetPath);
-      return pw.Font.ttf(data);
-    } catch (error, stackTrace) {
-      devLog(
-        'xiao_mi_pdf_bundled_font_load_failed',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return null;
-    }
-  }
-
-  Future<pw.Font?> _resolvePdfFontOrFallback() async {
-    pw.Font? resolved;
-    try {
-      resolved = await _resolvePdfFont();
-    } catch (error, stackTrace) {
-      devLog(
-        'xiao_mi_pdf_font_resolve_failed',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      resolved = null;
-    }
-
-    if (resolved != null && !_isType1Font(resolved)) return resolved;
-
-    final bundled = await _loadBundledPdfFont();
-    return bundled ?? resolved;
-  }
-
-  Future<Uint8List> _buildPdfBytes(String markdown) async {
-    final document = pw.Document();
-    final font = await _resolvePdfFontOrFallback();
-    document.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-        maxPages: 200,
-        theme: font == null
-            ? null
-            : pw.ThemeData.withFont(
-                base: font,
-                bold: font,
-                italic: font,
-                boldItalic: font,
-              ),
-        build: (context) => _buildPdfTextBlocks(markdown),
-      ),
-    );
-    return document.save();
-  }
-
-  static List<pw.Widget> _buildPdfTextBlocks(String markdown) {
-    final widgets = <pw.Widget>[];
-    for (final line in LineSplitter.split(markdown)) {
-      if (line.trim().isEmpty) {
-        widgets.add(pw.SizedBox(height: 6));
-        continue;
-      }
-      for (final chunk in _splitLongLine(line)) {
-        widgets.add(pw.Text(chunk));
-      }
-    }
-    if (widgets.isEmpty) {
-      widgets.add(pw.Text(' '));
-    }
-    return widgets;
-  }
-
-  static List<String> _splitLongLine(String line, {int maxRunes = 400}) {
-    final runes = line.runes.toList(growable: false);
-    if (runes.length <= maxRunes) return [line];
-    final chunks = <String>[];
-    for (var i = 0; i < runes.length; i += maxRunes) {
-      final end = (i + maxRunes < runes.length) ? i + maxRunes : runes.length;
-      chunks.add(String.fromCharCodes(runes.sublist(i, end)));
-    }
-    return chunks;
   }
 }
