@@ -117,8 +117,7 @@ class ChatMessageBubble extends StatelessWidget {
   }
 
   Widget _buildUserBubble(AppLocalizations l10n) {
-    final presetId = (message.metadata ?? const {})['presetId'] as String?;
-    final triggerHint = _resolveTriggerHint(l10n, presetId);
+    final triggerHint = _resolveTriggerHint(l10n, message.metadata);
 
     return Container(
       decoration: BoxDecoration(
@@ -276,13 +275,21 @@ class ChatMessageBubble extends StatelessWidget {
     );
   }
 
-  String? _resolveTriggerHint(AppLocalizations l10n, String? presetId) {
-    if (presetId == null || presetId.trim().isEmpty) return null;
-    return switch (presetId) {
-      'work_log_year_summary' =>
-        l10n.xiao_mi_message_trigger_work_log_year_summary,
-      _ => l10n.xiao_mi_message_trigger_custom,
-    };
+  String? _resolveTriggerHint(
+    AppLocalizations l10n,
+    Map<String, dynamic>? metadata,
+  ) {
+    if (metadata == null) return null;
+    final startDate = metadata['queryStartDate'] as String?;
+    final endDate = metadata['queryEndDate'] as String?;
+    if (startDate != null && endDate != null) {
+      return l10n.xiao_mi_message_trigger_work_log_range(startDate, endDate);
+    }
+    final triggerSource = metadata['triggerSource'] as String?;
+    if (triggerSource != null && triggerSource.isNotEmpty) {
+      return l10n.xiao_mi_message_trigger_custom;
+    }
+    return null;
   }
 
   _MessageErrorData? _resolveErrorData(Map<String, dynamic>? metadata) {

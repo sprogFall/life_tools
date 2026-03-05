@@ -454,11 +454,14 @@ abstract class AppLocalizations {
   /// **'You selected {count} messages. This action cannot be undone.'**
   String xiao_mi_message_delete_selected_content(int count);
 
-  /// No description provided for @xiao_mi_message_trigger_work_log_year_summary.
+  /// No description provided for @xiao_mi_message_trigger_work_log_range.
   ///
   /// In en, this message translates to:
-  /// **'Triggered: Yearly work summary'**
-  String get xiao_mi_message_trigger_work_log_year_summary;
+  /// **'Querying work logs: {startDate} to {endDate}'**
+  String xiao_mi_message_trigger_work_log_range(
+    String startDate,
+    String endDate,
+  );
 
   /// No description provided for @xiao_mi_message_trigger_custom.
   ///

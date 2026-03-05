@@ -81,7 +81,13 @@
       }
     }
   },
-  "xiao_mi_message_trigger_work_log_year_summary": "已触发：年度工作总结",
+  "xiao_mi_message_trigger_work_log_range": "查询 {startDate} 至 {endDate} 工作记录",
+  "@xiao_mi_message_trigger_work_log_range": {
+    "placeholders": {
+      "startDate": { "type": "String" },
+      "endDate": { "type": "String" }
+    }
+  },
   "xiao_mi_message_trigger_custom": "已触发：预设上下文",
   "work_log_ai_entry": "AI录入",
   "work_log_ai_summary_entry": "AI总结",

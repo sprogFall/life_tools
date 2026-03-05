@@ -29,7 +29,7 @@ void main() {
       );
     });
 
-    test('work_log_month_summary 应生成本月范围总结并写入 presetId', () async {
+    test('work_log_month_summary 应生成本月范围总结并写入日期范围', () async {
       final now = DateTime(2026, 5, 20, 9);
       final taskId = await repository.createTask(
         WorkTask.create(
@@ -71,10 +71,9 @@ void main() {
         displayText: '本月工作总结',
       );
 
-      expect(
-        (resolved.metadata ?? const {})['presetId'],
-        'work_log_month_summary',
-      );
+      final metadata = resolved.metadata ?? const {};
+      expect(metadata['queryStartDate'], '2026-05-01');
+      expect(metadata['queryEndDate'], '2026-05-31');
       expect(resolved.aiPrompt, contains('时间范围：2026-05-01 至 2026-05-31（含）'));
       expect(resolved.aiPrompt, contains('内容：月内记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：月外记录')));
@@ -123,10 +122,9 @@ void main() {
         arguments: const <String, Object?>{'year': 2026, 'month': 1},
       );
 
-      expect(
-        (resolved.metadata ?? const {})['presetId'],
-        'work_log_month_summary',
-      );
+      final metadata = resolved.metadata ?? const {};
+      expect(metadata['queryStartDate'], '2026-01-01');
+      expect(metadata['queryEndDate'], '2026-01-31');
       expect(resolved.aiPrompt, contains('时间范围：2026-01-01 至 2026-01-31（含）'));
       expect(resolved.aiPrompt, contains('内容：一月记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：三月记录')));
@@ -174,10 +172,9 @@ void main() {
         displayText: '本周工作总结',
       );
 
-      expect(
-        (resolved.metadata ?? const {})['presetId'],
-        'work_log_week_summary',
-      );
+      final metadata = resolved.metadata ?? const {};
+      expect(metadata['queryStartDate'], '2026-05-18');
+      expect(metadata['queryEndDate'], '2026-05-24');
       expect(resolved.aiPrompt, contains('时间范围：2026-05-18 至 2026-05-24（含）'));
       expect(resolved.aiPrompt, contains('内容：本周记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：上周记录')));
@@ -225,10 +222,9 @@ void main() {
         displayText: '本季度工作总结',
       );
 
-      expect(
-        (resolved.metadata ?? const {})['presetId'],
-        'work_log_quarter_summary',
-      );
+      final metadata = resolved.metadata ?? const {};
+      expect(metadata['queryStartDate'], '2026-04-01');
+      expect(metadata['queryEndDate'], '2026-06-30');
       expect(resolved.aiPrompt, contains('时间范围：2026-04-01 至 2026-06-30（含）'));
       expect(resolved.aiPrompt, contains('内容：季度内记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：季度外记录')));
@@ -280,10 +276,9 @@ void main() {
         },
       );
 
-      expect(
-        (resolved.metadata ?? const {})['presetId'],
-        'work_log_year_summary',
-      );
+      final metadata = resolved.metadata ?? const {};
+      expect(metadata['queryStartDate'], '2026-01-01');
+      expect(metadata['queryEndDate'], '2026-12-31');
       expect(resolved.aiPrompt, contains('时间范围：2026-01-01 至 2026-12-31（含）'));
       expect(resolved.aiPrompt, contains('内容：年度内记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：年度外记录')));
@@ -332,10 +327,9 @@ void main() {
         arguments: const <String, Object?>{'year': 2025},
       );
 
-      expect(
-        (resolved.metadata ?? const {})['presetId'],
-        'work_log_year_summary',
-      );
+      final metadata = resolved.metadata ?? const {};
+      expect(metadata['queryStartDate'], '2026-01-01');
+      expect(metadata['queryEndDate'], '2026-12-31');
       expect(resolved.aiPrompt, contains('时间范围：2026-01-01 至 2026-12-31（含）'));
       expect(resolved.aiPrompt, contains('内容：今年记录'));
       expect(resolved.aiPrompt, isNot(contains('内容：去年记录')));

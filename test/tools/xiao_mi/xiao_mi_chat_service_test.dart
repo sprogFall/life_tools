@@ -182,8 +182,12 @@ void main() {
       expect((persistedAssistant.metadata ?? const {})['thinking'], '先分析再归纳');
 
       expect(
-        (service.messages.first.metadata ?? const {})['presetId'],
-        'work_log_year_summary',
+        (service.messages.first.metadata ?? const {})['queryStartDate'],
+        '2026-01-01',
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['queryEndDate'],
+        '2026-12-31',
       );
       expect(
         (service.messages.first.metadata ?? const {})['triggerSource'],
@@ -265,8 +269,12 @@ void main() {
       expect(service.messages.length, 2);
       expect(service.messages.last.content, '范围总结完成');
       expect(
-        (service.messages.first.metadata ?? const {})['presetId'],
-        'work_log_year_summary',
+        (service.messages.first.metadata ?? const {})['queryStartDate'],
+        '2026-01-01',
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['queryEndDate'],
+        '2026-12-31',
       );
       expect(fakeClient.lastRequest, isNotNull);
       expect(

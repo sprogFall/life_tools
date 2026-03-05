@@ -64,19 +64,6 @@ class XiaoMiRepository {
     );
   }
 
-  Future<void> touchConversationUpdatedAt({
-    required int conversationId,
-    required DateTime now,
-  }) async {
-    final db = await _database;
-    await db.update(
-      'xiao_mi_conversations',
-      <String, Object?>{'updated_at': now.millisecondsSinceEpoch},
-      where: 'id = ?',
-      whereArgs: [conversationId],
-    );
-  }
-
   Future<void> deleteConversation(int conversationId) async {
     final db = await _database;
     await db.delete(

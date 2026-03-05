@@ -75,15 +75,6 @@ class XiaoMiPromptResolver {
     workLogYearSummary,
   ];
 
-  Future<XiaoMiResolvedPrompt> resolveUserInput(String rawText) async {
-    final text = rawText.trim();
-    return XiaoMiResolvedPrompt(
-      displayText: text,
-      aiPrompt: text,
-      metadata: null,
-    );
-  }
-
   Future<XiaoMiResolvedPrompt> resolveSpecialCall({
     required String callId,
     required String displayText,
@@ -98,131 +89,121 @@ class XiaoMiPromptResolver {
       nowProvider: _nowProvider,
     );
 
-    switch (normalizedCallId) {
+    final dateRange = _resolveCallDateRange(
+      callId: normalizedCallId,
+      arguments: arguments,
+      displayText: normalizedDisplayText,
+      now: now,
+    );
+
+    if (dateRange == null) {
+      return _buildTriggeredPrompt(
+        displayText: normalizedDisplayText,
+        aiPrompt: normalizedDisplayText,
+      );
+    }
+
+    final prompt = await builder.buildDateRange(
+      start: dateRange.start,
+      endInclusive: dateRange.endInclusive,
+      styleId: styleId,
+    );
+    if (prompt == null) {
+      throw const XiaoMiNoWorkLogDataException('该时间范围没有可用的工作记录，无法生成总结');
+    }
+    return _buildTriggeredPrompt(
+      displayText: normalizedDisplayText,
+      aiPrompt: prompt,
+      queryStart: dateRange.start,
+      queryEnd: dateRange.endInclusive,
+    );
+  }
+
+  static _DateRange? _resolveCallDateRange({
+    required String callId,
+    required Map<String, Object?> arguments,
+    required String displayText,
+    required DateTime now,
+  }) {
+    switch (callId) {
       case 'work_log_range_summary':
-        final dateRange = _resolveDateRange(
+        return _resolveDateRange(
           arguments: arguments,
-          displayText: normalizedDisplayText,
+          displayText: displayText,
           now: now,
         );
-        final prompt = await builder.buildDateRange(
-          start: dateRange.start,
-          endInclusive: dateRange.endInclusive,
-          styleId: styleId,
-        );
-        if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('该时间范围没有可用的工作记录，无法生成总结');
-        }
-        return _buildTriggeredPrompt(
-          displayText: normalizedDisplayText,
-          aiPrompt: prompt,
-          presetId: _resolveRangePresetId(
-            displayText: normalizedDisplayText,
-            dateRange: dateRange,
-          ),
-        );
       case 'work_log_week_summary':
-        final preferCurrentWeek = _isCurrentWeekRequest(normalizedDisplayText);
-        final anchorDate = preferCurrentWeek
+        final preferCurrent = _isCurrentWeekRequest(displayText);
+        final anchor = preferCurrent
             ? now
             : (_resolveDate(arguments['date']) ??
                   _resolveDate(arguments['anchor_date']) ??
                   now);
-        final prompt = await builder.buildWeekByAnchor(
-          anchorDate: anchorDate,
-          styleId: styleId,
+        final start = anchor.subtract(
+          Duration(days: anchor.weekday - DateTime.monday),
         );
-        if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('该周没有可用的工作记录，无法生成总结');
-        }
-        return _buildTriggeredPrompt(
-          displayText: normalizedDisplayText,
-          aiPrompt: prompt,
-          presetId: workLogWeekSummary.id,
+        return _DateRange(
+          start: start,
+          endInclusive: start.add(const Duration(days: 6)),
         );
       case 'work_log_month_summary':
-        final preferCurrentMonth = _isCurrentMonthRequest(
-          normalizedDisplayText,
-        );
-        final month = _resolveMonth(arguments['month']);
-        final year = preferCurrentMonth
+        final preferCurrent = _isCurrentMonthRequest(displayText);
+        final month = (preferCurrent ? null : _resolveMonth(arguments['month']))
+            ?? now.month;
+        final year = preferCurrent
             ? now.year
             : (_resolveYear(arguments['year']) ?? now.year);
-        final prompt = month == null || preferCurrentMonth
-            ? await builder.buildCurrentMonth(styleId: styleId)
-            : await builder.buildMonth(
-                year: year,
-                month: month,
-                styleId: styleId,
-              );
-        if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('该月份没有可用的工作记录，无法生成总结');
-        }
-        return _buildTriggeredPrompt(
-          displayText: normalizedDisplayText,
-          aiPrompt: prompt,
-          presetId: workLogMonthSummary.id,
+        return _DateRange(
+          start: DateTime(year, month, 1),
+          endInclusive: DateTime(year, month + 1, 0),
         );
       case 'work_log_quarter_summary':
-        final preferCurrentQuarter = _isCurrentQuarterRequest(
-          normalizedDisplayText,
-        );
-        final quarter = _resolveQuarter(arguments['quarter']);
-        final year = preferCurrentQuarter
+        final preferCurrent = _isCurrentQuarterRequest(displayText);
+        final quarter = (preferCurrent
+                ? null
+                : _resolveQuarter(arguments['quarter']))
+            ?? ((now.month - 1) ~/ 3 + 1);
+        final year = preferCurrent
             ? now.year
             : (_resolveYear(arguments['year']) ?? now.year);
-        final prompt = quarter == null || preferCurrentQuarter
-            ? await builder.buildCurrentQuarter(styleId: styleId)
-            : await builder.buildQuarter(
-                year: year,
-                quarter: quarter,
-                styleId: styleId,
-              );
-        if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('该季度没有可用的工作记录，无法生成总结');
-        }
-        return _buildTriggeredPrompt(
-          displayText: normalizedDisplayText,
-          aiPrompt: prompt,
-          presetId: workLogQuarterSummary.id,
+        final startMonth = (quarter - 1) * 3 + 1;
+        return _DateRange(
+          start: DateTime(year, startMonth, 1),
+          endInclusive: DateTime(year, startMonth + 3, 0),
         );
       case 'work_log_year_summary':
-        final year = _isCurrentYearRequest(normalizedDisplayText)
-            ? null
-            : _resolveYear(arguments['year']);
-        final prompt = year == null
-            ? await builder.buildCurrentYear(styleId: styleId)
-            : await builder.buildYear(year: year, styleId: styleId);
-        if (prompt == null) {
-          throw const XiaoMiNoWorkLogDataException('该年份没有可用的工作记录，无法生成总结');
-        }
-        return _buildTriggeredPrompt(
-          displayText: normalizedDisplayText,
-          aiPrompt: prompt,
-          presetId: workLogYearSummary.id,
+        final year = _isCurrentYearRequest(displayText)
+            ? now.year
+            : (_resolveYear(arguments['year']) ?? now.year);
+        return _DateRange(
+          start: DateTime(year, 1, 1),
+          endInclusive: DateTime(year, 12, 31),
         );
       default:
-        return _buildTriggeredPrompt(
-          displayText: normalizedDisplayText,
-          aiPrompt: normalizedDisplayText,
-          presetId: 'pre_route_special_call',
-        );
+        return null;
     }
   }
 
   static XiaoMiResolvedPrompt _buildTriggeredPrompt({
     required String displayText,
     required String aiPrompt,
-    required String presetId,
+    DateTime? queryStart,
+    DateTime? queryEnd,
   }) {
     return XiaoMiResolvedPrompt(
       displayText: displayText,
       aiPrompt: aiPrompt,
       metadata: <String, dynamic>{
-        'presetId': presetId,
         'triggerSource': 'pre_route',
+        if (queryStart != null) 'queryStartDate': _formatDateIso(queryStart),
+        if (queryEnd != null) 'queryEndDate': _formatDateIso(queryEnd),
       },
     );
+  }
+
+  static String _formatDateIso(DateTime d) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${d.year}-${two(d.month)}-${two(d.day)}';
   }
 
   static String? _resolveStyleId(Map<String, Object?> arguments) {
@@ -351,69 +332,6 @@ class XiaoMiPromptResolver {
       );
     }
     return null;
-  }
-
-  static String _resolveRangePresetId({
-    required String displayText,
-    required _DateRange dateRange,
-  }) {
-    if (_isCurrentWeekRequest(displayText) || _isWeekRange(dateRange)) {
-      return workLogWeekSummary.id;
-    }
-    if (_isCurrentMonthRequest(displayText) || _isMonthRange(dateRange)) {
-      return workLogMonthSummary.id;
-    }
-    if (_isCurrentQuarterRequest(displayText) || _isQuarterRange(dateRange)) {
-      return workLogQuarterSummary.id;
-    }
-    if (_isCurrentYearRequest(displayText) || _isYearRange(dateRange)) {
-      return workLogYearSummary.id;
-    }
-    return 'work_log_range_summary';
-  }
-
-  static bool _isYearRange(_DateRange dateRange) {
-    final start = dateRange.start;
-    final end = dateRange.endInclusive;
-    return start.year == end.year &&
-        start.month == 1 &&
-        start.day == 1 &&
-        end.month == 12 &&
-        end.day == 31;
-  }
-
-  static bool _isQuarterRange(_DateRange dateRange) {
-    final start = dateRange.start;
-    final end = dateRange.endInclusive;
-    if (start.day != 1) return false;
-    if (start.month != 1 &&
-        start.month != 4 &&
-        start.month != 7 &&
-        start.month != 10) {
-      return false;
-    }
-    final expectedEnd = DateTime(start.year, start.month + 3, 0);
-    return end.year == expectedEnd.year &&
-        end.month == expectedEnd.month &&
-        end.day == expectedEnd.day;
-  }
-
-  static bool _isMonthRange(_DateRange dateRange) {
-    final start = dateRange.start;
-    final end = dateRange.endInclusive;
-    if (start.day != 1) return false;
-    final expectedEnd = DateTime(start.year, start.month + 1, 0);
-    return end.year == expectedEnd.year &&
-        end.month == expectedEnd.month &&
-        end.day == expectedEnd.day;
-  }
-
-  static bool _isWeekRange(_DateRange dateRange) {
-    final start = dateRange.start;
-    final end = dateRange.endInclusive;
-    return start.weekday == DateTime.monday &&
-        end.weekday == DateTime.sunday &&
-        end.difference(start).inDays == 6;
   }
 
   static bool _isCurrentYearRequest(String text) {

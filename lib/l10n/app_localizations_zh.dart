@@ -195,7 +195,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get xiao_mi_message_trigger_work_log_year_summary => '已触发：年度工作总结';
+  String xiao_mi_message_trigger_work_log_range(
+    String startDate,
+    String endDate,
+  ) {
+    return '查询 $startDate 至 $endDate 工作记录';
+  }
 
   @override
   String get xiao_mi_message_trigger_custom => '已触发：预设上下文';
@@ -1250,7 +1255,12 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   }
 
   @override
-  String get xiao_mi_message_trigger_work_log_year_summary => '已触发：年度工作总结';
+  String xiao_mi_message_trigger_work_log_range(
+    String startDate,
+    String endDate,
+  ) {
+    return '查询 $startDate 至 $endDate 工作记录';
+  }
 
   @override
   String get xiao_mi_message_trigger_custom => '已触发：预设上下文';

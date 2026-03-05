@@ -81,7 +81,13 @@
       }
     }
   },
-  "xiao_mi_message_trigger_work_log_year_summary": "Triggered: Yearly work summary",
+  "xiao_mi_message_trigger_work_log_range": "Querying work logs: {startDate} to {endDate}",
+  "@xiao_mi_message_trigger_work_log_range": {
+    "placeholders": {
+      "startDate": { "type": "String" },
+      "endDate": { "type": "String" }
+    }
+  },
   "xiao_mi_message_trigger_custom": "Triggered: Preset context",
   "work_log_ai_entry": "AI Entry",
   "work_log_ai_summary_entry": "AI Summary",

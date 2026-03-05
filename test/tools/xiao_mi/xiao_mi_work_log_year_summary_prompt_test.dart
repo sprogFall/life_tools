@@ -7,7 +7,7 @@ import 'package:life_tools/tools/xiao_mi/ai/xiao_mi_work_log_prompt_builder.dart
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  group('XiaoMiWorkLogYearSummaryPromptBuilder', () {
+  group('XiaoMiWorkLogSummaryPromptBuilder.buildCurrentYear', () {
     late Database db;
     late WorkLogRepository workLogRepository;
 
@@ -54,12 +54,12 @@ void main() {
         ),
       );
 
-      final builder = XiaoMiWorkLogYearSummaryPromptBuilder(
+      final builder = XiaoMiWorkLogSummaryPromptBuilder(
         repository: workLogRepository,
         nowProvider: () => now,
       );
 
-      final prompt = await builder.build();
+      final prompt = await builder.buildCurrentYear();
 
       expect(prompt, contains('时间范围：2026-01-01 至 2026-12-31（含）'));
       expect(prompt, contains('任务：任务A'));
@@ -69,12 +69,12 @@ void main() {
 
     test('当年无工作记录时应返回 null', () async {
       final now = DateTime(2026, 10, 1, 8);
-      final builder = XiaoMiWorkLogYearSummaryPromptBuilder(
+      final builder = XiaoMiWorkLogSummaryPromptBuilder(
         repository: workLogRepository,
         nowProvider: () => now,
       );
 
-      final prompt = await builder.build();
+      final prompt = await builder.buildCurrentYear();
       expect(prompt, isNull);
     });
   });

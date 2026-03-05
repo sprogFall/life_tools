@@ -187,22 +187,3 @@ class XiaoMiWorkLogSummaryPromptBuilder {
     return 'management';
   }
 }
-
-class XiaoMiWorkLogYearSummaryPromptBuilder {
-  final WorkLogRepositoryBase _repository;
-  final DateTime Function() _nowProvider;
-
-  const XiaoMiWorkLogYearSummaryPromptBuilder({
-    required WorkLogRepositoryBase repository,
-    DateTime Function()? nowProvider,
-  }) : _repository = repository,
-       _nowProvider = nowProvider ?? DateTime.now;
-
-  Future<String?> build() async {
-    final builder = XiaoMiWorkLogSummaryPromptBuilder(
-      repository: _repository,
-      nowProvider: _nowProvider,
-    );
-    return builder.buildCurrentYear();
-  }
-}

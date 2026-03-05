@@ -206,8 +206,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get xiao_mi_message_trigger_work_log_year_summary =>
-      'Triggered: Yearly work summary';
+  String xiao_mi_message_trigger_work_log_range(
+    String startDate,
+    String endDate,
+  ) {
+    return 'Querying work logs: $startDate to $endDate';
+  }
 
   @override
   String get xiao_mi_message_trigger_custom => 'Triggered: Preset context';
@@ -1303,8 +1307,12 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   }
 
   @override
-  String get xiao_mi_message_trigger_work_log_year_summary =>
-      'Triggered: Yearly work summary';
+  String xiao_mi_message_trigger_work_log_range(
+    String startDate,
+    String endDate,
+  ) {
+    return 'Querying work logs: $startDate to $endDate';
+  }
 
   @override
   String get xiao_mi_message_trigger_custom => 'Triggered: Preset context';
