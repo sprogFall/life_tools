@@ -1,10 +1,13 @@
 import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/tools/xiao_mi/models/xiao_mi_message.dart';
 import 'package:life_tools/tools/xiao_mi/services/xiao_mi_message_export_service.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('XiaoMiMessageExportService', () {
     final messageTime = DateTime(2026, 3, 5, 8, 30, 0);
 
@@ -114,46 +117,56 @@ void main() {
       expect(sharedMimeType, 'application/pdf');
     });
 
-    test('默认 PDF 构建在中文内容下也应导出成功', () async {
+    test('即使字体解析回退 Type1 字体也不应出现缺字报错', () async {
       Uint8List? sharedBytes;
+      final printed = <String>[];
 
-      final service = XiaoMiMessageExportService(
-        now: () => DateTime(2026, 3, 5, 12, 34, 56),
-        resolvePdfFont: () async => null,
-        shareTextFile:
-            ({
-              required String text,
-              required String fileName,
-              required String subject,
-              required String mimeType,
-            }) async {
-              fail('PDF 导出不应调用文本分享');
-            },
-        shareBinaryFile:
-            ({
-              required Uint8List bytes,
-              required String fileName,
-              required String subject,
-              required String mimeType,
-            }) async {
-              sharedBytes = bytes;
-            },
-      );
+      await runZoned(
+        () async {
+          final service = XiaoMiMessageExportService(
+            now: () => DateTime(2026, 3, 5, 12, 34, 56),
+            resolvePdfFont: () async => pw.Font.helvetica(),
+            shareTextFile:
+                ({
+                  required String text,
+                  required String fileName,
+                  required String subject,
+                  required String mimeType,
+                }) async {
+                  fail('PDF 导出不应调用文本分享');
+                },
+            shareBinaryFile:
+                ({
+                  required Uint8List bytes,
+                  required String fileName,
+                  required String subject,
+                  required String mimeType,
+                }) async {
+                  sharedBytes = bytes;
+                },
+          );
 
-      await service.exportMessage(
-        message: XiaoMiMessage(
-          id: 3,
-          conversationId: 1,
-          role: XiaoMiMessageRole.assistant,
-          content: '这是一段中文内容，用于验证 PDF 导出。',
-          metadata: null,
-          createdAt: messageTime,
+          await service.exportMessage(
+            message: XiaoMiMessage(
+              id: 3,
+              conversationId: 1,
+              role: XiaoMiMessageRole.assistant,
+              content: '这是一段中文内容，用于验证 PDF 导出。',
+              metadata: null,
+              createdAt: messageTime,
+            ),
+            format: XiaoMiMessageExportFormat.pdf,
+          );
+        },
+        zoneSpecification: ZoneSpecification(
+          print: (self, parent, zone, line) => printed.add(line),
         ),
-        format: XiaoMiMessageExportFormat.pdf,
       );
 
       expect(sharedBytes, isNotNull);
       expect(sharedBytes, isNotEmpty);
+      expect(printed.join('\n'), isNot(contains('Unable to find a font to draw')));
+      expect(printed.join('\n'), isNot(contains('has no Unicode support')));
     });
   });
 }

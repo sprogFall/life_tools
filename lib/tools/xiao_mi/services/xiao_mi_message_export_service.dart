@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../../../core/backup/services/share_service.dart';
 import '../../../core/utils/dev_log.dart';
@@ -49,6 +49,10 @@ class XiaoMiMessageExportService {
   final XiaoMiShareBinaryFile _shareBinaryFile;
   final XiaoMiBuildPdfBytes? _customBuildPdfBytes;
   final XiaoMiResolvePdfFont _resolvePdfFont;
+  Future<pw.Font?>? _bundledFontFuture;
+
+  static const String _bundledFontAssetPath =
+      'assets/fonts/NotoSansSC-Regular.ttf';
 
   Future<void> exportMessage({
     required XiaoMiMessage message,
@@ -145,9 +149,50 @@ $content
     );
   }
 
+  static bool _isType1Font(pw.Font font) => font.font != null;
+
+  static Future<pw.Font?> _defaultResolvePdfFont() async => null;
+
+  Future<pw.Font?> _loadBundledPdfFont() {
+    return _bundledFontFuture ??= _tryLoadBundledPdfFont();
+  }
+
+  static Future<pw.Font?> _tryLoadBundledPdfFont() async {
+    try {
+      final data = await rootBundle.load(_bundledFontAssetPath);
+      return pw.Font.ttf(data);
+    } catch (error, stackTrace) {
+      devLog(
+        'xiao_mi_pdf_bundled_font_load_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  Future<pw.Font?> _resolvePdfFontOrFallback() async {
+    pw.Font? resolved;
+    try {
+      resolved = await _resolvePdfFont();
+    } catch (error, stackTrace) {
+      devLog(
+        'xiao_mi_pdf_font_resolve_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      resolved = null;
+    }
+
+    if (resolved != null && !_isType1Font(resolved)) return resolved;
+
+    final bundled = await _loadBundledPdfFont();
+    return bundled ?? resolved;
+  }
+
   Future<Uint8List> _buildPdfBytes(String markdown) async {
     final document = pw.Document();
-    final font = await _resolvePdfFont();
+    final font = await _resolvePdfFontOrFallback();
     document.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -164,18 +209,5 @@ $content
       ),
     );
     return document.save();
-  }
-
-  static Future<pw.Font?> _defaultResolvePdfFont() async {
-    try {
-      return await PdfGoogleFonts.notoSansSCRegular();
-    } catch (error, stackTrace) {
-      devLog(
-        'xiao_mi_pdf_font_load_failed',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return null;
-    }
   }
 }
