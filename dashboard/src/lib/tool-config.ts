@@ -1,0 +1,188 @@
+export type ToolFieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'datetime' | 'json';
+
+export interface ToolFieldConfig {
+  key: string;
+  label: string;
+  type: ToolFieldType;
+  placeholder?: string;
+}
+
+export interface ToolSectionConfig {
+  key: string;
+  label: string;
+  description: string;
+  idKey?: string;
+  readOnly?: boolean;
+  fields?: ToolFieldConfig[];
+}
+
+export interface ToolConfig {
+  id: string;
+  name: string;
+  description: string;
+  accentClassName: string;
+  sections: ToolSectionConfig[];
+}
+
+const toolConfigs: Record<string, ToolConfig> = {
+  work_log: {
+    id: 'work_log',
+    name: '工作记录',
+    description: '管理任务、工时和操作留痕。',
+    accentClassName: 'from-brand-500/25 via-brand-500/5 to-white',
+    sections: [
+      {
+        key: 'tasks',
+        label: '任务',
+        description: '维护任务标题、状态、排期和预估工时。',
+        idKey: 'id',
+        fields: [
+          { key: 'id', label: 'ID', type: 'number' },
+          { key: 'title', label: '标题', type: 'text', placeholder: '如：整理周报' },
+          { key: 'description', label: '描述', type: 'textarea' },
+          { key: 'status', label: '状态', type: 'number' },
+          { key: 'estimated_minutes', label: '预估分钟', type: 'number' },
+          { key: 'is_pinned', label: '置顶', type: 'boolean' },
+          { key: 'sort_index', label: '排序', type: 'number' },
+          { key: 'created_at', label: '创建时间', type: 'datetime' },
+          { key: 'updated_at', label: '更新时间', type: 'datetime' },
+        ],
+      },
+      {
+        key: 'time_entries',
+        label: '工时记录',
+        description: '维护工时内容、时长和所属任务。',
+        idKey: 'id',
+        fields: [
+          { key: 'id', label: 'ID', type: 'number' },
+          { key: 'task_id', label: '任务 ID', type: 'number' },
+          { key: 'work_date', label: '工作日期', type: 'date' },
+          { key: 'minutes', label: '工时分钟', type: 'number' },
+          { key: 'content', label: '内容', type: 'textarea' },
+          { key: 'created_at', label: '创建时间', type: 'datetime' },
+          { key: 'updated_at', label: '更新时间', type: 'datetime' },
+        ],
+      },
+      {
+        key: 'task_tags',
+        label: '任务标签',
+        description: '维护任务与标签的关联关系。',
+        fields: [{ key: 'payload', label: '标签关系 JSON', type: 'json' }],
+      },
+      {
+        key: 'operation_logs',
+        label: '操作日志',
+        description: '用于审计和追溯，默认只读。',
+        readOnly: true,
+      },
+    ],
+  },
+  stockpile_assistant: {
+    id: 'stockpile_assistant',
+    name: '囤货助手',
+    description: '管理库存、消耗与补货提醒。',
+    accentClassName: 'from-emerald-400/25 via-emerald-300/5 to-white',
+    sections: [
+      {
+        key: 'items',
+        label: '库存项',
+        description: '管理库存名称、位置、数量和到期时间。',
+        idKey: 'id',
+        fields: [
+          { key: 'id', label: 'ID', type: 'number' },
+          { key: 'name', label: '名称', type: 'text' },
+          { key: 'location', label: '位置', type: 'text' },
+          { key: 'unit', label: '单位', type: 'text' },
+          { key: 'total_quantity', label: '总量', type: 'number' },
+          { key: 'remaining_quantity', label: '剩余量', type: 'number' },
+          { key: 'purchase_date', label: '购买日期', type: 'date' },
+          { key: 'expiry_date', label: '到期日期', type: 'date' },
+          { key: 'remind_days', label: '提醒天数', type: 'number' },
+          { key: 'restock_remind_date', label: '补货提醒日期', type: 'date' },
+          { key: 'restock_remind_quantity', label: '补货阈值', type: 'number' },
+          { key: 'note', label: '备注', type: 'textarea' },
+          { key: 'created_at', label: '创建时间', type: 'datetime' },
+          { key: 'updated_at', label: '更新时间', type: 'datetime' },
+        ],
+      },
+      {
+        key: 'consumptions',
+        label: '消耗记录',
+        description: '记录每次消耗数量与方式。',
+        idKey: 'id',
+        fields: [
+          { key: 'id', label: 'ID', type: 'number' },
+          { key: 'item_id', label: '库存项 ID', type: 'number' },
+          { key: 'quantity', label: '消耗数量', type: 'number' },
+          { key: 'method', label: '方式', type: 'text' },
+          { key: 'consumed_at', label: '消耗时间', type: 'datetime' },
+          { key: 'note', label: '备注', type: 'textarea' },
+          { key: 'created_at', label: '创建时间', type: 'datetime' },
+        ],
+      },
+      {
+        key: 'item_tags',
+        label: '库存标签',
+        description: '维护库存与标签的映射。',
+      },
+    ],
+  },
+  overcooked_kitchen: {
+    id: 'overcooked_kitchen',
+    name: '胡闹厨房',
+    description: '管理菜谱、想做清单与用餐计划。',
+    accentClassName: 'from-orange-400/25 via-orange-300/5 to-white',
+    sections: [
+      {
+        key: 'recipes',
+        label: '菜谱',
+        description: '维护菜谱基础信息。',
+        idKey: 'id',
+        fields: [
+          { key: 'id', label: 'ID', type: 'number' },
+          { key: 'name', label: '名称', type: 'text' },
+          { key: 'cover_image_key', label: '封面 Key', type: 'text' },
+          { key: 'type_tag_id', label: '类型标签', type: 'number' },
+          { key: 'intro', label: '简介', type: 'textarea' },
+          { key: 'content', label: '做法', type: 'textarea' },
+          { key: 'detail_image_keys', label: '详情图 JSON', type: 'json' },
+          { key: 'created_at', label: '创建时间', type: 'datetime' },
+          { key: 'updated_at', label: '更新时间', type: 'datetime' },
+        ],
+      },
+      { key: 'recipe_ingredient_tags', label: '食材标签', description: '维护菜谱与食材标签关系。' },
+      { key: 'recipe_sauce_tags', label: '酱料标签', description: '维护菜谱与酱料标签关系。' },
+      { key: 'recipe_flavor_tags', label: '口味标签', description: '维护菜谱与口味标签关系。' },
+      { key: 'wish_items', label: '想做清单', description: '维护待做菜谱列表。' },
+      { key: 'meals', label: '用餐计划', description: '维护每日餐次和备注。' },
+      { key: 'meal_items', label: '餐次菜谱', description: '维护餐次与菜谱关系。' },
+      { key: 'meal_item_ratings', label: '餐次评分', description: '维护餐次评分结果。' },
+    ],
+  },
+  tag_manager: {
+    id: 'tag_manager',
+    name: '标签管理',
+    description: '统一管理通用标签和工具标签。',
+    accentClassName: 'from-violet-400/25 via-violet-300/5 to-white',
+    sections: [
+      { key: 'tags', label: '标签', description: '维护公共标签基础信息。', idKey: 'id' },
+      { key: 'tool_tags', label: '工具标签', description: '维护工具分类与标签关系。' },
+    ],
+  },
+};
+
+export function getToolConfig(toolId: string): ToolConfig {
+  return (
+    toolConfigs[toolId] ?? {
+      id: toolId,
+      name: toolId,
+      description: '当前工具使用通用数据管理模式。',
+      accentClassName: 'from-slate-300/20 via-slate-300/5 to-white',
+      sections: [],
+    }
+  );
+}
+
+export function getSectionConfig(toolId: string, sectionKey: string) {
+  return getToolConfig(toolId).sections.find((item) => item.key === sectionKey);
+}

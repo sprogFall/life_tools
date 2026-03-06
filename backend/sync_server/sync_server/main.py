@@ -9,14 +9,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
+from .dashboard_utils import build_snapshot_summary, build_tool_summary
 from .schemas import (
+    DashboardToolUpdateRequest,
+    DashboardUserCreateRequest,
+    DashboardUserUpdateRequest,
     RollbackRequest,
     SyncRequestV1,
     SyncRequestV2,
     SyncResponseV1,
     SyncResponseV2,
 )
-from .storage import SqliteSnapshotStore
+from .storage import DashboardUser, SqliteSnapshotStore, SyncRecord, UserSnapshot
 from .sync_diff import build_tools_diff
 from .sync_logic import (
     compute_latest_updated_at_ms,
@@ -36,6 +40,71 @@ def _normalize_force_decision(value: str | None) -> str | None:
     if v in ("use_server", "use_client"):
         return v
     return None
+
+
+def _fallback_dashboard_user(*, user_id: str, snapshot: UserSnapshot | None) -> DashboardUser:
+    base_time = 0 if snapshot is None else int(snapshot.updated_at_ms)
+    return DashboardUser(
+        user_id=user_id,
+        display_name="",
+        notes="",
+        is_enabled=True,
+        created_at_ms=base_time,
+        updated_at_ms=base_time,
+        last_seen_at_ms=None if base_time <= 0 else base_time,
+    )
+
+
+def _serialize_sync_record(record: SyncRecord, *, include_diff: bool) -> dict[str, Any]:
+    summary = record.diff.get("summary") if isinstance(record.diff, dict) else None
+    payload: dict[str, Any] = {
+        "id": record.id,
+        "user_id": record.user_id,
+        "protocol_version": record.protocol_version,
+        "decision": record.decision,
+        "server_time": record.server_time_ms,
+        "client_time": record.client_time_ms,
+        "client_updated_at_ms": record.client_updated_at_ms,
+        "server_updated_at_ms_before": record.server_updated_at_ms_before,
+        "server_updated_at_ms_after": record.server_updated_at_ms_after,
+        "server_revision_before": record.server_revision_before,
+        "server_revision_after": record.server_revision_after,
+        "diff_summary": summary or {},
+    }
+    if include_diff:
+        payload["diff"] = record.diff
+    return payload
+
+
+def _serialize_dashboard_user(
+    *,
+    profile: DashboardUser,
+    snapshot: UserSnapshot | None,
+) -> dict[str, Any]:
+    return {
+        "user_id": profile.user_id,
+        "display_name": profile.display_name,
+        "notes": profile.notes,
+        "is_enabled": profile.is_enabled,
+        "created_at_ms": profile.created_at_ms,
+        "updated_at_ms": profile.updated_at_ms,
+        "last_seen_at_ms": profile.last_seen_at_ms,
+        "snapshot": build_snapshot_summary(snapshot),
+    }
+
+
+def _resolve_dashboard_user(
+    *,
+    store: SqliteSnapshotStore,
+    user_id: str,
+) -> tuple[DashboardUser | None, UserSnapshot | None]:
+    snapshot = store.get_snapshot(user_id)
+    profile = store.get_user_profile(user_id)
+    if profile is None:
+        if snapshot is None:
+            return None, None
+        profile = _fallback_dashboard_user(user_id=user_id, snapshot=snapshot)
+    return profile, snapshot
 
 
 def create_app(*, db_path: str) -> FastAPI:
@@ -87,6 +156,7 @@ def create_app(*, db_path: str) -> FastAPI:
             raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
 
         server_time = _now_ms()
+        store.touch_user(user_id=user_id, now_ms=server_time)
 
         client_tools_data: dict[str, Any] = request.tools_data
         client_is_empty = is_all_tools_empty(client_tools_data)
@@ -261,6 +331,7 @@ def create_app(*, db_path: str) -> FastAPI:
             raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
 
         server_time = _now_ms()
+        store.touch_user(user_id=user_id, now_ms=server_time)
 
         client_tools_data: dict[str, Any] = request.tools_data
         client_is_empty = bool(request.client_state.client_is_empty)
@@ -466,6 +537,200 @@ def create_app(*, db_path: str) -> FastAPI:
             server_revision=snapshot.server_revision,
         )
 
+
+    @app.get("/dashboard/users")
+    def list_dashboard_users() -> dict[str, Any]:
+        profile_map = {item.user_id: item for item in store.list_user_profiles()}
+        snapshot_map = {item.user_id: item for item in store.list_snapshots()}
+
+        users: list[tuple[int, int, str, dict[str, Any]]] = []
+        for user_id in sorted(set(profile_map.keys()) | set(snapshot_map.keys())):
+            snapshot = snapshot_map.get(user_id)
+            profile = profile_map.get(user_id)
+            if profile is None:
+                profile = _fallback_dashboard_user(user_id=user_id, snapshot=snapshot)
+            sort_last_seen = profile.last_seen_at_ms or (0 if snapshot is None else snapshot.updated_at_ms)
+            sort_updated = max(profile.updated_at_ms, 0 if snapshot is None else snapshot.updated_at_ms)
+            users.append(
+                (
+                    int(sort_last_seen),
+                    int(sort_updated),
+                    user_id,
+                    _serialize_dashboard_user(profile=profile, snapshot=snapshot),
+                )
+            )
+
+        users.sort(key=lambda item: (-item[0], -item[1], item[2]))
+        return {"success": True, "users": [item[3] for item in users]}
+
+    @app.post("/dashboard/users")
+    def create_dashboard_user(request: DashboardUserCreateRequest) -> dict[str, Any]:
+        user_id = request.user_id.strip()
+        if not user_id:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        profile = store.upsert_user_profile(
+            user_id=user_id,
+            display_name=request.display_name.strip(),
+            notes=request.notes.strip(),
+            is_enabled=bool(request.is_enabled),
+            now_ms=_now_ms(),
+        )
+        snapshot = store.get_snapshot(user_id)
+        return {
+            "success": True,
+            "user": _serialize_dashboard_user(profile=profile, snapshot=snapshot),
+        }
+
+    @app.get("/dashboard/users/{user_id}")
+    def get_dashboard_user(user_id: str) -> dict[str, Any]:
+        uid = user_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        profile, snapshot = _resolve_dashboard_user(store=store, user_id=uid)
+        if profile is None:
+            raise HTTPException(status_code=404, detail={"message": "用户不存在"})
+
+        recent_records = [
+            _serialize_sync_record(record, include_diff=False)
+            for record in store.list_sync_records(user_id=uid, limit=20, before_id=None)
+        ]
+        return {
+            "success": True,
+            "user": _serialize_dashboard_user(profile=profile, snapshot=snapshot),
+            "snapshot": {
+                **build_snapshot_summary(snapshot),
+                "tools_data": {} if snapshot is None else snapshot.tools_data,
+            },
+            "recent_records": recent_records,
+        }
+
+    @app.patch("/dashboard/users/{user_id}")
+    def update_dashboard_user(
+        user_id: str,
+        request: DashboardUserUpdateRequest,
+    ) -> dict[str, Any]:
+        uid = user_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        profile = store.update_user_profile(
+            user_id=uid,
+            display_name=None if request.display_name is None else request.display_name.strip(),
+            notes=None if request.notes is None else request.notes.strip(),
+            is_enabled=request.is_enabled,
+            now_ms=_now_ms(),
+        )
+        if profile is None:
+            raise HTTPException(status_code=404, detail={"message": "用户不存在"})
+
+        snapshot = store.get_snapshot(uid)
+        return {
+            "success": True,
+            "user": _serialize_dashboard_user(profile=profile, snapshot=snapshot),
+        }
+
+    @app.get("/dashboard/users/{user_id}/tools/{tool_id}")
+    def get_dashboard_tool(user_id: str, tool_id: str) -> dict[str, Any]:
+        uid = user_id.strip()
+        normalized_tool_id = tool_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+        if not normalized_tool_id:
+            raise HTTPException(status_code=400, detail={"message": "tool_id 不能为空"})
+
+        _profile, snapshot = _resolve_dashboard_user(store=store, user_id=uid)
+        if snapshot is None:
+            raise HTTPException(status_code=404, detail={"message": "快照不存在"})
+
+        tool_snapshot = snapshot.tools_data.get(normalized_tool_id)
+        if not isinstance(tool_snapshot, dict):
+            raise HTTPException(status_code=404, detail={"message": "工具数据不存在"})
+
+        return {
+            "success": True,
+            "tool": {
+                "tool_id": normalized_tool_id,
+                "version": int(tool_snapshot.get("version") or 0),
+                "data": tool_snapshot.get("data") or {},
+                "summary": build_tool_summary(normalized_tool_id, tool_snapshot),
+            },
+            "snapshot": build_snapshot_summary(snapshot),
+        }
+
+    @app.put("/dashboard/users/{user_id}/tools/{tool_id}")
+    def update_dashboard_tool(
+        user_id: str,
+        tool_id: str,
+        request: DashboardToolUpdateRequest,
+    ) -> dict[str, Any]:
+        uid = user_id.strip()
+        normalized_tool_id = tool_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+        if not normalized_tool_id:
+            raise HTTPException(status_code=400, detail={"message": "tool_id 不能为空"})
+
+        server_time = _now_ms()
+        store.touch_user(user_id=uid, now_ms=server_time)
+        current = store.get_snapshot(uid)
+        previous_tools_data = {} if current is None else current.tools_data
+        next_tools_data = dict(previous_tools_data)
+        next_tools_data[normalized_tool_id] = {
+            "version": int(request.version),
+            "data": request.data,
+        }
+
+        saved_updated_at_ms = max(server_time, compute_latest_updated_at_ms(next_tools_data))
+        server_revision_before = 0 if current is None else current.server_revision
+        server_updated_at_before = 0 if current is None else current.updated_at_ms
+        diff = build_tools_diff(
+            server_tools_data=previous_tools_data,
+            client_tools_data=next_tools_data,
+        )
+        message = (request.message or "").strip()
+        if message:
+            diff = {**diff, "dashboard_message": message}
+
+        new_revision = store.save_client_snapshot(
+            user_id=uid,
+            tools_data=next_tools_data,
+            updated_at_ms=saved_updated_at_ms,
+            server_time_ms=server_time,
+            client_time_ms=None,
+        )
+        store.add_sync_record(
+            user_id=uid,
+            protocol_version=99,
+            decision="dashboard_update",
+            server_time_ms=server_time,
+            client_time_ms=None,
+            client_updated_at_ms=saved_updated_at_ms,
+            server_updated_at_ms_before=server_updated_at_before,
+            server_updated_at_ms_after=saved_updated_at_ms,
+            server_revision_before=server_revision_before,
+            server_revision_after=new_revision,
+            diff=diff,
+        )
+
+        snapshot = store.get_snapshot(uid)
+        assert snapshot is not None
+        tool_snapshot = snapshot.tools_data.get(normalized_tool_id) or {}
+        profile, _ = _resolve_dashboard_user(store=store, user_id=uid)
+        assert profile is not None
+        return {
+            "success": True,
+            "user": _serialize_dashboard_user(profile=profile, snapshot=snapshot),
+            "snapshot": build_snapshot_summary(snapshot),
+            "tool": {
+                "tool_id": normalized_tool_id,
+                "version": int(tool_snapshot.get("version") or 0),
+                "data": tool_snapshot.get("data") or {},
+                "summary": build_tool_summary(normalized_tool_id, tool_snapshot),
+            },
+        }
+
     @app.get("/sync/records")
     def list_sync_records(
         user_id: str = Query(min_length=1),
@@ -477,25 +742,7 @@ def create_app(*, db_path: str) -> FastAPI:
             raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
 
         records = store.list_sync_records(user_id=uid, limit=limit, before_id=before_id)
-        items: list[dict[str, Any]] = []
-        for r in records:
-            summary = r.diff.get("summary") if isinstance(r.diff, dict) else None
-            items.append(
-                {
-                    "id": r.id,
-                    "user_id": r.user_id,
-                    "protocol_version": r.protocol_version,
-                    "decision": r.decision,
-                    "server_time": r.server_time_ms,
-                    "client_time": r.client_time_ms,
-                    "client_updated_at_ms": r.client_updated_at_ms,
-                    "server_updated_at_ms_before": r.server_updated_at_ms_before,
-                    "server_updated_at_ms_after": r.server_updated_at_ms_after,
-                    "server_revision_before": r.server_revision_before,
-                    "server_revision_after": r.server_revision_after,
-                    "diff_summary": summary or {},
-                }
-            )
+        items = [_serialize_sync_record(record, include_diff=False) for record in records]
 
         next_before_id = items[-1]["id"] if len(items) == limit else None
         return {"success": True, "records": items, "next_before_id": next_before_id}
@@ -513,24 +760,9 @@ def create_app(*, db_path: str) -> FastAPI:
         if record is None or record.user_id != uid:
             raise HTTPException(status_code=404, detail={"message": "记录不存在"})
 
-        summary = record.diff.get("summary") if isinstance(record.diff, dict) else None
         return {
             "success": True,
-            "record": {
-                "id": record.id,
-                "user_id": record.user_id,
-                "protocol_version": record.protocol_version,
-                "decision": record.decision,
-                "server_time": record.server_time_ms,
-                "client_time": record.client_time_ms,
-                "client_updated_at_ms": record.client_updated_at_ms,
-                "server_updated_at_ms_before": record.server_updated_at_ms_before,
-                "server_updated_at_ms_after": record.server_updated_at_ms_after,
-                "server_revision_before": record.server_revision_before,
-                "server_revision_after": record.server_revision_after,
-                "diff_summary": summary or {},
-                "diff": record.diff,
-            },
+            "record": _serialize_sync_record(record, include_diff=True),
         }
 
     @app.get("/sync/snapshots/{revision}")
@@ -573,6 +805,7 @@ def create_app(*, db_path: str) -> FastAPI:
             raise HTTPException(status_code=404, detail={"message": "目标快照不存在"})
 
         server_time = _now_ms()
+        store.touch_user(user_id=user_id, now_ms=server_time)
         current = store.get_snapshot(user_id)
         server_tools_before: dict[str, Any] = {} if current is None else current.tools_data
         server_revision_before = 0 if current is None else current.server_revision

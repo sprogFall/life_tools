@@ -32,6 +32,17 @@ class SyncRecord:
     diff: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class DashboardUser:
+    user_id: str
+    display_name: str
+    notes: str
+    is_enabled: bool
+    created_at_ms: int
+    updated_at_ms: int
+    last_seen_at_ms: int | None
+
+
 class SqliteSnapshotStore:
     def __init__(self, *, db_path: str) -> None:
         self._db_path = db_path
@@ -97,6 +108,19 @@ CREATE TABLE IF NOT EXISTS sync_records (
             )
             conn.execute(
                 """
+CREATE TABLE IF NOT EXISTS sync_users (
+  user_id TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  is_enabled INTEGER NOT NULL DEFAULT 1,
+  created_at_ms INTEGER NOT NULL,
+  updated_at_ms INTEGER NOT NULL,
+  last_seen_at_ms INTEGER
+);
+""",
+            )
+            conn.execute(
+                """
 CREATE INDEX IF NOT EXISTS idx_sync_records_user_id_id
 ON sync_records (user_id, id DESC);
 """,
@@ -105,6 +129,12 @@ ON sync_records (user_id, id DESC);
                 """
 CREATE INDEX IF NOT EXISTS idx_sync_snapshot_history_user_id_rev
 ON sync_snapshot_history (user_id, server_revision DESC);
+""",
+            )
+            conn.execute(
+                """
+CREATE INDEX IF NOT EXISTS idx_sync_users_last_seen
+ON sync_users (last_seen_at_ms DESC, updated_at_ms DESC, user_id ASC);
 """,
             )
             conn.commit()
@@ -121,13 +151,18 @@ WHERE user_id = ?
             ).fetchone()
             if row is None:
                 return None
-            tools_data = json.loads(row[3])
-            return UserSnapshot(
-                user_id=row[0],
-                server_revision=int(row[1]),
-                updated_at_ms=int(row[2]),
-                tools_data=tools_data,
-            )
+            return self._row_to_snapshot(row)
+
+    def list_snapshots(self) -> list[UserSnapshot]:
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                """
+SELECT user_id, server_revision, updated_at_ms, tools_data_json
+FROM sync_snapshots
+ORDER BY updated_at_ms DESC, user_id ASC
+""",
+            ).fetchall()
+        return [self._row_to_snapshot(row) for row in rows]
 
     def get_snapshot_by_revision(self, user_id: str, revision: int) -> UserSnapshot | None:
         with closing(self._connect()) as conn:
@@ -140,18 +175,156 @@ WHERE user_id = ? AND server_revision = ?
                 (user_id, int(revision)),
             ).fetchone()
             if row is None:
-                # 兼容：旧库可能没有历史表数据，尽力从当前快照回退（仅当 revision 匹配）
                 current = self.get_snapshot(user_id)
                 if current is not None and current.server_revision == int(revision):
                     return current
                 return None
-            tools_data = json.loads(row[3])
-            return UserSnapshot(
-                user_id=row[0],
-                server_revision=int(row[1]),
-                updated_at_ms=int(row[2]),
-                tools_data=tools_data,
-            )
+            return self._row_to_snapshot(row)
+
+    def get_user_profile(self, user_id: str) -> DashboardUser | None:
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                """
+SELECT
+  user_id,
+  display_name,
+  notes,
+  is_enabled,
+  created_at_ms,
+  updated_at_ms,
+  last_seen_at_ms
+FROM sync_users
+WHERE user_id = ?
+""",
+                (user_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            return self._row_to_dashboard_user(row)
+
+    def list_user_profiles(self) -> list[DashboardUser]:
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                """
+SELECT
+  user_id,
+  display_name,
+  notes,
+  is_enabled,
+  created_at_ms,
+  updated_at_ms,
+  last_seen_at_ms
+FROM sync_users
+ORDER BY COALESCE(last_seen_at_ms, 0) DESC, updated_at_ms DESC, user_id ASC
+""",
+            ).fetchall()
+        return [self._row_to_dashboard_user(row) for row in rows]
+
+    def touch_user(self, *, user_id: str, now_ms: int) -> DashboardUser:
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM sync_users WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+            if row is None:
+                conn.execute(
+                    """
+INSERT INTO sync_users (
+  user_id,
+  display_name,
+  notes,
+  is_enabled,
+  created_at_ms,
+  updated_at_ms,
+  last_seen_at_ms
+)
+VALUES (?, '', '', 1, ?, ?, ?)
+""",
+                    (user_id, int(now_ms), int(now_ms), int(now_ms)),
+                )
+            else:
+                conn.execute(
+                    "UPDATE sync_users SET last_seen_at_ms = ? WHERE user_id = ?",
+                    (int(now_ms), user_id),
+                )
+            conn.commit()
+        profile = self.get_user_profile(user_id)
+        assert profile is not None
+        return profile
+
+    def upsert_user_profile(
+        self,
+        *,
+        user_id: str,
+        display_name: str,
+        notes: str,
+        is_enabled: bool,
+        now_ms: int,
+    ) -> DashboardUser:
+        existing = self.get_user_profile(user_id)
+        with closing(self._connect()) as conn:
+            if existing is None:
+                conn.execute(
+                    """
+INSERT INTO sync_users (
+  user_id,
+  display_name,
+  notes,
+  is_enabled,
+  created_at_ms,
+  updated_at_ms,
+  last_seen_at_ms
+)
+VALUES (?, ?, ?, ?, ?, ?, NULL)
+""",
+                    (
+                        user_id,
+                        display_name,
+                        notes,
+                        1 if is_enabled else 0,
+                        int(now_ms),
+                        int(now_ms),
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+UPDATE sync_users
+SET display_name = ?, notes = ?, is_enabled = ?, updated_at_ms = ?
+WHERE user_id = ?
+""",
+                    (
+                        display_name,
+                        notes,
+                        1 if is_enabled else 0,
+                        int(now_ms),
+                        user_id,
+                    ),
+                )
+            conn.commit()
+        profile = self.get_user_profile(user_id)
+        assert profile is not None
+        return profile
+
+    def update_user_profile(
+        self,
+        *,
+        user_id: str,
+        display_name: str | None,
+        notes: str | None,
+        is_enabled: bool | None,
+        now_ms: int,
+    ) -> DashboardUser | None:
+        existing = self.get_user_profile(user_id)
+        if existing is None:
+            return None
+        return self.upsert_user_profile(
+            user_id=user_id,
+            display_name=existing.display_name if display_name is None else display_name,
+            notes=existing.notes if notes is None else notes,
+            is_enabled=existing.is_enabled if is_enabled is None else is_enabled,
+            now_ms=now_ms,
+        )
 
     def save_client_snapshot(
         self,
@@ -162,8 +335,6 @@ WHERE user_id = ? AND server_revision = ?
         server_time_ms: int,
         client_time_ms: int | None,
     ) -> int:
-        """保存客户端全量快照，服务端 revision 自动递增并返回最新 revision。"""
-
         tools_data_json = json.dumps(
             tools_data,
             ensure_ascii=False,
@@ -356,6 +527,27 @@ WHERE id = ?
             if row is None:
                 return None
             return self._row_to_sync_record(row)
+
+    @staticmethod
+    def _row_to_snapshot(row: sqlite3.Row | tuple[Any, ...]) -> UserSnapshot:
+        return UserSnapshot(
+            user_id=str(row[0]),
+            server_revision=int(row[1]),
+            updated_at_ms=int(row[2]),
+            tools_data=json.loads(row[3]) if row[3] else {},
+        )
+
+    @staticmethod
+    def _row_to_dashboard_user(row: sqlite3.Row | tuple[Any, ...]) -> DashboardUser:
+        return DashboardUser(
+            user_id=str(row[0]),
+            display_name=str(row[1] or ""),
+            notes=str(row[2] or ""),
+            is_enabled=int(row[3]) == 1,
+            created_at_ms=int(row[4]),
+            updated_at_ms=int(row[5]),
+            last_seen_at_ms=None if row[6] is None else int(row[6]),
+        )
 
     @staticmethod
     def _row_to_sync_record(row: sqlite3.Row | tuple[Any, ...]) -> SyncRecord:

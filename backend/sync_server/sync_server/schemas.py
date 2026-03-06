@@ -44,3 +44,22 @@ class SyncResponseV2(BaseModel):
 class RollbackRequest(BaseModel):
     user_id: str = Field(min_length=1)
     target_revision: int = Field(gt=0)
+
+
+class DashboardUserCreateRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    display_name: str = ""
+    notes: str = ""
+    is_enabled: bool = True
+
+
+class DashboardUserUpdateRequest(BaseModel):
+    display_name: str | None = None
+    notes: str | None = None
+    is_enabled: bool | None = None
+
+
+class DashboardToolUpdateRequest(BaseModel):
+    version: int = Field(gt=0)
+    data: dict[str, Any]
+    message: str | None = None
