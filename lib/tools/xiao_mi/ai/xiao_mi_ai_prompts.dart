@@ -1,4 +1,5 @@
 import '../../../core/ai/ai_call_source.dart';
+import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_use_case.dart';
 import '../xiao_mi_constants.dart';
 
@@ -61,6 +62,7 @@ overcooked_context_query 的 arguments 规则：
     id: 'xiao_mi_chat_pre_route',
     systemPrompt: preRouteSystemPrompt,
     inputLabel: '用户输入',
+    responseFormat: AiResponseFormat.jsonObject,
     temperature: 0.2,
     maxOutputTokens: 1200,
     timeout: Duration(seconds: 60),

@@ -94,8 +94,89 @@ void main() {
       expect(service.messages.first.content, '你好');
       expect(service.messages.last.role, XiaoMiMessageRole.assistant);
       expect(service.messages.last.content, '流式回答');
+      expect(fakeClient.lastChatRequest, isNotNull);
+      expect(
+        fakeClient.lastChatRequest!.responseFormat,
+        AiResponseFormat.jsonObject,
+      );
       expect(fakeClient.chatCompletionsCallCount, 1);
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
+    test('send 命中内置预置词时应跳过预选路由并直接注入上下文', () async {
+      var now = DateTime(2026, 5, 20, 8, 0, 0);
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final workLogRepository = FakeWorkLogRepository();
+      final taskId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '任务预置',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 5, 20, 9),
+        ),
+      );
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 5, 19),
+          minutes: 50,
+          content: '本周预置记录',
+          now: DateTime(2026, 5, 19, 9),
+        ),
+      );
+
+      final fakeClient = FakeOpenAiClient(
+        replyText: '{"type":"no_special_call"}',
+        streamReply: const [AiChatStreamChunk(textDelta: '直接完成')],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: workLogRepository,
+          nowProvider: () => DateTime(2026, 5, 20, 8),
+        ),
+      );
+      await service.init();
+      await service.send(' 本周工作总结 ');
+
+      expect(fakeClient.chatCompletionsCallCount, 0);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
+      expect(fakeClient.lastStreamRequest, isNotNull);
+      expect(
+        fakeClient.lastStreamRequest!.messages.last.content,
+        contains('时间范围：2026-05-18 至 2026-05-24（含）'),
+      );
+      expect(
+        fakeClient.lastStreamRequest!.messages.last.content,
+        contains('内容：本周预置记录'),
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['triggerSource'],
+        'preset',
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['queryStartDate'],
+        '2026-05-18',
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['queryEndDate'],
+        '2026-05-24',
+      );
     });
 
     test('send 预选返回 special_call 时应注入年度总结数据并流式回答', () async {
@@ -208,7 +289,7 @@ void main() {
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 
-    test('send 预选返回 work_log_range_summary 时应按日期区间注入工作记录', () async {
+    test('send 命中年度总结预置词时应直接按日期区间注入工作记录', () async {
       var now = DateTime(2026, 1, 1, 8, 0, 0);
       DateTime nextNow() {
         final value = now;
@@ -278,6 +359,10 @@ void main() {
         (service.messages.first.metadata ?? const {})['queryEndDate'],
         '2026-12-31',
       );
+      expect(
+        (service.messages.first.metadata ?? const {})['triggerSource'],
+        'preset',
+      );
       expect(fakeClient.lastRequest, isNotNull);
       expect(
         fakeClient.lastRequest!.messages.last.content,
@@ -291,7 +376,7 @@ void main() {
         fakeClient.lastRequest!.messages.last.content,
         isNot(contains('内容：年度范围外')),
       );
-      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsCallCount, 0);
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 

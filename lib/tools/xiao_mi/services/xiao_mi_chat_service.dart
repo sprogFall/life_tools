@@ -180,22 +180,26 @@ class XiaoMiChatService extends ChangeNotifier {
       final historyWithoutCurrentUserMessage = _messages.length <= 1
           ? const <XiaoMiMessage>[]
           : _messages.sublist(0, _messages.length - 1);
-      final preRouteDecision = await _preRouteUserInput(
-        history: historyWithoutCurrentUserMessage,
-        userInput: text,
-      );
-      var resolved = XiaoMiResolvedPrompt(
+      var resolved = await _promptResolver.resolveQuickPromptText(text);
+      resolved ??= XiaoMiResolvedPrompt(
         displayText: text,
         aiPrompt: text,
         metadata: null,
       );
 
-      if (preRouteDecision is XiaoMiPreRouteSpecialCall) {
-        resolved = await _promptResolver.resolveSpecialCall(
-          callId: preRouteDecision.callId,
-          displayText: text,
-          arguments: preRouteDecision.arguments,
+      if ((resolved.metadata ?? const <String, dynamic>{})['triggerSource'] !=
+          'preset') {
+        final preRouteDecision = await _preRouteUserInput(
+          history: historyWithoutCurrentUserMessage,
+          userInput: text,
         );
+        if (preRouteDecision is XiaoMiPreRouteSpecialCall) {
+          resolved = await _promptResolver.resolveSpecialCall(
+            callId: preRouteDecision.callId,
+            displayText: text,
+            arguments: preRouteDecision.arguments,
+          );
+        }
       }
 
       if (resolved.displayText != userMessage.content ||
@@ -308,6 +312,7 @@ class XiaoMiChatService extends ChangeNotifier {
       ),
       temperature: XiaoMiAiPrompts.preRouteUseCase.temperature,
       maxOutputTokens: XiaoMiAiPrompts.preRouteUseCase.maxOutputTokens,
+      responseFormat: XiaoMiAiPrompts.preRouteUseCase.responseFormat,
       timeout: XiaoMiAiPrompts.preRouteUseCase.timeout,
       // 预选过程是中间态，不单独写入全局历史。
       source: null,

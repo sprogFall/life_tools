@@ -1,19 +1,10 @@
+export 'xiao_mi_prompt_preset.dart';
+
 import '../../work_log/repository/work_log_repository_base.dart';
 import '../../overcooked_kitchen/models/overcooked_recipe.dart';
 import '../../overcooked_kitchen/repository/overcooked_repository.dart';
+import 'xiao_mi_prompt_preset.dart';
 import 'xiao_mi_work_log_prompt_builder.dart';
-
-class XiaoMiQuickPrompt {
-  final String id;
-  final String text;
-  final String description;
-
-  const XiaoMiQuickPrompt({
-    required this.id,
-    required this.text,
-    required this.description,
-  });
-}
 
 class XiaoMiResolvedPrompt {
   final String displayText;
@@ -49,41 +40,38 @@ class XiaoMiPromptResolver {
        _overcookedRepository = overcookedRepository,
        _nowProvider = nowProvider ?? DateTime.now;
 
-  static const XiaoMiQuickPrompt workLogYearSummary = XiaoMiQuickPrompt(
-    id: 'work_log_year_summary',
-    text: '今年工作总结',
-    description: '隐式读取今年的工作记录，生成年度总结',
-  );
+  List<XiaoMiQuickPrompt> get quickPrompts =>
+      XiaoMiPromptPresetRegistry.quickPrompts;
 
-  static const XiaoMiQuickPrompt workLogQuarterSummary = XiaoMiQuickPrompt(
-    id: 'work_log_quarter_summary',
-    text: '本季度工作总结',
-    description: '隐式读取本季度工作记录，生成季度总结',
-  );
+  Future<XiaoMiResolvedPrompt?> resolveQuickPromptText(String rawText) async {
+    final prompt = XiaoMiPromptPresetRegistry.matchByText(rawText);
+    if (prompt == null) return null;
+    return resolveQuickPrompt(prompt);
+  }
 
-  static const XiaoMiQuickPrompt workLogMonthSummary = XiaoMiQuickPrompt(
-    id: 'work_log_month_summary',
-    text: '本月工作总结',
-    description: '隐式读取本月工作记录，生成月度总结',
-  );
-
-  static const XiaoMiQuickPrompt workLogWeekSummary = XiaoMiQuickPrompt(
-    id: 'work_log_week_summary',
-    text: '本周工作总结',
-    description: '隐式读取本周工作记录，生成周总结',
-  );
-
-  List<XiaoMiQuickPrompt> get quickPrompts => const [
-    workLogWeekSummary,
-    workLogMonthSummary,
-    workLogQuarterSummary,
-    workLogYearSummary,
-  ];
+  Future<XiaoMiResolvedPrompt> resolveQuickPrompt(XiaoMiQuickPrompt prompt) {
+    if (!prompt.hasSpecialCall) {
+      return Future<XiaoMiResolvedPrompt>.value(
+        _buildTriggeredPrompt(
+          displayText: prompt.text,
+          aiPrompt: prompt.text,
+          triggerSource: 'preset',
+        ),
+      );
+    }
+    return resolveSpecialCall(
+      callId: prompt.specialCallId!,
+      displayText: prompt.text,
+      arguments: prompt.arguments,
+      triggerSource: 'preset',
+    );
+  }
 
   Future<XiaoMiResolvedPrompt> resolveSpecialCall({
     required String callId,
     required String displayText,
     Map<String, Object?> arguments = const <String, Object?>{},
+    String triggerSource = 'pre_route',
   }) async {
     final normalizedCallId = callId.trim();
     final normalizedDisplayText = displayText.trim();
@@ -92,17 +80,20 @@ class XiaoMiPromptResolver {
         callId: normalizedCallId,
         displayText: normalizedDisplayText,
         arguments: arguments,
+        triggerSource: triggerSource,
       );
     }
     if (normalizedCallId == 'overcooked_context_query') {
       return _resolveOvercookedContextQuery(
         displayText: normalizedDisplayText,
         arguments: arguments,
+        triggerSource: triggerSource,
       );
     }
     return _buildTriggeredPrompt(
       displayText: normalizedDisplayText,
       aiPrompt: normalizedDisplayText,
+      triggerSource: triggerSource,
     );
   }
 
@@ -110,6 +101,7 @@ class XiaoMiPromptResolver {
     required String callId,
     required String displayText,
     required Map<String, Object?> arguments,
+    required String triggerSource,
   }) async {
     final styleId = _resolveStyleId(arguments);
     final now = _normalizeDay(_nowProvider());
@@ -127,6 +119,7 @@ class XiaoMiPromptResolver {
       return _buildTriggeredPrompt(
         displayText: displayText,
         aiPrompt: displayText,
+        triggerSource: triggerSource,
       );
     }
     final prompt = await builder.buildDateRange(
@@ -143,12 +136,14 @@ class XiaoMiPromptResolver {
       queryStart: dateRange.start,
       queryEnd: dateRange.endInclusive,
       extraMetadata: const <String, dynamic>{'triggerTool': 'work_log'},
+      triggerSource: triggerSource,
     );
   }
 
   Future<XiaoMiResolvedPrompt> _resolveOvercookedContextQuery({
     required String displayText,
     required Map<String, Object?> arguments,
+    required String triggerSource,
   }) async {
     final repository = _overcookedRepository;
     if (repository == null) {
@@ -156,6 +151,7 @@ class XiaoMiPromptResolver {
         displayText: displayText,
         aiPrompt: displayText,
         extraMetadata: const <String, dynamic>{'triggerTool': 'overcooked'},
+        triggerSource: triggerSource,
       );
     }
 
@@ -176,6 +172,7 @@ class XiaoMiPromptResolver {
           displayText: displayText,
           aiPrompt: displayText,
           extraMetadata: const <String, dynamic>{'triggerTool': 'overcooked'},
+          triggerSource: triggerSource,
         );
       }
       final prompt = await _buildOvercookedCookedOnDatePrompt(
@@ -191,6 +188,7 @@ class XiaoMiPromptResolver {
           'queryType': 'cooked_on_date',
           'queryDate': _formatDateIso(queryDate),
         },
+        triggerSource: triggerSource,
       );
     }
 
@@ -203,6 +201,7 @@ class XiaoMiPromptResolver {
         displayText: displayText,
         aiPrompt: displayText,
         extraMetadata: const <String, dynamic>{'triggerTool': 'overcooked'},
+        triggerSource: triggerSource,
       );
     }
 
@@ -220,6 +219,7 @@ class XiaoMiPromptResolver {
           'recipeName': recipeName,
           'matchedCount': 0,
         },
+        triggerSource: triggerSource,
       );
     }
 
@@ -237,6 +237,7 @@ class XiaoMiPromptResolver {
         'recipeName': recipeName,
         'matchedCount': matchedRecipes.length,
       },
+      triggerSource: triggerSource,
     );
   }
 
@@ -546,12 +547,13 @@ ${recipeBlocks.join('\n')}
     DateTime? queryStart,
     DateTime? queryEnd,
     Map<String, dynamic> extraMetadata = const <String, dynamic>{},
+    String triggerSource = 'pre_route',
   }) {
     return XiaoMiResolvedPrompt(
       displayText: displayText,
       aiPrompt: aiPrompt,
       metadata: <String, dynamic>{
-        'triggerSource': 'pre_route',
+        'triggerSource': triggerSource,
         if (queryStart != null) 'queryStartDate': _formatDateIso(queryStart),
         if (queryEnd != null) 'queryEndDate': _formatDateIso(queryEnd),
         ...extraMetadata,

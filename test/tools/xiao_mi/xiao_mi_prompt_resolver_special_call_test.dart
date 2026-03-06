@@ -29,6 +29,43 @@ void main() {
       );
     });
 
+    test('resolveQuickPromptText 应命中内置预置词并标记 preset 来源', () async {
+      final now = DateTime(2026, 5, 20, 9);
+      final taskId = await repository.createTask(
+        WorkTask.create(
+          title: '任务预置',
+          description: '',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      await repository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 5, 19),
+          minutes: 30,
+          content: '预置周总结数据',
+          now: now,
+        ),
+      );
+
+      final resolver = XiaoMiPromptResolver(
+        workLogRepository: repository,
+        nowProvider: () => now,
+      );
+
+      final resolved = await resolver.resolveQuickPromptText(' 本周工作总结 ');
+
+      expect(resolved, isNotNull);
+      expect((resolved!.metadata ?? const {})['triggerSource'], 'preset');
+      expect((resolved.metadata ?? const {})['queryStartDate'], '2026-05-18');
+      expect((resolved.metadata ?? const {})['queryEndDate'], '2026-05-24');
+      expect(resolved.aiPrompt, contains('内容：预置周总结数据'));
+    });
+
     test('work_log_month_summary 应生成本月范围总结并写入日期范围', () async {
       final now = DateTime(2026, 5, 20, 9);
       final taskId = await repository.createTask(
