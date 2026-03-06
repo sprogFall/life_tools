@@ -12,6 +12,7 @@
 - 代码规范：`examples/code_standards.md`
 - UI 规范：`examples/ui.md`
 - AI/对象存储/标签/消息：`examples/ai.md`、`examples/objStore.md`、`examples/tags.md`、`examples/message.md`
+- 小蜜 AI（预置提示词/特殊调用/预选路由/调用方式）：`examples/xiaomi_ai.md`
 
 ## 提交与发布流程（三段式）
 按顺序执行以下脚本：
