@@ -132,4 +132,86 @@ describe('ToolWorkspace', () => {
     expect(screen.getByRole('spinbutton', { name: 'ID' })).toBeDisabled();
     expect(screen.getByLabelText('创建时间')).toBeDisabled();
   });
+
+  it('支持展示 app_config 这类对象型区块，并允许敏感字段眼睛开关查看', () => {
+    const appConfigTool: DashboardToolPayload = {
+      tool_id: 'app_config',
+      version: 1,
+      summary: {
+        tool_id: 'app_config',
+        version: 1,
+        total_items: 5,
+        section_counts: {
+          ai_config: 1,
+          sync_config: 1,
+          obj_store_config: 1,
+          obj_store_secrets: 1,
+          settings: 1,
+        },
+      },
+      data: {
+        ai_config: {
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'sk-test',
+          model: 'gpt-4.1',
+          temperature: 0.7,
+          maxOutputTokens: 4096,
+        },
+        sync_config: {
+          userId: 'u1',
+          serverUrl: 'https://sync.example.com',
+          serverPort: 443,
+          customHeaders: { Authorization: 'Bearer test' },
+          allowedWifiNames: ['Office'],
+          autoSyncOnStartup: true,
+        },
+        obj_store_config: {
+          type: 'qiniu',
+          bucket: 'life-tools',
+          domain: 'cdn.example.com',
+          uploadHost: 'https://upload.qiniup.com',
+        },
+        obj_store_secrets: {
+          accessKey: 'ak-test',
+          secretKey: 'sk-secret',
+        },
+        settings: {
+          default_tool_id: 'work_log',
+          tool_order: ['work_log', 'stockpile_assistant'],
+          hidden_tool_ids: ['tag_manager'],
+          theme_mode: 'dark',
+        },
+      },
+    };
+
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={appConfigTool}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    expect(screen.getByText('应用配置')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ai_config (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'sync_config (1)' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.openai.com/v1');
+
+    const apiKeyField = screen.getByRole('textbox', { name: 'API Key' });
+    expect(apiKeyField).toHaveValue('••••••••');
+
+    fireEvent.click(screen.getByRole('button', { name: '显示 API Key' }));
+    expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('sk-test');
+
+    fireEvent.click(screen.getByRole('button', { name: '隐藏 API Key' }));
+    expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('••••••••');
+
+    fireEvent.click(screen.getByRole('button', { name: '显示 API Key' }));
+    expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('sk-test');
+
+    fireEvent.click(screen.getByRole('button', { name: 'sync_config (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ai_config (1)' }));
+    expect(screen.getByRole('button', { name: '显示 API Key' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('••••••••');
+  });
 });

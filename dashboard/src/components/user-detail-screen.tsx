@@ -107,7 +107,7 @@ export function UserDetailScreen() {
               结构化管理
             </a>
             <a
-              href={`/users/json?userId=${encodeURIComponent(detail.user.user_id)}`}
+              href={`/users/json?userId=${encodeURIComponent(detail.user.user_id)}${selectedToolId ? `&tool=${encodeURIComponent(selectedToolId)}` : ''}`}
               className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               JSON 管理

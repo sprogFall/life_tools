@@ -2,9 +2,17 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 
+import { Eye, EyeOff } from 'lucide-react';
+
 import { cn, formatNumber, formatTimestamp, truncateJsonPreview } from '@/lib/format';
 import { compactJsonErrorMessage } from '@/lib/json-utils';
-import { getSectionConfig, getToolConfig, type ToolFieldConfig, type ToolSectionConfig } from '@/lib/tool-config';
+import {
+  getSectionConfig,
+  getToolConfig,
+  type ToolFieldConfig,
+  type ToolSectionConfig,
+  type ToolSectionMode,
+} from '@/lib/tool-config';
 import {
   buildRelationContext,
   coerceEditorValue,
@@ -24,6 +32,8 @@ interface ToolWorkspaceProps {
 type EditableRow = Record<string, unknown>;
 
 type EditorKey = number | 'new' | null;
+
+type SectionStorageMode = ToolSectionMode;
 
 const emptyRelationContext = buildRelationContext({
   success: true,
@@ -72,12 +82,47 @@ function getSectionKeys(tool: DashboardToolPayload) {
   );
 }
 
-function getSectionItems(data: Record<string, unknown>, sectionKey: string) {
+function resolveSectionMode(
+  data: Record<string, unknown>,
+  sectionKey: string,
+  section?: ToolSectionConfig,
+): SectionStorageMode {
+  if (section?.mode) {
+    return section.mode;
+  }
   const raw = data[sectionKey];
+  if (isEditableRow(raw)) {
+    return 'single';
+  }
+  return 'list';
+}
+
+function getSectionItems(
+  data: Record<string, unknown>,
+  sectionKey: string,
+  section?: ToolSectionConfig,
+) {
+  const raw = data[sectionKey];
+  const mode = resolveSectionMode(data, sectionKey, section);
+  if (mode === 'single') {
+    return isEditableRow(raw) ? [raw] : ([] as EditableRow[]);
+  }
   if (!Array.isArray(raw)) {
     return [] as EditableRow[];
   }
   return raw.filter(isEditableRow);
+}
+
+function writeSectionData(
+  current: Record<string, unknown>,
+  sectionKey: string,
+  mode: SectionStorageMode,
+  items: EditableRow[],
+) {
+  return {
+    ...current,
+    [sectionKey]: mode === 'single' ? (items[0] ?? null) : items,
+  };
 }
 
 function toInputValue(field: ToolFieldConfig, value: unknown) {
@@ -105,7 +150,7 @@ function toInputValue(field: ToolFieldConfig, value: unknown) {
   return String(value);
 }
 
-function fromInputValue(field: ToolFieldConfig, value: string | boolean) {
+function fromInputValue(field: ToolFieldConfig, value: string | boolean, currentValue?: unknown) {
   if (field.type === 'boolean') {
     return Boolean(value);
   }
@@ -123,6 +168,15 @@ function fromInputValue(field: ToolFieldConfig, value: string | boolean) {
   }
   if (field.type === 'json') {
     if (!value.trim()) {
+      if (field.defaultValue !== undefined) {
+        return cloneData(field.defaultValue);
+      }
+      if (Array.isArray(currentValue)) {
+        return [];
+      }
+      if (isEditableRow(currentValue)) {
+        return {};
+      }
       return [];
     }
     try {
@@ -163,7 +217,9 @@ function getDefaultRow(section: ToolSectionConfig | undefined, items: EditableRo
   const now = Date.now();
   if (section?.fields?.length) {
     for (const field of section.fields) {
-      if (field.key === 'created_at' || field.key === 'updated_at') {
+      if (field.defaultValue !== undefined) {
+        result[field.key] = cloneData(field.defaultValue);
+      } else if (field.key === 'created_at' || field.key === 'updated_at') {
         result[field.key] = now;
       } else if (field.type === 'boolean') {
         result[field.key] = false;
@@ -196,9 +252,8 @@ function getPreviewKeys(section: ToolSectionConfig | undefined, items: EditableR
 }
 
 function normalizeSectionCount(tool: DashboardToolPayload, sectionKey: string) {
-  return (
-    tool.summary.section_counts[sectionKey] ?? getSectionItems(tool.data, sectionKey).length
-  );
+  const section = getSectionConfig(tool.tool_id, sectionKey);
+  return tool.summary.section_counts[sectionKey] ?? getSectionItems(tool.data, sectionKey, section).length;
 }
 
 function getFieldByKey(section: ToolSectionConfig | undefined, fieldKey: string, items: EditableRow[]): ToolFieldConfig {
@@ -220,6 +275,19 @@ const AUTO_READONLY_FIELD_KEYS = new Set(['created_at', 'updated_at']);
 
 function isSensitiveField(section: ToolSectionConfig | undefined, field: ToolFieldConfig) {
   return Boolean(field.readOnly) || section?.idKey === field.key || AUTO_READONLY_FIELD_KEYS.has(field.key);
+}
+
+function isMaskedField(field: ToolFieldConfig) {
+  return Boolean(field.sensitive);
+}
+
+function getMaskedValue(value: unknown) {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  const maskLength = Math.max(8, Math.min(16, text.length));
+  return '•'.repeat(maskLength);
 }
 
 function getFieldReadOnlyHint(section: ToolSectionConfig | undefined, field: ToolFieldConfig) {
@@ -272,6 +340,7 @@ interface SectionPanelProps {
   toolId: string;
   sectionKey: string;
   section: ToolSectionConfig | undefined;
+  mode: SectionStorageMode;
   items: EditableRow[];
   relationContext: DashboardRelationContext;
   onChange: (items: EditableRow[]) => void;
@@ -281,16 +350,19 @@ function SectionPanel({
   toolId,
   sectionKey,
   section,
+  mode,
   items,
   relationContext,
   onChange,
 }: SectionPanelProps) {
+  const isSingleMode = mode === 'single';
   const [query, setQuery] = useState('');
   const [editorKey, setEditorKey] = useState<EditorKey>(items.length > 0 ? 0 : null);
   const [draftRow, setDraftRow] = useState<EditableRow | null>(
     items.length > 0 ? cloneData(items[0]) : null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (editorKey === 'new') {
@@ -308,6 +380,10 @@ function SectionPanel({
     }
     setDraftRow(cloneData(items[editorKey]));
   }, [editorKey, items]);
+
+  useEffect(() => {
+    setRevealedFields({});
+  }, [editorKey, sectionKey]);
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) {
@@ -383,6 +459,29 @@ function SectionPanel({
     onChange([...items, nextRow]);
   };
 
+  const toggleMaskedField = (fieldKey: string) => {
+    setRevealedFields((current) => ({
+      ...current,
+      [fieldKey]: !current[fieldKey],
+    }));
+  };
+
+  const renderFieldHeader = (field: ToolFieldConfig, revealed: boolean) => (
+    <div className="flex items-center justify-between gap-3">
+      <span className="font-medium">{field.label}</span>
+      {isMaskedField(field) ? (
+        <button
+          type="button"
+          aria-label={`${revealed ? '隐藏' : '显示'} ${field.label}`}
+          onClick={() => toggleMaskedField(field.key)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+        >
+          {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
       <section className="rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel">
@@ -394,19 +493,21 @@ function SectionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="搜索当前区块"
-              className="h-10 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
-            />
-            {!section?.readOnly ? (
+            {!isSingleMode ? (
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索当前区块"
+                className="h-10 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
+              />
+            ) : null}
+            {!section?.readOnly && (!isSingleMode || items.length === 0) ? (
               <button
                 type="button"
                 onClick={startCreate}
                 className="h-10 rounded-full bg-brand-700 px-4 text-sm font-medium text-white transition hover:bg-brand-800"
               >
-                新增记录
+                {isSingleMode ? '初始化配置' : '新增记录'}
               </button>
             ) : null}
           </div>
@@ -421,7 +522,7 @@ function SectionPanel({
           <div className="divide-y divide-slate-100">
             {filteredItems.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-slate-500">
-                暂无匹配结果，可尝试新增或调整筛选词。
+                {isSingleMode ? '当前配置为空，可点击右上角初始化。' : '暂无匹配结果，可尝试新增或调整筛选词。'}
               </div>
             ) : (
               filteredItems.map(({ item, index }) => {
@@ -437,23 +538,29 @@ function SectionPanel({
                       isSelected ? 'bg-brand-50/70' : 'bg-white hover:bg-slate-50',
                     )}
                   >
-                    <span className="text-xs font-medium text-brand-700">编辑记录</span>
+                    <span className="text-xs font-medium text-brand-700">{isSingleMode ? '编辑配置' : '编辑记录'}</span>
                     {previewKeys.map((key) => {
-                      const rawText = truncateJsonPreview(item[key]);
-                      const friendlyText = truncateJsonPreview(
-                        formatFriendlyValue({
-                          toolId,
-                          sectionKey,
-                          fieldKey: key,
-                          value: item[key],
-                          row: item,
-                          context: relationContext,
-                        }),
-                      );
+                      const previewField = getFieldByKey(section, key, items);
+                      const maskedPreview = isMaskedField(previewField);
+                      const rawText = maskedPreview
+                        ? getMaskedValue(item[key])
+                        : truncateJsonPreview(item[key]);
+                      const friendlyText = maskedPreview
+                        ? getMaskedValue(item[key])
+                        : truncateJsonPreview(
+                            formatFriendlyValue({
+                              toolId,
+                              sectionKey,
+                              fieldKey: key,
+                              value: item[key],
+                              row: item,
+                              context: relationContext,
+                            }),
+                          );
                       return (
                         <span key={key} className="flex flex-col gap-1 text-sm text-slate-600">
                           <span className="font-medium text-ink">{friendlyText}</span>
-                          {friendlyText !== rawText ? (
+                          {!maskedPreview && friendlyText !== rawText ? (
                             <span className="text-xs text-slate-400">原始值：{rawText}</span>
                           ) : null}
                         </span>
@@ -470,9 +577,9 @@ function SectionPanel({
       <section className="rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-ink">记录编辑器</h3>
+            <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
             <p className="mt-1 text-sm text-slate-600">
-              修改当前区块的单条记录，最后统一点击顶部“保存到后端”。
+              {isSingleMode ? '修改当前区块的配置项，最后统一点击顶部“保存到后端”。' : '修改当前区块的单条记录，最后统一点击顶部“保存到后端”。'}
             </p>
           </div>
           {section?.readOnly ? (
@@ -502,6 +609,9 @@ function SectionPanel({
               const isLocked = isSensitiveField(section, field);
               const isDisabled = Boolean(section?.readOnly || isLocked);
               const readOnlyHint = getFieldReadOnlyHint(section, field);
+              const isMasked = isMaskedField(field);
+              const isRevealed = Boolean(revealedFields[field.key]);
+              const maskedValue = getMaskedValue(toInputValue(field, value));
 
               if (field.type === 'boolean') {
                 return (
@@ -529,7 +639,7 @@ function SectionPanel({
               if (editorMeta.kind === 'select') {
                 return (
                   <label key={field.key} className="block space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">{field.label}</span>
+                    {renderFieldHeader(field, isRevealed)}
                     <select
                       aria-label={field.label}
                       value={value === null || value === undefined ? '' : String(value)}
@@ -558,17 +668,18 @@ function SectionPanel({
               if (field.type === 'textarea' || field.type === 'json') {
                 return (
                   <label key={field.key} className="block space-y-2 text-sm text-slate-700">
-                    <span className="font-medium">{field.label}</span>
+                    {renderFieldHeader(field, isRevealed)}
                     <textarea
                       aria-label={field.label}
-                      value={String(toInputValue(field, value))}
+                      value={isMasked && !isRevealed ? maskedValue : String(toInputValue(field, value))}
                       disabled={isDisabled}
+                      readOnly={!isDisabled && isMasked && !isRevealed}
                       onChange={(event) => {
                         setDraftRow((current) => {
                           try {
                             return {
                               ...(current ?? {}),
-                              [field.key]: fromInputValue(field, event.target.value),
+                              [field.key]: fromInputValue(field, event.target.value, current?.[field.key]),
                             };
                           } catch (parseError) {
                             setError(
@@ -583,6 +694,9 @@ function SectionPanel({
                     {field.type === 'json' ? (
                       <p className="text-xs text-slate-500">复杂结构仍保留 JSON 编辑，以避免误改关联关系。</p>
                     ) : null}
+                    {isMasked && !isRevealed ? (
+                      <p className="text-xs text-slate-500">当前已掩码，点击右侧眼睛后可查看和编辑。</p>
+                    ) : null}
                     {readOnlyHint ? <p className="text-xs text-slate-500">{readOnlyHint}</p> : null}
                   </label>
                 );
@@ -590,7 +704,7 @@ function SectionPanel({
 
               return (
                 <label key={field.key} className="block space-y-2 text-sm text-slate-700">
-                  <span className="font-medium">{field.label}</span>
+                  {renderFieldHeader(field, isRevealed)}
                   <input
                     aria-label={field.label}
                     type={
@@ -602,18 +716,22 @@ function SectionPanel({
                             ? 'datetime-local'
                             : 'text'
                     }
-                    value={String(toInputValue(field, value))}
+                    value={isMasked && !isRevealed ? maskedValue : String(toInputValue(field, value))}
                     disabled={isDisabled}
+                    readOnly={!isDisabled && isMasked && !isRevealed}
                     onChange={(event) =>
                       setDraftRow((current) => ({
                         ...(current ?? {}),
-                        [field.key]: fromInputValue(field, event.target.value),
+                        [field.key]: fromInputValue(field, event.target.value, current?.[field.key]),
                       }))
                     }
                     className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand-400 focus:bg-white"
                   />
-                  {friendlyText !== String(toInputValue(field, value) || '—') ? (
+                  {!isMasked && friendlyText !== String(toInputValue(field, value) || '—') ? (
                     <p className="text-xs text-slate-500">当前展示：{friendlyText}</p>
+                  ) : null}
+                  {isMasked && !isRevealed ? (
+                    <p className="text-xs text-slate-500">当前已掩码，点击右侧眼睛后可查看和编辑。</p>
                   ) : null}
                   {readOnlyHint ? <p className="text-xs text-slate-500">{readOnlyHint}</p> : null}
                 </label>
@@ -632,34 +750,38 @@ function SectionPanel({
                     onClick={saveRow}
                     className="h-11 rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition hover:bg-brand-800"
                   >
-                    保存当前记录
+                    {isSingleMode ? '保存当前配置' : '保存当前记录'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={duplicateCurrent}
-                    className="h-11 rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
-                  >
-                    复制一条
-                  </button>
-                  <button
-                    type="button"
-                    onClick={removeCurrent}
-                    disabled={typeof editorKey !== 'number'}
-                    className="h-11 rounded-full border border-rose-200 px-5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                  >
-                    删除当前记录
-                  </button>
+                  {!isSingleMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={duplicateCurrent}
+                        className="h-11 rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                      >
+                        复制一条
+                      </button>
+                      <button
+                        type="button"
+                        onClick={removeCurrent}
+                        disabled={typeof editorKey !== 'number'}
+                        className="h-11 rounded-full border border-rose-200 px-5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                      >
+                        删除当前记录
+                      </button>
+                    </>
+                  ) : null}
                 </>
               ) : null}
             </div>
           </div>
         ) : (
           <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-            先从左侧选择一条记录，或新增一条空记录开始编辑。
+            {isSingleMode ? '当前配置为空，可点击右上角初始化。' : '先从左侧选择一条记录，或新增一条空记录开始编辑。'}
           </div>
         )}
         <div className="mt-5 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <p>当前区块条数：{items.length}</p>
+          <p>{isSingleMode ? `当前区块状态：${items[0] ? '已配置' : '未配置'}` : `当前区块条数：${items.length}`}</p>
           <p className="mt-1">
             最近更新时间：{draftRow?.updated_at ? formatTimestamp(Number(draftRow.updated_at)) : '—'}
           </p>
@@ -696,6 +818,9 @@ export function ToolWorkspace({
 
   const dirty = JSON.stringify(baselineData) !== JSON.stringify(draftData);
   const currentSection = activeSection ? getSectionConfig(tool.tool_id, activeSection) : undefined;
+  const currentSectionMode = activeSection
+    ? resolveSectionMode(draftData, activeSection, currentSection)
+    : 'list';
 
   const save = () => {
     startTransition(async () => {
@@ -785,9 +910,12 @@ export function ToolWorkspace({
           toolId={tool.tool_id}
           sectionKey={activeSection}
           section={currentSection}
-          items={getSectionItems(draftData, activeSection)}
+          mode={currentSectionMode}
+          items={getSectionItems(draftData, activeSection, currentSection)}
           relationContext={relationContext}
-          onChange={(items) => setDraftData((current) => ({ ...current, [activeSection]: items }))}
+          onChange={(items) =>
+            setDraftData((current) => writeSectionData(current, activeSection, currentSectionMode, items))
+          }
         />
       ) : (
         <div className="rounded-4xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center text-sm text-slate-500">

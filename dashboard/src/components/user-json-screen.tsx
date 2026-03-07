@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { UserJsonEditor } from '@/components/user-json-editor';
 import {
+  updateDashboardTool,
   updateDashboardUserSnapshot,
 } from '@/lib/api';
 import { getActionErrorMessage } from '@/lib/error-utils';
@@ -11,13 +12,15 @@ import { formatTimestamp, getUserDisplayName } from '@/lib/format';
 import type {
   DashboardActionResult,
   SaveDashboardSnapshotInput,
+  SaveDashboardToolInput,
 } from '@/lib/types';
 import { useUserDetail } from '@/lib/use-user-detail';
 
 export function UserJsonScreen() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId')?.trim() ?? '';
-  const { detail, setDetail, loading, error } = useUserDetail(userId);
+  const requestedToolId = searchParams.get('tool')?.trim() ?? '';
+  const { detail, setDetail, loading, error, loadDetail } = useUserDetail(userId);
 
   const saveSnapshotAction = async (
     input: SaveDashboardSnapshotInput,
@@ -26,6 +29,18 @@ export function UserJsonScreen() {
       const nextDetail = await updateDashboardUserSnapshot(input);
       setDetail(nextDetail);
       return { success: true, message: 'JSON 快照已保存到后端。' };
+    } catch (saveError) {
+      return { success: false, message: getActionErrorMessage(saveError) };
+    }
+  };
+
+  const saveToolAction = async (
+    input: SaveDashboardToolInput,
+  ): Promise<DashboardActionResult> => {
+    try {
+      await updateDashboardTool(input);
+      await loadDetail(input.userId);
+      return { success: true, message: '当前工具 JSON 已保存到后端。' };
     } catch (saveError) {
       return { success: false, message: getActionErrorMessage(saveError) };
     }
@@ -66,7 +81,7 @@ export function UserJsonScreen() {
           </div>
           <div className="flex flex-wrap gap-3">
             <a
-              href={`/users/detail?userId=${encodeURIComponent(detail.user.user_id)}`}
+              href={`/users/detail?userId=${encodeURIComponent(detail.user.user_id)}${requestedToolId ? `&tool=${encodeURIComponent(requestedToolId)}` : ''}`}
               className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
             >
               返回结构化管理
@@ -92,7 +107,9 @@ export function UserJsonScreen() {
       <UserJsonEditor
         userId={detail.user.user_id}
         toolsData={detail.snapshot.tools_data}
+        initialToolId={requestedToolId || undefined}
         saveSnapshotAction={saveSnapshotAction}
+        saveToolAction={saveToolAction}
       />
     </div>
   );

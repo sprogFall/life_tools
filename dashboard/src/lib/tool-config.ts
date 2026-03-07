@@ -1,11 +1,15 @@
 export type ToolFieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'datetime' | 'json';
 
+export type ToolSectionMode = 'list' | 'single';
+
 export interface ToolFieldConfig {
   key: string;
   label: string;
   type: ToolFieldType;
   placeholder?: string;
   readOnly?: boolean;
+  defaultValue?: unknown;
+  sensitive?: boolean;
 }
 
 export interface ToolSectionConfig {
@@ -13,6 +17,7 @@ export interface ToolSectionConfig {
   label: string;
   description: string;
   idKey?: string;
+  mode?: ToolSectionMode;
   readOnly?: boolean;
   fields?: ToolFieldConfig[];
 }
@@ -278,6 +283,110 @@ const toolConfigs: Record<string, ToolConfig> = {
           { key: 'tag_id', label: '标签', type: 'number' },
           { key: 'category_id', label: '分类', type: 'text' },
           { key: 'sort_index', label: '排序', type: 'number' },
+        ],
+      },
+    ],
+  },
+  app_config: {
+    id: 'app_config',
+    name: '应用配置',
+    description: '集中维护 AI、同步、对象存储与全局设置。',
+    accentClassName: 'from-cyan-400/25 via-sky-300/5 to-white',
+    sections: [
+      {
+        key: 'ai_config',
+        mode: 'single',
+        label: 'AI 配置',
+        description: '管理大模型服务地址、模型参数与鉴权信息。',
+        fields: [
+          { key: 'baseUrl', label: 'Base URL', type: 'text' },
+          { key: 'model', label: '模型', type: 'text' },
+          { key: 'temperature', label: '温度', type: 'number' },
+          { key: 'maxOutputTokens', label: '最大输出 Token', type: 'number' },
+          { key: 'apiKey', label: 'API Key', type: 'textarea', sensitive: true },
+        ],
+      },
+      {
+        key: 'sync_config',
+        mode: 'single',
+        label: '同步配置',
+        description: '管理同步用户、服务端地址与网络策略。',
+        fields: [
+          { key: 'userId', label: '用户 ID', type: 'text' },
+          { key: 'networkType', label: '网络类型', type: 'number', defaultValue: 0 },
+          { key: 'serverUrl', label: '服务端地址', type: 'text' },
+          { key: 'serverPort', label: '服务端端口', type: 'number', defaultValue: 443 },
+          { key: 'autoSyncOnStartup', label: '启动时自动同步', type: 'boolean', defaultValue: true },
+          { key: 'lastSyncTime', label: '上次同步时间', type: 'datetime' },
+          { key: 'lastServerRevision', label: '上次服务端版本', type: 'number' },
+          {
+            key: 'allowedWifiNames',
+            label: '允许 Wi-Fi JSON',
+            type: 'json',
+            defaultValue: [],
+          },
+          {
+            key: 'customHeaders',
+            label: '自定义请求头 JSON',
+            type: 'json',
+            defaultValue: {},
+            sensitive: true,
+          },
+        ],
+      },
+      {
+        key: 'obj_store_config',
+        mode: 'single',
+        label: '对象存储配置',
+        description: '管理对象存储提供方、域名、Bucket 与上传策略。',
+        fields: [
+          { key: 'type', label: '存储类型', type: 'text' },
+          { key: 'bucket', label: 'Bucket', type: 'text' },
+          { key: 'domain', label: '访问域名', type: 'text' },
+          { key: 'uploadHost', label: '上传地址', type: 'text' },
+          { key: 'keyPrefix', label: 'Key 前缀', type: 'text' },
+          { key: 'qiniuIsPrivate', label: '七牛私有空间', type: 'boolean' },
+          { key: 'qiniuUseHttps', label: '七牛 HTTPS', type: 'boolean' },
+          { key: 'dataCapsuleBucket', label: '数据胶囊 Bucket', type: 'text' },
+          { key: 'dataCapsuleEndpoint', label: '数据胶囊 Endpoint', type: 'text' },
+          { key: 'dataCapsuleDomain', label: '数据胶囊域名', type: 'text' },
+          { key: 'dataCapsuleRegion', label: '数据胶囊 Region', type: 'text' },
+          { key: 'dataCapsuleKeyPrefix', label: '数据胶囊 Key 前缀', type: 'text' },
+          { key: 'dataCapsuleIsPrivate', label: '数据胶囊私有', type: 'boolean' },
+          { key: 'dataCapsuleUseHttps', label: '数据胶囊 HTTPS', type: 'boolean' },
+          { key: 'dataCapsuleForcePathStyle', label: '强制 Path Style', type: 'boolean' },
+        ],
+      },
+      {
+        key: 'obj_store_secrets',
+        mode: 'single',
+        label: '对象存储密钥',
+        description: '维护对象存储 Access Key / Secret Key 等敏感信息。',
+        fields: [
+          { key: 'accessKey', label: 'Access Key', type: 'text', sensitive: true },
+          { key: 'secretKey', label: 'Secret Key', type: 'textarea', sensitive: true },
+        ],
+      },
+      {
+        key: 'ai_call_history',
+        mode: 'single',
+        label: 'AI 调用历史',
+        description: '查看历史保留策略与最近调用记录。',
+        fields: [
+          { key: 'retention_limit', label: '保留条数', type: 'number', defaultValue: 5 },
+          { key: 'records', label: '调用记录 JSON', type: 'json', defaultValue: [] },
+        ],
+      },
+      {
+        key: 'settings',
+        mode: 'single',
+        label: '应用设置',
+        description: '维护默认工具、工具排序、隐藏列表与主题模式。',
+        fields: [
+          { key: 'default_tool_id', label: '默认工具', type: 'text' },
+          { key: 'theme_mode', label: '主题模式', type: 'text', defaultValue: 'light' },
+          { key: 'tool_order', label: '工具排序 JSON', type: 'json', defaultValue: [] },
+          { key: 'hidden_tool_ids', label: '隐藏工具 JSON', type: 'json', defaultValue: [] },
         ],
       },
     ],

@@ -74,6 +74,24 @@ const TARGET_TYPE_OPTIONS: RelationOption[] = [
   { value: 1, label: '工时记录' },
 ];
 
+const SYNC_NETWORK_TYPE_OPTIONS: RelationOption[] = [
+  { value: 0, label: '公网模式' },
+  { value: 1, label: '私有 Wi-Fi' },
+];
+
+const THEME_MODE_OPTIONS: RelationOption[] = [
+  { value: 'light', label: '浅色' },
+  { value: 'dark', label: '深色' },
+  { value: 'system', label: '跟随系统' },
+];
+
+const OBJ_STORE_TYPE_OPTIONS: RelationOption[] = [
+  { value: 'none', label: '未配置' },
+  { value: 'local', label: '本地存储' },
+  { value: 'qiniu', label: '七牛云' },
+  { value: 'dataCapsule', label: '数据胶囊' },
+];
+
 const SYNC_DECISION_LABELS: Record<string, string> = {
   use_client: '以客户端为准',
   use_server: '以下发服务端为准',
@@ -359,6 +377,16 @@ export function formatFriendlyValue({
       return formatLookup(context.tagNames, value);
     case 'tag_manager.tool_tags.category_id':
       return getToolCategoryName(String(row?.tool_id ?? ''), value);
+    case 'app_config.sync_config.networkType':
+      return findLabel(SYNC_NETWORK_TYPE_OPTIONS, value) ?? String(value);
+    case 'app_config.sync_config.lastSyncTime':
+      return formatEpoch(value, 'datetime');
+    case 'app_config.obj_store_config.type':
+      return findLabel(OBJ_STORE_TYPE_OPTIONS, value) ?? String(value);
+    case 'app_config.settings.theme_mode':
+      return findLabel(THEME_MODE_OPTIONS, value) ?? String(value);
+    case 'app_config.settings.default_tool_id':
+      return getToolDisplayText(String(value));
     default:
       break;
   }
@@ -481,6 +509,26 @@ export function resolveFieldEditorMeta({
           valueType: 'number' as const,
         };
       }
+      case 'app_config.sync_config.networkType':
+        return {
+          options: SYNC_NETWORK_TYPE_OPTIONS,
+          valueType: 'number' as const,
+        };
+      case 'app_config.obj_store_config.type':
+        return {
+          options: OBJ_STORE_TYPE_OPTIONS,
+          valueType: 'string' as const,
+        };
+      case 'app_config.settings.theme_mode':
+        return {
+          options: THEME_MODE_OPTIONS,
+          valueType: 'string' as const,
+        };
+      case 'app_config.settings.default_tool_id':
+        return {
+          options: context.toolOptions,
+          valueType: 'string' as const,
+        };
       default:
         break;
     }
