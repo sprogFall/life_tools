@@ -181,3 +181,48 @@ def test_dashboard_tool_update_creates_new_revision_and_record() -> None:
         decisions = [item["decision"] for item in records_resp.json()["records"]]
         assert "dashboard_update" in decisions
 
+
+def test_dashboard_snapshot_update_allows_json_management() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        _seed_work_log_snapshot(client, user_id="u1")
+
+        detail_resp = client.get("/dashboard/users/u1")
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+
+        tools_data = detail["snapshot"]["tools_data"]
+        tools_data["work_log"]["data"]["tasks"][0]["title"] = "JSON 方式修正标题"
+        tools_data["work_log"]["data"]["tasks"].append(
+            {
+                "id": 2,
+                "title": "JSON 新增任务",
+                "description": "直接修改快照 JSON",
+                "status": 0,
+                "estimated_minutes": 30,
+                "is_pinned": 0,
+                "sort_index": 1,
+                "created_at": 1730000000500,
+                "updated_at": 1730000000600,
+            }
+        )
+
+        update_resp = client.put(
+            "/dashboard/users/u1/snapshot",
+            json={
+                "tools_data": tools_data,
+                "message": "dashboard JSON 管理保存",
+            },
+        )
+        assert update_resp.status_code == 200
+        body = update_resp.json()
+        assert body["success"] is True
+        assert body["snapshot"]["server_revision"] == 2
+        assert body["snapshot"]["tools_data"]["work_log"]["data"]["tasks"][0]["title"] == "JSON 方式修正标题"
+        assert len(body["snapshot"]["tools_data"]["work_log"]["data"]["tasks"]) == 2
+
+        records_resp = client.get("/sync/records", params={"user_id": "u1", "limit": 10})
+        assert records_resp.status_code == 200
+        assert records_resp.json()["records"][0]["decision"] == "dashboard_update"

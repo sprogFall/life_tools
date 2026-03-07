@@ -13,7 +13,7 @@ export function UserDirectory({ users }: UserDirectoryProps) {
         return (
           <a
             key={user.user_id}
-            href={`/users/${encodeURIComponent(user.user_id)}`}
+            href={`/users/detail?userId=${encodeURIComponent(user.user_id)}`}
             className="group cursor-pointer rounded-4xl border border-slate-200/80 bg-white/85 p-5 shadow-panel transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">

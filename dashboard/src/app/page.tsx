@@ -1,7 +1,5 @@
-import { OverviewPage } from '@/components/overview-page';
-import { fetchDashboardUsers } from '@/lib/api';
+import { OverviewScreen } from '@/components/overview-screen';
 
-export default async function HomePage() {
-  const users = await fetchDashboardUsers();
-  return <OverviewPage users={users} />;
+export default function HomePage() {
+  return <OverviewScreen />;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { cn, formatNumber, formatTimestamp, truncateJsonPreview } from '@/lib/format';
+import { compactJsonErrorMessage } from '@/lib/json-utils';
 import { getSectionConfig, getToolConfig, type ToolFieldConfig, type ToolSectionConfig } from '@/lib/tool-config';
 import {
   buildRelationContext,
@@ -152,9 +153,12 @@ function inferFields(row: EditableRow): ToolFieldConfig[] {
 
 function getDefaultRow(section: ToolSectionConfig | undefined, items: EditableRow[]) {
   const result: EditableRow = {};
+  const now = Date.now();
   if (section?.fields?.length) {
     for (const field of section.fields) {
-      if (field.type === 'boolean') {
+      if (field.key === 'created_at' || field.key === 'updated_at') {
+        result[field.key] = now;
+      } else if (field.type === 'boolean') {
         result[field.key] = false;
       } else if (field.type === 'number') {
         result[field.key] = 0;
@@ -203,6 +207,58 @@ function getFieldByKey(section: ToolSectionConfig | undefined, fieldKey: string,
     }
   }
   return { key: fieldKey, label: fieldKey, type: 'text' as const };
+}
+
+const AUTO_READONLY_FIELD_KEYS = new Set(['created_at', 'updated_at']);
+
+function isSensitiveField(section: ToolSectionConfig | undefined, field: ToolFieldConfig) {
+  return Boolean(field.readOnly) || section?.idKey === field.key || AUTO_READONLY_FIELD_KEYS.has(field.key);
+}
+
+function getFieldReadOnlyHint(section: ToolSectionConfig | undefined, field: ToolFieldConfig) {
+  if (!isSensitiveField(section, field)) {
+    return null;
+  }
+  if (section?.idKey === field.key) {
+    return '主键由系统维护，不能直接修改。';
+  }
+  if (AUTO_READONLY_FIELD_KEYS.has(field.key)) {
+    return '系统时间字段由管理台自动维护。';
+  }
+  return '该字段已锁定，避免误改敏感信息。';
+}
+
+function prepareRowForSave(
+  section: ToolSectionConfig | undefined,
+  row: EditableRow,
+  items: EditableRow[],
+  options?: {
+    forceNewIdentity?: boolean;
+  },
+) {
+  const nextRow = cloneData(row);
+  const now = Date.now();
+
+  if (section?.idKey) {
+    const shouldRegenerateId = options?.forceNewIdentity || nextRow[section.idKey] === '' || nextRow[section.idKey] === null || nextRow[section.idKey] === undefined;
+    if (shouldRegenerateId) {
+      const maxId = items.reduce((current, item) => {
+        const raw = item[section.idKey!];
+        const numeric = typeof raw === 'number' ? raw : Number(raw ?? 0);
+        return Number.isFinite(numeric) ? Math.max(current, numeric) : current;
+      }, 0);
+      nextRow[section.idKey] = maxId + 1;
+    }
+  }
+
+  if ('created_at' in nextRow && (options?.forceNewIdentity || !Number(nextRow.created_at))) {
+    nextRow.created_at = now;
+  }
+  if ('updated_at' in nextRow) {
+    nextRow.updated_at = now;
+  }
+
+  return nextRow;
 }
 
 interface SectionPanelProps {
@@ -285,13 +341,16 @@ function SectionPanel({
       return;
     }
     try {
-      const nextDraft = cloneData(draftRow);
+      const nextDraft = prepareRowForSave(section, draftRow, items, {
+        forceNewIdentity: editorKey === 'new',
+      });
       if (editorKey === 'new') {
         onChange([...items, nextDraft]);
         setEditorKey(items.length);
       } else if (typeof editorKey === 'number') {
         onChange(items.map((item, index) => (index === editorKey ? nextDraft : item)));
       }
+      setDraftRow(nextDraft);
       setError(null);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '保存当前记录失败');
@@ -311,15 +370,7 @@ function SectionPanel({
     if (!draftRow) {
       return;
     }
-    const nextRow = cloneData(draftRow);
-    if (section?.idKey) {
-      const maxId = items.reduce((current, item) => {
-        const raw = item[section.idKey!];
-        const numeric = typeof raw === 'number' ? raw : Number(raw ?? 0);
-        return Number.isFinite(numeric) ? Math.max(current, numeric) : current;
-      }, 0);
-      nextRow[section.idKey] = maxId + 1;
-    }
+    const nextRow = prepareRowForSave(section, draftRow, items, { forceNewIdentity: true });
     onChange([...items, nextRow]);
   };
 
@@ -438,6 +489,9 @@ function SectionPanel({
                 row: draftRow,
                 context: relationContext,
               });
+              const isLocked = isSensitiveField(section, field);
+              const isDisabled = Boolean(section?.readOnly || isLocked);
+              const readOnlyHint = getFieldReadOnlyHint(section, field);
 
               if (field.type === 'boolean') {
                 return (
@@ -448,7 +502,7 @@ function SectionPanel({
                     <input
                       type="checkbox"
                       checked={Boolean(value)}
-                      disabled={section?.readOnly}
+                      disabled={isDisabled}
                       onChange={(event) =>
                         setDraftRow((current) => ({
                           ...(current ?? {}),
@@ -457,6 +511,7 @@ function SectionPanel({
                       }
                     />
                     <span>{field.label}</span>
+                    {readOnlyHint ? <span className="text-xs text-slate-500">{readOnlyHint}</span> : null}
                   </label>
                 );
               }
@@ -468,7 +523,7 @@ function SectionPanel({
                     <select
                       aria-label={field.label}
                       value={value === null || value === undefined ? '' : String(value)}
-                      disabled={section?.readOnly}
+                      disabled={isDisabled}
                       onChange={(event) =>
                         setDraftRow((current) => ({
                           ...(current ?? {}),
@@ -485,6 +540,7 @@ function SectionPanel({
                       ))}
                     </select>
                     <p className="text-xs text-slate-500">当前展示：{friendlyText}</p>
+                    {readOnlyHint ? <p className="text-xs text-slate-500">{readOnlyHint}</p> : null}
                   </label>
                 );
               }
@@ -496,7 +552,7 @@ function SectionPanel({
                     <textarea
                       aria-label={field.label}
                       value={String(toInputValue(field, value))}
-                      disabled={section?.readOnly}
+                      disabled={isDisabled}
                       onChange={(event) => {
                         setDraftRow((current) => {
                           try {
@@ -506,7 +562,7 @@ function SectionPanel({
                             };
                           } catch (parseError) {
                             setError(
-                              parseError instanceof Error ? parseError.message : 'JSON 解析失败',
+                              compactJsonErrorMessage(parseError, `${field.label} JSON 解析失败`),
                             );
                             return current;
                           }
@@ -517,6 +573,7 @@ function SectionPanel({
                     {field.type === 'json' ? (
                       <p className="text-xs text-slate-500">复杂结构仍保留 JSON 编辑，以避免误改关联关系。</p>
                     ) : null}
+                    {readOnlyHint ? <p className="text-xs text-slate-500">{readOnlyHint}</p> : null}
                   </label>
                 );
               }
@@ -536,7 +593,7 @@ function SectionPanel({
                             : 'text'
                     }
                     value={String(toInputValue(field, value))}
-                    disabled={section?.readOnly}
+                    disabled={isDisabled}
                     onChange={(event) =>
                       setDraftRow((current) => ({
                         ...(current ?? {}),
@@ -548,6 +605,7 @@ function SectionPanel({
                   {friendlyText !== String(toInputValue(field, value) || '—') ? (
                     <p className="text-xs text-slate-500">当前展示：{friendlyText}</p>
                   ) : null}
+                  {readOnlyHint ? <p className="text-xs text-slate-500">{readOnlyHint}</p> : null}
                 </label>
               );
             })}

@@ -5,6 +5,7 @@ export interface ToolFieldConfig {
   label: string;
   type: ToolFieldType;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
 export interface ToolSectionConfig {

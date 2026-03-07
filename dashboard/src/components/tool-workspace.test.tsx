@@ -1,10 +1,12 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ToolWorkspace } from '@/components/tool-workspace';
 import { buildRelationContext } from '@/lib/tool-relations';
 import type { DashboardToolPayload, DashboardUserDetailResponse } from '@/lib/types';
+
+afterEach(() => cleanup());
 
 const detail: DashboardUserDetailResponse = {
   success: true,
@@ -114,5 +116,20 @@ describe('ToolWorkspace', () => {
 
     expect(screen.getAllByText('整理周报').length).toBeGreaterThan(0);
     expect(screen.getByRole('combobox', { name: '任务' })).toHaveDisplayValue('整理周报');
+  });
+
+  it('对敏感字段使用只读限制，例如主键 id 不允许直接修改', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    expect(screen.getByRole('textbox', { name: '标题' })).toHaveValue('整理周报');
+    expect(screen.getByRole('spinbutton', { name: 'ID' })).toBeDisabled();
+    expect(screen.getByLabelText('创建时间')).toBeDisabled();
   });
 });

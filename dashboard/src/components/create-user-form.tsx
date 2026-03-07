@@ -25,7 +25,7 @@ export function CreateUserForm({ createUserAction }: CreateUserFormProps) {
       const result = await createUserAction(form);
       setMessage(result);
       if (result.success && form.userId.trim()) {
-        router.push(`/users/${encodeURIComponent(form.userId.trim())}`);
+        router.push(`/users/detail?userId=${encodeURIComponent(form.userId.trim())}`);
       }
     });
   };

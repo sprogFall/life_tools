@@ -74,6 +74,11 @@ export interface SaveDashboardToolInput {
   data: Record<string, unknown>;
 }
 
+export interface SaveDashboardSnapshotInput {
+  userId: string;
+  toolsData: Record<string, DashboardToolSnapshot>;
+}
+
 export interface SaveDashboardUserProfileInput {
   userId: string;
   displayName: string;

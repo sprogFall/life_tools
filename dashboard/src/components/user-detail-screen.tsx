@@ -1,35 +1,120 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { ToolWorkspace } from '@/components/tool-workspace';
 import { UserProfileEditor } from '@/components/user-profile-editor';
 import { buildToolPayload, resolveSelectedToolId } from '@/lib/dashboard-data';
-import { saveDashboardToolAction, saveDashboardUserProfileAction } from '@/lib/actions';
-import { fetchDashboardUserDetail } from '@/lib/api';
+import {
+  fetchDashboardUserDetail,
+  updateDashboardTool,
+  updateDashboardUserProfile,
+} from '@/lib/api';
+import { getActionErrorMessage } from '@/lib/error-utils';
 import { formatTimestamp, getUserDisplayName } from '@/lib/format';
 import { getToolConfig } from '@/lib/tool-config';
-import { buildRelationContext, formatSyncDecisionLabel } from '@/lib/tool-relations';
+import {
+  buildRelationContext,
+  formatSyncDecisionLabel,
+} from '@/lib/tool-relations';
+import type {
+  DashboardActionResult,
+  DashboardUserDetailResponse,
+  SaveDashboardToolInput,
+  SaveDashboardUserProfileInput,
+} from '@/lib/types';
 
-interface UserDetailPageProps {
-  params: Promise<{ userId: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}
+export function UserDetailScreen() {
+  const searchParams = useSearchParams();
+  const userId = searchParams.get('userId')?.trim() ?? '';
+  const requestedToolId = searchParams.get('tool');
+  const [detail, setDetail] = useState<DashboardUserDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function UserDetailPage({ params, searchParams }: UserDetailPageProps) {
-  const { userId } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const detail = await fetchDashboardUserDetail(userId).catch(() => null);
-  if (!detail) {
-    notFound();
+  const loadDetail = async (nextUserId: string) => {
+    if (!nextUserId) {
+      setDetail(null);
+      setError('缺少 userId，请先从同步用户目录进入。');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const nextDetail = await fetchDashboardUserDetail(nextUserId);
+      setDetail(nextDetail);
+      setError(null);
+    } catch (loadError) {
+      setDetail(null);
+      setError(getActionErrorMessage(loadError));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDetail(userId);
+  }, [userId]);
+
+  const selectedToolId = detail
+    ? resolveSelectedToolId(requestedToolId, detail.snapshot.tool_ids)
+    : null;
+  const selectedTool = detail && selectedToolId ? buildToolPayload(detail, selectedToolId) : null;
+  const selectedToolSummary =
+    detail?.snapshot.tool_summaries.find((item) => item.tool_id === selectedToolId) ?? null;
+  const displayName = detail ? getUserDisplayName(detail.user) : '';
+  const relationContext = useMemo(
+    () => (detail ? buildRelationContext(detail) : undefined),
+    [detail],
+  );
+
+  const saveUserAction = async (
+    input: SaveDashboardUserProfileInput,
+  ): Promise<DashboardActionResult> => {
+    try {
+      await updateDashboardUserProfile(input);
+      await loadDetail(input.userId);
+      return { success: true, message: '用户信息已更新。' };
+    } catch (saveError) {
+      return { success: false, message: getActionErrorMessage(saveError) };
+    }
+  };
+
+  const saveToolAction = async (
+    input: SaveDashboardToolInput,
+  ): Promise<DashboardActionResult> => {
+    try {
+      await updateDashboardTool(input);
+      await loadDetail(input.userId);
+      return { success: true, message: '已保存到后端。' };
+    } catch (saveError) {
+      return { success: false, message: getActionErrorMessage(saveError) };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-4xl border border-slate-200 bg-white/85 px-6 py-16 text-center text-sm text-slate-500 shadow-panel">
+        正在加载用户详情…
+      </div>
+    );
   }
 
-  const selectedToolId = resolveSelectedToolId(
-    typeof resolvedSearchParams.tool === 'string' ? resolvedSearchParams.tool : null,
-    detail.snapshot.tool_ids,
-  );
-  const selectedTool = selectedToolId ? buildToolPayload(detail, selectedToolId) : null;
-  const selectedToolSummary = detail.snapshot.tool_summaries.find((item) => item.tool_id === selectedToolId) ?? null;
-  const displayName = getUserDisplayName(detail.user);
-  const relationContext = buildRelationContext(detail);
+  if (!detail || error) {
+    return (
+      <div className="rounded-4xl border border-rose-100 bg-rose-50/70 px-6 py-16 text-center shadow-panel">
+        <p className="text-sm text-rose-600">{error ?? '未找到用户详情。'}</p>
+        <a
+          href="/users"
+          className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50"
+        >
+          返回同步用户目录
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -42,24 +127,38 @@ export default async function UserDetailPage({ params, searchParams }: UserDetai
             <h1 className="mt-3 text-3xl font-semibold text-ink">{displayName}</h1>
             <p className="mt-2 font-mono text-sm text-slate-500">{detail.user.user_id}</p>
           </div>
-          <div className="grid gap-3 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:grid-cols-3">
-            <div>
-              <p className="text-xs text-slate-400">服务端版本</p>
-              <p className="mt-1 font-medium text-ink">r{detail.snapshot.server_revision}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">快照更新时间</p>
-              <p className="mt-1 font-medium text-ink">{formatTimestamp(detail.snapshot.updated_at_ms)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">最近同步行为</p>
-              <p className="mt-1 font-medium text-ink">{formatSyncDecisionLabel(detail.recent_records[0]?.decision ?? '暂无')}</p>
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`/users/detail?userId=${encodeURIComponent(detail.user.user_id)}${selectedToolId ? `&tool=${encodeURIComponent(selectedToolId)}` : ''}`}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+            >
+              结构化管理
+            </a>
+            <a
+              href={`/users/json?userId=${encodeURIComponent(detail.user.user_id)}`}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              JSON 管理
+            </a>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-slate-400">服务端版本</p>
+            <p className="mt-1 font-medium text-ink">r{detail.snapshot.server_revision}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">快照更新时间</p>
+            <p className="mt-1 font-medium text-ink">{formatTimestamp(detail.snapshot.updated_at_ms)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">最近同步行为</p>
+            <p className="mt-1 font-medium text-ink">{formatSyncDecisionLabel(detail.recent_records[0]?.decision ?? '暂无')}</p>
           </div>
         </div>
       </section>
 
-      <UserProfileEditor user={detail.user} saveUserAction={saveDashboardUserProfileAction} />
+      <UserProfileEditor user={detail.user} saveUserAction={saveUserAction} />
 
       <section className="grid gap-6 xl:grid-cols-[320px_1fr]">
         <aside className="space-y-6">
@@ -76,7 +175,7 @@ export default async function UserDetailPage({ params, searchParams }: UserDetai
                 return (
                   <a
                     key={toolId}
-                    href={`/users/${encodeURIComponent(detail.user.user_id)}?tool=${encodeURIComponent(toolId)}`}
+                    href={`/users/detail?userId=${encodeURIComponent(detail.user.user_id)}&tool=${encodeURIComponent(toolId)}`}
                     className={`block rounded-3xl border px-4 py-4 transition ${
                       isActive
                         ? 'border-brand-300 bg-brand-50 text-brand-900'
@@ -121,12 +220,12 @@ export default async function UserDetailPage({ params, searchParams }: UserDetai
         </aside>
 
         <div className="space-y-6">
-          {selectedTool ? (
+          {selectedTool && relationContext ? (
             <ToolWorkspace
               userId={detail.user.user_id}
               tool={selectedTool}
               relationContext={relationContext}
-              saveToolAction={saveDashboardToolAction}
+              saveToolAction={saveToolAction}
             />
           ) : (
             <div className="rounded-4xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center text-sm text-slate-500">

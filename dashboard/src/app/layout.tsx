@@ -40,8 +40,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 </a>
               </nav>
               <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-                <p className="font-medium text-white">后端约定</p>
-                <p className="mt-2 leading-6">默认请求 `LIFE_TOOLS_DASHBOARD_API_BASE_URL`，未设置时连接 `http://127.0.0.1:8080`。</p>
+                <p className="font-medium text-white">静态部署约定</p>
+                <p className="mt-2 leading-6">`npm run build` 会生成可直接部署到 nginx 的 `dashboard/dist`。默认请求同域后端；如需跨域，可在构建时设置 `NEXT_PUBLIC_LIFE_TOOLS_DASHBOARD_API_BASE_URL`。</p>
               </div>
             </aside>
             <main className="rounded-[2rem] border border-white/70 bg-white/70 p-5 shadow-panel backdrop-blur md:p-8">

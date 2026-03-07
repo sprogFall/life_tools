@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import { formatTimestamp } from '@/lib/format';
 import type { DashboardActionResult, DashboardUserSummary, SaveDashboardUserProfileInput } from '@/lib/types';
@@ -18,6 +18,15 @@ export function UserProfileEditor({ user, saveUserAction }: UserProfileEditorPro
     isEnabled: user.is_enabled,
   });
   const [message, setMessage] = useState<DashboardActionResult | null>(null);
+
+  useEffect(() => {
+    setForm({
+      displayName: user.display_name,
+      notes: user.notes,
+      isEnabled: user.is_enabled,
+    });
+    setMessage(null);
+  }, [user.display_name, user.is_enabled, user.notes, user.user_id]);
 
   const submit = () => {
     startTransition(async () => {

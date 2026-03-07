@@ -64,7 +64,7 @@ export function OverviewPage({ users }: OverviewPageProps) {
             {busiestUsers.map((user) => (
               <a
                 key={user.user_id}
-                href={`/users/${encodeURIComponent(user.user_id)}`}
+                href={`/users/detail?userId=${encodeURIComponent(user.user_id)}`}
                 className="block rounded-3xl border border-slate-100 bg-slate-50/80 p-4 transition hover:border-brand-200 hover:bg-brand-50/50"
               >
                 <div className="flex items-center justify-between gap-3">

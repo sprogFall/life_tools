@@ -63,3 +63,8 @@ class DashboardToolUpdateRequest(BaseModel):
     version: int = Field(gt=0)
     data: dict[str, Any]
     message: str | None = None
+
+
+class DashboardSnapshotUpdateRequest(BaseModel):
+    tools_data: dict[str, dict[str, Any]]
+    message: str | None = None

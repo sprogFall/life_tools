@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 
 from .dashboard_utils import build_snapshot_summary, build_tool_summary
 from .schemas import (
+    DashboardSnapshotUpdateRequest,
     DashboardToolUpdateRequest,
     DashboardUserCreateRequest,
     DashboardUserUpdateRequest,
@@ -91,6 +92,36 @@ def _serialize_dashboard_user(
         "last_seen_at_ms": profile.last_seen_at_ms,
         "snapshot": build_snapshot_summary(snapshot),
     }
+
+
+def _normalize_dashboard_tools_data(
+    tools_data: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    normalized: dict[str, dict[str, Any]] = {}
+    for raw_tool_id, raw_payload in tools_data.items():
+        tool_id = raw_tool_id.strip()
+        if not tool_id:
+            raise HTTPException(status_code=400, detail={"message": "tools_data 中存在空 tool_id"})
+        if not isinstance(raw_payload, dict):
+            raise HTTPException(status_code=400, detail={"message": f"工具 {tool_id} 的快照必须是对象"})
+
+        version = raw_payload.get("version")
+        try:
+            normalized_version = int(version)
+        except (TypeError, ValueError):
+            normalized_version = 0
+        if normalized_version <= 0:
+            raise HTTPException(status_code=400, detail={"message": f"工具 {tool_id} 缺少合法 version"})
+
+        data = raw_payload.get("data")
+        if not isinstance(data, dict):
+            raise HTTPException(status_code=400, detail={"message": f"工具 {tool_id} 的 data 必须是对象"})
+
+        normalized[tool_id] = {
+            "version": normalized_version,
+            "data": data,
+        }
+    return normalized
 
 
 def _resolve_dashboard_user(
@@ -658,6 +689,71 @@ def create_app(*, db_path: str) -> FastAPI:
             },
             "snapshot": build_snapshot_summary(snapshot),
         }
+
+    @app.put("/dashboard/users/{user_id}/snapshot")
+    def update_dashboard_snapshot(
+        user_id: str,
+        request: DashboardSnapshotUpdateRequest,
+    ) -> dict[str, Any]:
+        uid = user_id.strip()
+        if not uid:
+            raise HTTPException(status_code=400, detail={"message": "user_id 不能为空"})
+
+        normalized_tools_data = _normalize_dashboard_tools_data(request.tools_data)
+        server_time = _now_ms()
+        store.touch_user(user_id=uid, now_ms=server_time)
+        current = store.get_snapshot(uid)
+        previous_tools_data = {} if current is None else current.tools_data
+
+        saved_updated_at_ms = max(server_time, compute_latest_updated_at_ms(normalized_tools_data))
+        server_revision_before = 0 if current is None else current.server_revision
+        server_updated_at_before = 0 if current is None else current.updated_at_ms
+        diff = build_tools_diff(
+            server_tools_data=previous_tools_data,
+            client_tools_data=normalized_tools_data,
+        )
+        message = (request.message or "").strip()
+        if message:
+            diff = {**diff, "dashboard_message": message}
+
+        new_revision = store.save_client_snapshot(
+            user_id=uid,
+            tools_data=normalized_tools_data,
+            updated_at_ms=saved_updated_at_ms,
+            server_time_ms=server_time,
+            client_time_ms=None,
+        )
+        store.add_sync_record(
+            user_id=uid,
+            protocol_version=99,
+            decision="dashboard_update",
+            server_time_ms=server_time,
+            client_time_ms=None,
+            client_updated_at_ms=saved_updated_at_ms,
+            server_updated_at_ms_before=server_updated_at_before,
+            server_updated_at_ms_after=saved_updated_at_ms,
+            server_revision_before=server_revision_before,
+            server_revision_after=new_revision,
+            diff=diff,
+        )
+
+        snapshot = store.get_snapshot(uid)
+        assert snapshot is not None
+        profile, _ = _resolve_dashboard_user(store=store, user_id=uid)
+        assert profile is not None
+        return {
+            "success": True,
+            "user": _serialize_dashboard_user(profile=profile, snapshot=snapshot),
+            "snapshot": {
+                **build_snapshot_summary(snapshot),
+                "tools_data": snapshot.tools_data,
+            },
+            "recent_records": [
+                _serialize_sync_record(record, include_diff=False)
+                for record in store.list_sync_records(user_id=uid, limit=20, before_id=None)
+            ],
+        }
+
 
     @app.put("/dashboard/users/{user_id}/tools/{tool_id}")
     def update_dashboard_tool(

@@ -3,22 +3,29 @@ import type {
   DashboardToolPayload,
   DashboardUserDetailResponse,
   DashboardUserSummary,
+  SaveDashboardSnapshotInput,
   SaveDashboardToolInput,
   SaveDashboardUserProfileInput,
 } from '@/lib/types';
 
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/$/, '');
+}
+
 function getApiBaseUrl() {
-  return (
-    process.env.LIFE_TOOLS_DASHBOARD_API_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_LIFE_TOOLS_DASHBOARD_API_BASE_URL?.trim() ||
-    'http://127.0.0.1:8080'
-  );
+  const explicitBase = process.env.NEXT_PUBLIC_LIFE_TOOLS_DASHBOARD_API_BASE_URL?.trim();
+  if (explicitBase) {
+    return trimTrailingSlash(explicitBase);
+  }
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return trimTrailingSlash(window.location.origin);
+  }
+  return 'http://127.0.0.1:8080';
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
-    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       ...(init?.headers ?? {}),
@@ -55,6 +62,19 @@ export async function updateDashboardTool(input: SaveDashboardToolInput) {
         version: input.version,
         data: input.data,
         message: '由 dashboard 管理台保存',
+      }),
+    },
+  );
+}
+
+export async function updateDashboardUserSnapshot(input: SaveDashboardSnapshotInput) {
+  return requestJson<DashboardUserDetailResponse>(
+    `/dashboard/users/${encodeURIComponent(input.userId)}/snapshot`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        tools_data: input.toolsData,
+        message: '由 dashboard JSON 管理页保存',
       }),
     },
   );
