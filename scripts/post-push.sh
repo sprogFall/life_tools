@@ -46,7 +46,7 @@ usage() {
   --workflow <name>
   --monitor                 强制开启监控
   --no-monitor              关闭监控
-  --force-monitor           忽略 doc/backend 跳过规则，强制轮询
+  --force-monitor           忽略 doc/backend/dashboard 跳过规则，强制轮询
   --max-polls <n>           最大轮询次数（0/不传表示不限）
   --log-lines <n>           失败日志尾部行数（默认 50，0=不获取）
 
@@ -400,9 +400,22 @@ print_failure_logs() {
   done < <(extract_failed_job_ids "$jobs_json")
 }
 
+is_monitor_skippable_file() {
+  local file="$1"
+
+  case "$file" in
+    backend/*|dashboard/*|docs/*|examples/*|*.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 should_skip_monitoring() {
   local lower_message
-  local only_backend_or_docs="true"
+  local only_backend_dashboard_or_docs="true"
   local file
 
   if [[ "$FORCE_MONITOR" == "true" ]]; then
@@ -419,18 +432,14 @@ should_skip_monitoring() {
 
   while IFS= read -r file; do
     [[ -z "$file" ]] && continue
-    case "$file" in
-      backend/*|docs/*|examples/*|*.md)
-        ;;
-      *)
-        only_backend_or_docs="false"
-        break
-        ;;
-    esac
+    if ! is_monitor_skippable_file "$file"; then
+      only_backend_dashboard_or_docs="false"
+      break
+    fi
   done < <(git diff-tree --no-commit-id --name-only -r --root "$SHA")
 
-  if [[ "$only_backend_or_docs" == "true" ]]; then
-    SKIP_REASON="backend/docs only changes"
+  if [[ "$only_backend_dashboard_or_docs" == "true" ]]; then
+    SKIP_REASON="backend/dashboard/docs only changes"
     return 0
   fi
 

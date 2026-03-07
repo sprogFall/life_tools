@@ -28,6 +28,7 @@
 
 3. `bash scripts/post-push.sh`
 - 轮询 GitHub Action 状态并输出 run URL/最终结论。
+- 默认会对仅 `backend` / `dashboard` / `docs` 改动，或 `doc:` / `docs:` 前缀提交跳过轮询；需要时可用 `--force-monitor` 覆盖。
 - 常用参数：`--force-monitor`、`--max-polls`。
 
 ## 兼容补充规则（对齐原版）
@@ -36,7 +37,7 @@
 - 仅后端改动时，不跑 Flutter 校验，只跑后端测试。
 - 仅文档改动时，可不执行 Flutter/后端测试。
 2. 提交信息以 `doc:` / `docs:` 开头时，远端构建默认跳过（除非显式强制监控）。
-3. `post-push.sh` 默认会对“仅 backend/docs 或 doc 前缀提交”跳过轮询；需要时用 `--force-monitor` 覆盖。
+3. `post-push.sh` 默认会对“仅 backend/dashboard/docs 改动或 doc 前缀提交”跳过轮询；需要时用 `--force-monitor` 覆盖。
 4. Linux 下若 `flutter test` 报 `libsqlite3.so` 缺失，可先执行：
 - `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
 - `LD_LIBRARY_PATH=/tmp flutter test`
