@@ -4,17 +4,58 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { cn, formatNumber, formatTimestamp, truncateJsonPreview } from '@/lib/format';
 import { getSectionConfig, getToolConfig, type ToolFieldConfig, type ToolSectionConfig } from '@/lib/tool-config';
+import {
+  buildRelationContext,
+  coerceEditorValue,
+  formatFriendlyValue,
+  resolveFieldEditorMeta,
+  type DashboardRelationContext,
+} from '@/lib/tool-relations';
 import type { DashboardActionResult, DashboardToolPayload, SaveDashboardToolInput } from '@/lib/types';
 
 interface ToolWorkspaceProps {
   userId: string;
   tool: DashboardToolPayload;
+  relationContext?: DashboardRelationContext;
   saveToolAction: (input: SaveDashboardToolInput) => Promise<DashboardActionResult>;
 }
 
 type EditableRow = Record<string, unknown>;
 
 type EditorKey = number | 'new' | null;
+
+const emptyRelationContext = buildRelationContext({
+  success: true,
+  user: {
+    user_id: '',
+    display_name: '',
+    notes: '',
+    is_enabled: true,
+    created_at_ms: 0,
+    updated_at_ms: 0,
+    last_seen_at_ms: null,
+    snapshot: {
+      has_snapshot: false,
+      server_revision: 0,
+      updated_at_ms: 0,
+      tool_count: 0,
+      tool_ids: [],
+      total_item_count: 0,
+      tool_summaries: [],
+    },
+  },
+  snapshot: {
+    has_snapshot: false,
+    server_revision: 0,
+    updated_at_ms: 0,
+    tool_count: 0,
+    tool_ids: [],
+    total_item_count: 0,
+    tool_summaries: [],
+    tools_data: {},
+  },
+  recent_records: [],
+});
 
 function cloneData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -25,7 +66,9 @@ function isEditableRow(value: unknown): value is EditableRow {
 }
 
 function getSectionKeys(tool: DashboardToolPayload) {
-  return Array.from(new Set([...Object.keys(tool.data), ...tool.summary.section_counts ? Object.keys(tool.summary.section_counts) : []]));
+  return Array.from(
+    new Set([...Object.keys(tool.data), ...Object.keys(tool.summary.section_counts ?? {})]),
+  );
 }
 
 function getSectionItems(data: Record<string, unknown>, sectionKey: string) {
@@ -49,7 +92,11 @@ function toInputValue(field: ToolFieldConfig, value: unknown) {
   }
   if (field.type === 'datetime') {
     const date = new Date(Number(value));
-    return Number.isNaN(date.getTime()) ? '' : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    return Number.isNaN(date.getTime())
+      ? ''
+      : new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
   }
   if (field.type === 'boolean') {
     return Boolean(value);
@@ -83,15 +130,23 @@ function inferFields(row: EditableRow): ToolFieldConfig[] {
   return Object.keys(row).map((key) => {
     const value = row[key];
     if (typeof value === 'boolean') {
-      return { key, label: key, type: 'boolean' as const };
+      return { key, label: key, type: 'boolean' };
     }
     if (typeof value === 'number') {
-      return { key, label: key, type: key.endsWith('_at') || key.includes('date') ? 'datetime' : 'number' };
+      return {
+        key,
+        label: key,
+        type: key.endsWith('_at') || key.includes('date') ? 'datetime' : 'number',
+      };
     }
     if (Array.isArray(value) || isEditableRow(value)) {
-      return { key, label: key, type: 'json' as const };
+      return { key, label: key, type: 'json' };
     }
-    return { key, label: key, type: typeof value === 'string' && value.length > 60 ? 'textarea' : 'text' };
+    return {
+      key,
+      label: key,
+      type: typeof value === 'string' && value.length > 60 ? 'textarea' : 'text',
+    };
   });
 }
 
@@ -130,7 +185,24 @@ function getPreviewKeys(section: ToolSectionConfig | undefined, items: EditableR
 }
 
 function normalizeSectionCount(tool: DashboardToolPayload, sectionKey: string) {
-  return tool.summary.section_counts[sectionKey] ?? getSectionItems(tool.data, sectionKey).length;
+  return (
+    tool.summary.section_counts[sectionKey] ?? getSectionItems(tool.data, sectionKey).length
+  );
+}
+
+function getFieldByKey(section: ToolSectionConfig | undefined, fieldKey: string, items: EditableRow[]): ToolFieldConfig {
+  const configuredField = section?.fields?.find((item) => item.key === fieldKey);
+  if (configuredField) {
+    return configuredField;
+  }
+  const sample = items[0];
+  if (sample) {
+    const inferredField = inferFields(sample).find((item) => item.key === fieldKey);
+    if (inferredField) {
+      return inferredField;
+    }
+  }
+  return { key: fieldKey, label: fieldKey, type: 'text' as const };
 }
 
 interface SectionPanelProps {
@@ -138,13 +210,23 @@ interface SectionPanelProps {
   sectionKey: string;
   section: ToolSectionConfig | undefined;
   items: EditableRow[];
+  relationContext: DashboardRelationContext;
   onChange: (items: EditableRow[]) => void;
 }
 
-function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionPanelProps) {
+function SectionPanel({
+  toolId,
+  sectionKey,
+  section,
+  items,
+  relationContext,
+  onChange,
+}: SectionPanelProps) {
   const [query, setQuery] = useState('');
   const [editorKey, setEditorKey] = useState<EditorKey>(items.length > 0 ? 0 : null);
-  const [draftRow, setDraftRow] = useState<EditableRow | null>(items.length > 0 ? cloneData(items[0]) : null);
+  const [draftRow, setDraftRow] = useState<EditableRow | null>(
+    items.length > 0 ? cloneData(items[0]) : null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -176,7 +258,12 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
 
   const previewKeys = useMemo(() => getPreviewKeys(section, items), [items, section]);
   const fields = useMemo(
-    () => (draftRow ? section?.fields?.length ? section.fields : inferFields(draftRow) : section?.fields ?? []),
+    () =>
+      draftRow
+        ? section?.fields?.length
+          ? section.fields
+          : inferFields(draftRow)
+        : section?.fields ?? [],
     [draftRow, section],
   );
 
@@ -242,7 +329,9 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-ink">{section?.label ?? sectionKey}</h3>
-            <p className="mt-1 text-sm text-slate-600">{section?.description ?? '当前区块使用通用数据维护视图。'}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {section?.description ?? '当前区块使用通用数据维护视图。'}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <input
@@ -266,12 +355,14 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
           <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-xs font-medium uppercase tracking-[0.24em] text-slate-400 lg:grid">
             <span>操作</span>
             {previewKeys.map((key) => (
-              <span key={key}>{key}</span>
+              <span key={key}>{getFieldByKey(section, key, items).label}</span>
             ))}
           </div>
           <div className="divide-y divide-slate-100">
             {filteredItems.length === 0 ? (
-              <div className="px-4 py-10 text-center text-sm text-slate-500">暂无匹配结果，可尝试新增或调整筛选词。</div>
+              <div className="px-4 py-10 text-center text-sm text-slate-500">
+                暂无匹配结果，可尝试新增或调整筛选词。
+              </div>
             ) : (
               filteredItems.map(({ item, index }) => {
                 const isSelected = editorKey === index;
@@ -286,11 +377,27 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
                     )}
                   >
                     <span className="text-xs font-medium text-brand-700">编辑记录</span>
-                    {previewKeys.map((key) => (
-                      <span key={key} className="text-sm text-slate-600">
-                        {truncateJsonPreview(item[key])}
-                      </span>
-                    ))}
+                    {previewKeys.map((key) => {
+                      const rawText = truncateJsonPreview(item[key]);
+                      const friendlyText = truncateJsonPreview(
+                        formatFriendlyValue({
+                          toolId,
+                          sectionKey,
+                          fieldKey: key,
+                          value: item[key],
+                          row: item,
+                          context: relationContext,
+                        }),
+                      );
+                      return (
+                        <span key={key} className="flex flex-col gap-1 text-sm text-slate-600">
+                          <span className="font-medium text-ink">{friendlyText}</span>
+                          {friendlyText !== rawText ? (
+                            <span className="text-xs text-slate-400">原始值：{rawText}</span>
+                          ) : null}
+                        </span>
+                      );
+                    })}
                   </button>
                 );
               })
@@ -303,7 +410,9 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-ink">记录编辑器</h3>
-            <p className="mt-1 text-sm text-slate-600">修改当前区块的单条记录，最后统一点击顶部“保存到后端”。</p>
+            <p className="mt-1 text-sm text-slate-600">
+              修改当前区块的单条记录，最后统一点击顶部“保存到后端”。
+            </p>
           </div>
           {section?.readOnly ? (
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">只读</span>
@@ -313,24 +422,79 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
           <div className="mt-5 space-y-4">
             {fields.map((field) => {
               const value = draftRow[field.key];
+              const editorMeta = resolveFieldEditorMeta({
+                toolId,
+                sectionKey,
+                fieldKey: field.key,
+                value,
+                row: draftRow,
+                context: relationContext,
+              });
+              const friendlyText = formatFriendlyValue({
+                toolId,
+                sectionKey,
+                fieldKey: field.key,
+                value,
+                row: draftRow,
+                context: relationContext,
+              });
+
               if (field.type === 'boolean') {
                 return (
-                  <label key={field.key} className="flex items-center gap-3 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  <label
+                    key={field.key}
+                    className="flex items-center gap-3 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-700"
+                  >
                     <input
                       type="checkbox"
                       checked={Boolean(value)}
                       disabled={section?.readOnly}
-                      onChange={(event) => setDraftRow((current) => ({ ...(current ?? {}), [field.key]: event.target.checked }))}
+                      onChange={(event) =>
+                        setDraftRow((current) => ({
+                          ...(current ?? {}),
+                          [field.key]: event.target.checked,
+                        }))
+                      }
                     />
                     <span>{field.label}</span>
                   </label>
                 );
               }
+
+              if (editorMeta.kind === 'select') {
+                return (
+                  <label key={field.key} className="block space-y-2 text-sm text-slate-700">
+                    <span className="font-medium">{field.label}</span>
+                    <select
+                      aria-label={field.label}
+                      value={value === null || value === undefined ? '' : String(value)}
+                      disabled={section?.readOnly}
+                      onChange={(event) =>
+                        setDraftRow((current) => ({
+                          ...(current ?? {}),
+                          [field.key]: coerceEditorValue(editorMeta, event.target.value),
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand-400 focus:bg-white"
+                    >
+                      <option value="">请选择</option>
+                      {editorMeta.options.map((option) => (
+                        <option key={`${field.key}-${option.value}`} value={String(option.value)}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-500">当前展示：{friendlyText}</p>
+                  </label>
+                );
+              }
+
               if (field.type === 'textarea' || field.type === 'json') {
                 return (
                   <label key={field.key} className="block space-y-2 text-sm text-slate-700">
                     <span className="font-medium">{field.label}</span>
                     <textarea
+                      aria-label={field.label}
                       value={String(toInputValue(field, value))}
                       disabled={section?.readOnly}
                       onChange={(event) => {
@@ -341,21 +505,36 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
                               [field.key]: fromInputValue(field, event.target.value),
                             };
                           } catch (parseError) {
-                            setError(parseError instanceof Error ? parseError.message : 'JSON 解析失败');
+                            setError(
+                              parseError instanceof Error ? parseError.message : 'JSON 解析失败',
+                            );
                             return current;
                           }
                         });
                       }}
                       className="min-h-28 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm outline-none transition focus:border-brand-400 focus:bg-white"
                     />
+                    {field.type === 'json' ? (
+                      <p className="text-xs text-slate-500">复杂结构仍保留 JSON 编辑，以避免误改关联关系。</p>
+                    ) : null}
                   </label>
                 );
               }
+
               return (
                 <label key={field.key} className="block space-y-2 text-sm text-slate-700">
                   <span className="font-medium">{field.label}</span>
                   <input
-                    type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'datetime' ? 'datetime-local' : 'text'}
+                    aria-label={field.label}
+                    type={
+                      field.type === 'number'
+                        ? 'number'
+                        : field.type === 'date'
+                          ? 'date'
+                          : field.type === 'datetime'
+                            ? 'datetime-local'
+                            : 'text'
+                    }
                     value={String(toInputValue(field, value))}
                     disabled={section?.readOnly}
                     onChange={(event) =>
@@ -366,10 +545,17 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
                     }
                     className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand-400 focus:bg-white"
                   />
+                  {friendlyText !== String(toInputValue(field, value) || '—') ? (
+                    <p className="text-xs text-slate-500">当前展示：{friendlyText}</p>
+                  ) : null}
                 </label>
               );
             })}
-            {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</p> : null}
+            {error ? (
+              <p role="alert" className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                {error}
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-3">
               {!section?.readOnly ? (
                 <>
@@ -406,7 +592,9 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
         )}
         <div className="mt-5 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
           <p>当前区块条数：{items.length}</p>
-          <p className="mt-1">最近更新时间：{draftRow?.updated_at ? formatTimestamp(Number(draftRow.updated_at)) : '—'}</p>
+          <p className="mt-1">
+            最近更新时间：{draftRow?.updated_at ? formatTimestamp(Number(draftRow.updated_at)) : '—'}
+          </p>
           <p className="mt-1">工具：{getToolConfig(toolId).name}</p>
         </div>
       </section>
@@ -414,7 +602,12 @@ function SectionPanel({ toolId, sectionKey, section, items, onChange }: SectionP
   );
 }
 
-export function ToolWorkspace({ userId, tool, saveToolAction }: ToolWorkspaceProps) {
+export function ToolWorkspace({
+  userId,
+  tool,
+  relationContext = emptyRelationContext,
+  saveToolAction,
+}: ToolWorkspaceProps) {
   const toolConfig = getToolConfig(tool.tool_id);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [baselineData, setBaselineData] = useState<Record<string, unknown>>(cloneData(tool.data));
@@ -428,7 +621,9 @@ export function ToolWorkspace({ userId, tool, saveToolAction }: ToolWorkspacePro
     const nextData = cloneData(tool.data);
     setBaselineData(nextData);
     setDraftData(nextData);
-    setActiveSection((current) => (current && sectionKeys.includes(current) ? current : sectionKeys[0] ?? null));
+    setActiveSection((current) =>
+      current && sectionKeys.includes(current) ? current : sectionKeys[0] ?? null,
+    );
   }, [sectionKeys, tool]);
 
   const dirty = JSON.stringify(baselineData) !== JSON.stringify(draftData);
@@ -461,8 +656,12 @@ export function ToolWorkspace({ userId, tool, saveToolAction }: ToolWorkspacePro
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Tool Workspace</p>
             <h2 className="mt-2 text-2xl font-semibold text-ink">{toolConfig.name}</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{toolConfig.description}</p>
-            <p className="mt-3 text-sm font-medium text-slate-700">共管理 {formatNumber(tool.summary.total_items)} 条记录</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              {toolConfig.description}
+            </p>
+            <p className="mt-3 text-sm font-medium text-slate-700">
+              共管理 {formatNumber(tool.summary.total_items)} 条记录
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -484,7 +683,9 @@ export function ToolWorkspace({ userId, tool, saveToolAction }: ToolWorkspacePro
           </div>
         </div>
         {result ? (
-          <p className={`mt-4 text-sm ${result.success ? 'text-emerald-700' : 'text-rose-600'}`}>{result.message}</p>
+          <p className={`mt-4 text-sm ${result.success ? 'text-emerald-700' : 'text-rose-600'}`}>
+            {result.message}
+          </p>
         ) : null}
       </div>
 
@@ -517,10 +718,11 @@ export function ToolWorkspace({ userId, tool, saveToolAction }: ToolWorkspacePro
           sectionKey={activeSection}
           section={currentSection}
           items={getSectionItems(draftData, activeSection)}
+          relationContext={relationContext}
           onChange={(items) => setDraftData((current) => ({ ...current, [activeSection]: items }))}
         />
       ) : (
-        <div className="rounded-4xl border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm text-slate-500">
+        <div className="rounded-4xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center text-sm text-slate-500">
           当前工具暂无可管理区块。
         </div>
       )}
