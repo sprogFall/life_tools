@@ -31,11 +31,19 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-  const data = (await response.json()) as T & { message?: string };
   if (!response.ok) {
-    throw new Error(data.message ?? `请求失败：${response.status}`);
+    let message = `请求失败：${response.status}`;
+    try {
+      const body = (await response.json()) as { message?: string };
+      if (body.message) {
+        message = body.message;
+      }
+    } catch {
+      // 非 JSON 响应（如 HTML 错误页），使用默认消息
+    }
+    throw new Error(message);
   }
-  return data;
+  return (await response.json()) as T;
 }
 
 export async function fetchDashboardUsers() {

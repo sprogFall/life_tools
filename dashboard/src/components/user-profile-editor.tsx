@@ -26,7 +26,7 @@ export function UserProfileEditor({ user, saveUserAction }: UserProfileEditorPro
       isEnabled: user.is_enabled,
     });
     setMessage(null);
-  }, [user.display_name, user.is_enabled, user.notes, user.user_id]);
+  }, [user]);
 
   const submit = () => {
     startTransition(async () => {

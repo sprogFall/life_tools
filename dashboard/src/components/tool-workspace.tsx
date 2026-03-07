@@ -122,7 +122,14 @@ function fromInputValue(field: ToolFieldConfig, value: string | boolean) {
     return value ? new Date(value).getTime() : null;
   }
   if (field.type === 'json') {
-    return value.trim() ? JSON.parse(value) : [];
+    if (!value.trim()) {
+      return [];
+    }
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`${field.label ?? field.key} 的 JSON 格式不正确`);
+    }
   }
   return value;
 }
@@ -309,7 +316,9 @@ function SectionPanel({
     const keyword = query.trim().toLowerCase();
     return items
       .map((item, index) => ({ item, index }))
-      .filter(({ item }) => JSON.stringify(item).toLowerCase().includes(keyword));
+      .filter(({ item }) =>
+        Object.values(item).some((v) => String(v ?? '').toLowerCase().includes(keyword)),
+      );
   }, [items, query]);
 
   const previewKeys = useMemo(() => getPreviewKeys(section, items), [items, section]);
@@ -417,9 +426,10 @@ function SectionPanel({
             ) : (
               filteredItems.map(({ item, index }) => {
                 const isSelected = editorKey === index;
+                const itemKey = item.id != null ? `${sectionKey}-id-${item.id}` : `${sectionKey}-${index}`;
                 return (
                   <button
-                    key={`${sectionKey}-${index}`}
+                    key={itemKey}
                     type="button"
                     onClick={() => startEdit(index)}
                     className={cn(

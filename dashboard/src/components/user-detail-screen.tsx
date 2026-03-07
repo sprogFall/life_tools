@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { ToolWorkspace } from '@/components/tool-workspace';
 import { UserProfileEditor } from '@/components/user-profile-editor';
 import { buildToolPayload, resolveSelectedToolId } from '@/lib/dashboard-data';
 import {
-  fetchDashboardUserDetail,
   updateDashboardTool,
   updateDashboardUserProfile,
 } from '@/lib/api';
@@ -20,43 +19,16 @@ import {
 } from '@/lib/tool-relations';
 import type {
   DashboardActionResult,
-  DashboardUserDetailResponse,
   SaveDashboardToolInput,
   SaveDashboardUserProfileInput,
 } from '@/lib/types';
+import { useUserDetail } from '@/lib/use-user-detail';
 
 export function UserDetailScreen() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId')?.trim() ?? '';
   const requestedToolId = searchParams.get('tool');
-  const [detail, setDetail] = useState<DashboardUserDetailResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadDetail = async (nextUserId: string) => {
-    if (!nextUserId) {
-      setDetail(null);
-      setError('缺少 userId，请先从同步用户目录进入。');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const nextDetail = await fetchDashboardUserDetail(nextUserId);
-      setDetail(nextDetail);
-      setError(null);
-    } catch (loadError) {
-      setDetail(null);
-      setError(getActionErrorMessage(loadError));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadDetail(userId);
-  }, [userId]);
+  const { detail, loading, error, loadDetail } = useUserDetail(userId);
 
   const selectedToolId = detail
     ? resolveSelectedToolId(requestedToolId, detail.snapshot.tool_ids)

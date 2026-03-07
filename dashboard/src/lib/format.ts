@@ -29,7 +29,16 @@ export function getUserDisplayName(user: Pick<DashboardUserSummary, 'display_nam
 }
 
 export function truncateJsonPreview(value: unknown) {
-  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  let text: string;
+  if (typeof value === 'string') {
+    text = value;
+  } else {
+    try {
+      text = JSON.stringify(value);
+    } catch {
+      return '—';
+    }
+  }
   if (!text) {
     return '—';
   }

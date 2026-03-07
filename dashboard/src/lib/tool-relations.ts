@@ -99,7 +99,7 @@ function asRows(
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw.map((item) => asRecord(item)).filter(Boolean) as Record<string, unknown>[];
+  return raw.map((item) => asRecord(item)).filter((x): x is Record<string, unknown> => x !== null);
 }
 
 function toIdLabelMap(
@@ -257,6 +257,8 @@ export function buildRelationContext(
 
   const tagOptionsByToolCategory: Record<string, RelationOption[]> = {};
   const tagOptionsByToolId: Record<string, RelationOption[]> = {};
+  const seenCategoryTags = new Set<string>();
+  const seenToolTags = new Set<string>();
 
   for (const row of toolTagRows) {
     const toolId = String(row.tool_id ?? '');
@@ -269,11 +271,19 @@ export function buildRelationContext(
     const categoryName = getToolCategoryName(toolId, categoryId);
     const baseOption = { value: Number(tagId), label: tagName };
     const key = `${toolId}:${categoryId}`;
-    tagOptionsByToolCategory[key] = [...(tagOptionsByToolCategory[key] ?? []), baseOption].sort(compareLabels);
-    tagOptionsByToolId[toolId] = [
-      ...(tagOptionsByToolId[toolId] ?? []),
-      { value: Number(tagId), label: `${categoryName} · ${tagName}` },
-    ].sort(compareLabels);
+    const categoryTagKey = `${key}:${tagId}`;
+    if (!seenCategoryTags.has(categoryTagKey)) {
+      seenCategoryTags.add(categoryTagKey);
+      tagOptionsByToolCategory[key] = [...(tagOptionsByToolCategory[key] ?? []), baseOption].sort(compareLabels);
+    }
+    const toolTagKey = `${toolId}:${tagId}`;
+    if (!seenToolTags.has(toolTagKey)) {
+      seenToolTags.add(toolTagKey);
+      tagOptionsByToolId[toolId] = [
+        ...(tagOptionsByToolId[toolId] ?? []),
+        { value: Number(tagId), label: `${categoryName} · ${tagName}` },
+      ].sort(compareLabels);
+    }
   }
 
   return {

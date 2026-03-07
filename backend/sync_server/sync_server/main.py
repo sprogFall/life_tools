@@ -738,9 +738,11 @@ def create_app(*, db_path: str) -> FastAPI:
         )
 
         snapshot = store.get_snapshot(uid)
-        assert snapshot is not None
+        if snapshot is None:
+            raise HTTPException(status_code=500, detail={"message": "快照保存后未找到"})
         profile, _ = _resolve_dashboard_user(store=store, user_id=uid)
-        assert profile is not None
+        if profile is None:
+            raise HTTPException(status_code=500, detail={"message": "用户资料未找到"})
         return {
             "success": True,
             "user": _serialize_dashboard_user(profile=profile, snapshot=snapshot),
