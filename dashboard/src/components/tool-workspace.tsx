@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { Eye, EyeOff } from 'lucide-react';
 
-import { cn, formatNumber, formatTimestamp, truncateJsonPreview } from '@/lib/format';
+import { cn, formatNumber, formatPreviewText, formatTimestamp, truncateJsonPreview } from '@/lib/format';
 import { compactJsonErrorMessage } from '@/lib/json-utils';
 import {
   getSectionConfig,
@@ -34,6 +34,7 @@ type EditableRow = Record<string, unknown>;
 type EditorKey = number | 'new' | null;
 
 type SectionStorageMode = ToolSectionMode;
+type MobilePane = 'list' | 'editor';
 
 const emptyRelationContext = buildRelationContext({
   success: true,
@@ -363,6 +364,7 @@ function SectionPanel({
   );
   const [error, setError] = useState<string | null>(null);
   const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
+  const [mobilePane, setMobilePane] = useState<MobilePane>('list');
 
   useEffect(() => {
     if (editorKey === 'new') {
@@ -384,6 +386,10 @@ function SectionPanel({
   useEffect(() => {
     setRevealedFields({});
   }, [editorKey, sectionKey]);
+
+  useEffect(() => {
+    setMobilePane('list');
+  }, [sectionKey]);
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) {
@@ -413,12 +419,14 @@ function SectionPanel({
     setEditorKey('new');
     setDraftRow(nextRow);
     setError(null);
+    setMobilePane('editor');
   };
 
   const startEdit = (index: number) => {
     setEditorKey(index);
     setDraftRow(cloneData(items[index]));
     setError(null);
+    setMobilePane('editor');
   };
 
   const saveRow = () => {
@@ -449,6 +457,7 @@ function SectionPanel({
     const nextItems = items.filter((_, index) => index !== editorKey);
     onChange(nextItems);
     setEditorKey(nextItems[0] ? 0 : null);
+    setMobilePane(nextItems[0] ? 'editor' : 'list');
   };
 
   const duplicateCurrent = () => {
@@ -465,6 +474,9 @@ function SectionPanel({
       [fieldKey]: !current[fieldKey],
     }));
   };
+
+  const showListPane = mobilePane === 'list';
+  const showEditorPane = mobilePane === 'editor';
 
   const renderFieldHeader = (field: ToolFieldConfig, revealed: boolean) => (
     <div className="flex items-center justify-between gap-3">
@@ -483,8 +495,40 @@ function SectionPanel({
   );
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
-      <section className="rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel">
+    <div className="space-y-4">
+      <div className="rounded-3xl border border-slate-200/70 bg-slate-50/80 p-1 xl:hidden">
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            aria-pressed={showListPane}
+            onClick={() => setMobilePane('list')}
+            className={cn(
+              'h-11 rounded-2xl text-sm font-medium transition',
+              showListPane ? 'bg-white text-ink shadow-sm' : 'text-slate-600 hover:bg-white/70',
+            )}
+          >
+            列表
+          </button>
+          <button
+            type="button"
+            aria-pressed={showEditorPane}
+            onClick={() => setMobilePane('editor')}
+            className={cn(
+              'h-11 rounded-2xl text-sm font-medium transition',
+              showEditorPane ? 'bg-white text-ink shadow-sm' : 'text-slate-600 hover:bg-white/70',
+            )}
+          >
+            编辑器
+          </button>
+        </div>
+      </div>
+      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+        <section
+          className={cn(
+            showListPane ? 'block' : 'hidden',
+            'rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
+          )}
+        >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-ink">{section?.label ?? sectionKey}</h3>
@@ -513,10 +557,12 @@ function SectionPanel({
           </div>
         </div>
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-100">
-          <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-xs font-medium uppercase tracking-[0.24em] text-slate-400 lg:grid">
-            <span>操作</span>
+          <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-slate-400 lg:grid">
+            <span className="min-w-0 leading-5">操作</span>
             {previewKeys.map((key) => (
-              <span key={key}>{getFieldByKey(section, key, items).label}</span>
+              <span key={key} className="min-w-0 leading-5">
+                {getFieldByKey(section, key, items).label}
+              </span>
             ))}
           </div>
           <div className="divide-y divide-slate-100">
@@ -534,7 +580,7 @@ function SectionPanel({
                     type="button"
                     onClick={() => startEdit(index)}
                     className={cn(
-                      'grid w-full gap-3 px-4 py-4 text-left transition lg:grid-cols-[96px_repeat(4,minmax(0,1fr))]',
+                      'grid w-full gap-3 px-4 py-4 text-left transition lg:grid-cols-[96px_repeat(4,minmax(0,1fr))] lg:items-start',
                       isSelected ? 'bg-brand-50/70' : 'bg-white hover:bg-slate-50',
                     )}
                   >
@@ -542,26 +588,35 @@ function SectionPanel({
                     {previewKeys.map((key) => {
                       const previewField = getFieldByKey(section, key, items);
                       const maskedPreview = isMaskedField(previewField);
-                      const rawText = maskedPreview
+                      const friendlyValue = formatFriendlyValue({
+                        toolId,
+                        sectionKey,
+                        fieldKey: key,
+                        value: item[key],
+                        row: item,
+                        context: relationContext,
+                      });
+                      const rawTitle = maskedPreview ? getMaskedValue(item[key]) : formatPreviewText(item[key]);
+                      const friendlyTitle = maskedPreview
                         ? getMaskedValue(item[key])
-                        : truncateJsonPreview(item[key]);
-                      const friendlyText = maskedPreview
-                        ? getMaskedValue(item[key])
-                        : truncateJsonPreview(
-                            formatFriendlyValue({
-                              toolId,
-                              sectionKey,
-                              fieldKey: key,
-                              value: item[key],
-                              row: item,
-                              context: relationContext,
-                            }),
-                          );
+                        : formatPreviewText(friendlyValue);
+                      const rawText = maskedPreview ? rawTitle : truncateJsonPreview(rawTitle);
+                      const friendlyText = maskedPreview ? friendlyTitle : truncateJsonPreview(friendlyTitle);
                       return (
-                        <span key={key} className="flex flex-col gap-1 text-sm text-slate-600">
-                          <span className="font-medium text-ink">{friendlyText}</span>
+                        <span key={key} className="min-w-0 flex flex-col gap-1 text-sm text-slate-600">
+                          <span
+                            className="min-w-0 font-medium leading-6 text-ink [overflow-wrap:anywhere]"
+                            title={friendlyTitle}
+                          >
+                            {friendlyText}
+                          </span>
                           {!maskedPreview && friendlyText !== rawText ? (
-                            <span className="text-xs text-slate-400">原始值：{rawText}</span>
+                            <span
+                              className="min-w-0 text-xs leading-5 text-slate-400 [overflow-wrap:anywhere]"
+                              title={`原始值：${rawTitle}`}
+                            >
+                              原始值：{rawText}
+                            </span>
                           ) : null}
                         </span>
                       );
@@ -574,8 +629,13 @@ function SectionPanel({
         </div>
       </section>
 
-      <section className="rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel">
-        <div className="flex items-center justify-between gap-3">
+        <section
+          className={cn(
+            showEditorPane ? 'block' : 'hidden',
+            'rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
+          )}
+        >
+          <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
             <p className="mt-1 text-sm text-slate-600">
@@ -787,7 +847,8 @@ function SectionPanel({
           </p>
           <p className="mt-1">工具：{getToolConfig(toolId).name}</p>
         </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

@@ -133,6 +133,29 @@ describe('ToolWorkspace', () => {
     expect(screen.getByLabelText('创建时间')).toBeDisabled();
   });
 
+
+  it('移动端使用列表和编辑器双视图，点选记录后自动进入编辑器', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    const listButton = screen.getByRole('button', { name: '列表' });
+    const editorButton = screen.getByRole('button', { name: '编辑器' });
+
+    expect(listButton).toHaveAttribute('aria-pressed', 'true');
+    expect(editorButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /编辑记录/ })[0]);
+
+    expect(listButton).toHaveAttribute('aria-pressed', 'false');
+    expect(editorButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('支持展示 app_config 这类对象型区块，并允许敏感字段眼睛开关查看', () => {
     const appConfigTool: DashboardToolPayload = {
       tool_id: 'app_config',
@@ -214,4 +237,65 @@ describe('ToolWorkspace', () => {
     expect(screen.getByRole('button', { name: '显示 API Key' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('••••••••');
   });
+
+  it('为长预览值提供完整悬浮标题，避免配置列表内容互相挤压', () => {
+    const longBaseUrl = 'https://api-inference.modelscope.cn/v1/chat/completions';
+    const longModel = 'deepseek-ai/DeepSeek-V3.2-Long-Preview-Value';
+    const appConfigTool: DashboardToolPayload = {
+      tool_id: 'app_config',
+      version: 1,
+      summary: {
+        tool_id: 'app_config',
+        version: 1,
+        total_items: 5,
+        section_counts: {
+          ai_config: 1,
+          sync_config: 1,
+          obj_store_config: 1,
+          obj_store_secrets: 1,
+          settings: 1,
+        },
+      },
+      data: {
+        ai_config: {
+          baseUrl: longBaseUrl,
+          apiKey: 'sk-test',
+          model: longModel,
+          temperature: 0.7,
+          maxOutputTokens: 102400,
+        },
+        sync_config: {
+          userId: 'u1',
+          serverUrl: 'https://sync.example.com',
+          serverPort: 443,
+        },
+        obj_store_config: {
+          type: 'qiniu',
+          bucket: 'life-tools',
+        },
+        obj_store_secrets: {
+          accessKey: 'ak-test',
+          secretKey: 'sk-secret',
+        },
+        settings: {
+          default_tool_id: 'work_log',
+          tool_order: ['work_log'],
+          hidden_tool_ids: [],
+          theme_mode: 'dark',
+        },
+      },
+    };
+
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={appConfigTool}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    expect(screen.getByTitle(longBaseUrl)).toBeInTheDocument();
+    expect(screen.getByTitle(longModel)).toBeInTheDocument();
+  });
+
 });

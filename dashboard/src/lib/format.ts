@@ -28,7 +28,7 @@ export function getUserDisplayName(user: Pick<DashboardUserSummary, 'display_nam
   return name || user.user_id;
 }
 
-export function truncateJsonPreview(value: unknown) {
+export function formatPreviewText(value: unknown) {
   let text: string;
   if (typeof value === 'string') {
     text = value;
@@ -39,8 +39,10 @@ export function truncateJsonPreview(value: unknown) {
       return '—';
     }
   }
-  if (!text) {
-    return '—';
-  }
+  return text || '—';
+}
+
+export function truncateJsonPreview(value: unknown) {
+  const text = formatPreviewText(value);
   return text.length > 48 ? `${text.slice(0, 45)}...` : text;
 }

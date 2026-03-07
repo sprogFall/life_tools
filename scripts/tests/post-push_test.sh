@@ -35,10 +35,35 @@ setup_repo() {
   git init -q "$dir"
   (
     cd "$dir"
+    git checkout -q -b main
     git config user.name "test"
     git config user.email "test@example.com"
 
-    mkdir -p backend/sync_server dashboard/src lib
+    mkdir -p .github/workflows backend/sync_server dashboard/src lib scripts
+    cat > .github/workflows/build-apk.yml <<'YAML'
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'macos/**'
+      - 'windows/**'
+      - 'linux/**'
+      - 'web/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'l10n.yaml'
+      - '.github/workflows/build-apk.yml'
+YAML
     cat > backend/sync_server/app.py <<'PY'
 print('backend v1')
 PY
@@ -48,6 +73,9 @@ TS
     cat > lib/main.dart <<'DART'
 String app() => 'v1';
 DART
+    cat > scripts/local.sh <<'SH'
+echo v1
+SH
     cat > README.md <<'MD'
 # demo
 MD
@@ -111,6 +139,39 @@ test_force_monitor_overrides_backend_and_dashboard_skip() {
   assert_not_contains "$output" "跳过监控"
 }
 
+test_skip_monitor_when_workflow_paths_do_not_match() {
+  local tmp_repo output sha
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  sha="$(create_commit "$tmp_repo" "chore: update script" bash -lc '
+    echo "echo v2" > scripts/local.sh
+  ')"
+
+  output="${tmp_repo}/post_push_paths_skip.log"
+  run_post_push "$tmp_repo" "$output" --sha "$sha" --dry-run
+  assert_contains "$output" "跳过监控: workflow path/branch filters do not match current push"
+}
+
+test_skip_monitor_when_workflow_branches_do_not_match() {
+  local tmp_repo output sha
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  (
+    cd "$tmp_repo"
+    git checkout -q -b feature/demo
+  )
+
+  sha="$(create_commit "$tmp_repo" "fix: update flutter on feature" bash -lc '
+    echo "String app() => \"v3\";" > lib/main.dart
+  ')"
+
+  output="${tmp_repo}/post_push_branch_skip.log"
+  run_post_push "$tmp_repo" "$output" --sha "$sha" --branch feature/demo --dry-run
+  assert_contains "$output" "跳过监控: workflow path/branch filters do not match current push"
+}
+
 test_monitor_for_flutter_changes() {
   local tmp_repo output sha
   tmp_repo="$(mktemp -d)"
@@ -129,6 +190,8 @@ test_monitor_for_flutter_changes() {
 main() {
   test_skip_monitor_for_backend_and_dashboard_changes
   test_force_monitor_overrides_backend_and_dashboard_skip
+  test_skip_monitor_when_workflow_paths_do_not_match
+  test_skip_monitor_when_workflow_branches_do_not_match
   test_monitor_for_flutter_changes
   echo "[post-push-test] all passed"
 }

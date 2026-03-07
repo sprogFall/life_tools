@@ -4,6 +4,7 @@ set -euo pipefail
 DOC_PREFIX_REGEX='^docs?($|[:( ].*)'
 
 SHA=""
+BRANCH_NAME=""
 REMOTE_NAME=""
 WORKFLOW_NAME=""
 MONITOR="auto"
@@ -15,6 +16,7 @@ LOG_TAIL_LINES=""
 JSON_MODE=""
 PYTHON_CMD=()
 SKIP_REASON=""
+CHANGED_FILES=()
 
 log() {
   echo "[post-push] $*"
@@ -38,15 +40,16 @@ usage() {
 
 功能:
   - push 后按规则监控 GitHub Action 状态
-  - 默认读取 exec-push 产出的上下文（sha/remote/workflow）
+  - 默认读取 exec-push 产出的上下文（sha/branch/remote/workflow）
 
 选项:
   --sha <sha>
+  --branch <name>
   --remote <name>
   --workflow <name>
   --monitor                 强制开启监控
   --no-monitor              关闭监控
-  --force-monitor           忽略 doc/backend/dashboard 跳过规则，强制轮询
+  --force-monitor           忽略 doc/backend/dashboard/workflow 跳过规则，强制轮询
   --max-polls <n>           最大轮询次数（0/不传表示不限）
   --log-lines <n>           失败日志尾部行数（默认 50，0=不获取）
 
@@ -66,6 +69,11 @@ parse_args() {
       --sha)
         [[ $# -ge 2 ]] || die "--sha 需要参数"
         SHA="$2"
+        shift
+        ;;
+      --branch)
+        [[ $# -ge 2 ]] || die "--branch 需要参数"
+        BRANCH_NAME="$2"
         shift
         ;;
       --remote)
@@ -132,6 +140,9 @@ load_context_file() {
       PUSHED_SHA)
         [[ -z "$SHA" ]] && SHA="$v"
         ;;
+      PUSHED_BRANCH)
+        [[ -z "$BRANCH_NAME" ]] && BRANCH_NAME="$v"
+        ;;
       PUSHED_REMOTE)
         [[ -z "$REMOTE_NAME" ]] && REMOTE_NAME="$v"
         ;;
@@ -146,6 +157,7 @@ load_context_file() {
 
 fill_defaults() {
   [[ -n "$SHA" ]] || SHA="$(git rev-parse HEAD)"
+  [[ -n "$BRANCH_NAME" ]] || BRANCH_NAME="$(git branch --show-current 2>/dev/null || true)"
   [[ -n "$REMOTE_NAME" ]] || REMOTE_NAME="origin"
   [[ -n "$WORKFLOW_NAME" ]] || WORKFLOW_NAME="Build Android APK"
 
@@ -168,6 +180,169 @@ fill_defaults() {
   if [[ ! "$LOG_TAIL_LINES" =~ ^[0-9]+$ ]]; then
     die "--log-lines 仅支持非负整数"
   fi
+}
+
+load_changed_files() {
+  mapfile -t CHANGED_FILES < <(git diff-tree --no-commit-id --name-only -r --root "$SHA")
+}
+
+trim_ascii_whitespace() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+normalize_yaml_scalar() {
+  local value="$1"
+  value="$(trim_ascii_whitespace "$value")"
+
+  if [[ ${#value} -ge 2 ]]; then
+    if [[ "${value:0:1}" == "'" && "${value: -1}" == "'" ]]; then
+      value="${value:1:${#value}-2}"
+    elif [[ "${value:0:1}" == '"' && "${value: -1}" == '"' ]]; then
+      value="${value:1:${#value}-2}"
+    fi
+  fi
+
+  printf '%s
+' "$value"
+}
+
+find_workflow_file_by_name() {
+  local workflow_file workflow_name
+
+  [[ -d .github/workflows ]] || return 0
+
+  while IFS= read -r workflow_file; do
+    workflow_name="$(awk '
+      /^[[:space:]]*name:[[:space:]]*/ {
+        line = $0
+        sub(/^[[:space:]]*name:[[:space:]]*/, "", line)
+        sub(/[[:space:]]*$/, "", line)
+        print line
+        exit
+      }
+    ' "$workflow_file")"
+    workflow_name="$(normalize_yaml_scalar "$workflow_name")"
+
+    if [[ "$workflow_name" == "$WORKFLOW_NAME" ]]; then
+      printf '%s
+' "$workflow_file"
+      return 0
+    fi
+  done < <(find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)
+}
+
+extract_workflow_push_list() {
+  local workflow_file="$1"
+  local list_key="$2"
+
+  awk -v list_key="$list_key" '
+    function indent_of(line) {
+      match(line, /^[ ]*/)
+      return RLENGTH
+    }
+
+    function is_blank(line) {
+      return line ~ /^[[:space:]]*$/
+    }
+
+    function is_comment(line) {
+      return line ~ /^[[:space:]]*#/
+    }
+
+    {
+      line = $0
+      if (is_blank(line) || is_comment(line)) {
+        next
+      }
+
+      indent = indent_of(line)
+
+      if (in_list && indent <= list_indent && line !~ /^[[:space:]]*-/) {
+        in_list = 0
+      }
+      if (in_push && indent <= push_indent && line !~ /^[[:space:]]*(branches|paths):[[:space:]]*$/) {
+        in_push = 0
+      }
+      if (in_on && indent <= on_indent && line !~ /^[[:space:]]*push:[[:space:]]*$/) {
+        in_on = 0
+      }
+
+      if (line ~ /^[[:space:]]*on:[[:space:]]*$/) {
+        in_on = 1
+        on_indent = indent
+        next
+      }
+      if (in_on && line ~ /^[[:space:]]*push:[[:space:]]*$/) {
+        in_push = 1
+        push_indent = indent
+        next
+      }
+      if (in_push && line ~ ("^[[:space:]]*" list_key ":[[:space:]]*$")) {
+        in_list = 1
+        list_indent = indent
+        next
+      }
+      if (in_list && line ~ /^[[:space:]]*-[[:space:]]*/) {
+        sub(/^[[:space:]]*-[[:space:]]*/, "", line)
+        sub(/[[:space:]]*$/, "", line)
+        print line
+      }
+    }
+  ' "$workflow_file" | while IFS= read -r value; do
+    normalize_yaml_scalar "$value"
+  done
+}
+
+workflow_rule_matches_value() {
+  local value="$1"
+  local rule="$2"
+
+  [[ -n "$rule" ]] || return 1
+  [[ "$value" == $rule ]]
+}
+
+workflow_matches_current_push() {
+  local workflow_file
+  local rule
+  local file
+  local branch_matched="false"
+  local -a branch_rules=()
+  local -a path_rules=()
+
+  workflow_file="$(find_workflow_file_by_name)"
+  [[ -n "$workflow_file" ]] || return 0
+
+  mapfile -t branch_rules < <(extract_workflow_push_list "$workflow_file" "branches")
+  if [[ ${#branch_rules[@]} -gt 0 && -n "$BRANCH_NAME" ]]; then
+    for rule in "${branch_rules[@]}"; do
+      if workflow_rule_matches_value "$BRANCH_NAME" "$rule"; then
+        branch_matched="true"
+        break
+      fi
+    done
+
+    if [[ "$branch_matched" != "true" ]]; then
+      return 1
+    fi
+  fi
+
+  mapfile -t path_rules < <(extract_workflow_push_list "$workflow_file" "paths")
+  if [[ ${#path_rules[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  for file in "${CHANGED_FILES[@]}"; do
+    for rule in "${path_rules[@]}"; do
+      if workflow_rule_matches_value "$file" "$rule"; then
+        return 0
+      fi
+    done
+  done
+
+  return 1
 }
 
 extract_repo_from_remote() {
@@ -430,16 +605,21 @@ should_skip_monitoring() {
     return 0
   fi
 
-  while IFS= read -r file; do
+  for file in "${CHANGED_FILES[@]}"; do
     [[ -z "$file" ]] && continue
     if ! is_monitor_skippable_file "$file"; then
       only_backend_dashboard_or_docs="false"
       break
     fi
-  done < <(git diff-tree --no-commit-id --name-only -r --root "$SHA")
+  done
 
   if [[ "$only_backend_dashboard_or_docs" == "true" ]]; then
     SKIP_REASON="backend/dashboard/docs only changes"
+    return 0
+  fi
+
+  if ! workflow_matches_current_push; then
+    SKIP_REASON="workflow path/branch filters do not match current push"
     return 0
   fi
 
@@ -546,8 +726,10 @@ main() {
   fill_defaults
 
   git rev-parse --verify "$SHA^{commit}" >/dev/null 2>&1 || die "无效的 commit SHA: $SHA"
+  load_changed_files
 
   log "sha=$SHA"
+  log "branch=${BRANCH_NAME:-unknown}"
   log "remote=$REMOTE_NAME"
   log "workflow=$WORKFLOW_NAME"
   log "monitor=$MONITOR force_monitor=$FORCE_MONITOR max_polls=${MAX_POLLS:-0} log_lines=$LOG_TAIL_LINES"
