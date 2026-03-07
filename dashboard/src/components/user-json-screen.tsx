@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import { UserJsonEditor } from '@/components/user-json-editor';
+import { buildUserRouteHref } from '@/lib/dashboard-routes';
 import {
   updateDashboardTool,
   updateDashboardUserSnapshot,
@@ -58,12 +60,12 @@ export function UserJsonScreen() {
     return (
       <div className="rounded-4xl border border-rose-100 bg-rose-50/70 px-6 py-16 text-center shadow-panel">
         <p className="text-sm text-rose-600">{error ?? '未找到用户详情。'}</p>
-        <a
+        <Link
           href="/users"
           className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50"
         >
           返回同步用户目录
-        </a>
+        </Link>
       </div>
     );
   }
@@ -73,19 +75,20 @@ export function UserJsonScreen() {
       <section className="rounded-4xl border border-slate-200/80 bg-white/85 p-6 shadow-panel">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <a href="/users" className="text-sm font-medium text-brand-700 transition hover:text-brand-900">
+            <Link href="/users" className="text-sm font-medium text-brand-700 transition hover:text-brand-900">
               ← 返回同步用户目录
-            </a>
+            </Link>
             <h1 className="mt-3 text-3xl font-semibold text-ink">{getUserDisplayName(detail.user)} · JSON 管理</h1>
             <p className="mt-2 font-mono text-sm text-slate-500">{detail.user.user_id}</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a
-              href={`/users/detail?userId=${encodeURIComponent(detail.user.user_id)}${requestedToolId ? `&tool=${encodeURIComponent(requestedToolId)}` : ''}`}
+            <Link
+              scroll={false}
+              href={buildUserRouteHref('/users/detail', detail.user.user_id, requestedToolId || null)}
               className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
             >
               返回结构化管理
-            </a>
+            </Link>
           </div>
         </div>
         <div className="mt-5 grid gap-3 rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:grid-cols-3">
