@@ -10,6 +10,11 @@ npm run build
 
 构建完成后会生成 `dashboard/dist`，可直接作为静态目录部署到 nginx。
 
+构建产物会自动写入版本信息：
+
+- 左侧边栏底部展示当前前端 `Git` 版本与构建时间
+- 静态文件 `dashboard/dist/dashboard-version.json` 可直接用于部署后核对版本
+
 ## 后端连接
 
 默认前端会请求当前站点同源下的后端接口：
