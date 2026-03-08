@@ -539,6 +539,38 @@ function SectionPanel({
           </button>
         </div>
       </div>
+      {supportsTreeView ? (
+        <div className="rounded-3xl border border-slate-200/70 bg-slate-50/80 p-1">
+          <div className="grid grid-cols-2 gap-1 sm:inline-flex">
+            <button
+              type="button"
+              aria-pressed={listViewMode === 'list'}
+              onClick={() => setListViewMode('list')}
+              className={cn(
+                'h-10 rounded-2xl px-4 text-sm font-medium transition',
+                listViewMode === 'list'
+                  ? 'bg-white text-ink shadow-sm'
+                  : 'text-slate-600 hover:bg-white hover:text-ink',
+              )}
+            >
+              列表展示
+            </button>
+            <button
+              type="button"
+              aria-pressed={listViewMode === 'tree'}
+              onClick={() => setListViewMode('tree')}
+              className={cn(
+                'h-10 rounded-2xl px-4 text-sm font-medium transition',
+                listViewMode === 'tree'
+                  ? 'bg-white text-ink shadow-sm'
+                  : 'text-slate-600 hover:bg-white hover:text-ink',
+              )}
+            >
+              树状展示
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section
           className={cn(
@@ -554,36 +586,6 @@ function SectionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {supportsTreeView ? (
-              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
-                <button
-                  type="button"
-                  aria-pressed={listViewMode === 'list'}
-                  onClick={() => setListViewMode('list')}
-                  className={cn(
-                    'h-8 rounded-full px-3 text-xs font-medium transition',
-                    listViewMode === 'list'
-                      ? 'bg-white text-ink shadow-sm'
-                      : 'text-slate-600 hover:bg-white hover:text-ink',
-                  )}
-                >
-                  列表展示
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={listViewMode === 'tree'}
-                  onClick={() => setListViewMode('tree')}
-                  className={cn(
-                    'h-8 rounded-full px-3 text-xs font-medium transition',
-                    listViewMode === 'tree'
-                      ? 'bg-white text-ink shadow-sm'
-                      : 'text-slate-600 hover:bg-white hover:text-ink',
-                  )}
-                >
-                  树状展示
-                </button>
-              </div>
-            ) : null}
             {!isSingleMode ? (
               <input
                 value={query}
