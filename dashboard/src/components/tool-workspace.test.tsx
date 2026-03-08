@@ -155,6 +155,23 @@ describe('ToolWorkspace', () => {
     expect(screen.getByLabelText('创建时间')).toBeDisabled();
   });
 
+  it('提供顶层入口，可直接从工作记录页切到工时树视图', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '直接进入工时树' }));
+
+    expect(screen.getByRole('button', { name: 'time_entries (2)' })).toHaveClass('bg-brand-700');
+    expect(screen.getByText('任务树视图')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '树状展示' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('支持将工时记录切换为树状展示，并通过拖拽修改任务归属', () => {
     render(
       <ToolWorkspace
