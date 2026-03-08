@@ -185,6 +185,55 @@ describe('ToolWorkspace', () => {
   });
 
 
+  it('支持通过快速改归属下拉切换任务，并可撤销上次调整', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
+
+    const targetSelect = screen.getByRole('combobox', { name: '调整归属 补录会议纪要' });
+    fireEvent.change(targetSelect, { target: { value: '2' } });
+
+    expect(within(screen.getByRole('group', { name: '工时树节点 需求拆分' })).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('已将“补录会议纪要”归属到“需求拆分”');
+
+    fireEvent.click(screen.getByRole('button', { name: '撤销上次调整' }));
+
+    expect(within(screen.getByRole('group', { name: '工时树节点 整理周报' })).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('已撤销“补录会议纪要”的归属调整，恢复到“整理周报”');
+    expect(screen.getByRole('button', { name: '保存到后端' })).toBeEnabled();
+  });
+
+
+  it('保存失败时会以 alert 形式展示后端返回的详细错误', async () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({
+          success: false,
+          message: '工时记录“补录会议纪要”的 task_id=999 未匹配到任务。可用任务：1=整理周报',
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
+    fireEvent.change(screen.getByRole('combobox', { name: '调整归属 补录会议纪要' }), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存到后端' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('工时记录“补录会议纪要”的 task_id=999 未匹配到任务。可用任务：1=整理周报');
+  });
+
+
   it('移动端使用列表和编辑器双视图，点选记录后自动进入编辑器', () => {
     render(
       <ToolWorkspace

@@ -10,7 +10,6 @@ ORPHAN_TASK_LABEL = "未归属 / 异常归属"
 OPERATION_TYPE_UPDATE_TIME_ENTRY = 4
 TARGET_TYPE_TIME_ENTRY = 1
 
-
 WorkLogRow = dict[str, Any]
 
 
@@ -51,7 +50,6 @@ def apply_dashboard_work_log_rules(
     return normalized_tools_data
 
 
-
 def _prepare_work_log_data_for_dashboard(
     *,
     previous_data: Mapping[str, Any],
@@ -64,7 +62,8 @@ def _prepare_work_log_data_for_dashboard(
 
     previous_tasks = _require_row_list(previous_data.get("tasks"), section_label="tasks")
     previous_time_entries = _require_row_list(
-        previous_data.get("time_entries"), section_label="time_entries"
+        previous_data.get("time_entries"),
+        section_label="time_entries",
     )
 
     task_map = _build_indexed_rows(tasks, section_label="tasks")
@@ -91,7 +90,6 @@ def _prepare_work_log_data_for_dashboard(
     return normalized_data
 
 
-
 def _require_row_list(raw_value: Any, *, section_label: str) -> list[WorkLogRow]:
     if raw_value is None:
         return []
@@ -100,6 +98,7 @@ def _require_row_list(raw_value: Any, *, section_label: str) -> list[WorkLogRow]
             status_code=400,
             detail={"message": f"工作记录的 {section_label} 必须是数组"},
         )
+
     rows: list[WorkLogRow] = []
     for index, item in enumerate(raw_value):
         if not isinstance(item, dict):
@@ -111,11 +110,14 @@ def _require_row_list(raw_value: Any, *, section_label: str) -> list[WorkLogRow]
     return rows
 
 
-
 def _build_indexed_rows(rows: list[WorkLogRow], *, section_label: str) -> dict[int, WorkLogRow]:
     indexed: dict[int, WorkLogRow] = {}
     for index, row in enumerate(rows):
-        row_id = _require_numeric_id(row.get("id"), section_label=section_label, index=index)
+        row_id = _require_numeric_id(
+            row.get("id"),
+            section_label=section_label,
+            index=index,
+        )
         if row_id in indexed:
             raise HTTPException(
                 status_code=400,
@@ -125,22 +127,20 @@ def _build_indexed_rows(rows: list[WorkLogRow], *, section_label: str) -> dict[i
     return indexed
 
 
-
 def _require_numeric_id(raw_value: Any, *, section_label: str, index: int) -> int:
     if isinstance(raw_value, bool):
         raise HTTPException(
             status_code=400,
             detail={"message": f"工作记录的 {section_label}[{index}].id 必须是数字"},
         )
+
     try:
-        value = int(raw_value)
+        return int(raw_value)
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=400,
             detail={"message": f"工作记录的 {section_label}[{index}].id 必须是数字"},
         ) from None
-    return value
-
 
 
 def _normalize_optional_numeric(value: Any) -> int | None:
@@ -151,13 +151,14 @@ def _normalize_optional_numeric(value: Any) -> int | None:
     return int(value)
 
 
-
 def _validate_time_entry_task_affiliation(
     entry: WorkLogRow,
     task_map: Mapping[int, WorkLogRow],
 ) -> None:
     entry_id = _safe_int(entry.get("id"))
-    entry_label = str(entry.get("content") or f"工时记录#{entry_id if entry_id is not None else 'unknown'}")
+    entry_label = str(
+        entry.get("content") or f"工时记录#{entry_id if entry_id is not None else 'unknown'}"
+    )
     try:
         task_id = _normalize_optional_numeric(entry.get("task_id"))
     except (TypeError, ValueError):
@@ -168,14 +169,33 @@ def _validate_time_entry_task_affiliation(
 
     if task_id is None:
         return
-    if task_id not in task_map:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "message": f"工时记录“{entry_label}”的 task_id={task_id} 未匹配到任务，请先创建目标任务或重新归属"
-            },
-        )
+    if task_id in task_map:
+        return
 
+    task_hint = _build_task_hint(task_map)
+    raise HTTPException(
+        status_code=400,
+        detail={
+            "message": (
+                f"工时记录“{entry_label}”的 task_id={task_id} 未匹配到任务，请先创建目标任务或重新归属。"
+                f"{task_hint}"
+            )
+        },
+    )
+
+
+def _build_task_hint(task_map: Mapping[int, WorkLogRow]) -> str:
+    if not task_map:
+        return "当前没有可用任务；如需暂不归属，可清空 task_id。"
+
+    task_pairs = [
+        f"{task_id}={str(task.get('title') or f'任务#{task_id}') }"
+        for task_id, task in sorted(task_map.items(), key=lambda item: item[0])
+    ]
+    preview = "，".join(task_pairs[:8])
+    if len(task_pairs) > 8:
+        preview = f"{preview} 等 {len(task_pairs)} 个任务"
+    return f"可用任务：{preview}；如需暂不归属，可清空 task_id。"
 
 
 def _build_reassignment_logs(
@@ -194,19 +214,28 @@ def _build_reassignment_logs(
         entry_id = _safe_int(entry.get("id"))
         if entry_id is None:
             continue
+
         previous_entry = previous_time_entry_map.get(entry_id)
         if previous_entry is None:
             continue
 
-        previous_task_id = _safe_int_or_none(previous_entry.get("task_id"))
-        next_task_id = _safe_int_or_none(entry.get("task_id"))
+        previous_task_id = _safe_int(previous_entry.get("task_id"))
+        next_task_id = _safe_int(entry.get("task_id"))
         if previous_task_id == next_task_id:
             continue
 
         next_log_id += 1
         entry_title = str(entry.get("content") or f"工时记录#{entry_id}")
-        previous_task_title = _resolve_task_title(previous_task_id, previous_task_map, next_task_map)
-        next_task_title = _resolve_task_title(next_task_id, next_task_map, previous_task_map)
+        previous_task_title = _resolve_task_title(
+            previous_task_id,
+            previous_task_map,
+            next_task_map,
+        )
+        next_task_title = _resolve_task_title(
+            next_task_id,
+            next_task_map,
+            previous_task_map,
+        )
 
         audit_logs.append(
             {
@@ -231,7 +260,6 @@ def _build_reassignment_logs(
     return audit_logs
 
 
-
 def _resolve_task_title(
     task_id: int | None,
     primary_task_map: Mapping[int, WorkLogRow],
@@ -239,11 +267,11 @@ def _resolve_task_title(
 ) -> str:
     if task_id is None:
         return ORPHAN_TASK_LABEL
+
     task_row = primary_task_map.get(task_id) or fallback_task_map.get(task_id)
     if not isinstance(task_row, Mapping):
         return f"任务#{task_id}"
     return str(task_row.get("title") or f"任务#{task_id}")
-
 
 
 def _safe_int(value: Any) -> int | None:
@@ -251,8 +279,3 @@ def _safe_int(value: Any) -> int | None:
         return _normalize_optional_numeric(value)
     except (TypeError, ValueError):
         return None
-
-
-
-def _safe_int_or_none(value: Any) -> int | None:
-    return _safe_int(value)

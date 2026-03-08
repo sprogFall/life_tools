@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { AlertTriangle, Clock3, GripVertical, ListTree } from 'lucide-react';
+import { AlertTriangle, Clock3, GripVertical, ListTree, RotateCcw } from 'lucide-react';
 
 import { cn, formatNumber, formatTimestamp } from '@/lib/format';
 import { buildWorkLogTree, reassignTimeEntryTask, type WorkLogRow } from '@/lib/work-log-tree';
@@ -18,6 +18,24 @@ interface WorkLogTimeTreeProps {
 
 type DropTaskId = number | 'orphan' | null;
 
+interface ReassignmentRecord {
+  entryId: number;
+  entryLabel: string;
+  fromTaskId: number | null;
+  toTaskId: number | null;
+  fromTitle: string;
+  toTitle: string;
+}
+
+interface TaskOption {
+  value: string;
+  taskId: number | null;
+  title: string;
+}
+
+const ORPHAN_TASK_TITLE = '未归属 / 异常归属';
+const ORPHAN_TASK_VALUE = '__orphan__';
+
 function toNumericId(value: unknown) {
   const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric) ? numeric : null;
@@ -31,6 +49,10 @@ function matchesKeyword(entry: WorkLogRow, keyword: string) {
   return Object.values(entry).some((value) => String(value ?? '').toLowerCase().includes(keyword));
 }
 
+function toTaskOptionValue(taskId: number | null) {
+  return taskId === null ? ORPHAN_TASK_VALUE : String(taskId);
+}
+
 export function WorkLogTimeTree({
   tasks,
   items,
@@ -42,6 +64,7 @@ export function WorkLogTimeTree({
   const [draggingEntryId, setDraggingEntryId] = useState<number | null>(null);
   const [activeDropTaskId, setActiveDropTaskId] = useState<DropTaskId>(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [lastReassignment, setLastReassignment] = useState<ReassignmentRecord | null>(null);
 
   const selectedEntryId = selectedIndex === null ? null : toNumericId(items[selectedIndex]?.id);
 
@@ -55,6 +78,33 @@ export function WorkLogTimeTree({
     });
     return mapping;
   }, [items]);
+
+  const taskOptions = useMemo<TaskOption[]>(() => {
+    const options = tasks.reduce<TaskOption[]>((result, task) => {
+      const taskId = toNumericId(task.id);
+      if (taskId === null) {
+        return result;
+      }
+      result.push({
+        value: String(taskId),
+        taskId,
+        title: String(task.title ?? `任务#${taskId}`),
+      });
+      return result;
+    }, []);
+
+    options.push({
+      value: ORPHAN_TASK_VALUE,
+      taskId: null,
+      title: ORPHAN_TASK_TITLE,
+    });
+
+    return options;
+  }, [tasks]);
+
+  const resolveTaskTitle = (taskId: number | null) =>
+    taskOptions.find((option) => option.taskId === taskId)?.title ??
+    (taskId === null ? ORPHAN_TASK_TITLE : `任务#${taskId}`);
 
   const groups = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -81,49 +131,113 @@ export function WorkLogTimeTree({
       .filter((group): group is NonNullable<typeof group> => group !== null);
   }, [items, query, tasks]);
 
-  const handleDrop = (targetTaskId: number | null, targetTitle: string) => {
-    if (draggingEntryId === null) {
-      return;
-    }
+  const clearDragState = () => {
+    setDraggingEntryId(null);
+    setActiveDropTaskId(null);
+  };
 
-    const currentIndex = entryIndexMap.get(draggingEntryId);
+  const moveEntryToTask = ({
+    entryId,
+    targetTaskId,
+    targetTitle,
+    status,
+    remember = true,
+  }: {
+    entryId: number;
+    targetTaskId: number | null;
+    targetTitle?: string;
+    status?: string;
+    remember?: boolean;
+  }) => {
+    const currentIndex = entryIndexMap.get(entryId);
     if (currentIndex === undefined) {
-      setDraggingEntryId(null);
-      setActiveDropTaskId(null);
-      return;
+      clearDragState();
+      return false;
     }
 
     const currentEntry = items[currentIndex];
     const currentTaskId = toNumericId(currentEntry.task_id);
     const entryLabel = getEntryLabel(currentEntry);
+    const nextTitle = targetTitle ?? resolveTaskTitle(targetTaskId);
 
     if (currentTaskId === targetTaskId) {
-      setStatusMessage(`“${entryLabel}”已经归属在“${targetTitle}”下`);
-      setDraggingEntryId(null);
-      setActiveDropTaskId(null);
-      return;
+      setStatusMessage(`“${entryLabel}”已经归属在“${nextTitle}”下`);
+      clearDragState();
+      return false;
     }
 
-    const nextItems = reassignTimeEntryTask(items, draggingEntryId, targetTaskId, Date.now());
+    const previousTitle = resolveTaskTitle(currentTaskId);
+    const nextItems = reassignTimeEntryTask(items, entryId, targetTaskId, Date.now());
     onChange(nextItems);
     onSelect(currentIndex);
-    setStatusMessage(`已将“${entryLabel}”归属到“${targetTitle}”`);
-    setDraggingEntryId(null);
-    setActiveDropTaskId(null);
+    setStatusMessage(status ?? `已将“${entryLabel}”归属到“${nextTitle}”`);
+    if (remember) {
+      setLastReassignment({
+        entryId,
+        entryLabel,
+        fromTaskId: currentTaskId,
+        toTaskId: targetTaskId,
+        fromTitle: previousTitle,
+        toTitle: nextTitle,
+      });
+    } else {
+      setLastReassignment(null);
+    }
+    clearDragState();
+    return true;
+  };
+
+  const handleDrop = (targetTaskId: number | null, targetTitle: string) => {
+    if (draggingEntryId === null) {
+      return;
+    }
+    moveEntryToTask({
+      entryId: draggingEntryId,
+      targetTaskId,
+      targetTitle,
+    });
+  };
+
+  const undoLastReassignment = () => {
+    if (!lastReassignment) {
+      return;
+    }
+    const reverted = moveEntryToTask({
+      entryId: lastReassignment.entryId,
+      targetTaskId: lastReassignment.fromTaskId,
+      targetTitle: lastReassignment.fromTitle,
+      status: `已撤销“${lastReassignment.entryLabel}”的归属调整，恢复到“${lastReassignment.fromTitle}”`,
+      remember: false,
+    });
+    if (!reverted) {
+      setLastReassignment(null);
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="rounded-3xl border border-dashed border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-slate-700">
-        <div className="flex flex-wrap items-center gap-2 text-brand-700">
-          <ListTree className="h-4 w-4" />
-          <span className="font-medium">任务树视图</span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-brand-700">
+            <ListTree className="h-4 w-4" />
+            <span className="font-medium">任务树视图</span>
+          </div>
+          {lastReassignment ? (
+            <button
+              type="button"
+              onClick={undoLastReassignment}
+              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-brand-200 bg-white px-3 text-xs font-medium text-brand-700 transition hover:border-brand-300 hover:bg-brand-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              撤销上次调整
+            </button>
+          ) : null}
         </div>
         <p className="mt-2 leading-6 text-slate-600">
-          把工时卡片拖到目标任务，即可直接修改归属；右侧编辑器仍可继续微调日期、时长和内容。
+          把工时卡片拖到目标任务，或直接用“快速改归属”下拉切换任务；右侧编辑器仍可继续微调日期、时长和内容。
         </p>
         <p role="status" aria-live="polite" className="mt-2 text-xs text-slate-500">
-          {statusMessage || '当前支持任务节点与未归属节点之间的拖拽迁移。'}
+          {statusMessage || '当前支持任务节点与未归属节点之间的拖拽迁移，也支持快速改归属与撤销。'}
         </p>
       </div>
 
@@ -188,21 +302,26 @@ export function WorkLogTimeTree({
                 <div className="mt-4 space-y-3">
                   {group.entries.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
-                      拖拽工时到这里，重新归属到当前任务。
+                      拖拽工时到这里，或等待快速改归属切换到当前任务。
                     </div>
                   ) : (
                     group.entries.map((entry) => {
                       const entryId = toNumericId(entry.id);
                       const entryIndex = entryId === null ? null : entryIndexMap.get(entryId) ?? null;
                       const isSelected = entryId !== null && entryId === selectedEntryId;
+                      const currentTaskId = toNumericId(entry.task_id);
+                      const currentTaskValue = taskOptions.some((option) => option.taskId === currentTaskId)
+                        ? toTaskOptionValue(currentTaskId)
+                        : ORPHAN_TASK_VALUE;
+                      const entryLabel = getEntryLabel(entry);
 
                       return (
                         <div
-                          key={entryId ?? getEntryLabel(entry)}
+                          key={entryId ?? entryLabel}
                           role="button"
                           tabIndex={0}
                           draggable={entryId !== null}
-                          aria-label={`工时记录 ${getEntryLabel(entry)}`}
+                          aria-label={`工时记录 ${entryLabel}`}
                           onClick={() => {
                             if (entryIndex !== null) {
                               onSelect(entryIndex);
@@ -219,13 +338,10 @@ export function WorkLogTimeTree({
                               return;
                             }
                             setDraggingEntryId(entryId);
-                            setStatusMessage(`正在拖拽“${getEntryLabel(entry)}”`);
+                            setStatusMessage(`正在拖拽“${entryLabel}”`);
                             event.dataTransfer?.setData('text/plain', String(entryId));
                           }}
-                          onDragEnd={() => {
-                            setDraggingEntryId(null);
-                            setActiveDropTaskId(null);
-                          }}
+                          onDragEnd={clearDragState}
                           className={cn(
                             'cursor-pointer rounded-2xl border px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-brand-300',
                             isSelected
@@ -238,15 +354,49 @@ export function WorkLogTimeTree({
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <GripVertical className="h-4 w-4 text-slate-400" />
-                                <span className="truncate font-medium text-ink">{getEntryLabel(entry)}</span>
+                                <span className="truncate font-medium text-ink">{entryLabel}</span>
                               </div>
                               <p className="mt-2 text-sm leading-6 text-slate-500">
                                 ID #{String(entry.id ?? '—')} · {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                              <Clock3 className="h-4 w-4" />
-                              {formatNumber(Number(entry.minutes ?? 0))} 分钟
+                            <div className="flex flex-col items-start gap-2 md:items-end">
+                              <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
+                                <Clock3 className="h-4 w-4" />
+                                {formatNumber(Number(entry.minutes ?? 0))} 分钟
+                              </div>
+                              <label
+                                className="flex cursor-default items-center gap-2 text-xs text-slate-500"
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                              >
+                                <span>快速改归属</span>
+                                <select
+                                  aria-label={`调整归属 ${entryLabel}`}
+                                  value={currentTaskValue}
+                                  disabled={entryId === null}
+                                  onClick={(event) => event.stopPropagation()}
+                                  onChange={(event) => {
+                                    event.stopPropagation();
+                                    if (entryId === null) {
+                                      return;
+                                    }
+                                    const targetTaskId = event.target.value === ORPHAN_TASK_VALUE ? null : Number(event.target.value);
+                                    moveEntryToTask({
+                                      entryId,
+                                      targetTaskId,
+                                      targetTitle: resolveTaskTitle(targetTaskId),
+                                    });
+                                  }}
+                                  className="h-9 cursor-pointer rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-brand-400"
+                                >
+                                  {taskOptions.map((option) => (
+                                    <option key={`${entryLabel}-${option.value}`} value={option.value}>
+                                      {option.title}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
                             </div>
                           </div>
                         </div>

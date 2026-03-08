@@ -1002,7 +1002,11 @@ export function ToolWorkspace({
           </div>
         </div>
         {result ? (
-          <p className={`mt-4 text-sm ${result.success ? 'text-emerald-700' : 'text-rose-600'}`}>
+          <p
+            role={result.success ? 'status' : 'alert'}
+            aria-live="polite"
+            className={`mt-4 text-sm ${result.success ? 'text-emerald-700' : 'text-rose-600'}`}
+          >
             {result.message}
           </p>
         ) : null}

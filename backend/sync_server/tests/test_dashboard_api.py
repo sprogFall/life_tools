@@ -251,6 +251,8 @@ def test_dashboard_tool_update_rejects_unknown_time_entry_task_id() -> None:
         )
         assert update_resp.status_code == 400
         assert "task_id=999" in update_resp.json()["message"]
+        assert "可用任务" in update_resp.json()["message"]
+        assert "1=整理周报" in update_resp.json()["message"]
 
         detail_resp = client.get("/dashboard/users/u1/tools/work_log")
         assert detail_resp.status_code == 200
