@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { Eye, EyeOff } from 'lucide-react';
 
+import { WorkLogTimeTree } from '@/components/work-log-time-tree';
 import { cn, formatNumber, formatPreviewText, formatTimestamp, truncateJsonPreview } from '@/lib/format';
 import { compactJsonErrorMessage } from '@/lib/json-utils';
 import {
@@ -339,6 +340,7 @@ function prepareRowForSave(
 
 interface SectionPanelProps {
   toolId: string;
+  toolData: Record<string, unknown>;
   sectionKey: string;
   section: ToolSectionConfig | undefined;
   mode: SectionStorageMode;
@@ -349,6 +351,7 @@ interface SectionPanelProps {
 
 function SectionPanel({
   toolId,
+  toolData,
   sectionKey,
   section,
   mode,
@@ -365,6 +368,16 @@ function SectionPanel({
   const [error, setError] = useState<string | null>(null);
   const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
   const [mobilePane, setMobilePane] = useState<MobilePane>('list');
+  const [listViewMode, setListViewMode] = useState<'list' | 'tree'>('list');
+
+  const supportsTreeView = toolId === 'work_log' && sectionKey === 'time_entries' && !isSingleMode;
+  const workLogTasks = useMemo(
+    () =>
+      supportsTreeView
+        ? getSectionItems(toolData, 'tasks', getSectionConfig(toolId, 'tasks'))
+        : ([] as EditableRow[]),
+    [supportsTreeView, toolData, toolId],
+  );
 
   useEffect(() => {
     if (editorKey === 'new') {
@@ -389,6 +402,10 @@ function SectionPanel({
 
   useEffect(() => {
     setMobilePane('list');
+  }, [sectionKey]);
+
+  useEffect(() => {
+    setListViewMode('list');
   }, [sectionKey]);
 
   const filteredItems = useMemo(() => {
@@ -537,11 +554,41 @@ function SectionPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {supportsTreeView ? (
+              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  aria-pressed={listViewMode === 'list'}
+                  onClick={() => setListViewMode('list')}
+                  className={cn(
+                    'h-8 rounded-full px-3 text-xs font-medium transition',
+                    listViewMode === 'list'
+                      ? 'bg-white text-ink shadow-sm'
+                      : 'text-slate-600 hover:bg-white hover:text-ink',
+                  )}
+                >
+                  列表展示
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={listViewMode === 'tree'}
+                  onClick={() => setListViewMode('tree')}
+                  className={cn(
+                    'h-8 rounded-full px-3 text-xs font-medium transition',
+                    listViewMode === 'tree'
+                      ? 'bg-white text-ink shadow-sm'
+                      : 'text-slate-600 hover:bg-white hover:text-ink',
+                  )}
+                >
+                  树状展示
+                </button>
+              </div>
+            ) : null}
             {!isSingleMode ? (
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="搜索当前区块"
+                placeholder={supportsTreeView ? '搜索任务或工时内容' : '搜索当前区块'}
                 className="h-10 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
               />
             ) : null}
@@ -557,75 +604,93 @@ function SectionPanel({
           </div>
         </div>
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-100">
-          <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-slate-400 lg:grid">
-            <span className="min-w-0 leading-5">操作</span>
-            {previewKeys.map((key) => (
-              <span key={key} className="min-w-0 leading-5">
-                {getFieldByKey(section, key, items).label}
-              </span>
-            ))}
-          </div>
-          <div className="divide-y divide-slate-100">
-            {filteredItems.length === 0 ? (
-              <div className="px-4 py-10 text-center text-sm text-slate-500">
-                {isSingleMode ? '当前配置为空，可点击右上角初始化。' : '暂无匹配结果，可尝试新增或调整筛选词。'}
+          {supportsTreeView && listViewMode === 'tree' ? (
+            <div className="p-4">
+              <WorkLogTimeTree
+                tasks={workLogTasks}
+                items={items}
+                query={query}
+                selectedIndex={typeof editorKey === 'number' ? editorKey : null}
+                onSelect={startEdit}
+                onChange={(nextItems) => {
+                  onChange(nextItems);
+                  setError(null);
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-slate-400 lg:grid">
+                <span className="min-w-0 leading-5">操作</span>
+                {previewKeys.map((key) => (
+                  <span key={key} className="min-w-0 leading-5">
+                    {getFieldByKey(section, key, items).label}
+                  </span>
+                ))}
               </div>
-            ) : (
-              filteredItems.map(({ item, index }) => {
-                const isSelected = editorKey === index;
-                const itemKey = item.id != null ? `${sectionKey}-id-${item.id}` : `${sectionKey}-${index}`;
-                return (
-                  <button
-                    key={itemKey}
-                    type="button"
-                    onClick={() => startEdit(index)}
-                    className={cn(
-                      'grid w-full gap-3 px-4 py-4 text-left transition lg:grid-cols-[96px_repeat(4,minmax(0,1fr))] lg:items-start',
-                      isSelected ? 'bg-brand-50/70' : 'bg-white hover:bg-slate-50',
-                    )}
-                  >
-                    <span className="text-xs font-medium text-brand-700">{isSingleMode ? '编辑配置' : '编辑记录'}</span>
-                    {previewKeys.map((key) => {
-                      const previewField = getFieldByKey(section, key, items);
-                      const maskedPreview = isMaskedField(previewField);
-                      const friendlyValue = formatFriendlyValue({
-                        toolId,
-                        sectionKey,
-                        fieldKey: key,
-                        value: item[key],
-                        row: item,
-                        context: relationContext,
-                      });
-                      const rawTitle = maskedPreview ? getMaskedValue(item[key]) : formatPreviewText(item[key]);
-                      const friendlyTitle = maskedPreview
-                        ? getMaskedValue(item[key])
-                        : formatPreviewText(friendlyValue);
-                      const rawText = maskedPreview ? rawTitle : truncateJsonPreview(rawTitle);
-                      const friendlyText = maskedPreview ? friendlyTitle : truncateJsonPreview(friendlyTitle);
-                      return (
-                        <span key={key} className="min-w-0 flex flex-col gap-1 text-sm text-slate-600">
-                          <span
-                            className="min-w-0 font-medium leading-6 text-ink [overflow-wrap:anywhere]"
-                            title={friendlyTitle}
-                          >
-                            {friendlyText}
-                          </span>
-                          {!maskedPreview && friendlyText !== rawText ? (
-                            <span
-                              className="min-w-0 text-xs leading-5 text-slate-400 [overflow-wrap:anywhere]"
-                              title={`原始值：${rawTitle}`}
-                            >
-                              原始值：{rawText}
+              <div className="divide-y divide-slate-100">
+                {filteredItems.length === 0 ? (
+                  <div className="px-4 py-10 text-center text-sm text-slate-500">
+                    {isSingleMode ? '当前配置为空，可点击右上角初始化。' : '暂无匹配结果，可尝试新增或调整筛选词。'}
+                  </div>
+                ) : (
+                  filteredItems.map(({ item, index }) => {
+                    const isSelected = editorKey === index;
+                    const itemKey = item.id != null ? `${sectionKey}-id-${item.id}` : `${sectionKey}-${index}`;
+                    return (
+                      <button
+                        key={itemKey}
+                        type="button"
+                        onClick={() => startEdit(index)}
+                        className={cn(
+                          'grid w-full gap-3 px-4 py-4 text-left transition lg:grid-cols-[96px_repeat(4,minmax(0,1fr))] lg:items-start',
+                          isSelected ? 'bg-brand-50/70' : 'bg-white hover:bg-slate-50',
+                        )}
+                      >
+                        <span className="text-xs font-medium text-brand-700">{isSingleMode ? '编辑配置' : '编辑记录'}</span>
+                        {previewKeys.map((key) => {
+                          const previewField = getFieldByKey(section, key, items);
+                          const maskedPreview = isMaskedField(previewField);
+                          const friendlyValue = formatFriendlyValue({
+                            toolId,
+                            sectionKey,
+                            fieldKey: key,
+                            value: item[key],
+                            row: item,
+                            context: relationContext,
+                          });
+                          const rawTitle = maskedPreview ? getMaskedValue(item[key]) : formatPreviewText(item[key]);
+                          const friendlyTitle = maskedPreview
+                            ? getMaskedValue(item[key])
+                            : formatPreviewText(friendlyValue);
+                          const rawText = maskedPreview ? rawTitle : truncateJsonPreview(rawTitle);
+                          const friendlyText = maskedPreview ? friendlyTitle : truncateJsonPreview(friendlyTitle);
+                          return (
+                            <span key={key} className="min-w-0 flex flex-col gap-1 text-sm text-slate-600">
+                              <span
+                                className="min-w-0 font-medium leading-6 text-ink [overflow-wrap:anywhere]"
+                                title={friendlyTitle}
+                              >
+                                {friendlyText}
+                              </span>
+                              {!maskedPreview && friendlyText !== rawText ? (
+                                <span
+                                  className="min-w-0 text-xs leading-5 text-slate-400 [overflow-wrap:anywhere]"
+                                  title={`原始值：${rawTitle}`}
+                                >
+                                  原始值：{rawText}
+                                </span>
+                              ) : null}
                             </span>
-                          ) : null}
-                        </span>
-                      );
-                    })}
-                  </button>
-                );
-              })
-            )}
-          </div>
+                          );
+                        })}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -969,6 +1034,7 @@ export function ToolWorkspace({
       {activeSection ? (
         <SectionPanel
           toolId={tool.tool_id}
+          toolData={draftData}
           sectionKey={activeSection}
           section={currentSection}
           mode={currentSectionMode}

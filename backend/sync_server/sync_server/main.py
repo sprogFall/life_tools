@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from .dashboard_utils import build_snapshot_summary, build_tool_summary
+from .dashboard_work_log import apply_dashboard_work_log_rules
 from .schemas import (
     DashboardSnapshotUpdateRequest,
     DashboardToolUpdateRequest,
@@ -704,6 +705,11 @@ def create_app(*, db_path: str) -> FastAPI:
         store.touch_user(user_id=uid, now_ms=server_time)
         current = store.get_snapshot(uid)
         previous_tools_data = {} if current is None else current.tools_data
+        normalized_tools_data = apply_dashboard_work_log_rules(
+            previous_tools_data=previous_tools_data,
+            next_tools_data=normalized_tools_data,
+            now_ms=server_time,
+        )
 
         saved_updated_at_ms = max(server_time, compute_latest_updated_at_ms(normalized_tools_data))
         server_revision_before = 0 if current is None else current.server_revision
@@ -779,6 +785,11 @@ def create_app(*, db_path: str) -> FastAPI:
             "version": int(request.version),
             "data": request.data,
         }
+        next_tools_data = apply_dashboard_work_log_rules(
+            previous_tools_data=previous_tools_data,
+            next_tools_data=next_tools_data,
+            now_ms=server_time,
+        )
 
         saved_updated_at_ms = max(server_time, compute_latest_updated_at_ms(next_tools_data))
         server_revision_before = 0 if current is None else current.server_revision

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ToolWorkspace } from '@/components/tool-workspace';
@@ -47,8 +47,21 @@ const detail: DashboardUserDetailResponse = {
               description: '补充风险说明',
               status: 1,
               estimated_minutes: 60,
+              sort_index: 1,
+              is_pinned: true,
               created_at: 1731000000000,
               updated_at: 1731000001000,
+            },
+            {
+              id: 2,
+              title: '需求拆分',
+              description: '重新归类历史工时',
+              status: 0,
+              estimated_minutes: 90,
+              sort_index: 2,
+              is_pinned: false,
+              created_at: 1731000002000,
+              updated_at: 1731000003000,
             },
           ],
           time_entries: [
@@ -60,6 +73,15 @@ const detail: DashboardUserDetailResponse = {
               work_date: 1731000000000,
               created_at: 1731000000000,
               updated_at: 1731000001000,
+            },
+            {
+              id: 2,
+              task_id: 1,
+              minutes: 30,
+              content: '补录会议纪要',
+              work_date: 1731086400000,
+              created_at: 1731086400000,
+              updated_at: 1731086401000,
             },
           ],
           operation_logs: [],
@@ -84,11 +106,11 @@ const tool: DashboardToolPayload = {
   summary: {
     tool_id: 'work_log',
     version: 1,
-    total_items: 3,
+    total_items: 4,
     section_counts: {
-      tasks: 1,
-      time_entries: 1,
-      operation_logs: 1,
+      tasks: 2,
+      time_entries: 2,
+      operation_logs: 0,
     },
   },
   data: detail.snapshot.tools_data.work_log.data,
@@ -106,12 +128,12 @@ describe('ToolWorkspace', () => {
     );
 
     expect(screen.getByText('工作记录')).toBeInTheDocument();
-    expect(screen.getByText('共管理 3 条记录')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'tasks (1)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'time_entries (1)' })).toBeInTheDocument();
+    expect(screen.getByText('共管理 4 条记录')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'tasks (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'time_entries (2)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '保存到后端' })).toBeInTheDocument();
 
-    const timeEntriesTab = screen.getByRole('button', { name: 'time_entries (1)' });
+    const timeEntriesTab = screen.getByRole('button', { name: 'time_entries (2)' });
     fireEvent.click(timeEntriesTab);
 
     expect(screen.getAllByText('整理周报').length).toBeGreaterThan(0);
@@ -131,6 +153,35 @@ describe('ToolWorkspace', () => {
     expect(screen.getByRole('textbox', { name: '标题' })).toHaveValue('整理周报');
     expect(screen.getByRole('spinbutton', { name: 'ID' })).toBeDisabled();
     expect(screen.getByLabelText('创建时间')).toBeDisabled();
+  });
+
+  it('支持将工时记录切换为树状展示，并通过拖拽修改任务归属', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
+
+    const sourceGroup = screen.getByRole('group', { name: '工时树节点 整理周报' });
+    const targetGroup = screen.getByRole('group', { name: '工时树节点 需求拆分' });
+    const entryCard = screen.getByRole('button', { name: '工时记录 补录会议纪要' });
+
+    expect(within(sourceGroup).getByText('补录会议纪要')).toBeInTheDocument();
+
+    fireEvent.dragStart(entryCard);
+    fireEvent.dragOver(targetGroup);
+    fireEvent.drop(targetGroup);
+
+    expect(within(screen.getByRole('group', { name: '工时树节点 需求拆分' })).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: '工时树节点 整理周报' })).queryByText('补录会议纪要')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('已将“补录会议纪要”归属到“需求拆分”');
+    expect(screen.getByRole('button', { name: '保存到后端' })).toBeEnabled();
   });
 
 

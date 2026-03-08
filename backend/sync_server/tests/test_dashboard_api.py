@@ -226,3 +226,125 @@ def test_dashboard_snapshot_update_allows_json_management() -> None:
         records_resp = client.get("/sync/records", params={"user_id": "u1", "limit": 10})
         assert records_resp.status_code == 200
         assert records_resp.json()["records"][0]["decision"] == "dashboard_update"
+
+
+
+def test_dashboard_tool_update_rejects_unknown_time_entry_task_id() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        _seed_work_log_snapshot(client, user_id="u1")
+
+        get_tool_resp = client.get("/dashboard/users/u1/tools/work_log")
+        assert get_tool_resp.status_code == 200
+        tool_payload = get_tool_resp.json()["tool"]
+        tool_payload["data"]["time_entries"][0]["task_id"] = 999
+
+        update_resp = client.put(
+            "/dashboard/users/u1/tools/work_log",
+            json={
+                "version": tool_payload["version"],
+                "data": tool_payload["data"],
+                "message": "dashboard 非法工时归属测试",
+            },
+        )
+        assert update_resp.status_code == 400
+        assert "task_id=999" in update_resp.json()["message"]
+
+        detail_resp = client.get("/dashboard/users/u1/tools/work_log")
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+        assert detail["tool"]["data"]["time_entries"][0]["task_id"] == 1
+
+
+def test_dashboard_tool_update_reassign_time_entry_writes_operation_log() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        _seed_work_log_snapshot(client, user_id="u1")
+
+        get_tool_resp = client.get("/dashboard/users/u1/tools/work_log")
+        assert get_tool_resp.status_code == 200
+        tool_payload = get_tool_resp.json()["tool"]
+        tool_payload["data"]["tasks"].append(
+            {
+                "id": 2,
+                "title": "回访异常数据",
+                "description": "核对同步失败原因",
+                "status": 0,
+                "estimated_minutes": 45,
+                "is_pinned": 0,
+                "sort_index": 1,
+                "created_at": 1730000000300,
+                "updated_at": 1730000000400,
+            }
+        )
+        tool_payload["data"]["time_entries"][0]["task_id"] = 2
+        tool_payload["data"]["time_entries"][0]["updated_at"] = 1730000000800
+
+        update_resp = client.put(
+            "/dashboard/users/u1/tools/work_log",
+            json={
+                "version": tool_payload["version"],
+                "data": tool_payload["data"],
+                "message": "dashboard 拖拽改工时归属",
+            },
+        )
+        assert update_resp.status_code == 200
+        body = update_resp.json()
+        logs = body["tool"]["data"]["operation_logs"]
+        assert len(logs) == 1
+        log = logs[0]
+        assert log["operation_type"] == 4
+        assert log["target_type"] == 1
+        assert log["target_id"] == 10
+        assert log["target_title"] == "产出初稿"
+        assert "整理周报" in log["summary"]
+        assert "回访异常数据" in log["summary"]
+        assert log["before_snapshot"]["task_id"] == 1
+        assert log["after_snapshot"]["task_id"] == 2
+
+
+
+def test_dashboard_snapshot_update_reassign_time_entry_writes_operation_log() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        _seed_work_log_snapshot(client, user_id="u1")
+
+        detail_resp = client.get("/dashboard/users/u1")
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+
+        tools_data = detail["snapshot"]["tools_data"]
+        tools_data["work_log"]["data"]["tasks"].append(
+            {
+                "id": 2,
+                "title": "JSON 新任务",
+                "description": "从 JSON 管理页迁移",
+                "status": 0,
+                "estimated_minutes": 30,
+                "is_pinned": 0,
+                "sort_index": 1,
+                "created_at": 1730000000500,
+                "updated_at": 1730000000600,
+            }
+        )
+        tools_data["work_log"]["data"]["time_entries"][0]["task_id"] = 2
+
+        update_resp = client.put(
+            "/dashboard/users/u1/snapshot",
+            json={
+                "tools_data": tools_data,
+                "message": "dashboard JSON 拖拽改工时归属",
+            },
+        )
+        assert update_resp.status_code == 200
+        body = update_resp.json()
+        logs = body["snapshot"]["tools_data"]["work_log"]["data"]["operation_logs"]
+        assert len(logs) == 1
+        assert logs[0]["before_snapshot"]["task_id"] == 1
+        assert logs[0]["after_snapshot"]["task_id"] == 2
