@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   AlertTriangle,
   Clock3,
   GripVertical,
   ListTree,
+  Maximize2,
+  Minimize2,
   Minus,
   Move,
   Plus,
@@ -122,6 +125,7 @@ export function WorkLogTimeCanvasDialog({
   const [lastReassignment, setLastReassignment] = useState<ReassignmentRecord | null>(null);
   const [view, setView] = useState<CanvasViewState>(DEFAULT_VIEW);
   const [isPanning, setIsPanning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -356,13 +360,29 @@ export function WorkLogTimeCanvasDialog({
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/72 p-4 backdrop-blur-md">
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const dialogContent = (
+    <div
+      data-dialog-overlay="true"
+      className={cn(
+        'fixed inset-0 z-[100] flex bg-slate-950/78 backdrop-blur-md',
+        isFullscreen ? 'items-stretch justify-stretch p-0' : 'items-center justify-center p-4 md:p-6',
+      )}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="工时归属整理画布"
-        className="flex h-[min(92vh,960px)] w-full max-w-[1600px] flex-col overflow-hidden rounded-[2rem] border border-slate-800/80 bg-slate-950 text-slate-100 shadow-[0_40px_120px_rgba(2,6,23,0.68)]"
+        data-fullscreen={isFullscreen ? 'true' : 'false'}
+        className={cn(
+          'flex min-h-0 w-full flex-col overflow-hidden bg-slate-950 text-slate-100 shadow-[0_40px_120px_rgba(2,6,23,0.68)]',
+          isFullscreen
+            ? 'h-full max-w-none rounded-none border-0'
+            : 'h-[min(92vh,960px)] max-w-[1600px] rounded-[2rem] border border-slate-800/80',
+        )}
       >
         <header className="border-b border-slate-800/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),transparent_26%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] px-6 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -396,6 +416,15 @@ export function WorkLogTimeCanvasDialog({
                 className="inline-flex h-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 px-4 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-900"
               >
                 取消调整
+              </button>
+              <button
+                type="button"
+                aria-label={isFullscreen ? '退出全屏' : '进入全屏'}
+                onClick={() => setIsFullscreen((current) => !current)}
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-700 bg-slate-900/80 px-4 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-900"
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                {isFullscreen ? '退出全屏' : '进入全屏'}
               </button>
               <button
                 type="button"
@@ -505,7 +534,7 @@ export function WorkLogTimeCanvasDialog({
             setIsPanning(true);
           }}
           className={cn(
-            'relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.16)_1px,transparent_0)] [background-size:24px_24px]',
+            'relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.16)_1px,transparent_0)] [background-size:24px_24px]',
             isPanning ? 'cursor-grabbing' : 'cursor-grab',
           )}
         >
@@ -656,4 +685,6 @@ export function WorkLogTimeCanvasDialog({
       </div>
     </div>
   );
+
+  return createPortal(dialogContent, document.body);
 }

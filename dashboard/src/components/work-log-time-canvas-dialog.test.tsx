@@ -62,6 +62,30 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(within(dialog).getByText('已撤销“补录会议纪要”的归属调整，恢复到“整理周报”')).toBeInTheDocument();
   });
 
+
+  it('通过 portal 渲染弹层，并支持全屏切换', () => {
+    const { container } = render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('[data-dialog-overlay="true"]')).toBeNull();
+    expect(document.body.querySelector('[data-dialog-overlay="true"]')).toBeInTheDocument();
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    expect(dialog).toHaveAttribute('data-fullscreen', 'false');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '进入全屏' }));
+
+    expect(screen.getByRole('dialog', { name: '工时归属整理画布' })).toHaveAttribute('data-fullscreen', 'true');
+    expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('button', { name: '退出全屏' })).toBeInTheDocument();
+  });
+
   it('支持缩放、拖动画布并重置视图', () => {
     render(
       <WorkLogTimeCanvasDialog
