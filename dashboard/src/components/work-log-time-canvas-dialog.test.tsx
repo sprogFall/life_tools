@@ -4,7 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
 
-afterEach(() => cleanup());
+afterEach(() => {
+  window.localStorage.clear();
+  cleanup();
+});
 
 const tasks = [
   { id: 1, title: '整理周报', estimated_minutes: 60, sort_index: 1, is_pinned: true },
@@ -79,11 +82,52 @@ describe('WorkLogTimeCanvasDialog', () => {
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
     expect(dialog).toHaveAttribute('data-fullscreen', 'false');
+    expect(dialog).toHaveAttribute('data-theme', 'dark');
 
-    fireEvent.click(within(dialog).getByRole('button', { name: '进入全屏' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '切换到浅色模式' }));
+
+    expect(screen.getByRole('dialog', { name: '工时归属整理画布' })).toHaveAttribute('data-theme', 'light');
+    expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('button', { name: '切换到深色模式' })).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('button', { name: '进入全屏' }));
 
     expect(screen.getByRole('dialog', { name: '工时归属整理画布' })).toHaveAttribute('data-fullscreen', 'true');
     expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('button', { name: '退出全屏' })).toBeInTheDocument();
+  });
+
+  it('记忆主题选择，并在重新打开后恢复', async () => {
+    const { unmount } = render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    expect(dialog).toHaveAttribute('data-theme', 'dark');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '切换到浅色模式' }));
+
+    expect(window.localStorage.getItem('dashboard.work-log-canvas-theme')).toBe('light');
+    expect(screen.getByRole('dialog', { name: '工时归属整理画布' })).toHaveAttribute('data-theme', 'light');
+
+    unmount();
+
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('dialog', { name: '工时归属整理画布' })).toHaveAttribute('data-theme', 'light');
+    expect(screen.getByRole('button', { name: '切换到深色模式' })).toBeInTheDocument();
   });
 
   it('支持缩放、拖动画布并重置视图', () => {
