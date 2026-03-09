@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { ToolWorkspace } from '@/components/tool-workspace';
+import { DASHBOARD_PILL_BUTTON_MD } from '@/lib/button-styles';
 import { UserProfileEditor } from '@/components/user-profile-editor';
 import { buildToolPayload, resolveSelectedToolId } from '@/lib/dashboard-data';
 import { buildUserRouteHref } from '@/lib/dashboard-routes';
@@ -82,7 +83,7 @@ export function UserDetailScreen() {
         <p className="text-sm text-rose-600">{error ?? '未找到用户详情。'}</p>
         <Link
           href="/users"
-          className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50"
+          className={`mt-4 ${DASHBOARD_PILL_BUTTON_MD} bg-white text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50`}
         >
           返回同步用户目录
         </Link>
@@ -105,14 +106,14 @@ export function UserDetailScreen() {
             <Link
               scroll={false}
               href={buildUserRouteHref('/users/detail', detail.user.user_id, selectedToolId)}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+              className={`${DASHBOARD_PILL_BUTTON_MD} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
             >
               结构化管理
             </Link>
             <Link
               scroll={false}
               href={buildUserRouteHref('/users/json', detail.user.user_id, selectedToolId)}
-              className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800`}
             >
               JSON 管理
             </Link>

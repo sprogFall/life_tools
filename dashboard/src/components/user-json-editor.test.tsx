@@ -35,6 +35,25 @@ const toolsData: Record<string, DashboardToolSnapshot> = {
 };
 
 describe('UserJsonEditor', () => {
+  it('为长文案按钮提供可换行样式，避免在窄屏下溢出按钮', () => {
+    render(
+      <UserJsonEditor
+        userId="u1"
+        toolsData={toolsData}
+        saveSnapshotAction={vi.fn().mockResolvedValue({ success: true, message: '已保存' })}
+      />,
+    );
+
+    const saveButton = screen.getByRole('button', { name: '保存 JSON 到后端' });
+    const resetButton = screen.getByRole('button', { name: '重置 JSON 草稿' });
+
+    expect(saveButton.className).toContain('max-w-full');
+    expect(saveButton.className).toContain('whitespace-normal');
+    expect(saveButton.className).toContain('break-words');
+    expect(resetButton.className).toContain('max-w-full');
+    expect(screen.getByRole('button', { name: '全部快照' }).className).toContain('min-w-0');
+  });
+
   it('可以展示格式化后的用户快照 JSON，并在保存时传递解析后的对象', async () => {
     const saveSnapshotAction = vi.fn<
       (input: SaveDashboardSnapshotInput) => Promise<{ success: boolean; message: string }>

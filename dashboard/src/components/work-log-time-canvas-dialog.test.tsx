@@ -93,6 +93,9 @@ describe('WorkLogTimeCanvasDialog', () => {
 
     expect(screen.getByRole('dialog', { name: '工时归属整理画布' })).toHaveAttribute('data-fullscreen', 'true');
     expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('button', { name: '退出全屏' })).toBeInTheDocument();
+    expect(screen.queryByText('沉浸式工时归属整理')).not.toBeInTheDocument();
+    expect(screen.queryByText(/像白板一样在画布中浏览任务与工时卡片/)).not.toBeInTheDocument();
+    expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('textbox', { name: '筛选任务或工时' })).toBeInTheDocument();
   });
 
   it('记忆主题选择，并在重新打开后恢复', async () => {
@@ -158,6 +161,32 @@ describe('WorkLogTimeCanvasDialog', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '重置视图' }));
 
     expect(within(dialog).getByText('缩放 100% · 偏移 X 0 · 偏移 Y 0')).toBeInTheDocument();
+  });
+
+  it('支持拖拽任务模块调整布局，方便整理工时归属', () => {
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const taskGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
+    const dragHandle = within(taskGroup).getByRole('button', { name: '拖拽任务模块 整理周报' });
+
+    expect(taskGroup.style.left).toBe('96px');
+    expect(taskGroup.style.top).toBe('96px');
+
+    fireEvent.mouseDown(dragHandle, { clientX: 100, clientY: 120 });
+    fireEvent.mouseMove(window, { clientX: 180, clientY: 210 });
+    fireEvent.mouseUp(window);
+
+    expect(taskGroup.style.left).toBe('176px');
+    expect(taskGroup.style.top).toBe('186px');
   });
 
   it('仅在点击保存调整时提交临时改动', () => {

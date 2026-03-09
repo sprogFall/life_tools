@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 
+import {
+  DASHBOARD_PILL_BUTTON_MD,
+  DASHBOARD_PILL_BUTTON_TAB,
+} from '@/lib/button-styles';
 import { getToolDisplayText } from '@/lib/tool-display';
 import {
   compactJsonErrorMessage,
@@ -34,7 +38,7 @@ function resolveInitialScope(toolIds: string[], initialToolId?: string) {
 }
 
 function getScopeButtonClass(isActive: boolean) {
-  return `h-11 rounded-full px-4 text-sm font-medium transition ${
+  return `${DASHBOARD_PILL_BUTTON_TAB} ${
     isActive ? ACTIVE_SCOPE_BUTTON_CLASS : INACTIVE_SCOPE_BUTTON_CLASS
   }`;
 }
@@ -207,7 +211,7 @@ export function UserJsonEditor({
           type="button"
           onClick={reset}
           disabled={!dirty || isPending}
-          className="h-11 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`${DASHBOARD_PILL_BUTTON_MD} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50`}
         >
           重置 JSON 草稿
         </button>
@@ -215,7 +219,7 @@ export function UserJsonEditor({
           type="button"
           onClick={save}
           disabled={!dirty || isPending}
-          className="h-11 rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
         >
           {isPending ? '保存中...' : saveButtonText}
         </button>

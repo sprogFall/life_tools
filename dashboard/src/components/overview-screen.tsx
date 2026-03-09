@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { OverviewPage } from '@/components/overview-page';
+import { DASHBOARD_PILL_BUTTON_MD } from '@/lib/button-styles';
 import { fetchDashboardUsers } from '@/lib/api';
 import { getActionErrorMessage } from '@/lib/error-utils';
 import type { DashboardUserSummary } from '@/lib/types';
@@ -44,7 +45,7 @@ export function OverviewScreen() {
         <button
           type="button"
           onClick={() => void loadUsers()}
-          className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className={`mt-4 ${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800`}
         >
           重新加载
         </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 import {
@@ -21,6 +21,10 @@ import {
   X,
 } from 'lucide-react';
 
+import {
+  DASHBOARD_PILL_BUTTON_MD,
+  DASHBOARD_PILL_BUTTON_SM,
+} from '@/lib/button-styles';
 import { cn, formatNumber, formatTimestamp } from '@/lib/format';
 import {
   buildWorkLogTree,
@@ -63,6 +67,19 @@ interface PanOrigin {
   startY: number;
   baseOffsetX: number;
   baseOffsetY: number;
+}
+
+interface NodeDragOrigin {
+  nodeId: string;
+  startX: number;
+  startY: number;
+  baseX: number;
+  baseY: number;
+}
+
+interface CanvasNodePosition {
+  x: number;
+  y: number;
 }
 
 const ORPHAN_TASK_TITLE = '未归属 / 异常归属';
@@ -131,6 +148,7 @@ export function WorkLogTimeCanvasDialog({
 }: WorkLogTimeCanvasDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const panOriginRef = useRef<PanOrigin | null>(null);
+  const nodeDragOriginRef = useRef<NodeDragOrigin | null>(null);
   const [query, setQuery] = useState('');
   const [draftItems, setDraftItems] = useState<WorkLogRow[]>(items);
   const [draggingEntryId, setDraggingEntryId] = useState<number | null>(null);
@@ -138,6 +156,7 @@ export function WorkLogTimeCanvasDialog({
   const [statusMessage, setStatusMessage] = useState('');
   const [lastReassignment, setLastReassignment] = useState<ReassignmentRecord | null>(null);
   const [view, setView] = useState<CanvasViewState>(DEFAULT_VIEW);
+  const [nodePositions, setNodePositions] = useState<Record<string, CanvasNodePosition>>({});
   const [isPanning, setIsPanning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>(getStoredCanvasTheme);
@@ -161,8 +180,10 @@ export function WorkLogTimeCanvasDialog({
     setStatusMessage('');
     setLastReassignment(null);
     setView(DEFAULT_VIEW);
+    setNodePositions({});
     setIsPanning(false);
     panOriginRef.current = null;
+    nodeDragOriginRef.current = null;
   }, [items, open]);
 
   useEffect(() => {
@@ -183,6 +204,18 @@ export function WorkLogTimeCanvasDialog({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      const nodeOrigin = nodeDragOriginRef.current;
+      if (nodeOrigin) {
+        setNodePositions((current) => ({
+          ...current,
+          [nodeOrigin.nodeId]: {
+            x: Math.round(nodeOrigin.baseX + (event.clientX - nodeOrigin.startX) / view.scale),
+            y: Math.round(nodeOrigin.baseY + (event.clientY - nodeOrigin.startY) / view.scale),
+          },
+        }));
+        return;
+      }
+
       const origin = panOriginRef.current;
       if (!origin) {
         return;
@@ -196,6 +229,7 @@ export function WorkLogTimeCanvasDialog({
 
     const handleMouseUp = () => {
       panOriginRef.current = null;
+      nodeDragOriginRef.current = null;
       setIsPanning(false);
     };
 
@@ -209,7 +243,7 @@ export function WorkLogTimeCanvasDialog({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onClose, open]);
+  }, [onClose, open, view.scale]);
 
   const entryIndexMap = useMemo(() => {
     const mapping = new Map<number, number>();
@@ -267,7 +301,10 @@ export function WorkLogTimeCanvasDialog({
       .filter((group): group is WorkLogTreeGroup => group !== null);
   }, [draftItems, query, tasks]);
 
-  const layoutNodes = useMemo(() => buildCanvasLayout(groups), [groups]);
+  const layoutNodes = useMemo(() => buildCanvasLayout(groups).map((node) => {
+    const override = nodePositions[node.group.id];
+    return override ? { ...node, x: override.x, y: override.y } : node;
+  }), [groups, nodePositions]);
   const canvasWidth = useMemo(
     () => Math.max(1480, ...layoutNodes.map((node) => node.x + node.width + 120)),
     [layoutNodes],
@@ -380,6 +417,21 @@ export function WorkLogTimeCanvasDialog({
     panOriginRef.current = null;
   };
 
+  const startNodeDrag = (event: ReactMouseEvent<HTMLButtonElement>, node: CanvasLayoutNode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    panOriginRef.current = null;
+    setIsPanning(false);
+    nodeDragOriginRef.current = {
+      nodeId: node.group.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseX: node.x,
+      baseY: node.y,
+    };
+    setStatusMessage(`正在调整“${node.group.title}”模块位置`);
+  };
+
   if (!open) {
     return null;
   }
@@ -413,149 +465,151 @@ export function WorkLogTimeCanvasDialog({
               : 'h-[min(92vh,960px)] max-w-[1600px] rounded-[2rem] border border-slate-800/80',
         )}
       >
-        <header
-          className={cn(
-            'px-6 py-5',
-            isLightTheme
-              ? 'border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.16),transparent_26%),linear-gradient(135deg,#ffffff,#eff6ff)]'
-              : 'border-b border-slate-800/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),transparent_26%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]',
-          )}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <div
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium',
-                  isLightTheme
-                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
-                )}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                沉浸式工时归属整理
+        {!isFullscreen ? (
+          <header
+            className={cn(
+              'px-6 py-5',
+              isLightTheme
+                ? 'border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.16),transparent_26%),linear-gradient(135deg,#ffffff,#eff6ff)]'
+                : 'border-b border-slate-800/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),transparent_26%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]',
+            )}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-3">
+                <div
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium',
+                    isLightTheme
+                      ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
+                  )}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  沉浸式工时归属整理
+                </div>
+                <div>
+                  <h3 className={cn('text-2xl font-semibold tracking-tight', isLightTheme ? 'text-slate-900' : 'text-white')}>
+                    工时归属整理画布
+                  </h3>
+                  <p className={cn('mt-2 max-w-3xl text-sm leading-6', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
+                    像白板一样在画布中浏览任务与工时卡片，拖拽即可改归属；只有点击“保存调整”后，当前改动才会写回工作台草稿。
+                  </p>
+                </div>
+                <div className={cn('flex flex-wrap gap-2 text-xs', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
+                  <span
+                    className={cn(
+                      'rounded-full px-3 py-1',
+                      isLightTheme ? 'border border-slate-200 bg-white text-slate-600 shadow-sm' : 'border border-slate-700 bg-slate-900/80',
+                    )}
+                  >
+                    {tasks.length} 个任务节点
+                  </span>
+                  <span
+                    className={cn(
+                      'rounded-full px-3 py-1',
+                      isLightTheme ? 'border border-slate-200 bg-white text-slate-600 shadow-sm' : 'border border-slate-700 bg-slate-900/80',
+                    )}
+                  >
+                    {draftItems.length} 条工时记录
+                  </span>
+                  <span
+                    className={cn(
+                      'rounded-full px-3 py-1',
+                      isLightTheme ? 'border border-slate-200 bg-white text-slate-600 shadow-sm' : 'border border-slate-700 bg-slate-900/80',
+                    )}
+                  >
+                    拖动画布 + 缩放观察
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className={cn('text-2xl font-semibold tracking-tight', isLightTheme ? 'text-slate-900' : 'text-white')}>
-                  工时归属整理画布
-                </h3>
-                <p className={cn('mt-2 max-w-3xl text-sm leading-6', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
-                  像白板一样在画布中浏览任务与工时卡片，拖拽即可改归属；只有点击“保存调整”后，当前改动才会写回工作台草稿。
-                </p>
-              </div>
-              <div className={cn('flex flex-wrap gap-2 text-xs', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
-                <span
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
                   className={cn(
-                    'rounded-full px-3 py-1',
-                    isLightTheme ? 'border border-slate-200 bg-white text-slate-600 shadow-sm' : 'border border-slate-700 bg-slate-900/80',
+                    DASHBOARD_PILL_BUTTON_SM,
+                    isLightTheme
+                      ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                      : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
                   )}
                 >
-                  {tasks.length} 个任务节点
-                </span>
-                <span
+                  取消调整
+                </button>
+                <button
+                  type="button"
+                  aria-label={isLightTheme ? '切换到深色模式' : '切换到浅色模式'}
+                  onClick={() => setCanvasTheme((current) => (current === 'light' ? 'dark' : 'light'))}
                   className={cn(
-                    'rounded-full px-3 py-1',
-                    isLightTheme ? 'border border-slate-200 bg-white text-slate-600 shadow-sm' : 'border border-slate-700 bg-slate-900/80',
+                    DASHBOARD_PILL_BUTTON_SM,
+                    isLightTheme
+                      ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                      : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
                   )}
                 >
-                  {draftItems.length} 条工时记录
-                </span>
-                <span
+                  {isLightTheme ? <MoonStar className="h-4 w-4" /> : <SunMedium className="h-4 w-4" />}
+                  {isLightTheme ? '深色模式' : '浅色模式'}
+                </button>
+                <button
+                  type="button"
+                  aria-label={isFullscreen ? '退出全屏' : '进入全屏'}
+                  onClick={() => setIsFullscreen((current) => !current)}
                   className={cn(
-                    'rounded-full px-3 py-1',
-                    isLightTheme ? 'border border-slate-200 bg-white text-slate-600 shadow-sm' : 'border border-slate-700 bg-slate-900/80',
+                    DASHBOARD_PILL_BUTTON_SM,
+                    isLightTheme
+                      ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                      : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
                   )}
                 >
-                  拖动画布 + 缩放观察
-                </span>
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  {isFullscreen ? '退出全屏' : '进入全屏'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCommit(draftItems);
+                    onClose();
+                  }}
+                  disabled={!hasDraftChanges}
+                  className={cn(
+                    DASHBOARD_PILL_BUTTON_MD,
+                    isLightTheme
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400'
+                      : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400',
+                    'disabled:cursor-not-allowed',
+                  )}
+                >
+                  保存调整
+                </button>
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  aria-label="关闭工时归属画布"
+                  onClick={onClose}
+                  className={cn(
+                    'inline-flex h-11 w-11 items-center justify-center rounded-full transition',
+                    isLightTheme
+                      ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                      : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
+                  )}
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className={cn(
-                  'inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-medium transition',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
-                )}
-              >
-                取消调整
-              </button>
-              <button
-                type="button"
-                aria-label={isLightTheme ? '切换到深色模式' : '切换到浅色模式'}
-                onClick={() => setCanvasTheme((current) => (current === 'light' ? 'dark' : 'light'))}
-                className={cn(
-                  'inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
-                )}
-              >
-                {isLightTheme ? <MoonStar className="h-4 w-4" /> : <SunMedium className="h-4 w-4" />}
-                {isLightTheme ? '深色模式' : '浅色模式'}
-              </button>
-              <button
-                type="button"
-                aria-label={isFullscreen ? '退出全屏' : '进入全屏'}
-                onClick={() => setIsFullscreen((current) => !current)}
-                className={cn(
-                  'inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
-                )}
-              >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                {isFullscreen ? '退出全屏' : '进入全屏'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCommit(draftItems);
-                  onClose();
-                }}
-                disabled={!hasDraftChanges}
-                className={cn(
-                  'inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition',
-                  isLightTheme
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400'
-                    : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400',
-                  'disabled:cursor-not-allowed',
-                )}
-              >
-                保存调整
-              </button>
-              <button
-                ref={closeButtonRef}
-                type="button"
-                aria-label="关闭工时归属画布"
-                onClick={onClose}
-                className={cn(
-                  'inline-flex h-11 w-11 items-center justify-center rounded-full transition',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
-                )}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </header>
+          </header>
+        ) : null}
 
         <div
           className={cn(
-            'px-6 py-4',
+            isFullscreen ? 'px-4 py-3' : 'px-6 py-4',
             isLightTheme ? 'border-b border-slate-200 bg-white/90' : 'border-b border-slate-800/80 bg-slate-950/90',
           )}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className={cn('flex items-center gap-3', isFullscreen ? 'overflow-x-auto' : 'flex-wrap justify-between')}>
+            <div className={cn('flex items-center gap-2', isFullscreen ? 'min-w-max flex-nowrap' : 'flex-wrap')}>
               <label
                 className={cn(
-                  'flex items-center gap-2 rounded-full px-3 py-2 text-sm',
+                  'flex min-w-0 items-center gap-2 rounded-full px-3 py-2 text-sm',
                   isLightTheme
                     ? 'border border-slate-200 bg-slate-50 text-slate-700'
                     : 'border border-slate-800 bg-slate-900/80 text-slate-300',
@@ -569,24 +623,26 @@ export function WorkLogTimeCanvasDialog({
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="搜索任务名、工时内容或日期"
                   className={cn(
-                    'w-64 bg-transparent text-sm outline-none',
+                    isFullscreen ? 'w-52 bg-transparent text-sm outline-none lg:w-64' : 'w-full bg-transparent text-sm outline-none sm:w-64',
                     isLightTheme ? 'text-slate-900 placeholder:text-slate-400' : 'text-slate-100 placeholder:text-slate-500',
                   )}
                 />
               </label>
-              <div
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-slate-50 text-slate-600'
-                    : 'border border-slate-800 bg-slate-900/80 text-slate-300',
-                )}
-              >
-                <Move className={cn('h-3.5 w-3.5', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
-                拖动画布空白区域可平移
-              </div>
+              {!isFullscreen ? (
+                <div
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs',
+                    isLightTheme
+                      ? 'border border-slate-200 bg-slate-50 text-slate-600'
+                      : 'border border-slate-800 bg-slate-900/80 text-slate-300',
+                  )}
+                >
+                  <Move className={cn('h-3.5 w-3.5', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
+                  拖动画布空白区域可平移
+                </div>
+              ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={cn('flex items-center gap-2', isFullscreen ? 'min-w-max flex-nowrap' : 'flex-wrap')}>
               <button
                 type="button"
                 aria-label="缩小视图"
@@ -618,7 +674,7 @@ export function WorkLogTimeCanvasDialog({
                 aria-label="重置视图"
                 onClick={resetView}
                 className={cn(
-                  'inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-medium transition',
+                  `${DASHBOARD_PILL_BUTTON_SM} px-3`,
                   isLightTheme
                     ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                     : 'border border-slate-800 bg-slate-900/80 text-slate-200 hover:border-slate-600 hover:bg-slate-900',
@@ -632,7 +688,7 @@ export function WorkLogTimeCanvasDialog({
                   type="button"
                   onClick={undoLastReassignment}
                   className={cn(
-                    'inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-medium transition',
+                    `${DASHBOARD_PILL_BUTTON_SM} px-3`,
                     isLightTheme
                       ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100'
                       : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:border-emerald-400/40 hover:bg-emerald-500/15',
@@ -642,14 +698,77 @@ export function WorkLogTimeCanvasDialog({
                   撤销上次调整
                 </button>
               ) : null}
+              {isFullscreen ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className={cn(
+                      DASHBOARD_PILL_BUTTON_SM,
+                      isLightTheme
+                        ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
+                    )}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={isLightTheme ? '切换到深色模式' : '切换到浅色模式'}
+                    onClick={() => setCanvasTheme((current) => (current === 'light' ? 'dark' : 'light'))}
+                    className={cn(
+                      DASHBOARD_PILL_BUTTON_SM,
+                      isLightTheme
+                        ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
+                    )}
+                  >
+                    {isLightTheme ? <MoonStar className="h-4 w-4" /> : <SunMedium className="h-4 w-4" />}
+                    {isLightTheme ? '深色模式' : '浅色模式'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onCommit(draftItems);
+                      onClose();
+                    }}
+                    disabled={!hasDraftChanges}
+                    className={cn(
+                      DASHBOARD_PILL_BUTTON_SM,
+                      isLightTheme
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400'
+                        : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400',
+                      'disabled:cursor-not-allowed',
+                    )}
+                  >
+                    保存调整
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="退出全屏"
+                    onClick={() => setIsFullscreen(false)}
+                    className={cn(
+                      DASHBOARD_PILL_BUTTON_SM,
+                      isLightTheme
+                        ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        : 'border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-slate-500 hover:bg-slate-900',
+                    )}
+                  >
+                    <Minimize2 className="h-4 w-4" />
+                    退出全屏
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
-          <div className={cn('mt-3 flex flex-wrap items-center justify-between gap-3 text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-            <p>{viewSummary}</p>
-            <p role="status" aria-live="polite" className="max-w-3xl text-right">
-              {statusMessage || '拖拽工时卡片到目标任务节点，完成后点击右上角“保存调整”生效。'}
-            </p>
-          </div>
+          {!isFullscreen ? (
+            <div className={cn('mt-3 flex flex-wrap items-center justify-between gap-3 text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+              <p>{viewSummary}</p>
+              <p role="status" aria-live="polite" className="max-w-3xl text-right">
+                {statusMessage || '拖拽工时卡片到目标任务节点，完成后点击右上角“保存调整”生效。'}
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <div
@@ -767,19 +886,36 @@ export function WorkLogTimeCanvasDialog({
                             {group.entryCount} 条记录 · {formatNumber(group.totalMinutes)} 分钟
                           </p>
                         </div>
-                        <div
-                          className={cn(
-                            'rounded-full px-3 py-1 text-xs',
-                            isLightTheme
-                              ? 'border border-slate-200 bg-slate-50 text-slate-600'
-                              : 'border border-slate-700 bg-slate-950/80 text-slate-300',
-                          )}
-                        >
-                          {group.task?.estimated_minutes
-                            ? `预估 ${formatNumber(Number(group.task.estimated_minutes))} 分钟`
-                            : group.isOrphan
-                              ? '异常归属兜底'
-                              : '待分配'}
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            aria-label={`拖拽任务模块 ${group.title}`}
+                            data-ignore-pan="true"
+                            onMouseDown={(event) => startNodeDrag(event, node)}
+                            className={cn(
+                              `${DASHBOARD_PILL_BUTTON_SM} cursor-move px-3`,
+                              isLightTheme
+                                ? 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+                                : 'border border-slate-700 bg-slate-950/80 text-slate-200 hover:border-emerald-400/40 hover:bg-slate-900',
+                            )}
+                          >
+                            <Move className="h-4 w-4" />
+                            拖动布局
+                          </button>
+                          <div
+                            className={cn(
+                              'rounded-full px-3 py-1 text-xs',
+                              isLightTheme
+                                ? 'border border-slate-200 bg-slate-50 text-slate-600'
+                                : 'border border-slate-700 bg-slate-950/80 text-slate-300',
+                            )}
+                          >
+                            {group.task?.estimated_minutes
+                              ? `预估 ${formatNumber(Number(group.task.estimated_minutes))} 分钟`
+                              : group.isOrphan
+                                ? '异常归属兜底'
+                                : '待分配'}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -841,7 +977,7 @@ export function WorkLogTimeCanvasDialog({
                                     <span className={cn('truncate text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>{entryLabel}</span>
                                   </div>
                                   <p className={cn('mt-2 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-                                    ID #{String(entry.id ?? '—')} · {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
+                                    {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
                                   </p>
                                 </div>
                                 <div

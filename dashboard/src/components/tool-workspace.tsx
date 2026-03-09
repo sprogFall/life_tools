@@ -5,6 +5,11 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
+import {
+  DASHBOARD_PILL_BUTTON_MD,
+  DASHBOARD_PILL_BUTTON_SM,
+  DASHBOARD_PILL_BUTTON_TAB,
+} from '@/lib/button-styles';
 import { cn, formatNumber, formatPreviewText, formatTimestamp, truncateJsonPreview } from '@/lib/format';
 import { compactJsonErrorMessage } from '@/lib/json-utils';
 import {
@@ -248,10 +253,18 @@ function getDefaultRow(section: ToolSectionConfig | undefined, items: EditableRo
 
 function getPreviewKeys(section: ToolSectionConfig | undefined, items: EditableRow[]) {
   if (section?.fields?.length) {
-    return section.fields.slice(0, 4).map((item) => item.key);
+    return section.fields
+      .filter((item) => !shouldHidePreviewField(section, item.key, items))
+      .slice(0, 4)
+      .map((item) => item.key);
   }
   const first = items[0];
-  return first ? Object.keys(first).slice(0, 4) : [];
+  return first
+    ? inferFields(first)
+        .filter((item) => !shouldHidePreviewField(section, item.key, items))
+        .slice(0, 4)
+        .map((item) => item.key)
+    : [];
 }
 
 function normalizeSectionCount(tool: DashboardToolPayload, sectionKey: string) {
@@ -272,6 +285,36 @@ function getFieldByKey(section: ToolSectionConfig | undefined, fieldKey: string,
     }
   }
   return { key: fieldKey, label: fieldKey, type: 'text' as const };
+}
+
+function hasReadableCompanionField(section: ToolSectionConfig | undefined, fieldKey: string, items: EditableRow[]) {
+  if (!fieldKey.endsWith('_id')) {
+    return false;
+  }
+  const companionKey = `${fieldKey.slice(0, -3)}_title`;
+  return Boolean(section?.fields?.some((item) => item.key === companionKey) || items.some((item) => companionKey in item));
+}
+
+function shouldHidePreviewField(section: ToolSectionConfig | undefined, fieldKey: string, items: EditableRow[]) {
+  if (section?.idKey === fieldKey) {
+    return true;
+  }
+  return hasReadableCompanionField(section, fieldKey, items);
+}
+
+function shouldHideEditorField(
+  section: ToolSectionConfig | undefined,
+  field: ToolFieldConfig,
+  items: EditableRow[],
+  isSelectField: boolean,
+) {
+  if (section?.idKey === field.key) {
+    return true;
+  }
+  if (isSelectField) {
+    return false;
+  }
+  return hasReadableCompanionField(section, field.key, items);
 }
 
 const AUTO_READONLY_FIELD_KEYS = new Set(['created_at', 'updated_at']);
@@ -514,6 +557,10 @@ function SectionPanel({
   const showEditorPane = mobilePane === 'editor';
   const showListSection = !collapsedPanes.list;
   const showEditorSection = !collapsedPanes.editor;
+  const previewColumnCount = Math.max(previewKeys.length, 1);
+  const previewGridStyle = {
+    gridTemplateColumns: `repeat(${previewColumnCount}, minmax(0, 1fr))`,
+  };
 
   const togglePaneCollapse = (pane: CollapsiblePane) => {
     setCollapsedPanes((current) => ({
@@ -530,7 +577,7 @@ function SectionPanel({
   };
 
   const renderFieldHeader = (field: ToolFieldConfig, revealed: boolean) => (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <span className="font-medium">{field.label}</span>
       {isMaskedField(field) ? (
         <button
@@ -554,7 +601,7 @@ function SectionPanel({
             aria-pressed={showListPane}
             onClick={() => setMobilePane('list')}
             className={cn(
-              'h-11 rounded-2xl text-sm font-medium transition',
+              'min-h-11 rounded-2xl px-4 py-2 text-sm font-medium leading-5 transition',
               showListPane ? 'bg-white text-ink shadow-sm' : 'text-slate-600 hover:bg-white/70',
             )}
           >
@@ -565,7 +612,7 @@ function SectionPanel({
             aria-pressed={showEditorPane}
             onClick={() => setMobilePane('editor')}
             className={cn(
-              'h-11 rounded-2xl text-sm font-medium transition',
+              'min-h-11 rounded-2xl px-4 py-2 text-sm font-medium leading-5 transition',
               showEditorPane ? 'bg-white text-ink shadow-sm' : 'text-slate-600 hover:bg-white/70',
             )}
           >
@@ -594,7 +641,7 @@ function SectionPanel({
                 ref={canvasTriggerRef}
                 type="button"
                 onClick={() => setCanvasOpen(true)}
-                className="h-11 rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800`}
               >
                 打开工时归属画布
               </button>
@@ -609,7 +656,7 @@ function SectionPanel({
               type="button"
               aria-label={`展开${section?.label ?? sectionKey}面板`}
               onClick={() => restorePane('list')}
-              className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+              className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
             >
               展开{section?.label ?? sectionKey}面板
             </button>
@@ -619,7 +666,7 @@ function SectionPanel({
               type="button"
               aria-label={`展开${isSingleMode ? '配置编辑器' : '记录编辑器'}面板`}
               onClick={() => restorePane('editor')}
-              className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+              className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
             >
               展开{isSingleMode ? '配置编辑器' : '记录编辑器'}面板
             </button>
@@ -647,14 +694,14 @@ function SectionPanel({
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={supportsTreeView ? '搜索任务或工时内容' : '搜索当前区块'}
-                    className="h-10 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
+                    className="h-10 w-full min-w-0 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white md:w-72"
                   />
                 ) : null}
                 {!section?.readOnly && (!isSingleMode || items.length === 0) ? (
                   <button
                     type="button"
                     onClick={startCreate}
-                    className="h-10 rounded-full bg-brand-700 px-4 text-sm font-medium text-white transition hover:bg-brand-800"
+                    className={`${DASHBOARD_PILL_BUTTON_SM} bg-brand-700 text-white hover:bg-brand-800`}
                   >
                     {isSingleMode ? '初始化配置' : '新增记录'}
                   </button>
@@ -663,7 +710,7 @@ function SectionPanel({
                   type="button"
                   aria-label={`收起${section?.label ?? sectionKey}面板`}
                   onClick={() => togglePaneCollapse('list')}
-                  className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                  className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
                 >
                   收起列表
                 </button>
@@ -675,9 +722,8 @@ function SectionPanel({
               </div>
             ) : null}
             <div className="mt-5 overflow-hidden rounded-3xl border border-slate-100">
-              <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-slate-400 lg:grid">
-                <span className="min-w-0 leading-5">操作</span>
-                {previewKeys.map((key) => (
+              <div className="hidden gap-3 bg-slate-50 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-slate-400 lg:grid" style={previewGridStyle}>
+                                {previewKeys.map((key) => (
                   <span key={key} className="min-w-0 leading-5">
                     {getFieldByKey(section, key, items).label}
                   </span>
@@ -698,11 +744,11 @@ function SectionPanel({
                         type="button"
                         onClick={() => startEdit(index)}
                         className={cn(
-                          'grid w-full gap-3 px-4 py-4 text-left transition lg:grid-cols-[96px_repeat(4,minmax(0,1fr))] lg:items-start',
+                          'grid w-full gap-3 px-4 py-4 text-left transition lg:items-start',
                           isSelected ? 'bg-brand-50/70' : 'bg-white hover:bg-slate-50',
                         )}
+                        style={previewGridStyle}
                       >
-                        <span className="text-xs font-medium text-brand-700">{isSingleMode ? '编辑配置' : '编辑记录'}</span>
                         {previewKeys.map((key) => {
                           const previewField = getFieldByKey(section, key, items);
                           const maskedPreview = isMaskedField(previewField);
@@ -714,12 +760,10 @@ function SectionPanel({
                             row: item,
                             context: relationContext,
                           });
-                          const rawTitle = maskedPreview ? getMaskedValue(item[key]) : formatPreviewText(item[key]);
-                          const friendlyTitle = maskedPreview
+                                                    const friendlyTitle = maskedPreview
                             ? getMaskedValue(item[key])
                             : formatPreviewText(friendlyValue);
-                          const rawText = maskedPreview ? rawTitle : truncateJsonPreview(rawTitle);
-                          const friendlyText = maskedPreview ? friendlyTitle : truncateJsonPreview(friendlyTitle);
+                                                    const friendlyText = maskedPreview ? friendlyTitle : truncateJsonPreview(friendlyTitle);
                           return (
                             <span key={key} className="min-w-0 flex flex-col gap-1 text-sm text-slate-600">
                               <span
@@ -728,14 +772,6 @@ function SectionPanel({
                               >
                                 {friendlyText}
                               </span>
-                              {!maskedPreview && friendlyText !== rawText ? (
-                                <span
-                                  className="min-w-0 text-xs leading-5 text-slate-400 [overflow-wrap:anywhere]"
-                                  title={`原始值：${rawTitle}`}
-                                >
-                                  原始值：{rawText}
-                                </span>
-                              ) : null}
                             </span>
                           );
                         })}
@@ -755,14 +791,14 @@ function SectionPanel({
               'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
             )}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
                 <p className="mt-1 text-sm text-slate-600">
                   {isSingleMode ? '修改当前区块的配置项，最后统一点击顶部“保存到后端”。' : '修改当前区块的单条记录，最后统一点击顶部“保存到后端”。'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {section?.readOnly ? (
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">只读</span>
                 ) : null}
@@ -770,7 +806,7 @@ function SectionPanel({
                   type="button"
                   aria-label={`收起${isSingleMode ? '配置编辑器' : '记录编辑器'}面板`}
                   onClick={() => togglePaneCollapse('editor')}
-                  className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                  className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
                 >
                   收起编辑器
                 </button>
@@ -802,6 +838,11 @@ function SectionPanel({
               const isMasked = isMaskedField(field);
               const isRevealed = Boolean(revealedFields[field.key]);
               const maskedValue = getMaskedValue(toInputValue(field, value));
+              const shouldHideField = shouldHideEditorField(section, field, items, editorMeta.kind === 'select');
+
+              if (shouldHideField) {
+                return null;
+              }
 
               if (field.type === 'boolean') {
                 return (
@@ -938,7 +979,7 @@ function SectionPanel({
                   <button
                     type="button"
                     onClick={saveRow}
-                    className="h-11 rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition hover:bg-brand-800"
+                    className={`${DASHBOARD_PILL_BUTTON_MD} bg-brand-700 text-white hover:bg-brand-800`}
                   >
                     {isSingleMode ? '保存当前配置' : '保存当前记录'}
                   </button>
@@ -947,7 +988,7 @@ function SectionPanel({
                       <button
                         type="button"
                         onClick={duplicateCurrent}
-                        className="h-11 rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                        className={`${DASHBOARD_PILL_BUTTON_MD} border border-slate-200 text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
                       >
                         复制一条
                       </button>
@@ -955,7 +996,7 @@ function SectionPanel({
                         type="button"
                         onClick={removeCurrent}
                         disabled={typeof editorKey !== 'number'}
-                        className="h-11 rounded-full border border-rose-200 px-5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                        className={`${DASHBOARD_PILL_BUTTON_MD} border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400`}
                       >
                         删除当前记录
                       </button>
@@ -1069,7 +1110,7 @@ export function ToolWorkspace({
               type="button"
               onClick={reset}
               disabled={!dirty || isPending}
-              className="h-11 rounded-full border border-slate-200 bg-white/80 px-5 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${DASHBOARD_PILL_BUTTON_MD} border border-slate-200 bg-white/80 text-slate-700 hover:border-brand-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50`}
             >
               重置草稿
             </button>
@@ -1077,7 +1118,7 @@ export function ToolWorkspace({
               type="button"
               onClick={save}
               disabled={!dirty || isPending}
-              className="h-11 rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
             >
               {isPending ? '保存中...' : '保存到后端'}
             </button>
@@ -1105,7 +1146,7 @@ export function ToolWorkspace({
               aria-label={`${sectionKey} (${count})`}
               onClick={() => setActiveSection(sectionKey)}
               className={cn(
-                'h-11 rounded-full px-4 text-sm font-medium transition',
+                DASHBOARD_PILL_BUTTON_TAB,
                 activeSection === sectionKey
                   ? 'bg-brand-700 text-white shadow-sm'
                   : 'border border-slate-200 bg-slate-50 text-slate-700 hover:border-brand-200 hover:bg-brand-50',

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 
+import { DASHBOARD_PILL_BUTTON_MD } from '@/lib/button-styles';
 import { formatTimestamp } from '@/lib/format';
 import type { DashboardActionResult, DashboardUserSummary, SaveDashboardUserProfileInput } from '@/lib/types';
 
@@ -97,7 +98,7 @@ export function UserProfileEditor({ user, saveUserAction }: UserProfileEditorPro
         type="button"
         onClick={submit}
         disabled={isPending}
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className={`mt-5 ${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
       >
         {isPending ? '保存中...' : '保存用户设置'}
       </button>

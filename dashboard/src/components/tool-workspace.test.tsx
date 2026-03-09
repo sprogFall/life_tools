@@ -151,8 +151,23 @@ describe('ToolWorkspace', () => {
     );
 
     expect(screen.getByRole('textbox', { name: '标题' })).toHaveValue('整理周报');
-    expect(screen.getByRole('spinbutton', { name: 'ID' })).toBeDisabled();
+    expect(screen.queryByRole('spinbutton', { name: 'ID' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('创建时间')).toBeDisabled();
+  });
+
+  it('列表中隐藏原始值提示和冗余编辑列，只保留实际业务字段', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    expect(screen.queryByText('编辑记录')).not.toBeInTheDocument();
+    expect(screen.queryByText('操作')).not.toBeInTheDocument();
+    expect(screen.queryByText(/原始值：/)).not.toBeInTheDocument();
   });
 
   it('不再展示直接进入工时树按钮，避免无效快捷入口', () => {
@@ -304,7 +319,12 @@ describe('ToolWorkspace', () => {
     expect(listButton).toHaveAttribute('aria-pressed', 'true');
     expect(editorButton).toHaveAttribute('aria-pressed', 'false');
 
-    fireEvent.click(screen.getAllByRole('button', { name: /编辑记录/ })[0]);
+    const firstRowButton = screen
+      .getAllByRole('button', { name: /整理周报/ })
+      .find((button) => button.textContent?.includes('补充风险说明'));
+
+    expect(firstRowButton).toBeDefined();
+    fireEvent.click(firstRowButton!);
 
     expect(listButton).toHaveAttribute('aria-pressed', 'false');
     expect(editorButton).toHaveAttribute('aria-pressed', 'true');

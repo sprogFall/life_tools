@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { DASHBOARD_PILL_BUTTON_MD } from '@/lib/button-styles';
 import type { CreateDashboardUserInput, DashboardActionResult } from '@/lib/types';
 
 interface CreateUserFormProps {
@@ -81,7 +82,7 @@ export function CreateUserForm({ createUserAction }: CreateUserFormProps) {
         type="button"
         onClick={submit}
         disabled={isPending || form.userId.trim().length === 0}
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className={`mt-5 ${DASHBOARD_PILL_BUTTON_MD} bg-brand-700 text-white hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
       >
         {isPending ? '创建中...' : '创建同步用户'}
       </button>

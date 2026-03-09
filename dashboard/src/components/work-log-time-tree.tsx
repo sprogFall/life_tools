@@ -357,7 +357,7 @@ export function WorkLogTimeTree({
                                 <span className="truncate font-medium text-ink">{entryLabel}</span>
                               </div>
                               <p className="mt-2 text-sm leading-6 text-slate-500">
-                                ID #{String(entry.id ?? '—')} · {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
+                                {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
                               </p>
                             </div>
                             <div className="flex min-w-0 flex-col items-start gap-2 md:w-[13rem] md:max-w-full md:items-end">
