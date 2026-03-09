@@ -346,8 +346,6 @@ interface SectionPanelProps {
   mode: SectionStorageMode;
   items: EditableRow[];
   relationContext: DashboardRelationContext;
-  requestedListViewMode?: 'list' | 'tree' | null;
-  requestedListViewModeToken?: number;
   onChange: (items: EditableRow[]) => void;
 }
 
@@ -359,8 +357,6 @@ function SectionPanel({
   mode,
   items,
   relationContext,
-  requestedListViewMode = null,
-  requestedListViewModeToken = 0,
   onChange,
 }: SectionPanelProps) {
   const isSingleMode = mode === 'single';
@@ -411,16 +407,6 @@ function SectionPanel({
   useEffect(() => {
     setListViewMode('list');
   }, [sectionKey]);
-
-  useEffect(() => {
-    if (!supportsTreeView || !requestedListViewMode) {
-      return;
-    }
-    setListViewMode(requestedListViewMode);
-    if (requestedListViewMode === 'tree') {
-      setMobilePane('list');
-    }
-  }, [requestedListViewMode, requestedListViewModeToken, supportsTreeView]);
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) {
@@ -589,7 +575,7 @@ function SectionPanel({
         <section
           className={cn(
             showListPane ? 'block' : 'hidden',
-            'rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
+            'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
           )}
         >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -621,7 +607,7 @@ function SectionPanel({
         </div>
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-100">
           {supportsTreeView && listViewMode === 'tree' ? (
-            <div className="p-4">
+            <div className="min-w-0 p-4">
               <WorkLogTimeTree
                 tasks={workLogTasks}
                 items={items}
@@ -713,7 +699,7 @@ function SectionPanel({
         <section
           className={cn(
             showEditorPane ? 'block' : 'hidden',
-            'rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
+            'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
           )}
         >
           <div className="flex items-center justify-between gap-3">
@@ -946,18 +932,12 @@ export function ToolWorkspace({
   const [draftData, setDraftData] = useState<Record<string, unknown>>(cloneData(tool.data));
   const [result, setResult] = useState<DashboardActionResult | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [requestedListViewMode, setRequestedListViewMode] = useState<'list' | 'tree' | null>(null);
-  const [requestedListViewModeToken, setRequestedListViewModeToken] = useState(0);
-
   const sectionKeys = useMemo(() => getSectionKeys(tool), [tool]);
-  const canOpenTimeEntryTree = tool.tool_id === 'work_log' && sectionKeys.includes('time_entries');
 
   useEffect(() => {
     const nextData = cloneData(tool.data);
     setBaselineData(nextData);
     setDraftData(nextData);
-    setRequestedListViewMode(null);
-    setRequestedListViewModeToken(0);
     setActiveSection((current) =>
       current && sectionKeys.includes(current) ? current : sectionKeys[0] ?? null,
     );
@@ -989,12 +969,6 @@ export function ToolWorkspace({
     setResult(null);
   };
 
-  const openTimeEntryTree = () => {
-    setActiveSection('time_entries');
-    setRequestedListViewMode('tree');
-    setRequestedListViewModeToken((current) => current + 1);
-  };
-
   return (
     <section className="space-y-5 rounded-4xl border border-slate-200/80 bg-white/85 p-6 shadow-panel">
       <div className={`rounded-4xl bg-gradient-to-br ${toolConfig.accentClassName} p-6`}>
@@ -1010,15 +984,6 @@ export function ToolWorkspace({
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {canOpenTimeEntryTree ? (
-              <button
-                type="button"
-                onClick={openTimeEntryTree}
-                className="h-11 rounded-full border border-brand-200 bg-white/85 px-5 text-sm font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-50"
-              >
-                直接进入工时树
-              </button>
-            ) : null}
             <button
               type="button"
               onClick={reset}
@@ -1080,8 +1045,6 @@ export function ToolWorkspace({
           mode={currentSectionMode}
           items={getSectionItems(draftData, activeSection, currentSection)}
           relationContext={relationContext}
-          requestedListViewMode={activeSection === 'time_entries' ? requestedListViewMode : null}
-          requestedListViewModeToken={requestedListViewModeToken}
           onChange={(items) =>
             setDraftData((current) => writeSectionData(current, activeSection, currentSectionMode, items))
           }

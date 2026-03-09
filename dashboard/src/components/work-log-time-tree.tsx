@@ -215,7 +215,7 @@ export function WorkLogTimeTree({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="rounded-3xl border border-dashed border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-slate-700">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-brand-700">
@@ -266,7 +266,7 @@ export function WorkLogTimeTree({
                   handleDrop(group.taskId, group.title);
                 }}
                 className={cn(
-                  'rounded-3xl border bg-white p-4 shadow-sm transition',
+                  'min-w-0 max-w-full rounded-3xl border bg-white p-4 shadow-sm transition',
                   isActiveDropTarget
                     ? 'border-brand-400 bg-brand-50/70 ring-2 ring-brand-200'
                     : group.isOrphan
@@ -274,15 +274,15 @@ export function WorkLogTimeTree({
                       : 'border-slate-200',
                 )}
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
+                <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {group.isOrphan ? (
                         <AlertTriangle className="h-4 w-4 text-amber-600" />
                       ) : (
                         <ListTree className="h-4 w-4 text-brand-700" />
                       )}
-                      <h4 className="text-base font-semibold text-ink">{group.title}</h4>
+                      <h4 className="break-words text-base font-semibold text-ink">{group.title}</h4>
                       {group.isOrphan ? (
                         <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
                           兜底节点
@@ -343,14 +343,14 @@ export function WorkLogTimeTree({
                           }}
                           onDragEnd={clearDragState}
                           className={cn(
-                            'cursor-pointer rounded-2xl border px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-brand-300',
+                            'w-full min-w-0 cursor-pointer rounded-2xl border px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-brand-300',
                             isSelected
                               ? 'border-brand-300 bg-brand-50/80 shadow-sm'
                               : 'border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50',
                             entryId !== null ? 'cursor-grab active:cursor-grabbing' : '',
                           )}
                         >
-                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <GripVertical className="h-4 w-4 text-slate-400" />
@@ -360,13 +360,13 @@ export function WorkLogTimeTree({
                                 ID #{String(entry.id ?? '—')} · {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
                               </p>
                             </div>
-                            <div className="flex flex-col items-start gap-2 md:items-end">
+                            <div className="flex min-w-0 flex-col items-start gap-2 md:w-[13rem] md:max-w-full md:items-end">
                               <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
                                 <Clock3 className="h-4 w-4" />
                                 {formatNumber(Number(entry.minutes ?? 0))} 分钟
                               </div>
                               <label
-                                className="flex cursor-default items-center gap-2 text-xs text-slate-500"
+                                className="flex w-full min-w-0 flex-wrap items-center gap-2 text-xs text-slate-500 md:justify-end"
                                 onClick={(event) => event.stopPropagation()}
                                 onKeyDown={(event) => event.stopPropagation()}
                               >
@@ -388,7 +388,7 @@ export function WorkLogTimeTree({
                                       targetTitle: resolveTaskTitle(targetTaskId),
                                     });
                                   }}
-                                  className="h-9 cursor-pointer rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-brand-400"
+                                  className="h-9 min-w-0 flex-1 cursor-pointer rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-brand-400 md:w-full"
                                 >
                                   {taskOptions.map((option) => (
                                     <option key={`${entryLabel}-${option.value}`} value={option.value}>

@@ -155,7 +155,7 @@ describe('ToolWorkspace', () => {
     expect(screen.getByLabelText('创建时间')).toBeDisabled();
   });
 
-  it('提供顶层入口，可直接从工作记录页切到工时树视图', () => {
+  it('不再展示直接进入工时树按钮，避免无效快捷入口', () => {
     render(
       <ToolWorkspace
         userId="u1"
@@ -165,11 +165,31 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '直接进入工时树' }));
+    expect(screen.queryByRole('button', { name: '直接进入工时树' })).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByRole('button', { name: 'time_entries (2)' })).toHaveClass('bg-brand-700');
-    expect(screen.getByText('任务树视图')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '树状展示' })).toHaveAttribute('aria-pressed', 'true');
+  it('工时树视图为主列表和卡片增加宽度约束，避免切换后撑宽页面', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
+
+    const listSection = screen.getByRole('heading', { level: 3, name: '工时记录' }).closest('section');
+    const editorSection = screen.getByRole('heading', { level: 3, name: '记录编辑器' }).closest('section');
+    const groupCard = screen.getByRole('group', { name: '工时树节点 整理周报' });
+    const entryCard = screen.getByRole('button', { name: '工时记录 补录会议纪要' });
+
+    expect(listSection).toHaveClass('min-w-0');
+    expect(editorSection).toHaveClass('min-w-0');
+    expect(groupCard).toHaveClass('min-w-0', 'max-w-full');
+    expect(entryCard).toHaveClass('min-w-0', 'w-full');
   });
 
   it('支持将工时记录切换为树状展示，并通过拖拽修改任务归属', () => {
