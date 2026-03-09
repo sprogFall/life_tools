@@ -1,0 +1,119 @@
+import React from 'react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
+
+afterEach(() => cleanup());
+
+const tasks = [
+  { id: 1, title: '整理周报', estimated_minutes: 60, sort_index: 1, is_pinned: true },
+  { id: 2, title: '需求拆分', estimated_minutes: 90, sort_index: 2, is_pinned: false },
+];
+
+const items = [
+  {
+    id: 1,
+    task_id: 1,
+    minutes: 60,
+    content: '完成文案整理',
+    work_date: 1731000000000,
+    created_at: 1731000000000,
+    updated_at: 1731000001000,
+  },
+  {
+    id: 2,
+    task_id: 1,
+    minutes: 30,
+    content: '补录会议纪要',
+    work_date: 1731086400000,
+    created_at: 1731086400000,
+    updated_at: 1731086401000,
+  },
+];
+
+describe('WorkLogTimeCanvasDialog', () => {
+  it('支持在画布中拖拽改归属，并可撤销上次调整', () => {
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const sourceGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
+    const targetGroup = within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' });
+    const entryCard = within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' });
+
+    fireEvent.dragStart(entryCard);
+    fireEvent.dragOver(targetGroup);
+    fireEvent.drop(targetGroup);
+
+    expect(within(targetGroup).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(within(dialog).getByText('已将“补录会议纪要”归属到“需求拆分”')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '撤销上次调整' }));
+
+    expect(within(sourceGroup).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(within(dialog).getByText('已撤销“补录会议纪要”的归属调整，恢复到“整理周报”')).toBeInTheDocument();
+  });
+
+  it('支持缩放、拖动画布并重置视图', () => {
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const viewport = within(dialog).getByLabelText('工时归属画布视口');
+
+    expect(within(dialog).getByText('缩放 100% · 偏移 X 0 · 偏移 Y 0')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '放大视图' }));
+    expect(within(dialog).getByText('缩放 110% · 偏移 X 0 · 偏移 Y 0')).toBeInTheDocument();
+
+    fireEvent.mouseDown(viewport, { clientX: 20, clientY: 30 });
+    fireEvent.mouseMove(window, { clientX: 80, clientY: 90 });
+    fireEvent.mouseUp(window);
+
+    expect(within(dialog).getByText('缩放 110% · 偏移 X 60 · 偏移 Y 60')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '重置视图' }));
+
+    expect(within(dialog).getByText('缩放 100% · 偏移 X 0 · 偏移 Y 0')).toBeInTheDocument();
+  });
+
+  it('仅在点击保存调整时提交临时改动', () => {
+    const handleCommit = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={handleClose}
+        onCommit={handleCommit}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    fireEvent.dragStart(within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' }));
+    fireEvent.dragOver(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
+    fireEvent.drop(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '取消调整' }));
+
+    expect(handleCommit).not.toHaveBeenCalled();
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+});

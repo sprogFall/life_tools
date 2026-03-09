@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { Eye, EyeOff } from 'lucide-react';
 
-import { WorkLogTimeTree } from '@/components/work-log-time-tree';
+import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
 import { cn, formatNumber, formatPreviewText, formatTimestamp, truncateJsonPreview } from '@/lib/format';
 import { compactJsonErrorMessage } from '@/lib/json-utils';
 import {
@@ -36,6 +36,7 @@ type EditorKey = number | 'new' | null;
 
 type SectionStorageMode = ToolSectionMode;
 type MobilePane = 'list' | 'editor';
+type CollapsiblePane = 'list' | 'editor';
 
 const emptyRelationContext = buildRelationContext({
   success: true,
@@ -368,7 +369,12 @@ function SectionPanel({
   const [error, setError] = useState<string | null>(null);
   const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
   const [mobilePane, setMobilePane] = useState<MobilePane>('list');
-  const [listViewMode, setListViewMode] = useState<'list' | 'tree'>('list');
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [collapsedPanes, setCollapsedPanes] = useState<Record<CollapsiblePane, boolean>>({
+    list: false,
+    editor: false,
+  });
+  const canvasTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const supportsTreeView = toolId === 'work_log' && sectionKey === 'time_entries' && !isSingleMode;
   const workLogTasks = useMemo(
@@ -405,7 +411,11 @@ function SectionPanel({
   }, [sectionKey]);
 
   useEffect(() => {
-    setListViewMode('list');
+    setCanvasOpen(false);
+    setCollapsedPanes({
+      list: false,
+      editor: false,
+    });
   }, [sectionKey]);
 
   const filteredItems = useMemo(() => {
@@ -437,6 +447,10 @@ function SectionPanel({
     setDraftRow(nextRow);
     setError(null);
     setMobilePane('editor');
+    setCollapsedPanes((current) => ({
+      ...current,
+      editor: false,
+    }));
   };
 
   const startEdit = (index: number) => {
@@ -444,6 +458,10 @@ function SectionPanel({
     setDraftRow(cloneData(items[index]));
     setError(null);
     setMobilePane('editor');
+    setCollapsedPanes((current) => ({
+      ...current,
+      editor: false,
+    }));
   };
 
   const saveRow = () => {
@@ -494,6 +512,22 @@ function SectionPanel({
 
   const showListPane = mobilePane === 'list';
   const showEditorPane = mobilePane === 'editor';
+  const showListSection = !collapsedPanes.list;
+  const showEditorSection = !collapsedPanes.editor;
+
+  const togglePaneCollapse = (pane: CollapsiblePane) => {
+    setCollapsedPanes((current) => ({
+      ...current,
+      [pane]: !current[pane],
+    }));
+  };
+
+  const restorePane = (pane: CollapsiblePane) => {
+    setCollapsedPanes((current) => ({
+      ...current,
+      [pane]: false,
+    }));
+  };
 
   const renderFieldHeader = (field: ToolFieldConfig, revealed: boolean) => (
     <div className="flex items-center justify-between gap-3">
@@ -540,88 +574,107 @@ function SectionPanel({
         </div>
       </div>
       {supportsTreeView ? (
-        <div className="rounded-3xl border border-slate-200/70 bg-slate-50/80 p-1">
-          <div className="grid grid-cols-2 gap-1 sm:inline-flex">
-            <button
-              type="button"
-              aria-pressed={listViewMode === 'list'}
-              onClick={() => setListViewMode('list')}
-              className={cn(
-                'h-10 rounded-2xl px-4 text-sm font-medium transition',
-                listViewMode === 'list'
-                  ? 'bg-white text-ink shadow-sm'
-                  : 'text-slate-600 hover:bg-white hover:text-ink',
-              )}
-            >
-              列表展示
-            </button>
-            <button
-              type="button"
-              aria-pressed={listViewMode === 'tree'}
-              onClick={() => setListViewMode('tree')}
-              className={cn(
-                'h-10 rounded-2xl px-4 text-sm font-medium transition',
-                listViewMode === 'tree'
-                  ? 'bg-white text-ink shadow-sm'
-                  : 'text-slate-600 hover:bg-white hover:text-ink',
-              )}
-            >
-              树状展示
-            </button>
+        <div className="rounded-[1.75rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.03),rgba(34,197,94,0.06))] p-5 shadow-panel">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">Canvas Reassign</p>
+              <h3 className="mt-2 text-lg font-semibold text-ink">把工时归属整理搬到独立画布中</h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                通过弹出式无边界画布查看任务全貌，支持缩放、拖动画布和拖拽工时卡片改归属；当前页面保留列表查阅与精细编辑。
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {workLogTasks.length} 个任务
+              </span>
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {items.length} 条工时
+              </span>
+              <button
+                ref={canvasTriggerRef}
+                type="button"
+                onClick={() => setCanvasOpen(true)}
+                className="h-11 rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                打开工时归属画布
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
-        <section
-          className={cn(
-            showListPane ? 'block' : 'hidden',
-            'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
-          )}
-        >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-ink">{section?.label ?? sectionKey}</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              {section?.description ?? '当前区块使用通用数据维护视图。'}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {!isSingleMode ? (
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={supportsTreeView ? '搜索任务或工时内容' : '搜索当前区块'}
-                className="h-10 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
-              />
-            ) : null}
-            {!section?.readOnly && (!isSingleMode || items.length === 0) ? (
-              <button
-                type="button"
-                onClick={startCreate}
-                className="h-10 rounded-full bg-brand-700 px-4 text-sm font-medium text-white transition hover:bg-brand-800"
-              >
-                {isSingleMode ? '初始化配置' : '新增记录'}
-              </button>
-            ) : null}
-          </div>
+      {collapsedPanes.list || collapsedPanes.editor ? (
+        <div className="flex flex-wrap gap-2">
+          {collapsedPanes.list ? (
+            <button
+              type="button"
+              aria-label={`展开${section?.label ?? sectionKey}面板`}
+              onClick={() => restorePane('list')}
+              className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+            >
+              展开{section?.label ?? sectionKey}面板
+            </button>
+          ) : null}
+          {collapsedPanes.editor ? (
+            <button
+              type="button"
+              aria-label={`展开${isSingleMode ? '配置编辑器' : '记录编辑器'}面板`}
+              onClick={() => restorePane('editor')}
+              className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+            >
+              展开{isSingleMode ? '配置编辑器' : '记录编辑器'}面板
+            </button>
+          ) : null}
         </div>
-        <div className="mt-5 overflow-hidden rounded-3xl border border-slate-100">
-          {supportsTreeView && listViewMode === 'tree' ? (
-            <div className="min-w-0 p-4">
-              <WorkLogTimeTree
-                tasks={workLogTasks}
-                items={items}
-                query={query}
-                selectedIndex={typeof editorKey === 'number' ? editorKey : null}
-                onSelect={startEdit}
-                onChange={(nextItems) => {
-                  onChange(nextItems);
-                  setError(null);
-                }}
-              />
+      ) : null}
+      <div className={cn('grid gap-5', !collapsedPanes.list && !collapsedPanes.editor ? 'xl:grid-cols-[1.3fr_1fr]' : 'grid-cols-1')}>
+        {showListSection ? (
+          <section
+            className={cn(
+              showListPane ? 'block' : 'hidden',
+              'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
+            )}
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-ink">{section?.label ?? sectionKey}</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {section?.description ?? '当前区块使用通用数据维护视图。'}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {!isSingleMode ? (
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={supportsTreeView ? '搜索任务或工时内容' : '搜索当前区块'}
+                    className="h-10 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
+                  />
+                ) : null}
+                {!section?.readOnly && (!isSingleMode || items.length === 0) ? (
+                  <button
+                    type="button"
+                    onClick={startCreate}
+                    className="h-10 rounded-full bg-brand-700 px-4 text-sm font-medium text-white transition hover:bg-brand-800"
+                  >
+                    {isSingleMode ? '初始化配置' : '新增记录'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label={`收起${section?.label ?? sectionKey}面板`}
+                  onClick={() => togglePaneCollapse('list')}
+                  className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                >
+                  收起列表
+                </button>
+              </div>
             </div>
-          ) : (
-            <>
+            {supportsTreeView ? (
+              <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+                想专注查看任务全貌时，可打开上方“工时归属画布”；当前列表更适合搜索、比对和快速进入记录编辑。
+              </div>
+            ) : null}
+            <div className="mt-5 overflow-hidden rounded-3xl border border-slate-100">
               <div className="hidden grid-cols-[96px_repeat(4,minmax(0,1fr))] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-slate-400 lg:grid">
                 <span className="min-w-0 leading-5">操作</span>
                 {previewKeys.map((key) => (
@@ -691,28 +744,38 @@ function SectionPanel({
                   })
                 )}
               </div>
-            </>
-          )}
-        </div>
-      </section>
+            </div>
+          </section>
+        ) : null}
 
-        <section
-          className={cn(
-            showEditorPane ? 'block' : 'hidden',
-            'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
-          )}
-        >
-          <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              {isSingleMode ? '修改当前区块的配置项，最后统一点击顶部“保存到后端”。' : '修改当前区块的单条记录，最后统一点击顶部“保存到后端”。'}
-            </p>
-          </div>
-          {section?.readOnly ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">只读</span>
-          ) : null}
-        </div>
+        {showEditorSection ? (
+          <section
+            className={cn(
+              showEditorPane ? 'block' : 'hidden',
+              'min-w-0 rounded-4xl border border-slate-200/70 bg-white/75 p-5 shadow-panel xl:block',
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {isSingleMode ? '修改当前区块的配置项，最后统一点击顶部“保存到后端”。' : '修改当前区块的单条记录，最后统一点击顶部“保存到后端”。'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {section?.readOnly ? (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">只读</span>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label={`收起${isSingleMode ? '配置编辑器' : '记录编辑器'}面板`}
+                  onClick={() => togglePaneCollapse('editor')}
+                  className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                >
+                  收起编辑器
+                </button>
+              </div>
+            </div>
         {draftRow ? (
           <div className="mt-5 space-y-4">
             {fields.map((field) => {
@@ -914,8 +977,26 @@ function SectionPanel({
           </p>
           <p className="mt-1">工具：{getToolConfig(toolId).name}</p>
         </div>
-        </section>
+          </section>
+        ) : null}
       </div>
+      {supportsTreeView ? (
+        <WorkLogTimeCanvasDialog
+          open={canvasOpen}
+          tasks={workLogTasks}
+          items={items}
+          onClose={() => {
+            setCanvasOpen(false);
+            window.requestAnimationFrame(() => {
+              canvasTriggerRef.current?.focus();
+            });
+          }}
+          onCommit={(nextItems) => {
+            onChange(nextItems);
+            setError(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

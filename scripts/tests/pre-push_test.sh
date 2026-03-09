@@ -13,7 +13,7 @@ fail() {
 assert_contains() {
   local file="$1"
   local expected="$2"
-  if ! grep -Fq "$expected" "$file"; then
+  if ! grep -Fq -- "$expected" "$file"; then
     echo "[pre-push-test] file content:" >&2
     cat "$file" >&2 || true
     fail "期望包含: ${expected}"
@@ -23,7 +23,7 @@ assert_contains() {
 assert_not_contains_exact_line() {
   local file="$1"
   local expected="$2"
-  if grep -Fxq "$expected" "$file"; then
+  if grep -Fxq -- "$expected" "$file"; then
     echo "[pre-push-test] file content:" >&2
     cat "$file" >&2 || true
     fail "不应出现整行: ${expected}"
@@ -47,8 +47,8 @@ setup_repo() {
     git config user.name "test"
     git config user.email "test@example.com"
 
-    mkdir -p lib/foo test/foo
-    cat > pubspec.yaml <<'EOF'
+    mkdir -p lib/foo test/foo dashboard/src
+    cat > pubspec.yaml <<'EOT'
 name: demo
 description: test repo
 version: 1.0.0
@@ -57,19 +57,28 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-EOF
-    cat > pubspec.lock <<'EOF'
+EOT
+    cat > pubspec.lock <<'EOT'
 # generated
-EOF
-    cat > analysis_options.yaml <<'EOF'
+EOT
+    cat > analysis_options.yaml <<'EOT'
 include: package:flutter_lints/flutter.yaml
-EOF
-    cat > lib/foo/bar.dart <<'EOF'
+EOT
+    cat > lib/foo/bar.dart <<'EOT'
 String demo() => 'v1';
-EOF
-    cat > test/foo/bar_test.dart <<'EOF'
+EOT
+    cat > test/foo/bar_test.dart <<'EOT'
 void main() {}
-EOF
+EOT
+    cat > dashboard/package.json <<'EOT'
+{"name":"dashboard","private":true,"scripts":{"test":"vitest run","build":"next build"}}
+EOT
+    cat > dashboard/package-lock.json <<'EOT'
+{}
+EOT
+    cat > dashboard/src/app.ts <<'EOT'
+export const dashboardVersion = 'v1';
+EOT
 
     git add .
     git commit -q -m "init"
@@ -78,7 +87,7 @@ EOF
 
 create_fake_flutter() {
   local file="$1"
-  cat > "$file" <<'EOF'
+  cat > "$file" <<'EOT'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -100,7 +109,19 @@ if [[ "${1:-}" == "pub" && "${2:-}" == "get" ]]; then
   mkdir -p .dart_tool
   printf '{"configVersion":2}' > .dart_tool/package_config.json
 fi
-EOF
+EOT
+  chmod +x "$file"
+}
+
+create_fake_npm() {
+  local file="$1"
+  cat > "$file" <<'EOT'
+#!/usr/bin/env bash
+set -euo pipefail
+
+log_file="${FAKE_NPM_LOG:?}"
+echo "$*" >> "$log_file"
+EOT
   chmod +x "$file"
 }
 
@@ -113,6 +134,24 @@ run_pre_push() {
     cd "$repo_dir"
     FAKE_FLUTTER_LOG="$log_file" bash "$PRE_PUSH_SCRIPT" \
       --scope flutter \
+      --change-source working-tree \
+      --flutter-bin "$fake_flutter" \
+      "$@"
+  )
+}
+
+run_pre_push_auto() {
+  local repo_dir="$1"
+  local fake_flutter="$2"
+  local flutter_log_file="$3"
+  local npm_log_file="$4"
+  shift 4
+  (
+    cd "$repo_dir"
+    PATH="$repo_dir:$PATH" \
+    FAKE_FLUTTER_LOG="$flutter_log_file" \
+    FAKE_NPM_LOG="$npm_log_file" \
+    bash "$PRE_PUSH_SCRIPT" \
       --change-source working-tree \
       --flutter-bin "$fake_flutter" \
       "$@"
@@ -136,6 +175,33 @@ test_changed_priority_with_guaranteed_coverage() {
   assert_not_contains_exact_line "$log_file" "test"
 }
 
+test_dashboard_only_change_runs_dashboard_checks_in_auto_scope() {
+  local tmp_repo
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  local fake_tools_dir
+  fake_tools_dir="$(mktemp -d)"
+  local fake_flutter="${fake_tools_dir}/fake_flutter.sh"
+  local fake_npm="${fake_tools_dir}/npm"
+  local flutter_log="${fake_tools_dir}/flutter.log"
+  local npm_log="${fake_tools_dir}/npm.log"
+  create_fake_flutter "$fake_flutter"
+  create_fake_npm "$fake_npm"
+  : > "$flutter_log"
+  : > "$npm_log"
+
+  echo "export const dashboardVersion = 'v2';" > "${tmp_repo}/dashboard/src/app.ts"
+
+  (
+    cd "$tmp_repo"
+    PATH="$fake_tools_dir:$PATH"     FAKE_FLUTTER_LOG="$flutter_log"     FAKE_NPM_LOG="$npm_log"     bash "$PRE_PUSH_SCRIPT"       --change-source working-tree       --flutter-bin "$fake_flutter"
+  )
+  assert_contains "$npm_log" "--prefix dashboard test"
+  assert_contains "$npm_log" "--prefix dashboard run build"
+  assert_empty_file "$flutter_log"
+}
+
 test_fallback_full_test_for_unmappable_flutter_change() {
   local tmp_repo
   tmp_repo="$(mktemp -d)"
@@ -147,9 +213,9 @@ test_fallback_full_test_for_unmappable_flutter_change() {
   : > "$log_file"
 
   mkdir -p "${tmp_repo}/android/app"
-  cat > "${tmp_repo}/android/app/build.gradle" <<'EOF'
+  cat > "${tmp_repo}/android/app/build.gradle" <<'EOT'
 // touched
-EOF
+EOT
 
   run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-analyze
   assert_contains "$log_file" "test"
@@ -187,14 +253,14 @@ test_run_pre_push_self_test_when_script_changed() {
   : > "$log_file"
 
   mkdir -p "${tmp_repo}/scripts/tests"
-  cat > "${tmp_repo}/scripts/pre-push.sh" <<'EOF'
+  cat > "${tmp_repo}/scripts/pre-push.sh" <<'EOT'
 # changed
-EOF
-  cat > "${tmp_repo}/scripts/tests/pre-push_test.sh" <<'EOF'
+EOT
+  cat > "${tmp_repo}/scripts/tests/pre-push_test.sh" <<'EOT'
 #!/usr/bin/env bash
 set -euo pipefail
 echo "self-test-ran" >> self_test.log
-EOF
+EOT
   chmod +x "${tmp_repo}/scripts/tests/pre-push_test.sh"
 
   run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-analyze --skip-test
@@ -212,14 +278,14 @@ test_fail_when_pre_push_self_test_failed() {
   : > "$log_file"
 
   mkdir -p "${tmp_repo}/scripts/tests"
-  cat > "${tmp_repo}/scripts/pre-push.sh" <<'EOF'
+  cat > "${tmp_repo}/scripts/pre-push.sh" <<'EOT'
 # changed
-EOF
-  cat > "${tmp_repo}/scripts/tests/pre-push_test.sh" <<'EOF'
+EOT
+  cat > "${tmp_repo}/scripts/tests/pre-push_test.sh" <<'EOT'
 #!/usr/bin/env bash
 set -euo pipefail
 exit 2
-EOF
+EOT
   chmod +x "${tmp_repo}/scripts/tests/pre-push_test.sh"
 
   set +e
@@ -234,6 +300,7 @@ EOF
 
 main() {
   test_changed_priority_with_guaranteed_coverage
+  test_dashboard_only_change_runs_dashboard_checks_in_auto_scope
   test_fallback_full_test_for_unmappable_flutter_change
   test_pub_get_hash_short_circuit
   test_run_pre_push_self_test_when_script_changed

@@ -168,7 +168,7 @@ describe('ToolWorkspace', () => {
     expect(screen.queryByRole('button', { name: '直接进入工时树' })).not.toBeInTheDocument();
   });
 
-  it('工时树视图为主列表和卡片增加宽度约束，避免切换后撑宽页面', () => {
+  it('工时归属改为独立画布模态入口，并移除内联树状切换', () => {
     render(
       <ToolWorkspace
         userId="u1"
@@ -179,20 +179,13 @@ describe('ToolWorkspace', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
-    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
 
-    const listSection = screen.getByRole('heading', { level: 3, name: '工时记录' }).closest('section');
-    const editorSection = screen.getByRole('heading', { level: 3, name: '记录编辑器' }).closest('section');
-    const groupCard = screen.getByRole('group', { name: '工时树节点 整理周报' });
-    const entryCard = screen.getByRole('button', { name: '工时记录 补录会议纪要' });
-
-    expect(listSection).toHaveClass('min-w-0');
-    expect(editorSection).toHaveClass('min-w-0');
-    expect(groupCard).toHaveClass('min-w-0', 'max-w-full');
-    expect(entryCard).toHaveClass('min-w-0', 'w-full');
+    expect(screen.getByRole('button', { name: '打开工时归属画布' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '树状展示' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '列表展示' })).not.toBeInTheDocument();
   });
 
-  it('支持将工时记录切换为树状展示，并通过拖拽修改任务归属', () => {
+  it('支持在画布模态中拖拽修改工时归属，并通过保存调整提交到当前草稿', () => {
     render(
       <ToolWorkspace
         userId="u1"
@@ -203,11 +196,12 @@ describe('ToolWorkspace', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
-    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
-    const sourceGroup = screen.getByRole('group', { name: '工时树节点 整理周报' });
-    const targetGroup = screen.getByRole('group', { name: '工时树节点 需求拆分' });
-    const entryCard = screen.getByRole('button', { name: '工时记录 补录会议纪要' });
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const sourceGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
+    const targetGroup = within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' });
+    const entryCard = within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' });
 
     expect(within(sourceGroup).getByText('补录会议纪要')).toBeInTheDocument();
 
@@ -215,14 +209,26 @@ describe('ToolWorkspace', () => {
     fireEvent.dragOver(targetGroup);
     fireEvent.drop(targetGroup);
 
-    expect(within(screen.getByRole('group', { name: '工时树节点 需求拆分' })).getByText('补录会议纪要')).toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: '工时树节点 整理周报' })).queryByText('补录会议纪要')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('已将“补录会议纪要”归属到“需求拆分”');
+    expect(within(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(within(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).queryByText('补录会议纪要')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('已将“补录会议纪要”归属到“需求拆分”')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存调整' }));
+
+    expect(screen.queryByRole('dialog', { name: '工时归属整理画布' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '保存到后端' })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
+
+    expect(
+      within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('group', {
+        name: '工时画布节点 需求拆分',
+      }),
+    ).toHaveTextContent('补录会议纪要');
   });
 
 
-  it('支持通过快速改归属下拉切换任务，并可撤销上次调整', () => {
+  it('取消画布内调整时不会污染当前草稿', () => {
     render(
       <ToolWorkspace
         userId="u1"
@@ -233,19 +239,26 @@ describe('ToolWorkspace', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
-    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
-    const targetSelect = screen.getByRole('combobox', { name: '调整归属 补录会议纪要' });
-    fireEvent.change(targetSelect, { target: { value: '2' } });
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const targetGroup = within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' });
+    const entryCard = within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' });
 
-    expect(within(screen.getByRole('group', { name: '工时树节点 需求拆分' })).getByText('补录会议纪要')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('已将“补录会议纪要”归属到“需求拆分”');
+    fireEvent.dragStart(entryCard);
+    fireEvent.dragOver(targetGroup);
+    fireEvent.drop(targetGroup);
+    fireEvent.click(within(dialog).getByRole('button', { name: '取消调整' }));
 
-    fireEvent.click(screen.getByRole('button', { name: '撤销上次调整' }));
+    expect(screen.getByRole('button', { name: '保存到后端' })).toBeDisabled();
 
-    expect(within(screen.getByRole('group', { name: '工时树节点 整理周报' })).getByText('补录会议纪要')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('已撤销“补录会议纪要”的归属调整，恢复到“整理周报”');
-    expect(screen.getByRole('button', { name: '保存到后端' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
+
+    expect(
+      within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('group', {
+        name: '工时画布节点 整理周报',
+      }),
+    ).toHaveTextContent('补录会议纪要');
   });
 
 
@@ -263,8 +276,12 @@ describe('ToolWorkspace', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
-    fireEvent.click(screen.getByRole('button', { name: '树状展示' }));
-    fireEvent.change(screen.getByRole('combobox', { name: '调整归属 补录会议纪要' }), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    fireEvent.dragStart(within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' }));
+    fireEvent.dragOver(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
+    fireEvent.drop(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存调整' }));
     fireEvent.click(screen.getByRole('button', { name: '保存到后端' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('工时记录“补录会议纪要”的 task_id=999 未匹配到任务。可用任务：1=整理周报');
@@ -291,6 +308,33 @@ describe('ToolWorkspace', () => {
 
     expect(listButton).toHaveAttribute('aria-pressed', 'false');
     expect(editorButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('桌面端支持分别收起和展开列表面板与记录编辑器面板', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '收起记录编辑器面板' }));
+
+    expect(screen.queryByRole('heading', { level: 3, name: '记录编辑器' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '展开记录编辑器面板' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '收起任务面板' }));
+
+    expect(screen.queryByRole('heading', { level: 3, name: '任务' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '展开任务面板' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '展开记录编辑器面板' }));
+    fireEvent.click(screen.getByRole('button', { name: '展开任务面板' }));
+
+    expect(screen.getByRole('heading', { level: 3, name: '任务' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: '记录编辑器' })).toBeInTheDocument();
   });
 
   it('支持展示 app_config 这类对象型区块，并允许敏感字段眼睛开关查看', () => {

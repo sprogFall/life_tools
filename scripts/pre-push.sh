@@ -19,6 +19,10 @@ TARGETED_TEST_GUARANTEED="false"
 TARGETED_TEST_REASON=""
 TARGET_TEST_FILES=()
 CURRENT_FLUTTER_PUBGET_HASH=""
+AUTO_SCOPE_HAS_UNKNOWN="false"
+RUN_BACKEND_CHECKS="false"
+RUN_DASHBOARD_CHECKS="false"
+RUN_FLUTTER_CHECKS="false"
 
 log() {
   echo "[pre-push] $*"
@@ -94,7 +98,7 @@ usage() {
   - Flutter 测试优先执行可证明覆盖的目标测试，无法证明时自动回退全量
 
 选项:
-  --scope <auto|flutter|backend|docs|mixed>
+  --scope <auto|flutter|backend|dashboard|docs|mixed>
   --change-source <working-tree|head>
   --allow-no-changes
 
@@ -170,8 +174,8 @@ parse_args() {
 
 validate_enums() {
   case "$SCOPE" in
-    auto|flutter|backend|docs|mixed) ;;
-    *) die "--scope 仅支持 auto|flutter|backend|docs|mixed" ;;
+    auto|flutter|backend|dashboard|docs|mixed) ;;
+    *) die "--scope 仅支持 auto|flutter|backend|dashboard|docs|mixed" ;;
   esac
 
   case "$CHANGE_SOURCE" in
@@ -252,11 +256,24 @@ is_flutter_file() {
   esac
 }
 
+is_dashboard_file() {
+  local f="$1"
+  case "$f" in
+    dashboard/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 categorize_scope_auto() {
   local only_docs="true"
-  local only_backend_and_docs="true"
   local has_backend="false"
+  local has_dashboard="false"
   local has_flutter="false"
+  local has_unknown="false"
   local f
 
   for f in "${CHANGED_FILES[@]}"; do
@@ -272,45 +289,117 @@ categorize_scope_auto() {
         ;;
     esac
 
+    if is_dashboard_file "$f"; then
+      has_dashboard="true"
+    fi
+
     if is_flutter_file "$f"; then
       has_flutter="true"
     fi
 
+    if is_doc_file "$f" || is_dashboard_file "$f" || is_flutter_file "$f"; then
+      continue
+    fi
+
     case "$f" in
-      backend/*|*.md|docs/*|examples/*)
+      backend/*)
         ;;
       *)
-        only_backend_and_docs="false"
+        has_unknown="true"
         ;;
     esac
   done
+
+  AUTO_SCOPE_HAS_UNKNOWN="$has_unknown"
 
   if [[ "$only_docs" == "true" ]]; then
     EFFECTIVE_SCOPE="docs"
     return
   fi
 
-  if [[ "$only_backend_and_docs" == "true" ]]; then
+  if [[ "$has_unknown" != "true" && "$has_backend" == "true" && "$has_dashboard" != "true" && "$has_flutter" != "true" ]]; then
     EFFECTIVE_SCOPE="backend"
     return
   fi
 
-  if [[ "$has_flutter" == "true" && "$has_backend" == "true" ]]; then
-    EFFECTIVE_SCOPE="mixed"
+  if [[ "$has_unknown" != "true" && "$has_dashboard" == "true" && "$has_backend" != "true" && "$has_flutter" != "true" ]]; then
+    EFFECTIVE_SCOPE="dashboard"
     return
   fi
 
-  if [[ "$has_flutter" == "true" ]]; then
+  if [[ "$has_unknown" != "true" && "$has_flutter" == "true" && "$has_backend" != "true" && "$has_dashboard" != "true" ]]; then
     EFFECTIVE_SCOPE="flutter"
     return
   fi
 
-  if [[ "$has_backend" == "true" ]]; then
-    EFFECTIVE_SCOPE="mixed"
+  if [[ "$has_unknown" == "true" && "$has_backend" != "true" && "$has_dashboard" != "true" && "$has_flutter" != "true" ]]; then
+    EFFECTIVE_SCOPE="flutter"
     return
   fi
 
-  EFFECTIVE_SCOPE="flutter"
+  EFFECTIVE_SCOPE="mixed"
+}
+
+configure_scope_flags() {
+  RUN_BACKEND_CHECKS="false"
+  RUN_DASHBOARD_CHECKS="false"
+  RUN_FLUTTER_CHECKS="false"
+
+  case "$EFFECTIVE_SCOPE" in
+    docs)
+      ;;
+    backend)
+      RUN_BACKEND_CHECKS="true"
+      ;;
+    dashboard)
+      RUN_DASHBOARD_CHECKS="true"
+      ;;
+    flutter)
+      RUN_FLUTTER_CHECKS="true"
+      ;;
+    mixed)
+      RUN_BACKEND_CHECKS="true"
+      RUN_DASHBOARD_CHECKS="true"
+      RUN_FLUTTER_CHECKS="true"
+
+      local has_backend="false"
+      local has_dashboard="false"
+      local has_flutter="false"
+      local f
+      for f in "${CHANGED_FILES[@]}"; do
+        case "$f" in
+          backend/*)
+            has_backend="true"
+            ;;
+          *)
+            ;;
+        esac
+
+        if is_dashboard_file "$f"; then
+          has_dashboard="true"
+        fi
+
+        if is_flutter_file "$f"; then
+          has_flutter="true"
+        fi
+      done
+
+      RUN_BACKEND_CHECKS="$has_backend"
+      RUN_DASHBOARD_CHECKS="$has_dashboard"
+      RUN_FLUTTER_CHECKS="$has_flutter"
+
+      if [[ "$AUTO_SCOPE_HAS_UNKNOWN" == "true" ]]; then
+        RUN_FLUTTER_CHECKS="true"
+      fi
+
+      if [[ "$RUN_BACKEND_CHECKS" != "true" && "$RUN_DASHBOARD_CHECKS" != "true" && "$RUN_FLUTTER_CHECKS" != "true" ]]; then
+        RUN_FLUTTER_CHECKS="true"
+      fi
+      ;;
+    *)
+      die "未知执行范围: $EFFECTIVE_SCOPE"
+      ;;
+  esac
 }
 
 resolve_flutter_bin() {
@@ -616,6 +705,14 @@ run_flutter_checks() {
   fi
 }
 
+run_dashboard_checks() {
+  [[ -f "$REPO_ROOT/dashboard/package.json" ]] || die "未找到 dashboard/package.json，无法执行 dashboard 校验"
+  need_cmd npm
+
+  run_cmd npm --prefix dashboard test
+  run_cmd npm --prefix dashboard run build
+}
+
 run_backend_checks() {
   if [[ "$SKIP_BACKEND_TEST" == "true" ]]; then
     log "已跳过 backend 测试"
@@ -667,20 +764,22 @@ main() {
   fi
 
   log "执行范围: $EFFECTIVE_SCOPE"
+  configure_scope_flags
 
   case "$EFFECTIVE_SCOPE" in
     docs)
-      log "仅文档改动：跳过 Flutter/Backend 校验"
+      log "仅文档改动：跳过 Flutter/Backend/Dashboard 校验"
       ;;
-    backend)
-      run_backend_checks
-      ;;
-    flutter)
-      run_flutter_checks
-      ;;
-    mixed)
-      run_backend_checks
-      run_flutter_checks
+    backend|dashboard|flutter|mixed)
+      if [[ "$RUN_BACKEND_CHECKS" == "true" ]]; then
+        run_backend_checks
+      fi
+      if [[ "$RUN_DASHBOARD_CHECKS" == "true" ]]; then
+        run_dashboard_checks
+      fi
+      if [[ "$RUN_FLUTTER_CHECKS" == "true" ]]; then
+        run_flutter_checks
+      fi
       ;;
     *)
       die "未知执行范围: $EFFECTIVE_SCOPE"
