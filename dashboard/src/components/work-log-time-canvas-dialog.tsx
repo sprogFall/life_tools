@@ -930,7 +930,7 @@ export function WorkLogTimeCanvasDialog({
                       handleDrop(group.taskId, group.title);
                     }}
                     className={cn(
-                      'group absolute cursor-move overflow-hidden rounded-[1.75rem] border backdrop-blur-xl transition-all duration-300',
+                      'group absolute cursor-move overflow-hidden rounded-[1.75rem] border backdrop-blur-xl transition duration-200',
                       isLightTheme
                         ? group.isOrphan
                           ? 'border-amber-200/80 bg-gradient-to-b from-amber-50/95 to-white/90 shadow-[0_4px_12px_rgba(245,158,11,0.06),0_20px_44px_rgba(245,158,11,0.10)]'
