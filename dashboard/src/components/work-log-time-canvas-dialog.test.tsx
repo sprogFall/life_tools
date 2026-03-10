@@ -180,7 +180,7 @@ describe('WorkLogTimeCanvasDialog', () => {
     const dragGlow = taskGroup.querySelector('[data-node-drag-glow="true"]');
 
     expect(within(taskGroup).queryByText('拖动布局')).not.toBeInTheDocument();
-    expect(dragGlow).toHaveClass('opacity-0', 'group-hover:opacity-100');
+    expect(dragGlow).toHaveClass('transition-all', 'duration-200');
 
     expect(taskGroup.style.left).toBe('96px');
     expect(taskGroup.style.top).toBe('96px');
@@ -210,7 +210,7 @@ describe('WorkLogTimeCanvasDialog', () => {
     const resizeGlow = taskGroup.querySelector('[data-node-resize-glow="true"]');
 
     expect(within(taskGroup).getByText('节点 100%')).toBeInTheDocument();
-    expect(resizeGlow).toHaveClass('opacity-0', 'group-hover:opacity-100');
+    expect(resizeGlow).toHaveClass('transition-all', 'duration-200');
 
     fireEvent.mouseDown(resizeHandle, { clientX: 320, clientY: 412 });
     fireEvent.mouseMove(window, { clientX: 384, clientY: 494 });

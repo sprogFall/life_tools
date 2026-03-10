@@ -475,7 +475,7 @@ export function WorkLogTimeCanvasDialog({
     panOriginRef.current = null;
   };
 
-  const startNodeDrag = (event: ReactMouseEvent<HTMLButtonElement>, node: CanvasLayoutNode) => {
+  const startNodeDrag = (event: ReactMouseEvent<HTMLElement>, node: CanvasLayoutNode) => {
     event.preventDefault();
     event.stopPropagation();
     panOriginRef.current = null;
@@ -868,10 +868,10 @@ export function WorkLogTimeCanvasDialog({
             setIsPanning(true);
           }}
           className={cn(
-            'relative min-h-0 flex-1 overflow-hidden [background-size:24px_24px]',
+            'relative min-h-0 flex-1 overflow-hidden [background-size:20px_20px]',
             isLightTheme
-              ? 'bg-white bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.24)_1px,transparent_0)]'
-              : 'bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.16)_1px,transparent_0)]',
+              ? 'bg-slate-50/40 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.18)_1px,transparent_0)]'
+              : 'bg-slate-950 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.10)_1px,transparent_0)]',
             isPanning ? 'cursor-grabbing' : 'cursor-grab',
           )}
         >
@@ -879,8 +879,8 @@ export function WorkLogTimeCanvasDialog({
             className={cn(
               'pointer-events-none absolute inset-0',
               isLightTheme
-                ? 'bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_28%)]'
-                : 'bg-[radial-gradient(circle_at_top,rgba(34,197,94,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.14),transparent_28%)]',
+                ? 'bg-[radial-gradient(ellipse_at_top_left,rgba(16,185,129,0.06),transparent_44%),radial-gradient(ellipse_at_bottom_right,rgba(59,130,246,0.06),transparent_44%),radial-gradient(ellipse_at_center,rgba(168,85,247,0.03),transparent_50%)]'
+                : 'bg-[radial-gradient(ellipse_at_top_left,rgba(34,197,94,0.10),transparent_44%),radial-gradient(ellipse_at_bottom_right,rgba(59,130,246,0.10),transparent_44%),radial-gradient(ellipse_at_center,rgba(168,85,247,0.05),transparent_50%)]',
             )}
           />
           <div
@@ -914,6 +914,13 @@ export function WorkLogTimeCanvasDialog({
                     key={group.id}
                     role="group"
                     aria-label={`工时画布节点 ${group.title}`}
+                    data-ignore-pan="true"
+                    onMouseDown={(event) => {
+                      if (event.button !== 0) return;
+                      const target = event.target as HTMLElement;
+                      if (target.closest('[data-canvas-card="true"]')) return;
+                      startNodeDrag(event, node);
+                    }}
                     onDragOver={(event) => {
                       event.preventDefault();
                       setActiveDropTaskId(group.taskId ?? 'orphan');
@@ -923,14 +930,14 @@ export function WorkLogTimeCanvasDialog({
                       handleDrop(group.taskId, group.title);
                     }}
                     className={cn(
-                      'group absolute overflow-hidden rounded-[1.75rem] border backdrop-blur-xl transition duration-200',
+                      'group absolute cursor-move overflow-hidden rounded-[1.75rem] border backdrop-blur-xl transition-all duration-300',
                       isLightTheme
                         ? group.isOrphan
-                          ? 'border-amber-200 bg-amber-50/90 shadow-[0_18px_40px_rgba(245,158,11,0.12)]'
-                          : 'border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.10)]'
+                          ? 'border-amber-200/80 bg-gradient-to-b from-amber-50/95 to-white/90 shadow-[0_4px_12px_rgba(245,158,11,0.06),0_20px_44px_rgba(245,158,11,0.10)]'
+                          : 'border-slate-200/70 bg-gradient-to-b from-white to-slate-50/40 shadow-[0_4px_12px_rgba(15,23,42,0.03),0_20px_44px_rgba(15,23,42,0.08)]'
                         : group.isOrphan
-                          ? 'border-amber-400/30 bg-amber-500/10 shadow-[0_24px_60px_rgba(245,158,11,0.12)]'
-                          : 'border-slate-800/90 bg-slate-900/88 shadow-[0_28px_70px_rgba(15,23,42,0.42)]',
+                          ? 'border-amber-400/20 bg-gradient-to-b from-amber-500/10 to-slate-950/80 shadow-[0_4px_16px_rgba(245,158,11,0.06),0_28px_56px_rgba(245,158,11,0.12)]'
+                          : 'border-slate-700/50 bg-gradient-to-b from-slate-900/95 to-slate-950/90 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_28px_56px_rgba(15,23,42,0.40)]',
                       isActiveDropTarget
                         ? isLightTheme
                           ? 'ring-2 ring-emerald-500/70 ring-offset-2 ring-offset-white'
@@ -944,6 +951,19 @@ export function WorkLogTimeCanvasDialog({
                       height: `${node.scaledHeight}px`,
                     }}
                     >
+                    <div
+                      aria-hidden="true"
+                      className={cn(
+                        'pointer-events-none absolute inset-x-0 top-0 h-[3px]',
+                        isLightTheme
+                          ? group.isOrphan
+                            ? 'bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200'
+                            : 'bg-gradient-to-r from-emerald-200 via-emerald-400 to-emerald-200'
+                          : group.isOrphan
+                            ? 'bg-gradient-to-r from-amber-500/60 via-amber-300 to-amber-500/60'
+                            : 'bg-gradient-to-r from-emerald-500/60 via-emerald-300 to-emerald-500/60',
+                      )}
+                    />
                     {index < layoutNodes.length - 1 ? (
                       <div
                         aria-hidden="true"
@@ -955,16 +975,23 @@ export function WorkLogTimeCanvasDialog({
                       aria-label={`拖拽任务模块边框 ${group.title}`}
                       data-ignore-pan="true"
                       onMouseDown={(event) => startNodeDrag(event, node)}
-                      className="absolute inset-x-0 top-0 z-10 h-5 cursor-move rounded-t-[1.75rem] bg-transparent focus:outline-none"
+                      className={cn(
+                        'absolute inset-x-0 top-0 z-10 flex h-6 cursor-move items-center justify-center rounded-t-[1.75rem] transition-colors duration-200 focus:outline-none',
+                        isLightTheme ? 'hover:bg-slate-100/50' : 'hover:bg-slate-800/30',
+                      )}
                     >
                       <span
                         data-node-drag-glow="true"
                         aria-hidden="true"
                         className={cn(
-                          'pointer-events-none absolute inset-x-6 top-0 h-px rounded-full opacity-0 transition-all duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
+                          'pointer-events-none h-[3px] w-8 rounded-full transition-all duration-200',
                           isLightTheme
-                            ? 'bg-gradient-to-r from-transparent via-emerald-500/70 to-transparent shadow-[0_0_10px_rgba(16,185,129,0.25)]'
-                            : 'bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent shadow-[0_0_12px_rgba(52,211,153,0.32)]',
+                            ? group.isOrphan
+                              ? 'bg-amber-300/25 group-hover:bg-amber-400/50'
+                              : 'bg-slate-300/25 group-hover:bg-emerald-400/45'
+                            : group.isOrphan
+                              ? 'bg-amber-400/15 group-hover:bg-amber-300/40'
+                              : 'bg-slate-600/20 group-hover:bg-emerald-400/40',
                         )}
                       />
                     </button>
@@ -1020,18 +1047,49 @@ export function WorkLogTimeCanvasDialog({
                           </div>
                         </div>
                       </div>
+                      {group.task?.estimated_minutes ? (() => {
+                        const estimated = Number(group.task.estimated_minutes);
+                        const ratio = estimated > 0 ? group.totalMinutes / estimated : 0;
+                        const pct = Math.min(100, Math.round(ratio * 100));
+                        return (
+                          <div className={cn('px-5 pb-1', isLightTheme ? 'bg-white/60' : 'bg-slate-900/40')}>
+                            <div
+                              className={cn(
+                                'h-1 overflow-hidden rounded-full',
+                                isLightTheme ? 'bg-slate-100' : 'bg-slate-800/80',
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  'h-full rounded-full transition-all duration-500',
+                                  ratio > 1
+                                    ? 'bg-gradient-to-r from-red-400 to-red-500'
+                                    : ratio > 0.8
+                                      ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                                      : 'bg-gradient-to-r from-emerald-400 to-emerald-500',
+                                )}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <p className={cn('mt-1 text-[10px]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                              已用 {pct}%
+                            </p>
+                          </div>
+                        );
+                      })() : null}
 
                       <div className="space-y-3 p-4">
                         {group.entries.length === 0 ? (
                           <div
                             className={cn(
-                              'rounded-2xl border border-dashed px-4 py-8 text-sm',
+                              'flex flex-col items-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center text-sm',
                               isLightTheme
-                                ? 'border-slate-300 bg-slate-50 text-slate-500'
-                                : 'border-slate-700 bg-slate-950/70 text-slate-400',
+                                ? 'border-slate-300/70 bg-slate-50/50 text-slate-400'
+                                : 'border-slate-700/50 bg-slate-900/30 text-slate-500',
                             )}
                           >
-                            把工时卡片拖到这里，重新归属到“{group.title}”。
+                            <Move className={cn('h-5 w-5', isLightTheme ? 'text-slate-300' : 'text-slate-600')} />
+                            把工时卡片拖到这里，重新归属到&ldquo;{group.title}&rdquo;。
                           </div>
                         ) : (
                           group.entries.map((entry) => {
@@ -1062,12 +1120,14 @@ export function WorkLogTimeCanvasDialog({
                                 }}
                                 onDragEnd={clearDragState}
                                 className={cn(
-                                  'cursor-grab rounded-[1.35rem] border p-4 transition focus:outline-none focus:ring-2',
+                                  'cursor-grab rounded-[1.35rem] border border-l-[3px] p-4 transition-all duration-200 focus:outline-none focus:ring-2',
                                   isLightTheme
-                                    ? 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40 focus:ring-emerald-500/70'
-                                    : 'border-slate-800/80 bg-slate-950/88 hover:border-emerald-400/30 hover:bg-slate-900 focus:ring-emerald-400/70',
+                                    ? 'border-slate-200/80 border-l-emerald-300 bg-white hover:border-emerald-200 hover:border-l-emerald-400 hover:shadow-[0_4px_16px_rgba(16,185,129,0.10)] focus:ring-emerald-500/70'
+                                    : 'border-slate-700/50 border-l-emerald-500/40 bg-slate-900/60 hover:border-emerald-500/30 hover:border-l-emerald-400/60 hover:shadow-[0_4px_16px_rgba(52,211,153,0.08)] focus:ring-emerald-400/70',
                                   isDragging
-                                    ? 'border-emerald-400/70 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
+                                    ? isLightTheme
+                                      ? 'scale-[1.02] border-emerald-300 border-l-emerald-500 bg-emerald-50/50 shadow-[0_8px_24px_rgba(16,185,129,0.16)]'
+                                      : 'scale-[1.02] border-emerald-400/40 border-l-emerald-400 bg-emerald-500/8 shadow-[0_8px_24px_rgba(52,211,153,0.14)]'
                                     : '',
                                 )}
                               >
@@ -1084,7 +1144,7 @@ export function WorkLogTimeCanvasDialog({
                                   <div
                                     className={cn(
                                       'shrink-0 rounded-full px-3 py-1 text-xs font-medium',
-                                      isLightTheme ? 'bg-slate-100 text-slate-700' : 'bg-slate-900 text-slate-200',
+                                      isLightTheme ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/10 text-blue-300',
                                     )}
                                   >
                                     <span className="inline-flex items-center gap-1">
@@ -1104,18 +1164,35 @@ export function WorkLogTimeCanvasDialog({
                       aria-label={`缩放任务树边框 ${group.title}`}
                       data-ignore-pan="true"
                       onMouseDown={(event) => startNodeResize(event, node)}
-                      className="absolute bottom-0 right-0 z-10 h-12 w-12 cursor-nwse-resize rounded-br-[1.75rem] bg-transparent focus:outline-none"
+                      className={cn(
+                        'absolute bottom-0 right-0 z-10 flex h-10 w-10 cursor-nwse-resize items-end justify-end rounded-br-[1.75rem] p-2 transition-colors duration-200 focus:outline-none',
+                        isLightTheme ? 'hover:bg-slate-100/50' : 'hover:bg-slate-800/30',
+                      )}
                     >
-                      <span
+                      <svg
                         data-node-resize-glow="true"
                         aria-hidden="true"
+                        width="10"
+                        height="10"
+                        viewBox="0 0 10 10"
                         className={cn(
-                          'pointer-events-none absolute bottom-0 right-0 h-9 w-9 rounded-br-[1.75rem] border-b border-r opacity-0 transition-all duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
+                          'pointer-events-none transition-all duration-200',
                           isLightTheme
-                            ? 'border-emerald-400/90 shadow-[0_0_12px_rgba(16,185,129,0.22)]'
-                            : 'border-emerald-300/90 shadow-[0_0_14px_rgba(52,211,153,0.28)]',
+                            ? group.isOrphan
+                              ? 'text-amber-300/30 group-hover:text-amber-400/60'
+                              : 'text-slate-300/30 group-hover:text-emerald-400/55'
+                            : group.isOrphan
+                              ? 'text-amber-400/20 group-hover:text-amber-300/50'
+                              : 'text-slate-600/20 group-hover:text-emerald-400/45',
                         )}
-                      />
+                      >
+                        <circle cx="8" cy="2" r="1" fill="currentColor" />
+                        <circle cx="5" cy="5" r="1" fill="currentColor" />
+                        <circle cx="8" cy="5" r="1" fill="currentColor" />
+                        <circle cx="2" cy="8" r="1" fill="currentColor" />
+                        <circle cx="5" cy="8" r="1" fill="currentColor" />
+                        <circle cx="8" cy="8" r="1" fill="currentColor" />
+                      </svg>
                     </button>
                   </section>
                 );
