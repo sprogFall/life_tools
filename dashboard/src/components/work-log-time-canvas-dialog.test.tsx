@@ -176,7 +176,11 @@ describe('WorkLogTimeCanvasDialog', () => {
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
     const taskGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
-    const dragHandle = within(taskGroup).getByRole('button', { name: '拖拽任务模块 整理周报' });
+    const dragHandle = within(taskGroup).getByLabelText('拖拽任务模块边框 整理周报');
+    const dragGlow = taskGroup.querySelector('[data-node-drag-glow="true"]');
+
+    expect(within(taskGroup).queryByText('拖动布局')).not.toBeInTheDocument();
+    expect(dragGlow).toHaveClass('opacity-0', 'group-hover:opacity-100');
 
     expect(taskGroup.style.left).toBe('96px');
     expect(taskGroup.style.top).toBe('96px');
@@ -202,9 +206,11 @@ describe('WorkLogTimeCanvasDialog', () => {
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
     const taskGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
-    const resizeHandle = within(taskGroup).getByRole('button', { name: '缩放任务树 整理周报' });
+    const resizeHandle = within(taskGroup).getByLabelText('缩放任务树边框 整理周报');
+    const resizeGlow = taskGroup.querySelector('[data-node-resize-glow="true"]');
 
     expect(within(taskGroup).getByText('节点 100%')).toBeInTheDocument();
+    expect(resizeGlow).toHaveClass('opacity-0', 'group-hover:opacity-100');
 
     fireEvent.mouseDown(resizeHandle, { clientX: 320, clientY: 412 });
     fireEvent.mouseMove(window, { clientX: 384, clientY: 494 });

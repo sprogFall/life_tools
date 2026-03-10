@@ -716,7 +716,7 @@ export function WorkLogTimeCanvasDialog({
                   )}
                 >
                   <Move className={cn('h-3.5 w-3.5', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
-                  拖动画布空白区域可平移，拖任务框右下角圆角可缩放单棵任务树
+                  拖动画布空白区域可平移，拖节点上边框可移动，拖右下角圆角边框可缩放单棵任务树
                 </div>
               ) : null}
             </div>
@@ -923,7 +923,7 @@ export function WorkLogTimeCanvasDialog({
                       handleDrop(group.taskId, group.title);
                     }}
                     className={cn(
-                      'absolute overflow-hidden rounded-[1.75rem] border backdrop-blur-xl transition duration-200',
+                      'group absolute overflow-hidden rounded-[1.75rem] border backdrop-blur-xl transition duration-200',
                       isLightTheme
                         ? group.isOrphan
                           ? 'border-amber-200 bg-amber-50/90 shadow-[0_18px_40px_rgba(245,158,11,0.12)]'
@@ -943,13 +943,31 @@ export function WorkLogTimeCanvasDialog({
                       width: `${node.scaledWidth}px`,
                       height: `${node.scaledHeight}px`,
                     }}
-                  >
+                    >
                     {index < layoutNodes.length - 1 ? (
                       <div
                         aria-hidden="true"
                         className="pointer-events-none absolute left-[calc(100%+10px)] top-12 h-px w-12 bg-gradient-to-r from-emerald-400/40 to-transparent"
                       />
                     ) : null}
+                    <button
+                      type="button"
+                      aria-label={`拖拽任务模块边框 ${group.title}`}
+                      data-ignore-pan="true"
+                      onMouseDown={(event) => startNodeDrag(event, node)}
+                      className="absolute inset-x-0 top-0 z-10 h-5 cursor-move rounded-t-[1.75rem] bg-transparent focus:outline-none"
+                    >
+                      <span
+                        data-node-drag-glow="true"
+                        aria-hidden="true"
+                        className={cn(
+                          'pointer-events-none absolute inset-x-6 top-0 h-px rounded-full opacity-0 transition-all duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
+                          isLightTheme
+                            ? 'bg-gradient-to-r from-transparent via-emerald-500/70 to-transparent shadow-[0_0_10px_rgba(16,185,129,0.25)]'
+                            : 'bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent shadow-[0_0_12px_rgba(52,211,153,0.32)]',
+                        )}
+                      />
+                    </button>
                     <div
                       data-node-content="true"
                       className="origin-top-left"
@@ -975,21 +993,6 @@ export function WorkLogTimeCanvasDialog({
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              aria-label={`拖拽任务模块 ${group.title}`}
-                              data-ignore-pan="true"
-                              onMouseDown={(event) => startNodeDrag(event, node)}
-                              className={cn(
-                                `${DASHBOARD_PILL_BUTTON_SM} cursor-move px-3`,
-                                isLightTheme
-                                  ? 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
-                                  : 'border border-slate-700 bg-slate-950/80 text-slate-200 hover:border-emerald-400/40 hover:bg-slate-900',
-                              )}
-                            >
-                              <Move className="h-4 w-4" />
-                              拖动布局
-                            </button>
                             <div
                               className={cn(
                                 'rounded-full px-3 py-1 text-xs',
@@ -1098,17 +1101,21 @@ export function WorkLogTimeCanvasDialog({
                     </div>
                     <button
                       type="button"
-                      aria-label={`缩放任务树 ${group.title}`}
+                      aria-label={`缩放任务树边框 ${group.title}`}
                       data-ignore-pan="true"
                       onMouseDown={(event) => startNodeResize(event, node)}
-                      className={cn(
-                        'absolute bottom-3 right-3 z-10 inline-flex h-10 w-10 cursor-nwse-resize items-center justify-center rounded-full border transition',
-                        isLightTheme
-                          ? 'border-slate-200 bg-white/95 text-slate-500 shadow-sm hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
-                          : 'border-slate-700 bg-slate-950/90 text-slate-300 hover:border-emerald-400/40 hover:bg-emerald-500/10 hover:text-emerald-200',
-                      )}
+                      className="absolute bottom-0 right-0 z-10 h-12 w-12 cursor-nwse-resize rounded-br-[1.75rem] bg-transparent focus:outline-none"
                     >
-                      <GripVertical className="h-3.5 w-3.5 rotate-45" />
+                      <span
+                        data-node-resize-glow="true"
+                        aria-hidden="true"
+                        className={cn(
+                          'pointer-events-none absolute bottom-0 right-0 h-9 w-9 rounded-br-[1.75rem] border-b border-r opacity-0 transition-all duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
+                          isLightTheme
+                            ? 'border-emerald-400/90 shadow-[0_0_12px_rgba(16,185,129,0.22)]'
+                            : 'border-emerald-300/90 shadow-[0_0_14px_rgba(52,211,153,0.28)]',
+                        )}
+                      />
                     </button>
                   </section>
                 );
