@@ -50,8 +50,11 @@ describe('UserJsonEditor', () => {
     expect(saveButton.className).toContain('max-w-full');
     expect(saveButton.className).toContain('whitespace-normal');
     expect(saveButton.className).toContain('break-words');
+    expect(saveButton.className).toContain('rounded-full');
     expect(resetButton.className).toContain('max-w-full');
+    expect(resetButton.className).toContain('rounded-full');
     expect(screen.getByRole('button', { name: '全部快照' }).className).toContain('min-w-0');
+    expect(screen.getByRole('button', { name: '全部快照' }).className).toContain('rounded-full');
   });
 
   it('可以展示格式化后的用户快照 JSON，并在保存时传递解析后的对象', async () => {
