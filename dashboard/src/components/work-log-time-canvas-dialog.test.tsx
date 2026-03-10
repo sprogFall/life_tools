@@ -189,6 +189,35 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(taskGroup.style.top).toBe('186px');
   });
 
+  it('支持从任务框右下角圆角拖拽缩放单个任务树，内部内容同步缩放', () => {
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const taskGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
+    const resizeHandle = within(taskGroup).getByRole('button', { name: '缩放任务树 整理周报' });
+
+    expect(within(taskGroup).getByText('节点 100%')).toBeInTheDocument();
+
+    fireEvent.mouseDown(resizeHandle, { clientX: 320, clientY: 412 });
+    fireEvent.mouseMove(window, { clientX: 384, clientY: 494 });
+    fireEvent.mouseUp(window);
+
+    expect(within(taskGroup).getByText('节点 120%')).toBeInTheDocument();
+    expect(taskGroup.style.width).toBe('384px');
+    expect(taskGroup.style.height).toBe('494px');
+    expect(taskGroup.querySelector('[data-node-content="true"]')).toHaveStyle({
+      transform: 'scale(1.2)',
+    });
+  });
+
   it('仅在点击保存调整时提交临时改动', () => {
     const handleCommit = vi.fn();
     const handleClose = vi.fn();

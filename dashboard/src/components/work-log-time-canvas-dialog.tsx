@@ -77,9 +77,26 @@ interface NodeDragOrigin {
   baseY: number;
 }
 
+interface NodeResizeOrigin {
+  nodeId: string;
+  title: string;
+  startX: number;
+  startY: number;
+  baseRenderedWidth: number;
+  baseRenderedHeight: number;
+  baseWidth: number;
+  baseHeight: number;
+}
+
 interface CanvasNodePosition {
   x: number;
   y: number;
+}
+
+interface CanvasRenderNode extends CanvasLayoutNode {
+  scale: number;
+  scaledWidth: number;
+  scaledHeight: number;
 }
 
 const ORPHAN_TASK_TITLE = '未归属 / 异常归属';
@@ -91,6 +108,8 @@ const DEFAULT_VIEW: CanvasViewState = {
 const MIN_SCALE = 0.7;
 const MAX_SCALE = 1.5;
 const SCALE_STEP = 0.1;
+const MIN_NODE_SCALE = 0.85;
+const MAX_NODE_SCALE = 1.6;
 const CANVAS_THEME_STORAGE_KEY = 'dashboard.work-log-canvas-theme';
 
 type CanvasTheme = 'dark' | 'light';
@@ -110,6 +129,10 @@ function matchesKeyword(entry: WorkLogRow, keyword: string) {
 
 function clampScale(scale: number) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(scale.toFixed(2))));
+}
+
+function clampNodeScale(scale: number) {
+  return Math.min(MAX_NODE_SCALE, Math.max(MIN_NODE_SCALE, Number(scale.toFixed(2))));
 }
 
 function getStoredCanvasTheme(): CanvasTheme {
@@ -149,6 +172,7 @@ export function WorkLogTimeCanvasDialog({
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const panOriginRef = useRef<PanOrigin | null>(null);
   const nodeDragOriginRef = useRef<NodeDragOrigin | null>(null);
+  const nodeResizeOriginRef = useRef<NodeResizeOrigin | null>(null);
   const [query, setQuery] = useState('');
   const [draftItems, setDraftItems] = useState<WorkLogRow[]>(items);
   const [draggingEntryId, setDraggingEntryId] = useState<number | null>(null);
@@ -157,6 +181,7 @@ export function WorkLogTimeCanvasDialog({
   const [lastReassignment, setLastReassignment] = useState<ReassignmentRecord | null>(null);
   const [view, setView] = useState<CanvasViewState>(DEFAULT_VIEW);
   const [nodePositions, setNodePositions] = useState<Record<string, CanvasNodePosition>>({});
+  const [nodeScales, setNodeScales] = useState<Record<string, number>>({});
   const [isPanning, setIsPanning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>(getStoredCanvasTheme);
@@ -181,9 +206,11 @@ export function WorkLogTimeCanvasDialog({
     setLastReassignment(null);
     setView(DEFAULT_VIEW);
     setNodePositions({});
+    setNodeScales({});
     setIsPanning(false);
     panOriginRef.current = null;
     nodeDragOriginRef.current = null;
+    nodeResizeOriginRef.current = null;
   }, [items, open]);
 
   useEffect(() => {
@@ -204,6 +231,24 @@ export function WorkLogTimeCanvasDialog({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      const resizeOrigin = nodeResizeOriginRef.current;
+      if (resizeOrigin) {
+        const deltaX = (event.clientX - resizeOrigin.startX) / view.scale;
+        const deltaY = (event.clientY - resizeOrigin.startY) / view.scale;
+        const nextScale = clampNodeScale(
+          Math.max(
+            (resizeOrigin.baseRenderedWidth + deltaX) / resizeOrigin.baseWidth,
+            (resizeOrigin.baseRenderedHeight + deltaY) / resizeOrigin.baseHeight,
+          ),
+        );
+        setNodeScales((current) => ({
+          ...current,
+          [resizeOrigin.nodeId]: nextScale,
+        }));
+        setStatusMessage(`正在缩放“${resizeOrigin.title}”任务树 · ${Math.round(nextScale * 100)}%`);
+        return;
+      }
+
       const nodeOrigin = nodeDragOriginRef.current;
       if (nodeOrigin) {
         setNodePositions((current) => ({
@@ -230,6 +275,7 @@ export function WorkLogTimeCanvasDialog({
     const handleMouseUp = () => {
       panOriginRef.current = null;
       nodeDragOriginRef.current = null;
+      nodeResizeOriginRef.current = null;
       setIsPanning(false);
     };
 
@@ -301,16 +347,28 @@ export function WorkLogTimeCanvasDialog({
       .filter((group): group is WorkLogTreeGroup => group !== null);
   }, [draftItems, query, tasks]);
 
-  const layoutNodes = useMemo(() => buildCanvasLayout(groups).map((node) => {
-    const override = nodePositions[node.group.id];
-    return override ? { ...node, x: override.x, y: override.y } : node;
-  }), [groups, nodePositions]);
+  const layoutNodes = useMemo<CanvasRenderNode[]>(
+    () =>
+      buildCanvasLayout(groups).map((node) => {
+        const override = nodePositions[node.group.id];
+        const scale = nodeScales[node.group.id] ?? 1;
+        return {
+          ...node,
+          x: override?.x ?? node.x,
+          y: override?.y ?? node.y,
+          scale,
+          scaledWidth: Math.round(node.width * scale),
+          scaledHeight: Math.round(node.height * scale),
+        };
+      }),
+    [groups, nodePositions, nodeScales],
+  );
   const canvasWidth = useMemo(
-    () => Math.max(1480, ...layoutNodes.map((node) => node.x + node.width + 120)),
+    () => Math.max(1480, ...layoutNodes.map((node) => node.x + node.scaledWidth + 120)),
     [layoutNodes],
   );
   const canvasHeight = useMemo(
-    () => Math.max(920, ...layoutNodes.map((node) => node.y + node.height + 120)),
+    () => Math.max(920, ...layoutNodes.map((node) => node.y + node.scaledHeight + 120)),
     [layoutNodes],
   );
   const hasDraftChanges = JSON.stringify(items) !== JSON.stringify(draftItems);
@@ -421,6 +479,7 @@ export function WorkLogTimeCanvasDialog({
     event.preventDefault();
     event.stopPropagation();
     panOriginRef.current = null;
+    nodeResizeOriginRef.current = null;
     setIsPanning(false);
     nodeDragOriginRef.current = {
       nodeId: node.group.id,
@@ -430,6 +489,25 @@ export function WorkLogTimeCanvasDialog({
       baseY: node.y,
     };
     setStatusMessage(`正在调整“${node.group.title}”模块位置`);
+  };
+
+  const startNodeResize = (event: ReactMouseEvent<HTMLButtonElement>, node: CanvasRenderNode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    panOriginRef.current = null;
+    nodeDragOriginRef.current = null;
+    setIsPanning(false);
+    nodeResizeOriginRef.current = {
+      nodeId: node.group.id,
+      title: node.group.title,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseRenderedWidth: node.width * node.scale,
+      baseRenderedHeight: node.height * node.scale,
+      baseWidth: node.width,
+      baseHeight: node.height,
+    };
+    setStatusMessage(`拖拽“${node.group.title}”右下角圆角，可缩放当前任务树`);
   };
 
   if (!open) {
@@ -638,7 +716,7 @@ export function WorkLogTimeCanvasDialog({
                   )}
                 >
                   <Move className={cn('h-3.5 w-3.5', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
-                  拖动画布空白区域可平移
+                  拖动画布空白区域可平移，拖任务框右下角圆角可缩放单棵任务树
                 </div>
               ) : null}
             </div>
@@ -862,7 +940,8 @@ export function WorkLogTimeCanvasDialog({
                     style={{
                       left: `${node.x}px`,
                       top: `${node.y}px`,
-                      width: `${node.width}px`,
+                      width: `${node.scaledWidth}px`,
+                      height: `${node.scaledHeight}px`,
                     }}
                   >
                     {index < layoutNodes.length - 1 ? (
@@ -871,132 +950,166 @@ export function WorkLogTimeCanvasDialog({
                         className="pointer-events-none absolute left-[calc(100%+10px)] top-12 h-px w-12 bg-gradient-to-r from-emerald-400/40 to-transparent"
                       />
                     ) : null}
-                    <div className={cn('px-5 py-4', isLightTheme ? 'border-b border-slate-200' : 'border-b border-slate-800/80')}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {group.isOrphan ? (
-                              <AlertTriangle className={cn('h-4 w-4', isLightTheme ? 'text-amber-600' : 'text-amber-300')} />
-                            ) : (
-                              <ListTree className={cn('h-4 w-4', isLightTheme ? 'text-emerald-600' : 'text-emerald-300')} />
-                            )}
-                            <h4 className={cn('text-base font-semibold', isLightTheme ? 'text-slate-900' : 'text-white')}>{group.title}</h4>
+                    <div
+                      data-node-content="true"
+                      className="origin-top-left"
+                      style={{
+                        width: `${node.width}px`,
+                        height: `${node.height}px`,
+                        transform: `scale(${node.scale})`,
+                      }}
+                    >
+                      <div className={cn('px-5 py-4', isLightTheme ? 'border-b border-slate-200' : 'border-b border-slate-800/80')}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {group.isOrphan ? (
+                                <AlertTriangle className={cn('h-4 w-4', isLightTheme ? 'text-amber-600' : 'text-amber-300')} />
+                              ) : (
+                                <ListTree className={cn('h-4 w-4', isLightTheme ? 'text-emerald-600' : 'text-emerald-300')} />
+                              )}
+                              <h4 className={cn('text-base font-semibold', isLightTheme ? 'text-slate-900' : 'text-white')}>{group.title}</h4>
+                            </div>
+                            <p className={cn('mt-2 text-sm', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
+                              {group.entryCount} 条记录 · {formatNumber(group.totalMinutes)} 分钟
+                            </p>
                           </div>
-                          <p className={cn('mt-2 text-sm', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
-                            {group.entryCount} 条记录 · {formatNumber(group.totalMinutes)} 分钟
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            aria-label={`拖拽任务模块 ${group.title}`}
-                            data-ignore-pan="true"
-                            onMouseDown={(event) => startNodeDrag(event, node)}
-                            className={cn(
-                              `${DASHBOARD_PILL_BUTTON_SM} cursor-move px-3`,
-                              isLightTheme
-                                ? 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
-                                : 'border border-slate-700 bg-slate-950/80 text-slate-200 hover:border-emerald-400/40 hover:bg-slate-900',
-                            )}
-                          >
-                            <Move className="h-4 w-4" />
-                            拖动布局
-                          </button>
-                          <div
-                            className={cn(
-                              'rounded-full px-3 py-1 text-xs',
-                              isLightTheme
-                                ? 'border border-slate-200 bg-slate-50 text-slate-600'
-                                : 'border border-slate-700 bg-slate-950/80 text-slate-300',
-                            )}
-                          >
-                            {group.task?.estimated_minutes
-                              ? `预估 ${formatNumber(Number(group.task.estimated_minutes))} 分钟`
-                              : group.isOrphan
-                                ? '异常归属兜底'
-                                : '待分配'}
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              aria-label={`拖拽任务模块 ${group.title}`}
+                              data-ignore-pan="true"
+                              onMouseDown={(event) => startNodeDrag(event, node)}
+                              className={cn(
+                                `${DASHBOARD_PILL_BUTTON_SM} cursor-move px-3`,
+                                isLightTheme
+                                  ? 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+                                  : 'border border-slate-700 bg-slate-950/80 text-slate-200 hover:border-emerald-400/40 hover:bg-slate-900',
+                              )}
+                            >
+                              <Move className="h-4 w-4" />
+                              拖动布局
+                            </button>
+                            <div
+                              className={cn(
+                                'rounded-full px-3 py-1 text-xs',
+                                isLightTheme
+                                  ? 'border border-slate-200 bg-slate-50 text-slate-600'
+                                  : 'border border-slate-700 bg-slate-950/80 text-slate-300',
+                              )}
+                            >
+                              {group.task?.estimated_minutes
+                                ? `预估 ${formatNumber(Number(group.task.estimated_minutes))} 分钟`
+                                : group.isOrphan
+                                  ? '异常归属兜底'
+                                  : '待分配'}
+                            </div>
+                            <div
+                              className={cn(
+                                'rounded-full px-3 py-1 text-xs font-medium',
+                                isLightTheme
+                                  ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
+                              )}
+                            >
+                              节点 {Math.round(node.scale * 100)}%
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-3 p-4">
-                      {group.entries.length === 0 ? (
-                        <div
-                          className={cn(
-                            'rounded-2xl border border-dashed px-4 py-8 text-sm',
-                            isLightTheme
-                              ? 'border-slate-300 bg-slate-50 text-slate-500'
-                              : 'border-slate-700 bg-slate-950/70 text-slate-400',
-                          )}
-                        >
-                          把工时卡片拖到这里，重新归属到“{group.title}”。
-                        </div>
-                      ) : (
-                        group.entries.map((entry) => {
-                          const entryId = toNumericId(entry.id);
-                          const entryLabel = getEntryLabel(entry);
-                          const isDragging = entryId !== null && draggingEntryId === entryId;
+                      <div className="space-y-3 p-4">
+                        {group.entries.length === 0 ? (
+                          <div
+                            className={cn(
+                              'rounded-2xl border border-dashed px-4 py-8 text-sm',
+                              isLightTheme
+                                ? 'border-slate-300 bg-slate-50 text-slate-500'
+                                : 'border-slate-700 bg-slate-950/70 text-slate-400',
+                            )}
+                          >
+                            把工时卡片拖到这里，重新归属到“{group.title}”。
+                          </div>
+                        ) : (
+                          group.entries.map((entry) => {
+                            const entryId = toNumericId(entry.id);
+                            const entryLabel = getEntryLabel(entry);
+                            const isDragging = entryId !== null && draggingEntryId === entryId;
 
-                          return (
-                            <div
-                              key={entryId ?? entryLabel}
-                              data-canvas-card="true"
-                              role="button"
-                              tabIndex={0}
-                              draggable={entryId !== null}
-                              aria-label={`工时卡片 ${entryLabel}`}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Escape') {
-                                  clearDragState();
-                                }
-                              }}
-                              onDragStart={(event) => {
-                                if (entryId === null) {
-                                  return;
-                                }
-                                setDraggingEntryId(entryId);
-                                setStatusMessage(`正在拖拽“${entryLabel}”`);
-                                event.dataTransfer?.setData('text/plain', String(entryId));
-                              }}
-                              onDragEnd={clearDragState}
-                              className={cn(
-                                'cursor-grab rounded-[1.35rem] border p-4 transition focus:outline-none focus:ring-2',
-                                isLightTheme
-                                  ? 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40 focus:ring-emerald-500/70'
-                                  : 'border-slate-800/80 bg-slate-950/88 hover:border-emerald-400/30 hover:bg-slate-900 focus:ring-emerald-400/70',
-                                isDragging
-                                  ? 'border-emerald-400/70 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
-                                  : '',
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                  <div className={cn('flex items-center gap-2', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-                                    <GripVertical className="h-4 w-4 shrink-0" />
-                                    <span className={cn('truncate text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>{entryLabel}</span>
+                            return (
+                              <div
+                                key={entryId ?? entryLabel}
+                                data-canvas-card="true"
+                                role="button"
+                                tabIndex={0}
+                                draggable={entryId !== null}
+                                aria-label={`工时卡片 ${entryLabel}`}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Escape') {
+                                    clearDragState();
+                                  }
+                                }}
+                                onDragStart={(event) => {
+                                  if (entryId === null) {
+                                    return;
+                                  }
+                                  setDraggingEntryId(entryId);
+                                  setStatusMessage(`正在拖拽“${entryLabel}”`);
+                                  event.dataTransfer?.setData('text/plain', String(entryId));
+                                }}
+                                onDragEnd={clearDragState}
+                                className={cn(
+                                  'cursor-grab rounded-[1.35rem] border p-4 transition focus:outline-none focus:ring-2',
+                                  isLightTheme
+                                    ? 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40 focus:ring-emerald-500/70'
+                                    : 'border-slate-800/80 bg-slate-950/88 hover:border-emerald-400/30 hover:bg-slate-900 focus:ring-emerald-400/70',
+                                  isDragging
+                                    ? 'border-emerald-400/70 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
+                                    : '',
+                                )}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <div className={cn('flex items-center gap-2', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                                      <GripVertical className="h-4 w-4 shrink-0" />
+                                      <span className={cn('truncate text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>{entryLabel}</span>
+                                    </div>
+                                    <p className={cn('mt-2 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                                      {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
+                                    </p>
                                   </div>
-                                  <p className={cn('mt-2 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-                                    {formatTimestamp(Number(entry.work_date ?? entry.created_at ?? Date.now()))}
-                                  </p>
-                                </div>
-                                <div
-                                  className={cn(
-                                    'shrink-0 rounded-full px-3 py-1 text-xs font-medium',
-                                    isLightTheme ? 'bg-slate-100 text-slate-700' : 'bg-slate-900 text-slate-200',
-                                  )}
-                                >
-                                  <span className="inline-flex items-center gap-1">
-                                    <Clock3 className="h-3.5 w-3.5" />
-                                    {formatNumber(Number(entry.minutes ?? 0))} 分钟
-                                  </span>
+                                  <div
+                                    className={cn(
+                                      'shrink-0 rounded-full px-3 py-1 text-xs font-medium',
+                                      isLightTheme ? 'bg-slate-100 text-slate-700' : 'bg-slate-900 text-slate-200',
+                                    )}
+                                  >
+                                    <span className="inline-flex items-center gap-1">
+                                      <Clock3 className="h-3.5 w-3.5" />
+                                      {formatNumber(Number(entry.minutes ?? 0))} 分钟
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })
-                      )}
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      aria-label={`缩放任务树 ${group.title}`}
+                      data-ignore-pan="true"
+                      onMouseDown={(event) => startNodeResize(event, node)}
+                      className={cn(
+                        'absolute bottom-3 right-3 z-10 inline-flex h-10 w-10 cursor-nwse-resize items-center justify-center rounded-full border transition',
+                        isLightTheme
+                          ? 'border-slate-200 bg-white/95 text-slate-500 shadow-sm hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+                          : 'border-slate-700 bg-slate-950/90 text-slate-300 hover:border-emerald-400/40 hover:bg-emerald-500/10 hover:text-emerald-200',
+                      )}
+                    >
+                      <GripVertical className="h-3.5 w-3.5 rotate-45" />
+                    </button>
                   </section>
                 );
               })
