@@ -103,7 +103,7 @@
   </tr>
 </table>
 
-如果你要继续深挖实现细节，建议从 [架构文档入口](docs/architecture/README.md) 开始，再按图追到对应模块和时序图。
+如果你要继续深挖实现细节，建议从 [架构文档入口](docs/architecture/README.md) 开始。当前文档已经按最新代码同步了 Provider 注入、工具注册、`sync/v2` 主路径、Dashboard API 和应用配置同步。
 
 <a id="feature-matrix"></a>
 ## 功能矩阵
@@ -293,6 +293,8 @@ LD_LIBRARY_PATH=/tmp flutter test
 <a id="documents"></a>
 ## 相关文档
 
+- [架构总览](docs/architecture/APP_ARCHITECTURE.md)
+- [公共接口与调用链](docs/architecture/PUBLIC_INTERFACES.md)
 - [同步协议 v2](docs/sync_protocol_v2.md)
 - [小蜜预选路由特殊调用](docs/xiao_mi_pre_route_special_calls.md)
 - [架构文档入口](docs/architecture/README.md)

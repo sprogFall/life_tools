@@ -1,159 +1,316 @@
-# life_tools APP 架构系统性分析（基于仓库现状）
+# life_tools APP 架构总览
 
-更新时间：2026-02-05  
-范围：Flutter 客户端（`lib/**`）+ 可选同步后端（`backend/sync_server/**`）
+更新时间：2026-03-11
 
-## 0. 一句话总览
+范围：
 
-life_tools 是一个 **本地优先（SQLite）** 的多工具箱 Flutter 应用，通过 **Provider + ChangeNotifier** 做全局状态与依赖注入；AI、对象存储与数据同步均为 **可选联网能力**，其中同步采用 **“全量快照 + 协议版本（v2 优先、v1 回退）”** 的策略，并提供后端 FastAPI 参考实现。
+- Flutter 客户端：`lib/**`
+- 同步后端：`backend/sync_server/**`
+- Dashboard：`dashboard/**`
 
-对应主架构图：`docs/architecture/exports/svg/app_architecture.svg`
+## 1. 一句话结论
 
-## 1. 模块层级结构（职责与边界）
+`life_tools` 是一个以 Flutter 为主客户端、以 SQLite 为默认本地数据源、以 Provider 为壳层依赖注入方式的多工具箱应用。AI、对象存储、自建同步和 Dashboard 都围绕这套本地优先模型按需接入，而不是反过来主导业务结构。
 
-### 1.1 顶层目录视角（功能边界）
+## 2. 当前顶层结构
 
-- `lib/main.dart`：应用入口；初始化核心服务；`MultiProvider` 注入公共入口（AI/对象存储/标签/消息/同步等）。
-- `lib/core/**`：跨工具公共能力（AI、同步、备份、消息、通知、对象存储、数据库、主题、UI 组件、语音输入等）。
-- `lib/pages/**`：全局页面（首页、工具管理、AI/对象存储设置等）。
-- `lib/tools/**`：各工具的 Feature 模块（页面 + 仓储 + 服务 + 同步适配器）。
-- `backend/sync_server/**`：可选同步服务端（FastAPI + SQLite），提供 `/sync`、`/sync/v2` 等接口。
+| 目录 | 角色 | 说明 |
+| --- | --- | --- |
+| `lib/main.dart` | 启动入口 | 初始化数据库运行环境、核心服务、提醒检查、分享接收与全局 Provider |
+| `lib/core/**` | 共享基础设施 | AI、同步、对象存储、消息、通知、数据库、标签、主题、通用 UI |
+| `lib/pages/**` | 全局页面 | 首页、设置页、工具管理、关于页等壳层页面 |
+| `lib/tools/**` | 业务工具模块 | 工作记录、囤货助手、胡闹厨房、小蜜等功能模块 |
+| `test/**` | 测试 | Flutter 侧单元、组件和页面测试 |
+| `backend/sync_server/**` | 后端服务 | 同步协议、快照存储、同步记录、回退、Dashboard 数据接口 |
+| `dashboard/**` | 管理面板 | Next.js 静态站点，用于查看和编辑后端快照数据 |
 
-### 1.2 分层视角（依赖方向）
+## 3. 运行时分层
 
-依赖方向（推荐理解）：**UI → Service（含状态）→ Repository → Storage/Network**
+推荐用下面这个方向理解依赖关系：
 
-| 层 | 对应目录/文件 | 核心职责 | 边界/约束 |
-|---|---|---|---|
-| UI 层 | `lib/pages/**`、`lib/tools/**/pages/**`、`lib/core/ui/**`、`lib/core/widgets/**` | 交互/展示、路由导航、收集用户输入 | 不直接拼装 SQL/HTTP；通过 Service/Repository 访问数据 |
-| 状态管理 & DI | `provider` + `ChangeNotifier`（见 `lib/main.dart`） | 全局依赖注入、状态监听、UI 重建 | 避免把重逻辑写进 Widget；把可测试逻辑下沉到 Service/Repository |
-| 业务服务层（核心能力） | `lib/core/**` 中的 `*Service` | 封装业务规则、跨模块编排（同步/备份/对象存储缓存等） | 对外提供稳定“公共入口”；内部依赖 Repository/Client |
-| 数据访问层 | `*Repository` + `DatabaseHelper/Schema` | SQLite CRUD、数据结构迁移、导入导出 | 只处理数据读写/映射；不持有 UI 状态 |
-| 网络/集成层 | `*Client`（HTTP/签名） | 调用外部 API/后端；签名；超时与错误归一 | 不做 UI 提示；抛出结构化异常由上层处理 |
-| 平台/插件层 | `flutter_local_notifications`、`connectivity_plus` 等 | 与系统能力对接（通知、网络、文件、语音等） | 通过 Service 包装，避免散落在业务代码 |
+`Widget / Page -> Service / ChangeNotifier -> Repository / Client -> SQLite / File / HTTP`
 
-### 1.3 工具模块模式（`lib/tools/**`）
+### 3.1 UI 层
 
-每个工具基本遵循“Feature 模块”结构：
+主要目录：
 
-- `pages/`：该工具 UI
-- `repository/`：该工具 SQLite 数据访问
-- `services/`：该工具业务编排（例如提醒、AI 辅助）
-- `sync/`：实现 `ToolSyncProvider`，把工具数据适配到“备份/同步”的统一快照结构
+- `lib/pages/**`
+- `lib/tools/**/pages/**`
+- `lib/core/ui/**`
+- `lib/core/widgets/**`
 
-工具注册由 `lib/core/registry/tool_registry.dart` 统一管理（创建 Repository/SyncProvider 并注册到 `ToolInfo`）。
+职责：
 
-## 2. 技术架构标注（技术栈 + 选型依据）
+- 渲染页面和组件
+- 接收用户输入
+- 通过 Provider 读取服务状态
+- 调用服务层方法触发行为
 
-### 2.1 客户端（Flutter）
+约束：
 
-- 语言/框架：Flutter + Dart（多端统一）
-- 状态管理：Provider（`MultiProvider` 注入）+ ChangeNotifier（服务状态可被 UI 监听）
-  - 依据：仓库主要是“少量全局状态 + 多个工具页局部状态”，Provider 足够且实现成本低。
-- 数据库：SQLite（`sqflite` + `sqflite_common_ffi`）
-  - 依据：本地优先、离线可用；桌面端通过 FFI 支持。
-- 配置存储：SharedPreferences（同步/AI/对象存储配置、本地同步用户态等）
-- 网络：`http`（OpenAI 兼容、同步服务端、对象存储探测/下载等）
-- 通知：`flutter_local_notifications` + `timezone`
-- 文件/分享：`file_picker`、`image_picker`、`share_plus`、`receive_sharing_intent`
-- 语音：`speech_to_text` + `record`（系统识别优先，录音用于降级方案/未来转写）
+- 不直接处理 SQL、文件路径拼接或 HTTP 细节
+- 不在 Widget 内堆积跨模块业务规则
 
-### 2.2 后端（可选同步服务端）
+### 3.2 服务层
 
-- 框架：FastAPI + Pydantic + Uvicorn
-- 存储：SQLite（`sync.db`）
-- 协议：HTTP JSON；实现 `/sync`（v1）与 `/sync/v2`（v2）并记录同步记录/回退
+主要形态：
 
-## 3. 数据流与状态管理（Provider/ChangeNotifier）
+- `ChangeNotifier` 服务：例如 `SettingsService`、`SyncService`、`MessageService`
+- 普通服务：例如 `AiService`、`ObjStoreService`
 
-### 3.1 全局注入点（真实代码）
+职责：
 
-`lib/main.dart` 中 `MultiProvider` 注入的核心对象包括：
+- 承接 UI 行为
+- 编排多仓储、多配置、多外部能力
+- 提供跨工具可复用的稳定入口
 
-- 配置/状态：`SettingsService`、`AiConfigService`、`ObjStoreConfigService`、`SyncConfigService`、`SyncLocalStateService`
-- 核心能力：`SyncService`、`MessageService`、`TagService`
-- 调用入口：`AiService`、`ObjStoreService`
-- 其它：`ToastService`、`WifiService`
+典型例子：
 
-### 3.2 数据流向（典型路径）
+- `SyncService`：同步预检、快照导出、调用后端、导入服务端数据
+- `BackupRestoreService`：统一导出/导入工具数据与配置
+- `ObjStoreService`：对象上传、资源地址解析、文件缓存
+- `MessageService`：消息去重、持久化、过期清理、系统通知分发
 
-1. UI 读取状态：`context.watch<Service>()` / `Consumer` 监听 `ChangeNotifier`
-2. UI 触发行为：`context.read<Service>().method(...)`
-3. Service 编排：校验参数/配置 → 调用 Repository/Client
-4. 数据写入：SQLite / SharedPreferences / 文件系统 / HTTP
-5. 状态回推：Service `notifyListeners()` → Provider 通知 → Widget 重建
+### 3.3 数据访问层
 
-对应数据流图：`docs/architecture/exports/svg/state_data_flow.svg`
+主要形态：
 
-## 4. 同步/备份（本地快照统一接口）
+- `*Repository`
+- `DatabaseHelper`
+- `DatabaseSchema`
+- `LocalObjStore`
 
-### 4.1 统一快照接口
+职责：
 
-所有支持备份/同步的工具通过 `ToolSyncProvider` 统一导入/导出：
+- 对 SQLite、SharedPreferences、本地文件进行读写封装
+- 处理导入导出时的数据映射
+- 保持对上层的稳定接口
 
-- `exportData(): Future<Map<String, dynamic>>`：返回 `{version, data, ...}` 的快照
-- `importData(Map snapshot)`：按版本与字段兼容策略覆盖导入
+### 3.4 外部集成层
 
-工具导入顺序通过 `tool_sync_order.dart` 保证：`tag_manager` 优先导入，避免其它工具的标签引用丢失。
+主要形态：
 
-### 4.2 同步协议（v2 优先，v1 回退）
+- `OpenAiClient`
+- `SyncApiClient`
+- `QiniuClient`
+- `DataCapsuleClient`
+- FastAPI 后端
 
-客户端 `SyncService.sync()`：
+职责：
 
-1. 预检：配置合法性、用户不匹配保护、网络条件（公网/私网 WiFi 白名单）
-2. 收集全量工具快照（`ToolSnapshotExporter.exportAll`）
-3. 优先调用 `/sync/v2`（包含 `last_server_revision` + `client_is_empty`），若 404/405 则回退 `/sync`
-4. 根据服务端 decision：
-   - `use_server`：覆盖导入 `tools_data`
-   - `use_client`：服务端保存客户端快照并返回新 revision
-   - `noop`：双方不变
+- 管理 HTTP 请求和响应
+- 承接外部服务差异
+- 把错误归一为可处理的异常或响应结构
 
-后端在 `backend/sync_server/sync_server/main.py` 落地该协议，并额外提供同步记录查询与回退接口。
+## 4. Flutter 启动流程
 
-## 5. 安全与隐私设计（控制点与已知缺口）
+真实入口见 `lib/main.dart`。
 
-### 5.1 已落地的安全控制点（代码可定位）
+### 4.1 初始化顺序
 
-- **同步私网保护**：`SyncNetworkPrecheck` 强制 WiFi + SSID 白名单（避免在错误网络误同步）
-- **用户不匹配保护**：`SyncLocalStateService` 记录本地数据绑定的 userId，自动同步遇到不匹配会阻断
-- **对象存储路径安全**：`ObjStoreService` 本地文件读取使用 `path.isWithin` 防止 `../` 穿越
-- **敏感信息导出控制**：`BackupRestoreService.exportConfigAsMap(includeSensitive)` 支持显式开关；未包含时会移除 `apiKey/customHeaders`
-- **密钥最小暴露（避免明文）**：`PrefsSecretStore` 对对象存储 AK/SK 进行“避免明文落盘”的轻量处理（非硬件级安全）
+应用启动时依次完成：
 
-### 5.2 需要在架构上明确的风险点
+1. `WidgetsFlutterBinding.ensureInitialized()`
+2. Android 尝试请求高刷新率
+3. 桌面端初始化 `sqflite_common_ffi`
+4. `ToolRegistry.instance.registerAll()`
+5. 初始化设置、AI 配置、AI 调用历史、对象存储配置
+6. 初始化同步配置与本地同步状态
+7. 创建 `SyncService`
+8. 初始化本地通知和 `MessageService`
+9. 启动囤货助手与胡闹厨房的提醒检查
+10. 构建 `MyApp` 并注入全局 Provider
 
-- 同步服务端默认实现未内置认证授权（依赖客户端 `customHeaders`，但服务端未校验）：若部署到公网需补齐鉴权/限流/审计。
-- 本地 SQLite 未做加密：威胁模型若包含“本机失窃/越狱”，需评估数据库加密或系统安全存储。
-- `PrefsSecretStore` 仅为“避免明文”，不等同 Keychain/Keystore；更强需求应替换为安全存储插件。
+### 4.2 全局 Provider 结构
 
-## 6. 性能设计（优化点与瓶颈）
+当前 `MultiProvider` 注入的核心对象包括：
 
-### 6.1 已有优化点
+- `SettingsService`
+- `AiConfigService`
+- `AiCallHistoryService`
+- `ObjStoreConfigService`
+- `SyncConfigService`
+- `SyncLocalStateService`
+- `SyncService`
+- `MessageService`
+- `ToastService`
+- `WifiService`
+- `TagService`
+- `AiService`
+- `ObjStoreService`
 
-- **对象存储缓存**：`ObjStoreService` 维护内存缓存 + 磁盘缓存（key 归一化 + sha1 文件名）
-- **图片压缩**：上传前对常见图片格式做压缩（移动端），降低上传带宽与存储成本
-- **减少无效写库**：`MessageService.upsertMessage` 对 dedupeKey 做“内容未变则不写库/不推送”
-- **启动任务延迟**：`StartupWrapper` 自动同步延迟 1 秒，减少与启动期竞争资源
+这说明项目的壳层不是以单一状态树驱动，而是以一组相互独立、职责明确的服务对象为中心。
 
-### 6.2 主要性能瓶颈（需在时序图中关注）
+### 4.3 启动后任务
 
-- **全量快照导出**：同步/备份每次导出所有工具数据（数据量大时 CPU/IO 压力显著）
-- **网络超时**：AI、同步、对象存储下载均依赖网络；弱网会拉长关键路径
-- **导入覆盖**：大批量写库导入时（特别是带事务的覆盖导入）可能造成 UI 卡顿，需要确保在异步/隔离上下文处理
+`StartupWrapper` 在 UI 构建后异步执行一次性任务，当前主要是：
 
-## 7. 关键图与文档索引
+- 按配置决定是否启动自动同步
+- 私网同步模式下先检查 WiFi
+- 自动同步成功或失败时通过 `ToastService` 提示
 
-- 主架构图：`docs/architecture/exports/svg/app_architecture.svg`
-- 公共接口图：`docs/architecture/exports/svg/public_interfaces.svg`
-- 状态/数据流：`docs/architecture/exports/svg/state_data_flow.svg`
-- 同步时序：`docs/architecture/exports/svg/sequences/sync_v2.svg`
-- 启动自动同步时序：`docs/architecture/exports/svg/sequences/startup_auto_sync.svg`
-- AI 调用时序：`docs/architecture/exports/svg/sequences/ai_chat_text.svg`
-- 对象存储上传/缓存时序：`docs/architecture/exports/svg/sequences/obj_store_upload_and_cache.svg`
-- 备份/还原/分享时序：`docs/architecture/exports/svg/sequences/backup_restore_share.svg`
-- 数据加载示例（WorkLog）：`docs/architecture/exports/svg/sequences/work_log_load_tasks.svg`
+同时，应用恢复到前台时会：
 
-## 8. 现状说明（避免“画出来但代码不存在”）
+- 再次尝试请求高刷新率
+- 清理过期消息
+- 按天触发囤货助手和胡闹厨房提醒检查
 
-- 仓库现状 **未发现传统意义的“登录/支付”业务链路**。同步的 userId 来自客户端配置（`SyncConfig.userId`），不等同账号体系。
-- 联网能力均为可选项：未配置时核心工具仍可离线完整使用（本地 SQLite）。
+## 5. 工具模块架构
+
+`ToolRegistry` 当前注册了 5 个工具：
+
+| toolId | 名称 | 页面入口 | 是否接入同步 |
+| --- | --- | --- | --- |
+| `work_log` | 工作记录 | `WorkLogToolPage` | 是 |
+| `stockpile_assistant` | 囤货助手 | `StockpileToolPage` | 是 |
+| `overcooked_kitchen` | 胡闹厨房 | `OvercookedToolPage` | 是 |
+| `xiao_mi` | 小蜜 | `XiaoMiToolPage` | 否 |
+| `tag_manager` | 标签管理 | `TagManagerToolPage` | 是 |
+
+### 5.1 当前模块模式
+
+支持同步的工具通常包含：
+
+- `pages/`
+- `repository/`
+- `services/`
+- `models/`
+- `sync/`
+
+并通过 `ToolInfo.syncProvider` 接入统一快照体系。
+
+### 5.2 共享而非复制
+
+工具不会重复实现下面这些基础能力：
+
+- 标签体系
+- 消息中心
+- 备份恢复
+- 对象存储
+- AI 配置与调用入口
+- 同步协议接入
+
+这也是当前代码结构最重要的架构约束之一。
+
+## 6. 同步与备份架构
+
+### 6.1 同步快照模型
+
+所有支持同步的工具都通过 `ToolSyncProvider` 导出自己的快照：
+
+- `toolId`
+- `exportData()`
+- `importData(Map<String, dynamic>)`
+
+`SyncService` 在工具快照之外，还会额外注入 `AppConfigSyncProvider`，把应用配置纳入统一同步数据。
+
+这意味着当前“同步的数据范围”已经不只是业务工具，还包括一部分壳层配置。
+
+### 6.2 导出与导入编排
+
+- 导出：`ToolSnapshotExporter.exportAll(...)`
+- 导入顺序：`tool_sync_order.dart`
+- 备份恢复统一入口：`BackupRestoreService`
+
+其中标签管理优先导入，目的是避免其它工具在导入时找不到标签引用。
+
+### 6.3 当前同步协议现状
+
+文档层需要明确一点：当前客户端 `SyncService` 已经只调用 `v2` 接口，不再在客户端侧保留 `v1` 回退逻辑；但后端仍同时暴露 `/sync` 与 `/sync/v2`，用于兼容历史客户端。
+
+当前同步关键步骤：
+
+1. 校验同步配置
+2. 检查本地用户与目标同步用户是否匹配
+3. 执行网络预检
+4. 导出全部工具快照与应用配置快照
+5. 调用 `/sync/v2`
+6. 根据服务端 `decision` 决定是否导入服务端数据
+7. 更新本地 `lastSyncTime`、`serverRevision` 和 `localUserId`
+
+### 6.4 本地用户保护
+
+`SyncLocalStateService` 记录“当前本地数据绑定到哪个 userId”，在自动同步和手动同步时用于阻止错误覆盖。这是目前比“账号登录”更关键的保护机制。
+
+## 7. AI、对象存储与消息中心
+
+### 7.1 AI
+
+当前 AI 架构由三部分组成：
+
+- `AiConfigService`：配置持久化
+- `AiService`：统一调用入口
+- `OpenAiClient`：外部接口适配
+
+AI 能力是可选的，未配置时不影响核心本地功能。
+
+### 7.2 对象存储
+
+`ObjStoreService` 支持三类后端：
+
+- 本地对象存储
+- 七牛云
+- 数据胶囊
+
+当前对象存储架构有两个重点：
+
+- 上传前按类型尝试压缩图片
+- 展示时优先读取内存缓存和磁盘缓存，减少重复下载
+
+### 7.3 消息中心
+
+`MessageService` 连接：
+
+- SQLite 消息仓储
+- 过期清理
+- 去重更新
+- 移动端本地通知
+
+这使得“提醒”不再分散在各工具内部，而是统一落到消息中心。
+
+## 8. 后端与 Dashboard 架构
+
+### 8.1 sync_server 的双重角色
+
+`backend/sync_server` 当前不仅是同步后端，还承担 Dashboard 数据接口。
+
+它提供两类路由：
+
+- 同步相关：`/sync`、`/sync/v2`、`/sync/records`、`/sync/snapshots/{revision}`、`/sync/rollback`
+- Dashboard 相关：`/dashboard/users`、`/dashboard/users/{user_id}`、`/dashboard/users/{user_id}/snapshot`、`/dashboard/users/{user_id}/tools/{tool_id}`
+
+### 8.2 Dashboard 的定位
+
+`dashboard/` 是一个 Next.js 静态面板，主要用途是：
+
+- 浏览用户与快照摘要
+- 查看工具级快照数据
+- 对指定用户或指定工具进行编辑
+
+它不是移动端/桌面端 Flutter 页面的一部分，而是独立部署的管理入口。
+
+## 9. 当前架构优点
+
+- 本地优先模型清晰，工具离线可用
+- 新增工具的接入方式比较统一
+- 跨工具能力没有散落在各业务模块里重复实现
+- 同步、备份、Dashboard 共享同一套快照心智模型
+- 后端实现足够轻，适合自建或本地部署
+
+## 10. 当前架构风险与后续建议
+
+### 10.1 明确存在的风险
+
+- 同步后端默认未内建强认证授权，公网部署需要自行补齐
+- SQLite 默认未加密，本机安全依赖设备环境
+- 工具同步仍是全量快照模式，数据量继续增长后会推高同步和导入成本
+- Dashboard 直接编辑快照数据时，需要持续保持与客户端导入逻辑兼容
+
+### 10.2 建议优先级
+
+建议优先关注：
+
+1. 同步后端的认证、限流、审计
+2. 大快照导入时的性能和失败恢复
+3. Dashboard 修改快照后的兼容校验
+4. 架构图与 `main.dart` 注入结构的持续同步
