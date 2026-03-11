@@ -37,7 +37,7 @@
 ## 模块总览
 
 <p align="center">
-  <img src="docs/readme/module_overview.svg" alt="life_tools module overview" width="100%" />
+  <img src="docs/readme/module_overview.svg" alt="life_tools 模块总览" width="100%" />
 </p>
 
 项目采用“业务工具层 + 共享基础设施层”的组织方式：上层保持每个工具独立演进，下层复用统一的数据库、同步、备份、消息、对象存储与 AI 能力，减少跨模块重复实现。
