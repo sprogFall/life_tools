@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/database/database_helper.dart';
 import 'package:life_tools/core/models/tool_info.dart';
 import 'package:life_tools/core/registry/tool_registry.dart';
+import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -11,9 +15,14 @@ void main() {
       databaseFactory = databaseFactoryFfi;
     });
 
-    setUp(() {
+    setUp(() async {
       // 每次测试前清空注册表并注册默认工具
+      await DatabaseHelper.instance.close();
       ToolRegistry.instance.registerAll();
+    });
+
+    tearDown(() async {
+      await DatabaseHelper.instance.close();
     });
 
     test('应该是单例模式', () {
@@ -72,6 +81,23 @@ void main() {
       expect(tagIndex, ids.length - 1);
       expect(stockIndex, lessThan(tagIndex));
       expect(overcookedIndex, lessThan(tagIndex));
+    });
+
+    test('registerAll 不应在注册阶段触发默认数据库初始化', () async {
+      await DatabaseHelper.instance.close();
+      final dbPath = path.join(await getDatabasesPath(), 'life_tools.db');
+      final dbFile = File(dbPath);
+      if (dbFile.existsSync()) {
+        dbFile.deleteSync();
+      }
+
+      expect(DatabaseHelper.instance.isOpenOrOpening, isFalse);
+
+      ToolRegistry.instance.registerAll();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(DatabaseHelper.instance.isOpenOrOpening, isFalse);
+      expect(dbFile.existsSync(), isFalse);
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import '../models/tool_info.dart';
+import '../sync/interfaces/tool_sync_provider.dart';
 import '../tags/tag_repository.dart';
 import '../tags/tag_sync_provider.dart';
 import '../theme/ios26_theme.dart';
@@ -27,28 +28,18 @@ class ToolRegistry {
   /// 初始化注册所有工具
   void registerAll() {
     _tools.clear();
+    TagRepository? tagRepository;
+    WorkLogRepository? workLogRepository;
+    StockpileRepository? stockpileRepository;
+    OvercookedRepository? overcookedRepository;
 
-    // 创建WorkLog的Repository和SyncProvider
-    // 创建标签管理的 Repository 和 SyncProvider（供全局工具复用）
-    final tagRepository = TagRepository();
-    final tagSyncProvider = TagSyncProvider(repository: tagRepository);
-
-    final workLogRepository = WorkLogRepository();
-    final workLogSyncProvider = WorkLogSyncProvider(
-      repository: workLogRepository,
-      tagRepository: tagRepository,
-    );
-
-    final stockpileRepository = StockpileRepository();
-    final stockpileSyncProvider = StockpileSyncProvider(
-      repository: stockpileRepository,
-      tagRepository: tagRepository,
-    );
-
-    final overcookedRepository = OvercookedRepository();
-    final overcookedSyncProvider = OvercookedSyncProvider(
-      repository: overcookedRepository,
-    );
+    TagRepository getTagRepository() => tagRepository ??= TagRepository();
+    WorkLogRepository getWorkLogRepository() =>
+        workLogRepository ??= WorkLogRepository();
+    StockpileRepository getStockpileRepository() =>
+        stockpileRepository ??= StockpileRepository();
+    OvercookedRepository getOvercookedRepository() =>
+        overcookedRepository ??= OvercookedRepository();
 
     // 注册工作记录工具（支持同步）
     register(
@@ -59,7 +50,13 @@ class ToolRegistry {
         icon: CupertinoIcons.briefcase,
         color: IOS26Theme.toolBlue,
         pageBuilder: () => const WorkLogToolPage(),
-        syncProvider: workLogSyncProvider, // 添加同步支持
+        syncProvider: _LazyToolSyncProvider(
+          toolId: 'work_log',
+          create: () => WorkLogSyncProvider(
+            repository: getWorkLogRepository(),
+            tagRepository: getTagRepository(),
+          ),
+        ),
       ),
     );
 
@@ -72,7 +69,13 @@ class ToolRegistry {
         icon: CupertinoIcons.cube_box,
         color: IOS26Theme.toolGreen,
         pageBuilder: () => const StockpileToolPage(),
-        syncProvider: stockpileSyncProvider,
+        syncProvider: _LazyToolSyncProvider(
+          toolId: 'stockpile_assistant',
+          create: () => StockpileSyncProvider(
+            repository: getStockpileRepository(),
+            tagRepository: getTagRepository(),
+          ),
+        ),
       ),
     );
 
@@ -83,8 +86,13 @@ class ToolRegistry {
         description: '厨房过家家',
         icon: CupertinoIcons.flame,
         color: IOS26Theme.toolOrange,
-        pageBuilder: () => OvercookedToolPage(repository: overcookedRepository),
-        syncProvider: overcookedSyncProvider,
+        pageBuilder: () =>
+            OvercookedToolPage(repository: getOvercookedRepository()),
+        syncProvider: _LazyToolSyncProvider(
+          toolId: 'overcooked_kitchen',
+          create: () =>
+              OvercookedSyncProvider(repository: getOvercookedRepository()),
+        ),
       ),
     );
 
@@ -108,7 +116,10 @@ class ToolRegistry {
         icon: CupertinoIcons.tag,
         color: IOS26Theme.toolPurple,
         pageBuilder: () => const TagManagerToolPage(),
-        syncProvider: tagSyncProvider,
+        syncProvider: _LazyToolSyncProvider(
+          toolId: 'tag_manager',
+          create: () => TagSyncProvider(repository: getTagRepository()),
+        ),
       ),
     );
   }
@@ -126,4 +137,28 @@ class ToolRegistry {
       return null;
     }
   }
+}
+
+class _LazyToolSyncProvider implements ToolSyncProvider {
+  final String _toolId;
+  final ToolSyncProvider Function() _create;
+  ToolSyncProvider? _delegate;
+
+  _LazyToolSyncProvider({
+    required String toolId,
+    required ToolSyncProvider Function() create,
+  }) : _toolId = toolId,
+       _create = create;
+
+  ToolSyncProvider get _provider => _delegate ??= _create();
+
+  @override
+  String get toolId => _toolId;
+
+  @override
+  Future<Map<String, dynamic>> exportData() => _provider.exportData();
+
+  @override
+  Future<void> importData(Map<String, dynamic> data) =>
+      _provider.importData(data);
 }

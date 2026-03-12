@@ -13,6 +13,8 @@ class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
+  bool get isOpenOrOpening => _database != null || _opening != null;
+
   Future<Database> get database async {
     final existing = _database;
     if (existing != null) return existing;
