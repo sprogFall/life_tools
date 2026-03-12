@@ -124,6 +124,7 @@ git push origin main
 
 - **Java**: Temurin JDK 17
 - **Flutter**: 稳定版通道
+- **GitHub Actions**: `actions/checkout@v6`、`actions/setup-java@v5`、`actions/cache@v5`、`actions/upload-artifact@v6`，已对齐 Node 24 运行时
 
 ## 故障排查
 
@@ -153,3 +154,4 @@ git push origin main
 - dev 分支的每次推送都会触发构建，请确保代码可编译
 - release 构建需要确保代码经过充分测试
 - APK artifacts 保留 30 天后自动删除
+- 若未来改用自建 runner，需要同步确认 runner 版本满足这些 action 对 Node 24 的最低要求
