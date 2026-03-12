@@ -73,6 +73,19 @@ class XiaoMiRepository {
     );
   }
 
+  Future<int> deleteConversations(Iterable<int> conversationIds) async {
+    final ids = conversationIds.toSet();
+    if (ids.isEmpty) return 0;
+
+    final db = await _database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    return db.delete(
+      'xiao_mi_conversations',
+      where: 'id IN ($placeholders)',
+      whereArgs: ids.toList(growable: false),
+    );
+  }
+
   Future<int> addMessage(XiaoMiMessage message) async {
     final db = await _database;
     return db.transaction((txn) async {

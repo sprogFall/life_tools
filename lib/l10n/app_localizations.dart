@@ -418,6 +418,24 @@ abstract class AppLocalizations {
   /// **'This will remove all messages in this conversation.'**
   String get xiao_mi_conversation_delete_content;
 
+  /// No description provided for @xiao_mi_conversation_selected_count.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} conversations selected'**
+  String xiao_mi_conversation_selected_count(int count);
+
+  /// No description provided for @xiao_mi_conversation_delete_selected_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected conversations?'**
+  String get xiao_mi_conversation_delete_selected_title;
+
+  /// No description provided for @xiao_mi_conversation_delete_selected_content.
+  ///
+  /// In en, this message translates to:
+  /// **'You selected {count} conversations. All messages in them will also be removed.'**
+  String xiao_mi_conversation_delete_selected_content(int count);
+
   /// No description provided for @xiao_mi_preset_work_log_year_summary.
   ///
   /// In en, this message translates to:

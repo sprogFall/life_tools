@@ -551,6 +551,67 @@ void main() {
       expect(persisted.length, 1);
       expect(persisted.single.content, 'B');
     });
+
+    test('deleteConversations 应支持批量删除并在当前会话被删时切到剩余会话', () async {
+      final base = DateTime(2026, 1, 1, 8, 0, 0);
+      var now = base;
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final aiService = AiService(
+        configService: configService,
+        client: FakeOpenAiClient(replyText: 'ok'),
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+        ),
+      );
+      await service.init();
+      final firstConvoId = service.currentConversation!.id!;
+      await repository.updateConversationTitle(
+        conversationId: firstConvoId,
+        title: 'A',
+        now: base,
+      );
+
+      await service.newConversation();
+      final secondConvoId = service.currentConversation!.id!;
+      await repository.updateConversationTitle(
+        conversationId: secondConvoId,
+        title: 'B',
+        now: base.add(const Duration(seconds: 1)),
+      );
+
+      await service.newConversation();
+      final thirdConvoId = service.currentConversation!.id!;
+      await repository.updateConversationTitle(
+        conversationId: thirdConvoId,
+        title: 'C',
+        now: base.add(const Duration(seconds: 2)),
+      );
+
+      await service.openConversation(secondConvoId);
+      expect(service.currentConversation!.id, secondConvoId);
+
+      await service.deleteConversations({firstConvoId, secondConvoId});
+
+      expect(service.conversations.map((item) => item.id).toList(), [
+        thirdConvoId,
+      ]);
+      expect(service.currentConversation, isNotNull);
+      expect(service.currentConversation!.id, thirdConvoId);
+      expect(await repository.getConversation(firstConvoId), isNull);
+      expect(await repository.getConversation(secondConvoId), isNull);
+      expect(await repository.getConversation(thirdConvoId), isNotNull);
+    });
   });
 }
 

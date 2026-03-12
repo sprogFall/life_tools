@@ -89,6 +89,18 @@ void main() {
       expect(source, contains('deleteMessages('));
     });
 
+    test('历史会话面板应支持长按进入多选并批量删除', () {
+      final sheetStart = source.indexOf('class _XiaoMiConversationSheet');
+      final rowStart = source.indexOf('class _ConversationRow');
+      final rowEnd = source.indexOf('  static String _formatTime');
+      final sheetSource = source.substring(sheetStart, rowStart);
+      final rowSource = source.substring(rowStart, rowEnd);
+      expect(sheetSource, contains('_conversationSelectionMode'));
+      expect(sheetSource, contains('_selectedConversationIds'));
+      expect(sheetSource, contains('deleteConversations('));
+      expect(rowSource, contains('onLongPress'));
+    });
+
     test('复制后应仅显示浮窗提示而不是确认弹窗', () {
       expect(source, isNot(contains('AppDialogs.showInfo(')));
       expect(source, contains('context.read<ToastService>().showSuccess'));

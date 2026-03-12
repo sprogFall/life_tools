@@ -61,6 +61,23 @@
   "xiao_mi_conversation_rename_placeholder": "e.g. Yearly summary",
   "xiao_mi_conversation_delete_title": "Delete conversation?",
   "xiao_mi_conversation_delete_content": "This will remove all messages in this conversation.",
+  "xiao_mi_conversation_selected_count": "{count} conversations selected",
+  "@xiao_mi_conversation_selected_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "xiao_mi_conversation_delete_selected_title": "Delete selected conversations?",
+  "xiao_mi_conversation_delete_selected_content": "You selected {count} conversations. All messages in them will also be removed.",
+  "@xiao_mi_conversation_delete_selected_content": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "xiao_mi_preset_work_log_year_summary": "Preset: Yearly work summary",
   "xiao_mi_preset_custom": "Preset: Custom",
   "xiao_mi_message_selected_count": "{count} selected",

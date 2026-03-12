@@ -182,6 +182,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'This will remove all messages in this conversation.';
 
   @override
+  String xiao_mi_conversation_selected_count(int count) {
+    return '$count conversations selected';
+  }
+
+  @override
+  String get xiao_mi_conversation_delete_selected_title =>
+      'Delete selected conversations?';
+
+  @override
+  String xiao_mi_conversation_delete_selected_content(int count) {
+    return 'You selected $count conversations. All messages in them will also be removed.';
+  }
+
+  @override
   String get xiao_mi_preset_work_log_year_summary =>
       'Preset: Yearly work summary';
 
@@ -1281,6 +1295,20 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   @override
   String get xiao_mi_conversation_delete_content =>
       'This will remove all messages in this conversation.';
+
+  @override
+  String xiao_mi_conversation_selected_count(int count) {
+    return '$count conversations selected';
+  }
+
+  @override
+  String get xiao_mi_conversation_delete_selected_title =>
+      'Delete selected conversations?';
+
+  @override
+  String xiao_mi_conversation_delete_selected_content(int count) {
+    return 'You selected $count conversations. All messages in them will also be removed.';
+  }
 
   @override
   String get xiao_mi_preset_work_log_year_summary =>

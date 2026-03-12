@@ -118,6 +118,61 @@ void main() {
       expect(messages, isEmpty);
     });
 
+    test('应支持批量删除会话并级联移除对应消息', () async {
+      final now = DateTime(2026, 1, 1, 8);
+      final firstConvoId = await repository.createConversation(
+        XiaoMiConversation.create(title: 'A', now: now),
+      );
+      final secondConvoId = await repository.createConversation(
+        XiaoMiConversation.create(
+          title: 'B',
+          now: now.add(const Duration(seconds: 1)),
+        ),
+      );
+      final thirdConvoId = await repository.createConversation(
+        XiaoMiConversation.create(
+          title: 'C',
+          now: now.add(const Duration(seconds: 2)),
+        ),
+      );
+      await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: firstConvoId,
+          role: XiaoMiMessageRole.user,
+          content: '会话A消息',
+          createdAt: now.add(const Duration(seconds: 3)),
+        ),
+      );
+      await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: secondConvoId,
+          role: XiaoMiMessageRole.user,
+          content: '会话B消息',
+          createdAt: now.add(const Duration(seconds: 4)),
+        ),
+      );
+      await repository.addMessage(
+        XiaoMiMessage.create(
+          conversationId: thirdConvoId,
+          role: XiaoMiMessageRole.user,
+          content: '会话C消息',
+          createdAt: now.add(const Duration(seconds: 5)),
+        ),
+      );
+
+      final deletedCount = await repository.deleteConversations([
+        firstConvoId,
+        thirdConvoId,
+      ]);
+
+      expect(deletedCount, 2);
+      final conversations = await repository.listConversations();
+      expect(conversations.map((item) => item.id).toList(), [secondConvoId]);
+      expect(await repository.listMessages(firstConvoId), isEmpty);
+      expect(await repository.listMessages(thirdConvoId), isEmpty);
+      expect(await repository.listMessages(secondConvoId), hasLength(1));
+    });
+
     test('应支持按 id 批量删除会话内消息', () async {
       final now = DateTime(2026, 1, 1, 8);
       final convoId = await repository.createConversation(

@@ -173,6 +173,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get xiao_mi_conversation_delete_content => '删除后将同时移除该会话的所有消息。';
 
   @override
+  String xiao_mi_conversation_selected_count(int count) {
+    return '已选择 $count 个会话';
+  }
+
+  @override
+  String get xiao_mi_conversation_delete_selected_title => '删除选中会话？';
+
+  @override
+  String xiao_mi_conversation_delete_selected_content(int count) {
+    return '已选择 $count 个会话，删除后将同时移除这些会话中的所有消息。';
+  }
+
+  @override
   String get xiao_mi_preset_work_log_year_summary => '预选：今年工作总结';
 
   @override
@@ -1231,6 +1244,19 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get xiao_mi_conversation_delete_content => '删除后将同时移除该会话的所有消息。';
+
+  @override
+  String xiao_mi_conversation_selected_count(int count) {
+    return '已选择 $count 个会话';
+  }
+
+  @override
+  String get xiao_mi_conversation_delete_selected_title => '删除选中会话？';
+
+  @override
+  String xiao_mi_conversation_delete_selected_content(int count) {
+    return '已选择 $count 个会话，删除后将同时移除这些会话中的所有消息。';
+  }
 
   @override
   String get xiao_mi_preset_work_log_year_summary => '预选：今年工作总结';

@@ -584,7 +584,7 @@ class _ExportFormatOptionCard extends StatelessWidget {
   }
 }
 
-class _XiaoMiConversationSheet extends StatelessWidget {
+class _XiaoMiConversationSheet extends StatefulWidget {
   static const int newChatSentinel = -1;
 
   final String title;
@@ -594,6 +594,98 @@ class _XiaoMiConversationSheet extends StatelessWidget {
     required this.title,
     required this.newChatText,
   });
+
+  @override
+  State<_XiaoMiConversationSheet> createState() =>
+      _XiaoMiConversationSheetState();
+}
+
+class _XiaoMiConversationSheetState extends State<_XiaoMiConversationSheet> {
+  bool _conversationSelectionMode = false;
+  final Set<int> _selectedConversationIds = <int>{};
+
+  void _onTapConversation(
+    XiaoMiConversation conversation,
+    XiaoMiChatService service,
+  ) {
+    final conversationId = conversation.id;
+    if (conversationId == null) return;
+
+    if (!_conversationSelectionMode) {
+      Navigator.pop(context, conversationId);
+      return;
+    }
+
+    _cleanupStaleConversationSelections(service);
+    setState(() {
+      if (!_selectedConversationIds.add(conversationId)) {
+        _selectedConversationIds.remove(conversationId);
+      }
+      if (_selectedConversationIds.isEmpty) {
+        _conversationSelectionMode = false;
+      }
+    });
+  }
+
+  void _onLongPressConversation(
+    XiaoMiConversation conversation,
+    XiaoMiChatService service,
+  ) {
+    if (service.sending) return;
+    final conversationId = conversation.id;
+    if (conversationId == null) return;
+
+    _cleanupStaleConversationSelections(service);
+    setState(() {
+      _conversationSelectionMode = true;
+      _selectedConversationIds.add(conversationId);
+    });
+  }
+
+  void _cleanupStaleConversationSelections(XiaoMiChatService service) {
+    final availableIds = service.conversations
+        .map((conversation) => conversation.id)
+        .whereType<int>()
+        .toSet();
+    final staleSelected = _selectedConversationIds.difference(availableIds);
+    if (staleSelected.isEmpty) return;
+
+    _selectedConversationIds.removeAll(staleSelected);
+    if (_selectedConversationIds.isEmpty) {
+      _conversationSelectionMode = false;
+    }
+  }
+
+  void _exitConversationSelectionMode() {
+    if (!_conversationSelectionMode && _selectedConversationIds.isEmpty) {
+      return;
+    }
+    setState(() {
+      _conversationSelectionMode = false;
+      _selectedConversationIds.clear();
+    });
+  }
+
+  Future<void> _deleteSelectedConversations(XiaoMiChatService service) async {
+    final selectedCount = _selectedConversationIds.length;
+    if (selectedCount == 0) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await AppDialogs.showConfirm(
+      context,
+      title: l10n.xiao_mi_conversation_delete_selected_title,
+      content: l10n.xiao_mi_conversation_delete_selected_content(selectedCount),
+      cancelText: l10n.common_cancel,
+      confirmText: l10n.common_delete,
+      isDestructive: true,
+    );
+    if (!mounted || !confirmed) return;
+
+    final ids = Set<int>.from(_selectedConversationIds);
+    await service.deleteConversations(ids);
+    if (!mounted) return;
+    _exitConversationSelectionMode();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -630,14 +722,36 @@ class _XiaoMiConversationSheet extends StatelessWidget {
                     const SizedBox(height: IOS26Theme.spacingXs),
                     Consumer<XiaoMiChatService>(
                       builder: (context, service, _) {
+                        _cleanupStaleConversationSelections(service);
                         final canCreateConversation =
                             !service.sending && service.messages.isNotEmpty;
+                        final selectedCount = _selectedConversationIds.length;
+                        if (_conversationSelectionMode) {
+                          return IOS26SheetHeader(
+                            title: AppLocalizations.of(context)!
+                                .xiao_mi_conversation_selected_count(
+                                  selectedCount,
+                                ),
+                            cancelText: AppLocalizations.of(
+                              context,
+                            )!.common_cancel,
+                            doneText: AppLocalizations.of(
+                              context,
+                            )!.common_delete,
+                            onCancel: _exitConversationSelectionMode,
+                            onDone: selectedCount > 0
+                                ? () => _deleteSelectedConversations(service)
+                                : null,
+                          );
+                        }
+                        const newChatSentinel =
+                            _XiaoMiConversationSheet.newChatSentinel;
                         return IOS26SheetHeader(
-                          title: title,
+                          title: widget.title,
                           cancelText: AppLocalizations.of(
                             context,
                           )!.common_close,
-                          doneText: newChatText,
+                          doneText: widget.newChatText,
                           onDone: canCreateConversation
                               ? () => Navigator.pop(context, newChatSentinel)
                               : null,
@@ -681,7 +795,19 @@ class _XiaoMiConversationSheet extends StatelessWidget {
                                       ? 0
                                       : IOS26Theme.spacingSm,
                                 ),
-                                child: _ConversationRow(conversation: convo),
+                                child: _ConversationRow(
+                                  conversation: convo,
+                                  selectionMode: _conversationSelectionMode,
+                                  selectedConversationIds:
+                                      _selectedConversationIds,
+                                  onTap: (conversation) =>
+                                      _onTapConversation(conversation, service),
+                                  onLongPress: (conversation) =>
+                                      _onLongPressConversation(
+                                        conversation,
+                                        service,
+                                      ),
+                                ),
                               );
                             },
                           );
@@ -701,18 +827,35 @@ class _XiaoMiConversationSheet extends StatelessWidget {
 
 class _ConversationRow extends StatelessWidget {
   final XiaoMiConversation conversation;
+  final bool selectionMode;
+  final Set<int> selectedConversationIds;
+  final ValueChanged<XiaoMiConversation> onTap;
+  final ValueChanged<XiaoMiConversation> onLongPress;
 
-  const _ConversationRow({required this.conversation});
+  const _ConversationRow({
+    required this.conversation,
+    required this.selectionMode,
+    required this.selectedConversationIds,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
     final service = context.read<XiaoMiChatService>();
     final l10n = AppLocalizations.of(context)!;
     final currentId = service.currentConversation?.id;
-    final selected = currentId != null && currentId == conversation.id;
-    final title = conversation.title.trim().isEmpty
-        ? l10n.xiao_mi_new_chat
-        : conversation.title.trim();
+    final conversationId = conversation.id;
+    final selectedInSelectionMode =
+        conversationId != null &&
+        selectedConversationIds.contains(conversationId);
+    final selectedInNormalMode =
+        currentId != null && currentId == conversation.id;
+    final selected = selectionMode
+        ? selectedInSelectionMode
+        : selectedInNormalMode;
+    final titleText = conversation.title.trim();
+    final title = titleText.isEmpty ? l10n.xiao_mi_new_chat : titleText;
     final tileBackground = selected
         ? IOS26Theme.primaryColor.withValues(alpha: 0.14)
         : IOS26Theme.surfaceColor.withValues(alpha: 0.72);
@@ -720,81 +863,88 @@ class _ConversationRow extends StatelessWidget {
         ? IOS26Theme.primaryColor.withValues(alpha: 0.34)
         : IOS26Theme.glassBorderColor.withValues(alpha: 0.75);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tileBackground,
-        borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-        border: Border.all(color: tileBorder, width: 0.8),
-      ),
-      child: IOS26Button.plain(
-        padding: EdgeInsets.zero,
-        borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-        onPressed: () => Navigator.pop(context, conversation.id),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            IOS26Theme.spacingMd,
-            IOS26Theme.spacingMd,
-            IOS26Theme.spacingSm,
-            IOS26Theme.spacingMd,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? IOS26Theme.primaryColor.withValues(alpha: 0.18)
-                      : IOS26Theme.surfaceColor.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: () => onLongPress(conversation),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: tileBackground,
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
+          border: Border.all(color: tileBorder, width: 0.8),
+        ),
+        child: IOS26Button.plain(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
+          onPressed: () => onTap(conversation),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              IOS26Theme.spacingMd,
+              IOS26Theme.spacingMd,
+              IOS26Theme.spacingSm,
+              IOS26Theme.spacingMd,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? IOS26Theme.primaryColor.withValues(alpha: 0.18)
+                        : IOS26Theme.surfaceColor.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+                  ),
+                  child: IOS26Icon(
+                    CupertinoIcons.chat_bubble_2_fill,
+                    tone: selected
+                        ? IOS26IconTone.accent
+                        : IOS26IconTone.secondary,
+                    size: 18,
+                  ),
                 ),
-                child: IOS26Icon(
-                  CupertinoIcons.chat_bubble_2_fill,
-                  tone: selected
-                      ? IOS26IconTone.accent
-                      : IOS26IconTone.secondary,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: IOS26Theme.spacingSm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: IOS26Theme.titleSmall.copyWith(
-                        color: IOS26Theme.textPrimary,
+                const SizedBox(width: IOS26Theme.spacingSm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: IOS26Theme.titleSmall.copyWith(
+                          color: IOS26Theme.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: IOS26Theme.spacingXs),
-                    Text(
-                      _formatTime(conversation.updatedAt),
-                      style: IOS26Theme.bodySmall.copyWith(
-                        color: IOS26Theme.textSecondary.withValues(alpha: 0.88),
+                      const SizedBox(height: IOS26Theme.spacingXs),
+                      Text(
+                        _formatTime(conversation.updatedAt),
+                        style: IOS26Theme.bodySmall.copyWith(
+                          color: IOS26Theme.textSecondary.withValues(
+                            alpha: 0.88,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              if (selected) ...[
-                IOS26Icon(
-                  CupertinoIcons.checkmark_circle_fill,
-                  color: IOS26Theme.primaryColor,
-                  size: 18,
-                ),
-                const SizedBox(width: IOS26Theme.spacingXs),
+                if (selected) ...[
+                  IOS26Icon(
+                    CupertinoIcons.checkmark_circle_fill,
+                    color: IOS26Theme.primaryColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: IOS26Theme.spacingXs),
+                ],
+                if (!selectionMode)
+                  IOS26IconButton(
+                    icon: CupertinoIcons.ellipsis,
+                    semanticLabel: l10n.xiao_mi_conversation_more_semantic,
+                    onPressed: () => _openActions(context, conversation),
+                    tone: IOS26IconTone.secondary,
+                    size: 18,
+                  ),
               ],
-              IOS26IconButton(
-                icon: CupertinoIcons.ellipsis,
-                semanticLabel: l10n.xiao_mi_conversation_more_semantic,
-                onPressed: () => _openActions(context, conversation),
-                tone: IOS26IconTone.secondary,
-                size: 18,
-              ),
-            ],
+            ),
           ),
         ),
       ),
