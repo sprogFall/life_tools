@@ -57,9 +57,9 @@ git push origin dev
 
 ### 缓存
 
-- Flutter SDK：`subosito/flutter-action` 内置缓存。
+- Flutter SDK：由 `subosito/flutter-action` 安装，当前关闭其内置缓存，避免间接触发旧版 `actions/cache` 的 Node 20 弃用告警。
 - Gradle：`actions/setup-java` 开启 `cache: gradle`。
-- Pub 包：`actions/cache` 缓存 `~/.pub-cache`。
+- Pub 包：`actions/cache@v5` 缓存 `~/.pub-cache`。
 
 ### 并行校验
 
