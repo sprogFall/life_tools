@@ -260,6 +260,31 @@ def test_dashboard_tool_update_rejects_unknown_time_entry_task_id() -> None:
         assert detail["tool"]["data"]["time_entries"][0]["task_id"] == 1
 
 
+def test_dashboard_tool_update_rejects_empty_time_entry_task_id() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        _seed_work_log_snapshot(client, user_id="u1")
+
+        get_tool_resp = client.get("/dashboard/users/u1/tools/work_log")
+        assert get_tool_resp.status_code == 200
+        tool_payload = get_tool_resp.json()["tool"]
+        tool_payload["data"]["time_entries"][0]["task_id"] = None
+
+        update_resp = client.put(
+            "/dashboard/users/u1/tools/work_log",
+            json={
+                "version": tool_payload["version"],
+                "data": tool_payload["data"],
+                "message": "dashboard 非法空工时归属测试",
+            },
+        )
+        assert update_resp.status_code == 400
+        assert "必须归属到任务后才能保存" in update_resp.json()["message"]
+        assert "空 task_id" in update_resp.json()["message"]
+
+
 def test_dashboard_tool_update_reassign_time_entry_writes_operation_log() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         app = create_app(db_path=f"{tmp}/sync.db")
@@ -350,3 +375,46 @@ def test_dashboard_snapshot_update_reassign_time_entry_writes_operation_log() ->
         assert len(logs) == 1
         assert logs[0]["before_snapshot"]["task_id"] == 1
         assert logs[0]["after_snapshot"]["task_id"] == 2
+
+
+def test_dashboard_work_log_normalizes_task_is_pinned_flag() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        _seed_work_log_snapshot(client, user_id="u1")
+
+        get_tool_resp = client.get("/dashboard/users/u1/tools/work_log")
+        assert get_tool_resp.status_code == 200
+        tool_payload = get_tool_resp.json()["tool"]
+
+        tool_payload["data"]["tasks"][0]["is_pinned"] = True
+        update_resp = client.put(
+            "/dashboard/users/u1/tools/work_log",
+            json={
+                "version": tool_payload["version"],
+                "data": tool_payload["data"],
+                "message": "dashboard 修正 is_pinned 类型",
+            },
+        )
+        assert update_resp.status_code == 200
+
+        detail_resp = client.get("/dashboard/users/u1/tools/work_log")
+        assert detail_resp.status_code == 200
+        tasks = detail_resp.json()["tool"]["data"]["tasks"]
+        assert tasks[0]["is_pinned"] == 1
+        assert type(tasks[0]["is_pinned"]) is int
+
+        snapshot_resp = client.get("/dashboard/users/u1")
+        assert snapshot_resp.status_code == 200
+        tools_data = snapshot_resp.json()["snapshot"]["tools_data"]
+        tools_data["work_log"]["data"]["tasks"][0]["is_pinned"] = False
+
+        update_snapshot_resp = client.put(
+            "/dashboard/users/u1/snapshot",
+            json={"tools_data": tools_data, "message": "dashboard JSON 修正 is_pinned 类型"},
+        )
+        assert update_snapshot_resp.status_code == 200
+        snapshot_tasks = update_snapshot_resp.json()["snapshot"]["tools_data"]["work_log"]["data"]["tasks"]
+        assert snapshot_tasks[0]["is_pinned"] == 0
+        assert type(snapshot_tasks[0]["is_pinned"]) is int

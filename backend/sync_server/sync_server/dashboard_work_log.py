@@ -73,6 +73,9 @@ def _prepare_work_log_data_for_dashboard(
         section_label="time_entries",
     )
 
+    for task in tasks:
+        task["is_pinned"] = _normalize_int_flag(task.get("is_pinned"))
+
     for entry in time_entries:
         _validate_time_entry_task_affiliation(entry, task_map)
 
@@ -86,6 +89,8 @@ def _prepare_work_log_data_for_dashboard(
     )
 
     normalized_data = dict(next_data)
+    normalized_data["tasks"] = tasks
+    normalized_data["time_entries"] = time_entries
     normalized_data["operation_logs"] = [*operation_logs, *audit_logs]
     return normalized_data
 
@@ -151,6 +156,27 @@ def _normalize_optional_numeric(value: Any) -> int | None:
     return int(value)
 
 
+def _normalize_int_flag(value: Any) -> int:
+    """将宽松布尔值归一化为 0/1（避免把 True/False 直接写入快照）。"""
+
+    if value in (None, ""):
+        return 0
+    if isinstance(value, bool):
+        return 1 if value else 0
+
+    try:
+        return 0 if int(value) == 0 else 1
+    except (TypeError, ValueError):
+        pass
+
+    text = str(value).strip().lower()
+    if text in ("true", "yes", "y", "on"):
+        return 1
+    if text in ("false", "no", "n", "off"):
+        return 0
+    return 0
+
+
 def _validate_time_entry_task_affiliation(
     entry: WorkLogRow,
     task_map: Mapping[int, WorkLogRow],
@@ -164,11 +190,19 @@ def _validate_time_entry_task_affiliation(
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=400,
-            detail={"message": f"工时记录“{entry_label}”的 task_id 必须是数字或空值"},
+            detail={"message": f"工时记录“{entry_label}”的 task_id 必须是数字"},
         ) from None
 
     if task_id is None:
-        return
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": (
+                    f"工时记录“{entry_label}”必须归属到任务后才能保存，"
+                    "当前 App 同步不支持空 task_id。"
+                )
+            },
+        )
     if task_id in task_map:
         return
 
@@ -186,7 +220,7 @@ def _validate_time_entry_task_affiliation(
 
 def _build_task_hint(task_map: Mapping[int, WorkLogRow]) -> str:
     if not task_map:
-        return "当前没有可用任务；如需暂不归属，可清空 task_id。"
+        return "当前没有可用任务；请先创建任务后再保存工时记录。"
 
     task_pairs = [
         f"{task_id}={str(task.get('title') or f'任务#{task_id}') }"
@@ -195,7 +229,7 @@ def _build_task_hint(task_map: Mapping[int, WorkLogRow]) -> str:
     preview = "，".join(task_pairs[:8])
     if len(task_pairs) > 8:
         preview = f"{preview} 等 {len(task_pairs)} 个任务"
-    return f"可用任务：{preview}；如需暂不归属，可清空 task_id。"
+    return f"可用任务：{preview}；请改归属到其中一个任务后再保存。"
 
 
 def _build_reassignment_logs(

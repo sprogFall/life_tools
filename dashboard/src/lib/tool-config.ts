@@ -61,7 +61,7 @@ const toolConfigs: Record<string, ToolConfig> = {
         idKey: 'id',
         fields: [
           { key: 'id', label: 'ID', type: 'number' },
-          { key: 'task_id', label: '任务', type: 'number' },
+          { key: 'task_id', label: '任务', type: 'number', defaultValue: null },
           { key: 'work_date', label: '工作日期', type: 'date' },
           { key: 'minutes', label: '工时分钟', type: 'number' },
           { key: 'content', label: '内容', type: 'textarea' },

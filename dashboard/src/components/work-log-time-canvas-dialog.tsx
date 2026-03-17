@@ -404,6 +404,12 @@ export function WorkLogTimeCanvasDialog({
     const entryLabel = getEntryLabel(currentEntry);
     const nextTitle = targetTitle ?? resolveTaskTitle(targetTaskId);
 
+    if (targetTaskId === null) {
+      setStatusMessage(`“${entryLabel}”必须归属到任务后才能保存，不能拖到“${ORPHAN_TASK_TITLE}”`);
+      clearDragState();
+      return false;
+    }
+
     if (currentTaskId === targetTaskId) {
       setStatusMessage(`“${entryLabel}”已经归属在“${nextTitle}”下`);
       clearDragState();
@@ -905,6 +911,7 @@ export function WorkLogTimeCanvasDialog({
             ) : (
               layoutNodes.map((node, index) => {
                 const { group } = node;
+                const canAcceptDrop = !group.isOrphan;
                 const isActiveDropTarget =
                   activeDropTaskId !== null &&
                   ((group.taskId === null && activeDropTaskId === 'orphan') || group.taskId === activeDropTaskId);
@@ -922,10 +929,16 @@ export function WorkLogTimeCanvasDialog({
                       startNodeDrag(event, node);
                     }}
                     onDragOver={(event) => {
+                      if (!canAcceptDrop) {
+                        return;
+                      }
                       event.preventDefault();
                       setActiveDropTaskId(group.taskId ?? 'orphan');
                     }}
                     onDrop={(event) => {
+                      if (!canAcceptDrop) {
+                        return;
+                      }
                       event.preventDefault();
                       handleDrop(group.taskId, group.title);
                     }}
@@ -1089,7 +1102,9 @@ export function WorkLogTimeCanvasDialog({
                             )}
                           >
                             <Move className={cn('h-5 w-5', isLightTheme ? 'text-slate-300' : 'text-slate-600')} />
-                            把工时卡片拖到这里，重新归属到&ldquo;{group.title}&rdquo;。
+                            {group.isOrphan
+                              ? '这里仅展示异常归属记录，不能作为新的归属目标。'
+                              : `把工时卡片拖到这里，重新归属到“${group.title}”。`}
                           </div>
                         ) : (
                           group.entries.map((entry) => {

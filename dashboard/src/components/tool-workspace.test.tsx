@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ToolWorkspace } from '@/components/tool-workspace';
@@ -138,6 +138,43 @@ describe('ToolWorkspace', () => {
 
     expect(screen.getAllByText('整理周报').length).toBeGreaterThan(0);
     expect(screen.getByRole('combobox', { name: '任务' })).toHaveDisplayValue('整理周报');
+  });
+
+  it('支持在记录编辑器内直接提交草稿到后端', async () => {
+    const saveToolAction = vi.fn().mockResolvedValue({ success: true, message: 'ok' });
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={saveToolAction}
+      />,
+    );
+
+    const titleInput = screen.getByRole('textbox', { name: '标题' });
+    fireEvent.change(titleInput, { target: { value: '整理周报（已更新）' } });
+
+    fireEvent.click(screen.getByRole('button', { name: '保存到草稿' }));
+
+    const commitButton = screen.getByRole('button', { name: '提交到后端' });
+    expect(commitButton).toBeEnabled();
+
+    fireEvent.click(commitButton);
+
+    await waitFor(() => {
+      expect(saveToolAction).toHaveBeenCalled();
+    });
+
+    expect(saveToolAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        toolId: 'work_log',
+        version: 1,
+        data: expect.objectContaining({
+          tasks: expect.arrayContaining([expect.objectContaining({ id: 1, title: '整理周报（已更新）' })]),
+        }),
+      }),
+    );
   });
 
   it('对敏感字段使用只读限制，例如主键 id 不允许直接修改', () => {

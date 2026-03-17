@@ -160,7 +160,11 @@ function toInputValue(field: ToolFieldConfig, value: unknown) {
 
 function fromInputValue(field: ToolFieldConfig, value: string | boolean, currentValue?: unknown) {
   if (field.type === 'boolean') {
-    return Boolean(value);
+    const checked = Boolean(value);
+    if (typeof currentValue === 'number' || typeof field.defaultValue === 'number') {
+      return checked ? 1 : 0;
+    }
+    return checked;
   }
   if (typeof value !== 'string') {
     return value;
@@ -390,6 +394,10 @@ interface SectionPanelProps {
   mode: SectionStorageMode;
   items: EditableRow[];
   relationContext: DashboardRelationContext;
+  toolDirty: boolean;
+  toolSavePending: boolean;
+  onCommitItems: (items: EditableRow[]) => void;
+  onSaveToBackend: () => void;
   onChange: (items: EditableRow[]) => void;
 }
 
@@ -401,6 +409,10 @@ function SectionPanel({
   mode,
   items,
   relationContext,
+  toolDirty,
+  toolSavePending,
+  onCommitItems,
+  onSaveToBackend,
   onChange,
 }: SectionPanelProps) {
   const isSingleMode = mode === 'single';
@@ -507,24 +519,60 @@ function SectionPanel({
     }));
   };
 
-  const saveRow = () => {
+  const buildNextItemsFromDraft = () => {
     if (!draftRow) {
-      return;
+      return null;
     }
+    const nextDraft = prepareRowForSave(section, draftRow, items, {
+      forceNewIdentity: editorKey === 'new',
+    });
+    if (editorKey === 'new') {
+      return {
+        nextDraft,
+        nextItems: [...items, nextDraft],
+        nextEditorKey: items.length as EditorKey,
+      };
+    }
+    if (typeof editorKey === 'number') {
+      return {
+        nextDraft,
+        nextItems: items.map((item, index) => (index === editorKey ? nextDraft : item)),
+        nextEditorKey: editorKey,
+      };
+    }
+    return null;
+  };
+
+  const persistDraftLocally = () => {
+    const nextState = buildNextItemsFromDraft();
+    if (!nextState) {
+      return null;
+    }
+    onChange(nextState.nextItems);
+    setEditorKey(nextState.nextEditorKey);
+    setDraftRow(nextState.nextDraft);
+    setError(null);
+    return nextState;
+  };
+
+  const saveRow = () => {
     try {
-      const nextDraft = prepareRowForSave(section, draftRow, items, {
-        forceNewIdentity: editorKey === 'new',
-      });
-      if (editorKey === 'new') {
-        onChange([...items, nextDraft]);
-        setEditorKey(items.length);
-      } else if (typeof editorKey === 'number') {
-        onChange(items.map((item, index) => (index === editorKey ? nextDraft : item)));
-      }
-      setDraftRow(nextDraft);
-      setError(null);
+      persistDraftLocally();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '保存当前记录失败');
+    }
+  };
+
+  const commitRowToBackend = () => {
+    try {
+      const nextState = persistDraftLocally();
+      if (nextState) {
+        onCommitItems(nextState.nextItems);
+        return;
+      }
+      onSaveToBackend();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : '提交到后端失败');
     }
   };
 
@@ -557,6 +605,13 @@ function SectionPanel({
   const showEditorPane = mobilePane === 'editor';
   const showListSection = !collapsedPanes.list;
   const showEditorSection = !collapsedPanes.editor;
+  const currentStoredRow =
+    editorKey === 'new'
+      ? null
+      : typeof editorKey === 'number'
+        ? (items[editorKey] ?? null)
+        : null;
+  const rowDirty = draftRow ? JSON.stringify(currentStoredRow) !== JSON.stringify(draftRow) : false;
   const previewColumnCount = Math.max(previewKeys.length, 1);
   const previewGridStyle = {
     gridTemplateColumns: `repeat(${previewColumnCount}, minmax(0, 1fr))`,
@@ -795,7 +850,9 @@ function SectionPanel({
               <div>
                 <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  {isSingleMode ? '修改当前区块的配置项，最后统一点击顶部“保存到后端”。' : '修改当前区块的单条记录，最后统一点击顶部“保存到后端”。'}
+                  {isSingleMode
+                    ? '可先保存到草稿，再统一保存；也可以直接在这里提交到后端。'
+                    : '可先保存到草稿，再统一保存；也可以直接在这里提交到后端。'}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -857,7 +914,7 @@ function SectionPanel({
                       onChange={(event) =>
                         setDraftRow((current) => ({
                           ...(current ?? {}),
-                          [field.key]: event.target.checked,
+                          [field.key]: fromInputValue(field, event.target.checked, current?.[field.key]),
                         }))
                       }
                     />
@@ -868,6 +925,8 @@ function SectionPanel({
               }
 
               if (editorMeta.kind === 'select') {
+                const disallowEmptySelection =
+                  toolId === 'work_log' && sectionKey === 'time_entries' && field.key === 'task_id';
                 return (
                   <label key={field.key} className="block space-y-2 text-sm text-slate-700">
                     {renderFieldHeader(field, isRevealed)}
@@ -883,7 +942,9 @@ function SectionPanel({
                       }
                       className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand-400 focus:bg-white"
                     >
-                      <option value="">请选择</option>
+                      <option value="" disabled={disallowEmptySelection}>
+                        请选择
+                      </option>
                       {editorMeta.options.map((option) => (
                         <option key={`${field.key}-${option.value}`} value={String(option.value)}>
                           {option.label}
@@ -981,7 +1042,15 @@ function SectionPanel({
                     onClick={saveRow}
                     className={`${DASHBOARD_PILL_BUTTON_MD} bg-brand-700 text-white hover:bg-brand-800`}
                   >
-                    {isSingleMode ? '保存当前配置' : '保存当前记录'}
+                    保存到草稿
+                  </button>
+                  <button
+                    type="button"
+                    onClick={commitRowToBackend}
+                    disabled={toolSavePending || (!toolDirty && !rowDirty)}
+                    className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
+                  >
+                    {toolSavePending ? '提交中...' : '提交到后端'}
                   </button>
                   {!isSingleMode ? (
                     <>
@@ -1071,17 +1140,19 @@ export function ToolWorkspace({
     ? resolveSectionMode(draftData, activeSection, currentSection)
     : 'list';
 
-  const save = () => {
+  const save = (nextData = draftData) => {
+    const payloadData = cloneData(nextData);
+    setDraftData(payloadData);
     startTransition(async () => {
       const actionResult = await saveToolAction({
         userId,
         toolId: tool.tool_id,
         version: tool.version,
-        data: draftData,
+        data: payloadData,
       });
       setResult(actionResult);
       if (actionResult.success) {
-        setBaselineData(cloneData(draftData));
+        setBaselineData(cloneData(payloadData));
       }
     });
   };
@@ -1116,7 +1187,7 @@ export function ToolWorkspace({
             </button>
             <button
               type="button"
-              onClick={save}
+              onClick={() => save()}
               disabled={!dirty || isPending}
               className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
             >
@@ -1167,6 +1238,13 @@ export function ToolWorkspace({
           mode={currentSectionMode}
           items={getSectionItems(draftData, activeSection, currentSection)}
           relationContext={relationContext}
+          toolDirty={dirty}
+          toolSavePending={isPending}
+          onCommitItems={(items) => {
+            const nextData = writeSectionData(draftData, activeSection, currentSectionMode, items);
+            save(nextData);
+          }}
+          onSaveToBackend={save}
           onChange={(items) =>
             setDraftData((current) => writeSectionData(current, activeSection, currentSectionMode, items))
           }

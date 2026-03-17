@@ -65,6 +65,32 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(within(dialog).getByText('已撤销“补录会议纪要”的归属调整，恢复到“整理周报”')).toBeInTheDocument();
   });
 
+  it('未归属节点只用于展示异常数据，不能作为新的拖拽目标', () => {
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const sourceGroup = within(dialog).getByRole('group', { name: '工时画布节点 整理周报' });
+    const orphanGroup = within(dialog).getByRole('group', { name: '工时画布节点 未归属 / 异常归属' });
+    const entryCard = within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' });
+
+    expect(within(orphanGroup).getByText('这里仅展示异常归属记录，不能作为新的归属目标。')).toBeInTheDocument();
+
+    fireEvent.dragStart(entryCard);
+    fireEvent.dragOver(orphanGroup);
+    fireEvent.drop(orphanGroup);
+
+    expect(within(sourceGroup).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(within(orphanGroup).queryByText('补录会议纪要')).not.toBeInTheDocument();
+  });
+
 
   it('通过 portal 渲染弹层，并支持全屏切换', () => {
     const { container } = render(
