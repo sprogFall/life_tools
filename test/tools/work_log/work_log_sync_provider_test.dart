@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/core/tags/tag_repository.dart';
@@ -159,5 +161,93 @@ void main() {
 
       await targetDb.close();
     });
+
+    test(
+      '可导入 dashboard 生成的 operation_logs（before/after_snapshot 为对象）',
+      () async {
+        final targetDb = await openDatabase(
+          inMemoryDatabasePath,
+          version: DatabaseSchema.version,
+          onConfigure: DatabaseSchema.onConfigure,
+          onCreate: DatabaseSchema.onCreate,
+          onUpgrade: DatabaseSchema.onUpgrade,
+        );
+        final targetRepo = WorkLogRepository.withDatabase(targetDb);
+        final targetTags = TagRepository.withDatabase(targetDb);
+        final provider = WorkLogSyncProvider(
+          repository: targetRepo,
+          tagRepository: targetTags,
+        );
+
+        await provider.importData({
+          'version': 1,
+          'data': {
+            'tasks': [
+              {
+                'id': 1,
+                'title': '整理周报',
+                'description': '补齐项目进度与风险',
+                'status': 1,
+                'estimated_minutes': 90,
+                'is_pinned': 1,
+                'sort_index': 0,
+                'created_at': 1730000000000,
+                'updated_at': 1730000000100,
+              },
+              {
+                'id': 2,
+                'title': '需求拆分',
+                'description': '按 dashboard 调整后的归属继续处理',
+                'status': 0,
+                'estimated_minutes': 45,
+                'is_pinned': 0,
+                'sort_index': 1,
+                'created_at': 1730000000200,
+                'updated_at': 1730000000300,
+              },
+            ],
+            'time_entries': [
+              {
+                'id': 10,
+                'task_id': 2,
+                'work_date': 1730000000000,
+                'minutes': 60,
+                'content': '产出初稿',
+                'created_at': 1730000000000,
+                'updated_at': 1730000000400,
+              },
+            ],
+            'task_tags': const [],
+            'operation_logs': [
+              {
+                'id': 1,
+                'operation_type': 4,
+                'target_type': 1,
+                'target_id': 10,
+                'target_title': '产出初稿',
+                'before_snapshot': {'task_id': 1, 'task_title': '整理周报'},
+                'after_snapshot': {'task_id': 2, 'task_title': '需求拆分'},
+                'summary': '将工时“产出初稿”从“整理周报”调整到“需求拆分”',
+                'created_at': 1730000000500,
+              },
+            ],
+          },
+        });
+
+        final logs = await targetRepo.listOperationLogs();
+        expect(logs, hasLength(1));
+
+        final log = logs.first;
+        final beforeSnapshot = jsonDecode(log.beforeSnapshot ?? 'null') as Map;
+        final afterSnapshot = jsonDecode(log.afterSnapshot ?? 'null') as Map;
+
+        expect(beforeSnapshot['task_id'], 1);
+        expect(beforeSnapshot['task_title'], '整理周报');
+        expect(afterSnapshot['task_id'], 2);
+        expect(afterSnapshot['task_title'], '需求拆分');
+
+        await targetDb.close();
+      },
+    );
   });
 }

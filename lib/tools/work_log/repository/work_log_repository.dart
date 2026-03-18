@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_helper.dart';
 import '../models/operation_log.dart';
@@ -361,11 +363,34 @@ class WorkLogRepository implements WorkLogRepositoryBase {
 
       // 2. 批量插入服务端操作日志
       for (final logMap in logsData) {
-        await txn.insert('operation_logs', logMap);
+        final normalized = Map<String, dynamic>.from(logMap);
+        normalized['before_snapshot'] = _normalizeSnapshotJsonField(
+          normalized['before_snapshot'],
+        );
+        normalized['after_snapshot'] = _normalizeSnapshotJsonField(
+          normalized['after_snapshot'],
+        );
+        await txn.insert('operation_logs', normalized);
       }
 
       await _trimOperationLogs(txn, retentionLimit);
     });
+  }
+
+  static Object? _normalizeSnapshotJsonField(Object? value) {
+    if (value == null) return null;
+    if (value is String) return value;
+
+    if (value is Map || value is List) {
+      try {
+        return jsonEncode(value);
+      } catch (_) {
+        return value.toString();
+      }
+    }
+
+    // 兜底：确保落库类型稳定（TEXT 列只接受 String/null）。
+    return value.toString();
   }
 
   Future<void> _trimOperationLogs(

@@ -24,7 +24,9 @@ function getApiBaseUrl() {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = init?.method?.toUpperCase() ?? 'GET';
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    cache: method === 'GET' ? (init?.cache ?? 'no-store') : init?.cache,
     ...init,
     headers: {
       'Content-Type': 'application/json',

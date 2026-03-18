@@ -274,4 +274,35 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(handleCommit).not.toHaveBeenCalled();
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('支持直接把画布改动提交到后端，避免只停留在草稿', () => {
+    const handleCommit = vi.fn();
+    const handleCommitToBackend = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={handleClose}
+        onCommit={handleCommit}
+        onCommitToBackend={handleCommitToBackend}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    fireEvent.dragStart(within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' }));
+    fireEvent.dragOver(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
+    fireEvent.drop(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '提交到后端' }));
+
+    expect(handleCommit).not.toHaveBeenCalled();
+    expect(handleCommitToBackend).toHaveBeenCalledTimes(1);
+    expect(handleCommitToBackend).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 2, task_id: 2 })]),
+    );
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });

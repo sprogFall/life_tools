@@ -39,6 +39,8 @@ interface WorkLogTimeCanvasDialogProps {
   items: WorkLogRow[];
   onClose: () => void;
   onCommit: (items: WorkLogRow[]) => void;
+  onCommitToBackend?: (items: WorkLogRow[]) => void;
+  savePending?: boolean;
 }
 
 interface ReassignmentRecord {
@@ -168,6 +170,8 @@ export function WorkLogTimeCanvasDialog({
   items,
   onClose,
   onCommit,
+  onCommitToBackend,
+  savePending = false,
 }: WorkLogTimeCanvasDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const panOriginRef = useRef<PanOrigin | null>(null);
@@ -375,6 +379,19 @@ export function WorkLogTimeCanvasDialog({
   const isLightTheme = canvasTheme === 'light';
   const viewSummary = `缩放 ${Math.round(view.scale * 100)}% · 偏移 X ${Math.round(view.offsetX)} · 偏移 Y ${Math.round(view.offsetY)}`;
 
+  const commitDraftChanges = () => {
+    onCommit(draftItems);
+    onClose();
+  };
+
+  const commitChangesToBackend = () => {
+    if (!onCommitToBackend) {
+      return;
+    }
+    onCommitToBackend(draftItems);
+    onClose();
+  };
+
   const clearDragState = () => {
     setDraggingEntryId(null);
     setActiveDropTaskId(null);
@@ -576,7 +593,7 @@ export function WorkLogTimeCanvasDialog({
                     工时归属整理画布
                   </h3>
                   <p className={cn('mt-2 max-w-3xl text-sm leading-6', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
-                    像白板一样在画布中浏览任务与工时卡片，拖拽即可改归属；只有点击“保存调整”后，当前改动才会写回工作台草稿。
+                    像白板一样在画布中浏览任务与工时卡片，拖拽即可改归属；可先保存到草稿，也可以直接提交到后端。
                   </p>
                 </div>
                 <div className={cn('flex flex-wrap gap-2 text-xs', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
@@ -649,10 +666,7 @@ export function WorkLogTimeCanvasDialog({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    onCommit(draftItems);
-                    onClose();
-                  }}
+                  onClick={commitDraftChanges}
                   disabled={!hasDraftChanges}
                   className={cn(
                     DASHBOARD_PILL_BUTTON_MD,
@@ -662,8 +676,24 @@ export function WorkLogTimeCanvasDialog({
                     'disabled:cursor-not-allowed',
                   )}
                 >
-                  保存调整
+                  保存到草稿
                 </button>
+                {onCommitToBackend ? (
+                  <button
+                    type="button"
+                    onClick={commitChangesToBackend}
+                    disabled={!hasDraftChanges || savePending}
+                    className={cn(
+                      DASHBOARD_PILL_BUTTON_MD,
+                      isLightTheme
+                        ? 'bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400'
+                        : 'bg-white text-slate-950 hover:bg-slate-200 disabled:bg-slate-700 disabled:text-slate-400',
+                      'disabled:cursor-not-allowed',
+                    )}
+                  >
+                    {savePending ? '提交中...' : '提交到后端'}
+                  </button>
+                ) : null}
                 <button
                   ref={closeButtonRef}
                   type="button"
@@ -812,10 +842,7 @@ export function WorkLogTimeCanvasDialog({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onCommit(draftItems);
-                      onClose();
-                    }}
+                    onClick={commitDraftChanges}
                     disabled={!hasDraftChanges}
                     className={cn(
                       DASHBOARD_PILL_BUTTON_SM,
@@ -825,8 +852,24 @@ export function WorkLogTimeCanvasDialog({
                       'disabled:cursor-not-allowed',
                     )}
                   >
-                    保存调整
+                    保存到草稿
                   </button>
+                  {onCommitToBackend ? (
+                    <button
+                      type="button"
+                      onClick={commitChangesToBackend}
+                      disabled={!hasDraftChanges || savePending}
+                      className={cn(
+                        DASHBOARD_PILL_BUTTON_SM,
+                        isLightTheme
+                          ? 'bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400'
+                          : 'bg-white text-slate-950 hover:bg-slate-200 disabled:bg-slate-700 disabled:text-slate-400',
+                        'disabled:cursor-not-allowed',
+                      )}
+                    >
+                      {savePending ? '提交中...' : '提交到后端'}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     aria-label="退出全屏"
@@ -849,7 +892,7 @@ export function WorkLogTimeCanvasDialog({
             <div className={cn('mt-3 flex flex-wrap items-center justify-between gap-3 text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
               <p>{viewSummary}</p>
               <p role="status" aria-live="polite" className="max-w-3xl text-right">
-                {statusMessage || '拖拽工时卡片到目标任务节点，完成后点击右上角“保存调整”生效。'}
+                {statusMessage || '拖拽工时卡片到目标任务节点，完成后点击右上角“保存到草稿”或“提交到后端”生效。'}
               </p>
             </div>
           ) : null}

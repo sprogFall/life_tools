@@ -1095,6 +1095,7 @@ function SectionPanel({
           open={canvasOpen}
           tasks={workLogTasks}
           items={items}
+          savePending={toolSavePending}
           onClose={() => {
             setCanvasOpen(false);
             window.requestAnimationFrame(() => {
@@ -1103,6 +1104,10 @@ function SectionPanel({
           }}
           onCommit={(nextItems) => {
             onChange(nextItems);
+            setError(null);
+          }}
+          onCommitToBackend={(nextItems) => {
+            onCommitItems(nextItems);
             setError(null);
           }}
         />
