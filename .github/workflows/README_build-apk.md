@@ -37,17 +37,12 @@ git push origin dev
 - `lib/**`
 - `test/**`
 - `android/**`
-- `ios/**`
-- `macos/**`
-- `windows/**`
-- `linux/**`
-- `web/**`
 - `assets/**`
 - `pubspec.yaml` / `pubspec.lock`
 - `analysis_options.yaml` / `l10n.yaml`
 - `.github/workflows/build-apk.yml`
 
-因此，`backend/**`、`docs/**`、`examples/**`、Markdown-only 等改动不会触发 APK 构建。
+因此，`backend/**`、`dashboard/**`、`docs/**`、`examples/**`、非 Android 的平台目录、Markdown-only 等改动不会触发 APK 构建。
 
 ## 流水线优化
 
@@ -57,7 +52,7 @@ git push origin dev
 
 ### 缓存
 
-- Flutter SDK：由 `subosito/flutter-action` 安装，当前关闭其内置缓存，避免间接触发旧版 `actions/cache` 的 Node 20 弃用告警。
+- Flutter SDK：由 `subosito/flutter-action` 安装，并开启其内置缓存以减少重复下载。
 - Gradle：`actions/setup-java` 开启 `cache: gradle`。
 - Pub 包：`actions/cache@v5` 缓存 `~/.pub-cache`。
 
@@ -65,7 +60,8 @@ git push origin dev
 
 - 分为 `prepare`、`flutter-analyze`、`flutter-test`、`build-apk` 四个 job。
 - `flutter-test` 采用 2 分片并行执行：`--total-shards 2`。
-- 仅当 analyze 与 test 全部通过后才进入 APK 构建阶段。
+- `build-apk` 会在 `prepare` 完成后与 analyze/test 并行启动，以尽快产出 APK。
+- workflow 最终是否通过，仍由 analyze、test 与 build 共同决定；若校验失败，当前 run 仍会标记失败。
 
 ## 输出产物
 
