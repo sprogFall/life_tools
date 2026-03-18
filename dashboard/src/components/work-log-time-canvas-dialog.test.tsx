@@ -275,7 +275,7 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it('支持直接把画布改动提交到后端，避免只停留在草稿', () => {
+  it('支持直接把画布改动保存，避免停留在多余草稿动作上', () => {
     const handleCommit = vi.fn();
     const handleCommitToBackend = vi.fn();
     const handleClose = vi.fn();
@@ -296,7 +296,8 @@ describe('WorkLogTimeCanvasDialog', () => {
     fireEvent.dragOver(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
     fireEvent.drop(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
 
-    fireEvent.click(within(dialog).getByRole('button', { name: '提交到后端' }));
+    expect(within(dialog).queryByRole('button', { name: '保存到草稿' })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存' }));
 
     expect(handleCommit).not.toHaveBeenCalled();
     expect(handleCommitToBackend).toHaveBeenCalledTimes(1);

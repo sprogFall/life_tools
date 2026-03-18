@@ -131,7 +131,7 @@ describe('ToolWorkspace', () => {
     expect(screen.getByText('共管理 4 条记录')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'tasks (2)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'time_entries (2)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '保存到后端' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '保存' }).length).toBeGreaterThan(0);
 
     const timeEntriesTab = screen.getByRole('button', { name: 'time_entries (2)' });
     fireEvent.click(timeEntriesTab);
@@ -140,7 +140,7 @@ describe('ToolWorkspace', () => {
     expect(screen.getByRole('combobox', { name: '任务' })).toHaveDisplayValue('整理周报');
   });
 
-  it('支持在记录编辑器内直接提交草稿到后端', async () => {
+  it('支持在记录编辑器内直接保存当前修改', async () => {
     const saveToolAction = vi.fn().mockResolvedValue({ success: true, message: 'ok' });
     render(
       <ToolWorkspace
@@ -154,9 +154,9 @@ describe('ToolWorkspace', () => {
     const titleInput = screen.getByRole('textbox', { name: '标题' });
     fireEvent.change(titleInput, { target: { value: '整理周报（已更新）' } });
 
-    fireEvent.click(screen.getByRole('button', { name: '保存到草稿' }));
+    expect(screen.queryByRole('button', { name: '保存到草稿' })).not.toBeInTheDocument();
 
-    const commitButton = screen.getByRole('button', { name: '提交到后端' });
+    const commitButton = screen.getAllByRole('button', { name: '保存' })[1];
     expect(commitButton).toBeEnabled();
 
     fireEvent.click(commitButton);
@@ -237,7 +237,7 @@ describe('ToolWorkspace', () => {
     expect(screen.queryByRole('button', { name: '列表展示' })).not.toBeInTheDocument();
   });
 
-  it('支持在画布模态中拖拽修改工时归属，并通过保存到草稿提交到当前草稿', () => {
+  it('移除画布内保存到草稿按钮，仅保留直白的保存按钮', () => {
     render(
       <ToolWorkspace
         userId="u1"
@@ -265,21 +265,12 @@ describe('ToolWorkspace', () => {
     expect(within(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).queryByText('补录会议纪要')).not.toBeInTheDocument();
     expect(within(dialog).getByText('已将“补录会议纪要”归属到“需求拆分”')).toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByRole('button', { name: '保存到草稿' }));
-
-    expect(screen.queryByRole('dialog', { name: '工时归属整理画布' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '保存到后端' })).toBeEnabled();
-
-    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
-
-    expect(
-      within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('group', {
-        name: '工时画布节点 需求拆分',
-      }),
-    ).toHaveTextContent('补录会议纪要');
+    expect(within(dialog).queryByRole('button', { name: '保存到草稿' })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: '提交到后端' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: '保存' })).toBeEnabled();
   });
 
-  it('支持在画布模态中直接提交到后端，避免刷新后回退到旧数据', async () => {
+  it('支持在画布模态中直接保存，避免刷新后回退到旧数据', async () => {
     const saveToolAction = vi.fn().mockResolvedValue({ success: true, message: 'ok' });
     render(
       <ToolWorkspace
@@ -297,7 +288,7 @@ describe('ToolWorkspace', () => {
     fireEvent.dragStart(within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' }));
     fireEvent.dragOver(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
     fireEvent.drop(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: '提交到后端' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存' }));
 
     await waitFor(() => {
       expect(saveToolAction).toHaveBeenCalledWith(
@@ -336,7 +327,9 @@ describe('ToolWorkspace', () => {
     fireEvent.drop(targetGroup);
     fireEvent.click(within(dialog).getByRole('button', { name: '取消调整' }));
 
-    expect(screen.getByRole('button', { name: '保存到后端' })).toBeDisabled();
+    screen.getAllByRole('button', { name: '保存' }).forEach((button) => {
+      expect(button).toBeDisabled();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
@@ -367,8 +360,7 @@ describe('ToolWorkspace', () => {
     fireEvent.dragStart(within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' }));
     fireEvent.dragOver(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
     fireEvent.drop(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: '保存到草稿' }));
-    fireEvent.click(screen.getByRole('button', { name: '保存到后端' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('工时记录“补录会议纪要”的 task_id=999 未匹配到任务。可用任务：1=整理周报');
   });

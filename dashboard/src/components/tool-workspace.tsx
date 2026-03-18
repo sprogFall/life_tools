@@ -555,12 +555,24 @@ function SectionPanel({
     return nextState;
   };
 
-  const saveRow = () => {
-    try {
-      persistDraftLocally();
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '保存当前记录失败');
+  const syncDraftRow = (nextDraft: EditableRow) => {
+    setDraftRow(nextDraft);
+    if (editorKey === 'new') {
+      onChange([...items, nextDraft]);
+      setEditorKey(items.length);
+      return;
     }
+    if (typeof editorKey === 'number') {
+      onChange(items.map((item, index) => (index === editorKey ? nextDraft : item)));
+    }
+  };
+
+  const updateDraftRow = (updater: (current: EditableRow) => EditableRow) => {
+    if (!draftRow) {
+      return;
+    }
+    syncDraftRow(updater(draftRow));
+    setError(null);
   };
 
   const commitRowToBackend = () => {
@@ -572,7 +584,7 @@ function SectionPanel({
       }
       onSaveToBackend();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '提交到后端失败');
+      setError(saveError instanceof Error ? saveError.message : '保存失败');
     }
   };
 
@@ -850,9 +862,7 @@ function SectionPanel({
               <div>
                 <h3 className="text-lg font-semibold text-ink">{isSingleMode ? '配置编辑器' : '记录编辑器'}</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  {isSingleMode
-                    ? '可先保存到草稿，再统一保存；也可以直接在这里提交到后端。'
-                    : '可先保存到草稿，再统一保存；也可以直接在这里提交到后端。'}
+                  修改会自动保留在当前页面，点击保存即可同步到后端。
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -912,9 +922,9 @@ function SectionPanel({
                       checked={Boolean(value)}
                       disabled={isDisabled}
                       onChange={(event) =>
-                        setDraftRow((current) => ({
-                          ...(current ?? {}),
-                          [field.key]: fromInputValue(field, event.target.checked, current?.[field.key]),
+                        updateDraftRow((current) => ({
+                          ...current,
+                          [field.key]: fromInputValue(field, event.target.checked, current[field.key]),
                         }))
                       }
                     />
@@ -935,8 +945,8 @@ function SectionPanel({
                       value={value === null || value === undefined ? '' : String(value)}
                       disabled={isDisabled}
                       onChange={(event) =>
-                        setDraftRow((current) => ({
-                          ...(current ?? {}),
+                        updateDraftRow((current) => ({
+                          ...current,
                           [field.key]: coerceEditorValue(editorMeta, event.target.value),
                         }))
                       }
@@ -967,19 +977,19 @@ function SectionPanel({
                       disabled={isDisabled}
                       readOnly={!isDisabled && isMasked && !isRevealed}
                       onChange={(event) => {
-                        setDraftRow((current) => {
-                          try {
-                            return {
-                              ...(current ?? {}),
-                              [field.key]: fromInputValue(field, event.target.value, current?.[field.key]),
-                            };
-                          } catch (parseError) {
-                            setError(
-                              compactJsonErrorMessage(parseError, `${field.label} JSON 解析失败`),
-                            );
-                            return current;
-                          }
-                        });
+                        if (!draftRow) {
+                          return;
+                        }
+                        try {
+                          updateDraftRow((current) => ({
+                            ...current,
+                            [field.key]: fromInputValue(field, event.target.value, current[field.key]),
+                          }));
+                        } catch (parseError) {
+                          setError(
+                            compactJsonErrorMessage(parseError, `${field.label} JSON 解析失败`),
+                          );
+                        }
                       }}
                       className="min-h-28 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm outline-none transition focus:border-brand-400 focus:bg-white"
                     />
@@ -1012,9 +1022,9 @@ function SectionPanel({
                     disabled={isDisabled}
                     readOnly={!isDisabled && isMasked && !isRevealed}
                     onChange={(event) =>
-                      setDraftRow((current) => ({
-                        ...(current ?? {}),
-                        [field.key]: fromInputValue(field, event.target.value, current?.[field.key]),
+                      updateDraftRow((current) => ({
+                        ...current,
+                        [field.key]: fromInputValue(field, event.target.value, current[field.key]),
                       }))
                     }
                     className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 outline-none transition focus:border-brand-400 focus:bg-white"
@@ -1039,18 +1049,11 @@ function SectionPanel({
                 <>
                   <button
                     type="button"
-                    onClick={saveRow}
-                    className={`${DASHBOARD_PILL_BUTTON_MD} bg-brand-700 text-white hover:bg-brand-800`}
-                  >
-                    保存到草稿
-                  </button>
-                  <button
-                    type="button"
                     onClick={commitRowToBackend}
                     disabled={toolSavePending || (!toolDirty && !rowDirty)}
                     className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
                   >
-                    {toolSavePending ? '提交中...' : '提交到后端'}
+                    {toolSavePending ? '保存中...' : '保存'}
                   </button>
                   {!isSingleMode ? (
                     <>
@@ -1188,7 +1191,7 @@ export function ToolWorkspace({
               disabled={!dirty || isPending}
               className={`${DASHBOARD_PILL_BUTTON_MD} border border-slate-200 bg-white/80 text-slate-700 hover:border-brand-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              重置草稿
+              放弃修改
             </button>
             <button
               type="button"
@@ -1196,7 +1199,7 @@ export function ToolWorkspace({
               disabled={!dirty || isPending}
               className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
             >
-              {isPending ? '保存中...' : '保存到后端'}
+              {isPending ? '保存中...' : '保存'}
             </button>
           </div>
         </div>

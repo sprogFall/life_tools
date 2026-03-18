@@ -593,7 +593,7 @@ export function WorkLogTimeCanvasDialog({
                     工时归属整理画布
                   </h3>
                   <p className={cn('mt-2 max-w-3xl text-sm leading-6', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
-                    像白板一样在画布中浏览任务与工时卡片，拖拽即可改归属；可先保存到草稿，也可以直接提交到后端。
+                    像白板一样在画布中浏览任务与工时卡片，拖拽即可改归属；调整完成后直接保存即可。
                   </p>
                 </div>
                 <div className={cn('flex flex-wrap gap-2 text-xs', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
@@ -666,8 +666,8 @@ export function WorkLogTimeCanvasDialog({
                 </button>
                 <button
                   type="button"
-                  onClick={commitDraftChanges}
-                  disabled={!hasDraftChanges}
+                  onClick={onCommitToBackend ? commitChangesToBackend : commitDraftChanges}
+                  disabled={!hasDraftChanges || (Boolean(onCommitToBackend) && savePending)}
                   className={cn(
                     DASHBOARD_PILL_BUTTON_MD,
                     isLightTheme
@@ -676,24 +676,8 @@ export function WorkLogTimeCanvasDialog({
                     'disabled:cursor-not-allowed',
                   )}
                 >
-                  保存到草稿
+                  {savePending && onCommitToBackend ? '保存中...' : '保存'}
                 </button>
-                {onCommitToBackend ? (
-                  <button
-                    type="button"
-                    onClick={commitChangesToBackend}
-                    disabled={!hasDraftChanges || savePending}
-                    className={cn(
-                      DASHBOARD_PILL_BUTTON_MD,
-                      isLightTheme
-                        ? 'bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400'
-                        : 'bg-white text-slate-950 hover:bg-slate-200 disabled:bg-slate-700 disabled:text-slate-400',
-                      'disabled:cursor-not-allowed',
-                    )}
-                  >
-                    {savePending ? '提交中...' : '提交到后端'}
-                  </button>
-                ) : null}
                 <button
                   ref={closeButtonRef}
                   type="button"
@@ -842,8 +826,8 @@ export function WorkLogTimeCanvasDialog({
                   </button>
                   <button
                     type="button"
-                    onClick={commitDraftChanges}
-                    disabled={!hasDraftChanges}
+                    onClick={onCommitToBackend ? commitChangesToBackend : commitDraftChanges}
+                    disabled={!hasDraftChanges || (Boolean(onCommitToBackend) && savePending)}
                     className={cn(
                       DASHBOARD_PILL_BUTTON_SM,
                       isLightTheme
@@ -852,24 +836,8 @@ export function WorkLogTimeCanvasDialog({
                       'disabled:cursor-not-allowed',
                     )}
                   >
-                    保存到草稿
+                    {savePending && onCommitToBackend ? '保存中...' : '保存'}
                   </button>
-                  {onCommitToBackend ? (
-                    <button
-                      type="button"
-                      onClick={commitChangesToBackend}
-                      disabled={!hasDraftChanges || savePending}
-                      className={cn(
-                        DASHBOARD_PILL_BUTTON_SM,
-                        isLightTheme
-                          ? 'bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400'
-                          : 'bg-white text-slate-950 hover:bg-slate-200 disabled:bg-slate-700 disabled:text-slate-400',
-                        'disabled:cursor-not-allowed',
-                      )}
-                    >
-                      {savePending ? '提交中...' : '提交到后端'}
-                    </button>
-                  ) : null}
                   <button
                     type="button"
                     aria-label="退出全屏"
@@ -892,7 +860,7 @@ export function WorkLogTimeCanvasDialog({
             <div className={cn('mt-3 flex flex-wrap items-center justify-between gap-3 text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
               <p>{viewSummary}</p>
               <p role="status" aria-live="polite" className="max-w-3xl text-right">
-                {statusMessage || '拖拽工时卡片到目标任务节点，完成后点击右上角“保存到草稿”或“提交到后端”生效。'}
+                {statusMessage || '拖拽工时卡片到目标任务节点，完成后点击右上角“保存”生效。'}
               </p>
             </div>
           ) : null}
