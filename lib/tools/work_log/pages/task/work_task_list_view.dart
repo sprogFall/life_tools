@@ -16,6 +16,7 @@ class WorkTaskListView extends StatefulWidget {
 
 class _WorkTaskListViewState extends State<WorkTaskListView> {
   final ScrollController _scrollController = ScrollController();
+  bool _filtersExpanded = false;
 
   @override
   void initState() {
@@ -53,9 +54,22 @@ class _WorkTaskListViewState extends State<WorkTaskListView> {
 
         return Column(
           children: [
-            _StatusFilterBar(service: service),
-            if (service.availableTags.isNotEmpty)
-              _TagFilterBar(service: service),
+            _TaskFilterHeader(
+              service: service,
+              isExpanded: _filtersExpanded,
+              onTap: () {
+                setState(() {
+                  _filtersExpanded = !_filtersExpanded;
+                });
+              },
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: _filtersExpanded
+                  ? _TaskFilterPanel(service: service)
+                  : const SizedBox.shrink(),
+            ),
             Expanded(
               child: tasks.isEmpty
                   ? Center(
@@ -93,6 +107,119 @@ class _WorkTaskListViewState extends State<WorkTaskListView> {
   }
 }
 
+class _TaskFilterHeader extends StatelessWidget {
+  final WorkLogService service;
+  final bool isExpanded;
+  final VoidCallback onTap;
+
+  const _TaskFilterHeader({
+    required this.service,
+    required this.isExpanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCustomStatusFilters =
+        service.statusFilters.length != 2 ||
+        !service.statusFilters.contains(WorkTaskStatus.todo) ||
+        !service.statusFilters.contains(WorkTaskStatus.doing);
+    final hasTagFilters = service.tagFilters.isNotEmpty;
+    final isHighlighted = isExpanded || hasCustomStatusFilters || hasTagFilters;
+    final backgroundColor = isHighlighted
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.12)
+        : IOS26Theme.surfaceColor.withValues(alpha: 0.72);
+    final borderColor = isHighlighted
+        ? IOS26Theme.primaryColor.withValues(alpha: 0.22)
+        : IOS26Theme.glassBorderColor.withValues(alpha: 0.9);
+    final iconColor = isHighlighted
+        ? IOS26Theme.primaryColor
+        : IOS26Theme.textSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
+          child: IOS26Button.plain(
+            key: const ValueKey('task_filter_toggle_button'),
+            onPressed: onTap,
+            minimumSize: const Size(104, 32),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            borderRadius: BorderRadius.circular(16),
+            foregroundColor: iconColor,
+            child: SizedBox(
+              width: 56,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IOS26Icon(
+                    CupertinoIcons.line_horizontal_3_decrease_circle,
+                    size: 17,
+                    color: iconColor,
+                  ),
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    child: IOS26Icon(
+                      CupertinoIcons.chevron_down,
+                      size: 15,
+                      color: iconColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskFilterPanel extends StatelessWidget {
+  final WorkLogService service;
+
+  const _TaskFilterPanel({required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAffiliations = service.availableTags.any((tag) => tag.id != null);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: IOS26Theme.surfaceColor.withValues(alpha: 0.52),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: IOS26Theme.glassBorderColor.withValues(alpha: 0.72),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _StatusFilterBar(service: service),
+              if (hasAffiliations) ...[
+                const SizedBox(height: 14),
+                _TagFilterBar(service: service),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StatusFilterBar extends StatelessWidget {
   final WorkLogService service;
 
@@ -102,58 +229,56 @@ class _StatusFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentFilters = service.statusFilters;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        children: [
-          Text('状态', style: IOS26Theme.bodySmall),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FilterChip(
-                    label: '待办',
-                    status: WorkTaskStatus.todo,
-                    count: service.getTaskCountByStatus(WorkTaskStatus.todo),
-                    isSelected: currentFilters.contains(WorkTaskStatus.todo),
-                    onTap: () => _toggleStatus(WorkTaskStatus.todo),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: '进行中',
-                    status: WorkTaskStatus.doing,
-                    count: service.getTaskCountByStatus(WorkTaskStatus.doing),
-                    isSelected: currentFilters.contains(WorkTaskStatus.doing),
-                    onTap: () => _toggleStatus(WorkTaskStatus.doing),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: '已完成',
-                    status: WorkTaskStatus.done,
-                    count: service.getTaskCountByStatus(WorkTaskStatus.done),
-                    isSelected: currentFilters.contains(WorkTaskStatus.done),
-                    onTap: () => _toggleStatus(WorkTaskStatus.done),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: '已取消',
-                    status: WorkTaskStatus.canceled,
-                    count: service.getTaskCountByStatus(
-                      WorkTaskStatus.canceled,
-                    ),
-                    isSelected: currentFilters.contains(
-                      WorkTaskStatus.canceled,
-                    ),
-                    onTap: () => _toggleStatus(WorkTaskStatus.canceled),
-                  ),
-                ],
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '状态',
+          style: IOS26Theme.bodySmall.copyWith(
+            color: IOS26Theme.textSecondary,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _FilterChip(
+                label: '待办',
+                status: WorkTaskStatus.todo,
+                count: service.getTaskCountByStatus(WorkTaskStatus.todo),
+                isSelected: currentFilters.contains(WorkTaskStatus.todo),
+                onTap: () => _toggleStatus(WorkTaskStatus.todo),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: '进行中',
+                status: WorkTaskStatus.doing,
+                count: service.getTaskCountByStatus(WorkTaskStatus.doing),
+                isSelected: currentFilters.contains(WorkTaskStatus.doing),
+                onTap: () => _toggleStatus(WorkTaskStatus.doing),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: '已完成',
+                status: WorkTaskStatus.done,
+                count: service.getTaskCountByStatus(WorkTaskStatus.done),
+                isSelected: currentFilters.contains(WorkTaskStatus.done),
+                onTap: () => _toggleStatus(WorkTaskStatus.done),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: '已取消',
+                status: WorkTaskStatus.canceled,
+                count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
+                isSelected: currentFilters.contains(WorkTaskStatus.canceled),
+                onTap: () => _toggleStatus(WorkTaskStatus.canceled),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -263,36 +388,38 @@ class _TagFilterBar extends StatelessWidget {
 
     final selected = service.tagFilters.toSet();
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: Row(
-        children: [
-          Text('归属', style: IOS26Theme.bodySmall),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (int i = 0; i < tags.length; i++) ...[
-                    _TagChip(
-                      label: tags[i].name,
-                      isSelected: selected.contains(tags[i].id),
-                      onTap: () {
-                        final next = {...selected};
-                        final id = tags[i].id!;
-                        if (!next.add(id)) next.remove(id);
-                        service.setTagFilters(next.toList());
-                      },
-                    ),
-                    if (i < tags.length - 1) const SizedBox(width: 8),
-                  ],
-                ],
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '归属',
+          style: IOS26Theme.bodySmall.copyWith(
+            color: IOS26Theme.textSecondary,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (int i = 0; i < tags.length; i++) ...[
+                _TagChip(
+                  label: tags[i].name,
+                  isSelected: selected.contains(tags[i].id),
+                  onTap: () {
+                    final next = {...selected};
+                    final id = tags[i].id!;
+                    if (!next.add(id)) next.remove(id);
+                    service.setTagFilters(next.toList());
+                  },
+                ),
+                if (i < tags.length - 1) const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

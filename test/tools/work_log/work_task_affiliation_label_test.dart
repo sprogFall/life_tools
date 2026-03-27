@@ -73,8 +73,74 @@ void main() {
       );
       await tester.pump();
 
+      await tester.tap(find.byKey(const ValueKey('task_filter_toggle_button')));
+      await tester.pumpAndSettle();
+
       expect(find.text('归属'), findsOneWidget);
       expect(find.text('标签'), findsNothing);
+    });
+
+    testWidgets('筛选面板默认收起，点击后可展开和收起', (tester) async {
+      late Database db;
+      late TagRepository tagRepository;
+      late WorkLogService service;
+
+      await tester.runAsync(() async {
+        db = await openDatabase(
+          inMemoryDatabasePath,
+          version: DatabaseSchema.version,
+          onConfigure: DatabaseSchema.onConfigure,
+          onCreate: DatabaseSchema.onCreate,
+          onUpgrade: DatabaseSchema.onUpgrade,
+        );
+        tagRepository = TagRepository.withDatabase(db);
+        await tagRepository.createTagForToolCategory(
+          name: '项目A',
+          toolId: 'work_log',
+          categoryId: 'affiliation',
+        );
+        service = WorkLogService(
+          repository: FakeWorkLogRepository(),
+          tagRepository: tagRepository,
+        );
+        await service.loadTasks();
+      });
+      addTearDown(() async {
+        await tester.runAsync(() async => db.close());
+      });
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<WorkLogService>.value(
+          value: service,
+          child: const MaterialApp(home: Scaffold(body: WorkTaskListView())),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('task_filter_toggle_button')),
+        findsOneWidget,
+      );
+      expect(find.text('筛选'), findsNothing);
+      final filterButtonSize = tester.getSize(
+        find.byKey(const ValueKey('task_filter_toggle_button')),
+      );
+      expect(filterButtonSize.width, greaterThan(filterButtonSize.height));
+      expect(filterButtonSize.height, lessThanOrEqualTo(36));
+      expect(find.text('状态'), findsNothing);
+      expect(find.text('归属'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('task_filter_toggle_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('状态'), findsOneWidget);
+      expect(find.text('归属'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('task_filter_toggle_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('状态'), findsNothing);
+      expect(find.text('归属'), findsNothing);
     });
   });
 }
