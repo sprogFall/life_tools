@@ -121,12 +121,13 @@ void main() {
         find.byKey(const ValueKey('task_filter_toggle_button')),
         findsOneWidget,
       );
-      expect(find.text('筛选'), findsNothing);
+      expect(find.text('筛选'), findsOneWidget);
       final filterButtonSize = tester.getSize(
         find.byKey(const ValueKey('task_filter_toggle_button')),
       );
-      expect(filterButtonSize.width, greaterThan(filterButtonSize.height));
-      expect(filterButtonSize.height, lessThanOrEqualTo(36));
+      expect(filterButtonSize.width, greaterThan(200));
+      expect(filterButtonSize.width, greaterThan(filterButtonSize.height * 4));
+      expect(filterButtonSize.height, lessThanOrEqualTo(40));
       expect(find.text('状态'), findsNothing);
       expect(find.text('归属'), findsNothing);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/tags/models/tag.dart';
@@ -126,56 +127,43 @@ class _TaskFilterHeader extends StatelessWidget {
         !service.statusFilters.contains(WorkTaskStatus.doing);
     final hasTagFilters = service.tagFilters.isNotEmpty;
     final isHighlighted = isExpanded || hasCustomStatusFilters || hasTagFilters;
-    final backgroundColor = isHighlighted
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.12)
-        : IOS26Theme.surfaceColor.withValues(alpha: 0.72);
-    final borderColor = isHighlighted
-        ? IOS26Theme.primaryColor.withValues(alpha: 0.22)
-        : IOS26Theme.glassBorderColor.withValues(alpha: 0.9);
-    final iconColor = isHighlighted
+    final foregroundColor = isHighlighted
         ? IOS26Theme.primaryColor
         : IOS26Theme.textSecondary;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
-          child: IOS26Button.plain(
-            key: const ValueKey('task_filter_toggle_button'),
-            onPressed: onTap,
-            minimumSize: const Size(104, 32),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            borderRadius: BorderRadius.circular(16),
-            foregroundColor: iconColor,
-            child: SizedBox(
-              width: 56,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IOS26Icon(
-                    CupertinoIcons.line_horizontal_3_decrease_circle,
-                    size: 17,
-                    color: iconColor,
-                  ),
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    child: IOS26Icon(
-                      CupertinoIcons.chevron_down,
-                      size: 15,
-                      color: iconColor,
-                    ),
-                  ),
-                ],
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
+      child: SizedBox(
+        width: double.infinity,
+        child: IOS26Button.plain(
+          key: const ValueKey('task_filter_toggle_button'),
+          onPressed: onTap,
+          minimumSize: const Size(0, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+          borderRadius: BorderRadius.circular(12),
+          foregroundColor: foregroundColor,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Text(
+                '筛选',
+                style: IOS26Theme.bodySmall.copyWith(
+                  color: foregroundColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+              const Spacer(),
+              AnimatedRotation(
+                turns: isExpanded ? 0.5 : 0,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: IOS26Icon(
+                  CupertinoIcons.chevron_down,
+                  size: 16,
+                  color: foregroundColor,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -193,28 +181,43 @@ class _TaskFilterPanel extends StatelessWidget {
     final hasAffiliations = service.availableTags.any((tag) => tag.id != null);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: IOS26Theme.surfaceColor.withValues(alpha: 0.52),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: IOS26Theme.glassBorderColor.withValues(alpha: 0.72),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _StatusFilterBar(service: service),
-              if (hasAffiliations) ...[
-                const SizedBox(height: 14),
-                _TagFilterBar(service: service),
-              ],
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StatusFilterBar(service: service),
+          if (hasAffiliations) ...[
+            const SizedBox(height: 12),
+            _TagFilterBar(service: service),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HorizontalChipList extends StatelessWidget {
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+
+  const _HorizontalChipList({
+    required this.itemCount,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        primary: false,
+        dragStartBehavior: DragStartBehavior.down,
+        physics: const BouncingScrollPhysics(),
+        itemCount: itemCount,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: itemBuilder,
       ),
     );
   }
@@ -228,6 +231,36 @@ class _StatusFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentFilters = service.statusFilters;
+    final chips = [
+      _FilterChip(
+        label: '待办',
+        status: WorkTaskStatus.todo,
+        count: service.getTaskCountByStatus(WorkTaskStatus.todo),
+        isSelected: currentFilters.contains(WorkTaskStatus.todo),
+        onTap: () => _toggleStatus(WorkTaskStatus.todo),
+      ),
+      _FilterChip(
+        label: '进行中',
+        status: WorkTaskStatus.doing,
+        count: service.getTaskCountByStatus(WorkTaskStatus.doing),
+        isSelected: currentFilters.contains(WorkTaskStatus.doing),
+        onTap: () => _toggleStatus(WorkTaskStatus.doing),
+      ),
+      _FilterChip(
+        label: '已完成',
+        status: WorkTaskStatus.done,
+        count: service.getTaskCountByStatus(WorkTaskStatus.done),
+        isSelected: currentFilters.contains(WorkTaskStatus.done),
+        onTap: () => _toggleStatus(WorkTaskStatus.done),
+      ),
+      _FilterChip(
+        label: '已取消',
+        status: WorkTaskStatus.canceled,
+        count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
+        isSelected: currentFilters.contains(WorkTaskStatus.canceled),
+        onTap: () => _toggleStatus(WorkTaskStatus.canceled),
+      ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,44 +272,10 @@ class _StatusFilterBar extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _FilterChip(
-                label: '待办',
-                status: WorkTaskStatus.todo,
-                count: service.getTaskCountByStatus(WorkTaskStatus.todo),
-                isSelected: currentFilters.contains(WorkTaskStatus.todo),
-                onTap: () => _toggleStatus(WorkTaskStatus.todo),
-              ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: '进行中',
-                status: WorkTaskStatus.doing,
-                count: service.getTaskCountByStatus(WorkTaskStatus.doing),
-                isSelected: currentFilters.contains(WorkTaskStatus.doing),
-                onTap: () => _toggleStatus(WorkTaskStatus.doing),
-              ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: '已完成',
-                status: WorkTaskStatus.done,
-                count: service.getTaskCountByStatus(WorkTaskStatus.done),
-                isSelected: currentFilters.contains(WorkTaskStatus.done),
-                onTap: () => _toggleStatus(WorkTaskStatus.done),
-              ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: '已取消',
-                status: WorkTaskStatus.canceled,
-                count: service.getTaskCountByStatus(WorkTaskStatus.canceled),
-                isSelected: currentFilters.contains(WorkTaskStatus.canceled),
-                onTap: () => _toggleStatus(WorkTaskStatus.canceled),
-              ),
-            ],
-          ),
+        const SizedBox(height: 8),
+        _HorizontalChipList(
+          itemCount: chips.length,
+          itemBuilder: (context, index) => chips[index],
         ),
       ],
     );
@@ -311,22 +310,27 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isSelected
+            ? _statusColor(status).withValues(alpha: 0.15)
+            : IOS26Theme.textTertiary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
           color: isSelected
-              ? _statusColor(status).withValues(alpha: 0.15)
-              : IOS26Theme.textTertiary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? _statusColor(status).withValues(alpha: 0.4)
-                : Colors.transparent,
-            width: 1.5,
-          ),
+              ? _statusColor(status).withValues(alpha: 0.4)
+              : Colors.transparent,
+          width: 1.5,
         ),
+      ),
+      child: IOS26Button.plain(
+        onPressed: onTap,
+        minimumSize: const Size(0, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        borderRadius: BorderRadius.circular(12),
+        foregroundColor: isSelected
+            ? _statusColor(status)
+            : IOS26Theme.textSecondary,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -387,6 +391,19 @@ class _TagFilterBar extends StatelessWidget {
     if (tags.isEmpty) return const SizedBox.shrink();
 
     final selected = service.tagFilters.toSet();
+    final chips = [
+      for (int i = 0; i < tags.length; i++)
+        _TagChip(
+          label: tags[i].name,
+          isSelected: selected.contains(tags[i].id),
+          onTap: () {
+            final next = {...selected};
+            final id = tags[i].id!;
+            if (!next.add(id)) next.remove(id);
+            service.setTagFilters(next.toList());
+          },
+        ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,26 +415,10 @@ class _TagFilterBar extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (int i = 0; i < tags.length; i++) ...[
-                _TagChip(
-                  label: tags[i].name,
-                  isSelected: selected.contains(tags[i].id),
-                  onTap: () {
-                    final next = {...selected};
-                    final id = tags[i].id!;
-                    if (!next.add(id)) next.remove(id);
-                    service.setTagFilters(next.toList());
-                  },
-                ),
-                if (i < tags.length - 1) const SizedBox(width: 8),
-              ],
-            ],
-          ),
+        const SizedBox(height: 8),
+        _HorizontalChipList(
+          itemCount: chips.length,
+          itemBuilder: (context, index) => chips[index],
         ),
       ],
     );
@@ -437,22 +438,27 @@ class _TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isSelected
+            ? IOS26Theme.primaryColor.withValues(alpha: 0.15)
+            : IOS26Theme.surfaceColor.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
           color: isSelected
-              ? IOS26Theme.primaryColor.withValues(alpha: 0.15)
-              : IOS26Theme.surfaceColor.withValues(alpha: 0.65),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected
-                ? IOS26Theme.primaryColor.withValues(alpha: 0.35)
-                : IOS26Theme.glassBorderColor,
-            width: 1,
-          ),
+              ? IOS26Theme.primaryColor.withValues(alpha: 0.35)
+              : IOS26Theme.glassBorderColor,
+          width: 1,
         ),
+      ),
+      child: IOS26Button.plain(
+        onPressed: onTap,
+        minimumSize: const Size(0, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        borderRadius: BorderRadius.circular(999),
+        foregroundColor: isSelected
+            ? IOS26Theme.primaryColor
+            : IOS26Theme.textSecondary,
         child: Text(
           label,
           style: IOS26Theme.bodySmall.copyWith(
