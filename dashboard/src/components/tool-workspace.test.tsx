@@ -85,13 +85,19 @@ const detail: DashboardUserDetailResponse = {
             },
           ],
           operation_logs: [],
-          task_tags: [],
+          task_tags: [
+            { task_id: 1, tag_id: 10 },
+            { task_id: 2, tag_id: 11 },
+          ],
         },
       },
       tag_manager: {
         version: 1,
         data: {
-          tags: [{ id: 10, name: '项目A' }],
+          tags: [
+            { id: 10, name: '项目A' },
+            { id: 11, name: '项目B' },
+          ],
           tool_tags: [],
         },
       },
@@ -235,6 +241,37 @@ describe('ToolWorkspace', () => {
     expect(screen.getByRole('button', { name: '打开工时归属画布' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '树状展示' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '列表展示' })).not.toBeInTheDocument();
+  });
+
+  it('画布支持按任务状态和标签筛选任务节点', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
+      target: { value: '1' },
+    });
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 需求拆分' })).not.toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
+      target: { value: 'all' },
+    });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务标签筛选' }), {
+      target: { value: '11' },
+    });
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 整理周报' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
   });
 
   it('移除画布内保存到草稿按钮，仅保留直白的保存按钮', () => {

@@ -439,6 +439,13 @@ function SectionPanel({
         : ([] as EditableRow[]),
     [supportsTreeView, toolData, toolId],
   );
+  const workLogTaskTags = useMemo(
+    () =>
+      supportsTreeView
+        ? getSectionItems(toolData, 'task_tags', getSectionConfig(toolId, 'task_tags'))
+        : ([] as EditableRow[]),
+    [supportsTreeView, toolData, toolId],
+  );
 
   useEffect(() => {
     if (editorKey === 'new') {
@@ -1097,6 +1104,8 @@ function SectionPanel({
         <WorkLogTimeCanvasDialog
           open={canvasOpen}
           tasks={workLogTasks}
+          taskTags={workLogTaskTags}
+          tagNames={relationContext.tagNames}
           items={items}
           savePending={toolSavePending}
           onClose={() => {

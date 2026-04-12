@@ -37,6 +37,8 @@ interface WorkLogTimeCanvasDialogProps {
   open: boolean;
   tasks: WorkLogRow[];
   items: WorkLogRow[];
+  taskTags?: WorkLogRow[];
+  tagNames?: Record<string, string>;
   onClose: () => void;
   onCommit: (items: WorkLogRow[]) => void;
   onCommitToBackend?: (items: WorkLogRow[]) => void;
@@ -131,6 +133,12 @@ const HOVER_PREVIEW_WIDTH = 360;
 const HOVER_PREVIEW_HEIGHT = 240;
 const HOVER_PREVIEW_GAP = 20;
 const HOVER_PREVIEW_VIEWPORT_PADDING = 24;
+const TASK_STATUS_OPTIONS = [
+  { value: '0', label: '待办' },
+  { value: '1', label: '进行中' },
+  { value: '2', label: '已完成' },
+  { value: '3', label: '已取消' },
+] as const;
 
 type CanvasTheme = 'dark' | 'light';
 
@@ -186,6 +194,8 @@ export function WorkLogTimeCanvasDialog({
   open,
   tasks,
   items,
+  taskTags = [],
+  tagNames = {},
   onClose,
   onCommit,
   onCommitToBackend,
@@ -197,6 +207,8 @@ export function WorkLogTimeCanvasDialog({
   const nodeResizeOriginRef = useRef<NodeResizeOrigin | null>(null);
   const hoverPreviewTimerRef = useRef<number | null>(null);
   const [query, setQuery] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedTagId, setSelectedTagId] = useState('all');
   const [draftItems, setDraftItems] = useState<WorkLogRow[]>(items);
   const [draggingEntryId, setDraggingEntryId] = useState<number | null>(null);
   const [activeDropTaskId, setActiveDropTaskId] = useState<number | 'orphan' | null>(null);
@@ -260,6 +272,8 @@ export function WorkLogTimeCanvasDialog({
     }
     setDraftItems(items);
     setQuery('');
+    setSelectedStatus('all');
+    setSelectedTagId('all');
     setDraggingEntryId(null);
     setActiveDropTaskId(null);
     setStatusMessage('');
@@ -378,6 +392,35 @@ export function WorkLogTimeCanvasDialog({
     return mapping;
   }, [tasks]);
 
+  const taskTagIdsByTaskId = useMemo(() => {
+    const mapping = new Map<number, number[]>();
+    taskTags.forEach((row) => {
+      const taskId = toNumericId(row.task_id);
+      const tagId = toNumericId(row.tag_id);
+      if (taskId === null || tagId === null) {
+        return;
+      }
+      const current = mapping.get(taskId) ?? [];
+      if (!current.includes(tagId)) {
+        mapping.set(taskId, [...current, tagId]);
+      }
+    });
+    return mapping;
+  }, [taskTags]);
+
+  const taskTagOptions = useMemo(
+    () =>
+      Array.from(taskTagIdsByTaskId.values())
+        .flat()
+        .filter((tagId, index, values) => values.indexOf(tagId) === index)
+        .map((tagId) => ({
+          value: String(tagId),
+          label: tagNames[String(tagId)] ?? `标签#${tagId}`,
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label, 'zh-CN')),
+    [tagNames, taskTagIdsByTaskId],
+  );
+
   const resolveTaskTitle = (taskId: number | null) => {
     if (taskId === null) {
       return ORPHAN_TASK_TITLE;
@@ -387,7 +430,17 @@ export function WorkLogTimeCanvasDialog({
 
   const groups = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    const tree = buildWorkLogTree(tasks, draftItems);
+    const tree = buildWorkLogTree(tasks, draftItems).filter((group) => {
+      if (group.isOrphan) {
+        return selectedStatus === 'all' && selectedTagId === 'all';
+      }
+
+      const statusMatches = selectedStatus === 'all' || String(group.task?.status ?? '') === selectedStatus;
+      const tagMatches = selectedTagId === 'all'
+        || (group.taskId !== null && (taskTagIdsByTaskId.get(group.taskId) ?? []).includes(Number(selectedTagId)));
+
+      return statusMatches && tagMatches;
+    });
 
     if (!keyword) {
       return tree;
@@ -410,7 +463,7 @@ export function WorkLogTimeCanvasDialog({
         } satisfies WorkLogTreeGroup;
       })
       .filter((group): group is WorkLogTreeGroup => group !== null);
-  }, [draftItems, query, tasks]);
+  }, [draftItems, query, selectedStatus, selectedTagId, taskTagIdsByTaskId, tasks]);
 
   const layoutNodes = useMemo<CanvasRenderNode[]>(
     () =>
@@ -816,6 +869,64 @@ export function WorkLogTimeCanvasDialog({
                     isLightTheme ? 'text-slate-900 placeholder:text-slate-400' : 'text-slate-100 placeholder:text-slate-500',
                   )}
                 />
+              </label>
+              <label
+                className={cn(
+                  'flex items-center gap-2 rounded-full px-3 py-2 text-sm',
+                  isLightTheme
+                    ? 'border border-slate-200 bg-slate-50 text-slate-700'
+                    : 'border border-slate-800 bg-slate-900/80 text-slate-300',
+                )}
+              >
+                <span className="text-xs font-medium">状态</span>
+                <select
+                  aria-label="按任务状态筛选"
+                  value={selectedStatus}
+                  onChange={(event) => {
+                    hideHoverPreview();
+                    setSelectedStatus(event.target.value);
+                  }}
+                  className={cn(
+                    'min-w-[112px] bg-transparent text-sm outline-none',
+                    isLightTheme ? 'text-slate-900' : 'text-slate-100',
+                  )}
+                >
+                  <option value="all">全部状态</option>
+                  {TASK_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label
+                className={cn(
+                  'flex items-center gap-2 rounded-full px-3 py-2 text-sm',
+                  isLightTheme
+                    ? 'border border-slate-200 bg-slate-50 text-slate-700'
+                    : 'border border-slate-800 bg-slate-900/80 text-slate-300',
+                )}
+              >
+                <span className="text-xs font-medium">标签</span>
+                <select
+                  aria-label="按任务标签筛选"
+                  value={selectedTagId}
+                  onChange={(event) => {
+                    hideHoverPreview();
+                    setSelectedTagId(event.target.value);
+                  }}
+                  className={cn(
+                    'min-w-[112px] bg-transparent text-sm outline-none',
+                    isLightTheme ? 'text-slate-900' : 'text-slate-100',
+                  )}
+                >
+                  <option value="all">全部标签</option>
+                  {taskTagOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               {!isFullscreen ? (
                 <div

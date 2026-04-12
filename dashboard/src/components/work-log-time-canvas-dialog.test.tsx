@@ -11,9 +11,19 @@ afterEach(() => {
 });
 
 const tasks = [
-  { id: 1, title: '整理周报', estimated_minutes: 60, sort_index: 1, is_pinned: true },
-  { id: 2, title: '需求拆分', estimated_minutes: 90, sort_index: 2, is_pinned: false },
+  { id: 1, title: '整理周报', status: 1, estimated_minutes: 60, sort_index: 1, is_pinned: true },
+  { id: 2, title: '需求拆分', status: 0, estimated_minutes: 90, sort_index: 2, is_pinned: false },
 ];
+
+const taskTags = [
+  { task_id: 1, tag_id: 10 },
+  { task_id: 2, tag_id: 11 },
+];
+
+const tagNames = {
+  10: '项目A',
+  11: '项目B',
+};
 
 const items = [
   {
@@ -131,6 +141,42 @@ describe('WorkLogTimeCanvasDialog', () => {
     fireEvent.mouseLeave(entryCard);
 
     expect(screen.queryByRole('tooltip', { name: '工时详情浮窗 补录会议纪要' })).not.toBeInTheDocument();
+  });
+
+  it('支持按任务状态和标签筛选画布节点', () => {
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        taskTags={taskTags}
+        tagNames={tagNames}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
+      target: { value: '1' },
+    });
+
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 需求拆分' })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 未归属 / 异常归属' })).not.toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
+      target: { value: 'all' },
+    });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务标签筛选' }), {
+      target: { value: '11' },
+    });
+
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 整理周报' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
   });
 
 
