@@ -242,9 +242,12 @@ export function WorkLogTimeCanvasDialog({
   onCommitToBackend,
   savePending = false,
 }: WorkLogTimeCanvasDialogProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterRef = useRef<HTMLDivElement | null>(null);
   const tagFilterRef = useRef<HTMLDivElement | null>(null);
+  const statusFilterPanelRef = useRef<HTMLDivElement | null>(null);
+  const tagFilterPanelRef = useRef<HTMLDivElement | null>(null);
   const panOriginRef = useRef<PanOrigin | null>(null);
   const nodeDragOriginRef = useRef<NodeDragOrigin | null>(null);
   const nodeResizeOriginRef = useRef<NodeResizeOrigin | null>(null);
@@ -316,8 +319,9 @@ export function WorkLogTimeCanvasDialog({
 
     const handleMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      const activeRef = openFilterPanel === 'status' ? statusFilterRef.current : tagFilterRef.current;
-      if (activeRef?.contains(target)) {
+      const activeAnchorRef = openFilterPanel === 'status' ? statusFilterRef.current : tagFilterRef.current;
+      const activePanelRef = openFilterPanel === 'status' ? statusFilterPanelRef.current : tagFilterPanelRef.current;
+      if (activeAnchorRef?.contains(target) || activePanelRef?.contains(target)) {
         return;
       }
       setOpenFilterPanel(null);
@@ -628,6 +632,37 @@ export function WorkLogTimeCanvasDialog({
       top: `${top}px`,
     };
   }, [hoverPreview]);
+  const filterPanelPosition = useMemo(() => {
+    if (openFilterPanel === null || typeof window === 'undefined') {
+      return null;
+    }
+
+    const dialogElement = dialogRef.current;
+    const anchorElement = openFilterPanel === 'status' ? statusFilterRef.current : tagFilterRef.current;
+    if (!dialogElement || !anchorElement) {
+      return null;
+    }
+
+    const dialogRect = dialogElement.getBoundingClientRect();
+    const anchorRect = anchorElement.getBoundingClientRect();
+    const panelWidth = openFilterPanel === 'status' ? 280 : 300;
+    const panelHeight = 320;
+    const padding = 24;
+    const left = Math.min(
+      Math.max(anchorRect.left - dialogRect.left, padding),
+      Math.max(padding, dialogRect.width - panelWidth - padding),
+    );
+    const top = Math.min(
+      anchorRect.bottom - dialogRect.top + 12,
+      Math.max(padding, dialogRect.height - panelHeight - padding),
+    );
+
+    return {
+      left: `${Math.round(left)}px`,
+      top: `${Math.round(top)}px`,
+      width: `${panelWidth}px`,
+    };
+  }, [isFullscreen, openFilterPanel, selectedStatuses.length, selectedTagIds.length]);
 
   const toggleFilterPanel = (panel: FilterPanelKind) => {
     hideHoverPreview();
@@ -826,13 +861,14 @@ export function WorkLogTimeCanvasDialog({
       )}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="工时归属整理画布"
         data-fullscreen={isFullscreen ? 'true' : 'false'}
         data-theme={canvasTheme}
         className={cn(
-          'flex min-h-0 w-full flex-col overflow-hidden shadow-[0_40px_120px_rgba(2,6,23,0.22)] transition-colors',
+          'relative flex min-h-0 w-full flex-col overflow-hidden shadow-[0_40px_120px_rgba(2,6,23,0.22)] transition-colors',
           isLightTheme ? 'bg-white text-slate-900' : 'bg-slate-950 text-slate-100',
           isFullscreen
             ? 'h-full max-w-none rounded-none border-0'
@@ -1050,88 +1086,6 @@ export function WorkLogTimeCanvasDialog({
                   <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', openFilterPanel === 'status' ? 'rotate-180' : '')} />
                 </button>
 
-                {openFilterPanel === 'status' ? (
-                  <div
-                    id="canvas-status-filter-panel"
-                    role="group"
-                    aria-label="状态筛选面板"
-                    className={cn(
-                      'absolute left-0 top-[calc(100%+0.75rem)] z-[120] w-[280px] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
-                      isLightTheme
-                        ? 'border-slate-200/90 bg-white/96 text-slate-900'
-                        : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className={cn('text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>状态</p>
-                        <p className={cn('mt-1 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-                          支持多选；不勾选时显示全部状态。
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="清空状态筛选"
-                        disabled={selectedStatuses.length === 0}
-                        onClick={() => setSelectedStatuses([])}
-                        className={cn(
-                          'rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed',
-                          isLightTheme
-                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:bg-slate-100 disabled:text-slate-300'
-                            : 'bg-slate-900 text-slate-300 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
-                        )}
-                      >
-                        清空
-                      </button>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {statusFilterOptions.map((option) => {
-                        const checked = selectedStatuses.includes(option.value);
-                        return (
-                          <label
-                            key={option.value}
-                            className={cn(
-                              'flex cursor-pointer items-center justify-between gap-3 rounded-[1rem] border px-3 py-2 transition',
-                              checked
-                                ? isLightTheme
-                                  ? 'border-emerald-300 bg-emerald-50'
-                                  : 'border-emerald-400/40 bg-emerald-500/10'
-                                : isLightTheme
-                                  ? 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                                  : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-900',
-                            )}
-                          >
-                            <span className="flex items-center gap-3">
-                              <span
-                                className={cn(
-                                  'flex h-5 w-5 items-center justify-center rounded-full border transition',
-                                  checked
-                                    ? isLightTheme
-                                      ? 'border-emerald-500 bg-emerald-500 text-white'
-                                      : 'border-emerald-400 bg-emerald-400 text-slate-950'
-                                    : isLightTheme
-                                      ? 'border-slate-300 bg-white text-transparent'
-                                      : 'border-slate-600 bg-slate-950 text-transparent',
-                                )}
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </span>
-                              <input
-                                type="checkbox"
-                                aria-label={option.label}
-                                className="sr-only"
-                                checked={checked}
-                                onChange={() => toggleStatusFilter(option.value)}
-                              />
-                              <span className="text-sm font-medium">{option.label}</span>
-                            </span>
-                            <span className={cn('text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>{option.count}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
               </div>
 
               <div ref={tagFilterRef} className="relative">
@@ -1173,97 +1127,6 @@ export function WorkLogTimeCanvasDialog({
                   <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', openFilterPanel === 'tag' ? 'rotate-180' : '')} />
                 </button>
 
-                {openFilterPanel === 'tag' ? (
-                  <div
-                    id="canvas-tag-filter-panel"
-                    role="group"
-                    aria-label="标签筛选面板"
-                    className={cn(
-                      'absolute left-0 top-[calc(100%+0.75rem)] z-[120] w-[300px] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
-                      isLightTheme
-                        ? 'border-slate-200/90 bg-white/96 text-slate-900'
-                        : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className={cn('text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>标签</p>
-                        <p className={cn('mt-1 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-                          支持多选；多个标签按并集匹配任务。
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="清空标签筛选"
-                        disabled={selectedTagIds.length === 0}
-                        onClick={() => setSelectedTagIds([])}
-                        className={cn(
-                          'rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed',
-                          isLightTheme
-                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:bg-slate-100 disabled:text-slate-300'
-                            : 'bg-slate-900 text-slate-300 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
-                        )}
-                      >
-                        清空
-                      </button>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {taskTagOptions.length === 0 ? (
-                        <div
-                          className={cn(
-                            'rounded-[1rem] border border-dashed px-3 py-4 text-sm',
-                            isLightTheme ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-800 bg-slate-900/70 text-slate-400',
-                          )}
-                        >
-                          当前任务还没有可用标签。
-                        </div>
-                      ) : taskTagOptions.map((option) => {
-                        const checked = selectedTagIds.includes(option.value);
-                        return (
-                          <label
-                            key={option.value}
-                            className={cn(
-                              'flex cursor-pointer items-center justify-between gap-3 rounded-[1rem] border px-3 py-2 transition',
-                              checked
-                                ? isLightTheme
-                                  ? 'border-blue-300 bg-blue-50'
-                                  : 'border-blue-400/40 bg-blue-500/10'
-                                : isLightTheme
-                                  ? 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                                  : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-900',
-                            )}
-                          >
-                            <span className="flex items-center gap-3">
-                              <span
-                                className={cn(
-                                  'flex h-5 w-5 items-center justify-center rounded-full border transition',
-                                  checked
-                                    ? isLightTheme
-                                      ? 'border-blue-500 bg-blue-500 text-white'
-                                      : 'border-blue-400 bg-blue-400 text-slate-950'
-                                    : isLightTheme
-                                      ? 'border-slate-300 bg-white text-transparent'
-                                      : 'border-slate-600 bg-slate-950 text-transparent',
-                                )}
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </span>
-                              <input
-                                type="checkbox"
-                                aria-label={option.label}
-                                className="sr-only"
-                                checked={checked}
-                                onChange={() => toggleTagFilter(option.value)}
-                              />
-                              <span className="text-sm font-medium">{option.label}</span>
-                            </span>
-                            <span className={cn('text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>{option.count}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
               </div>
 
               {!isFullscreen ? (
@@ -1405,6 +1268,185 @@ export function WorkLogTimeCanvasDialog({
             </div>
           ) : null}
         </div>
+
+        {openFilterPanel === 'status' && filterPanelPosition ? (
+          <div
+            ref={statusFilterPanelRef}
+            id="canvas-status-filter-panel"
+            role="group"
+            aria-label="状态筛选面板"
+            className={cn(
+              'absolute z-[160] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
+              isLightTheme
+                ? 'border-slate-200/90 bg-white/96 text-slate-900'
+                : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
+            )}
+            style={filterPanelPosition}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={cn('text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>状态</p>
+                <p className={cn('mt-1 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                  支持多选；不勾选时显示全部状态。
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="清空状态筛选"
+                disabled={selectedStatuses.length === 0}
+                onClick={() => setSelectedStatuses([])}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed',
+                  isLightTheme
+                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:bg-slate-100 disabled:text-slate-300'
+                    : 'bg-slate-900 text-slate-300 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
+                )}
+              >
+                清空
+              </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {statusFilterOptions.map((option) => {
+                const checked = selectedStatuses.includes(option.value);
+                return (
+                  <label
+                    key={option.value}
+                    className={cn(
+                      'flex cursor-pointer items-center justify-between gap-3 rounded-[1rem] border px-3 py-2 transition',
+                      checked
+                        ? isLightTheme
+                          ? 'border-emerald-300 bg-emerald-50'
+                          : 'border-emerald-400/40 bg-emerald-500/10'
+                        : isLightTheme
+                          ? 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                          : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-900',
+                    )}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          'flex h-5 w-5 items-center justify-center rounded-full border transition',
+                          checked
+                            ? isLightTheme
+                              ? 'border-emerald-500 bg-emerald-500 text-white'
+                              : 'border-emerald-400 bg-emerald-400 text-slate-950'
+                            : isLightTheme
+                              ? 'border-slate-300 bg-white text-transparent'
+                              : 'border-slate-600 bg-slate-950 text-transparent',
+                        )}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={option.label}
+                        className="sr-only"
+                        checked={checked}
+                        onChange={() => toggleStatusFilter(option.value)}
+                      />
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </span>
+                    <span className={cn('text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>{option.count}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {openFilterPanel === 'tag' && filterPanelPosition ? (
+          <div
+            ref={tagFilterPanelRef}
+            id="canvas-tag-filter-panel"
+            role="group"
+            aria-label="标签筛选面板"
+            className={cn(
+              'absolute z-[160] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
+              isLightTheme
+                ? 'border-slate-200/90 bg-white/96 text-slate-900'
+                : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
+            )}
+            style={filterPanelPosition}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={cn('text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>标签</p>
+                <p className={cn('mt-1 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                  支持多选；多个标签按并集匹配任务。
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="清空标签筛选"
+                disabled={selectedTagIds.length === 0}
+                onClick={() => setSelectedTagIds([])}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed',
+                  isLightTheme
+                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:bg-slate-100 disabled:text-slate-300'
+                    : 'bg-slate-900 text-slate-300 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
+                )}
+              >
+                清空
+              </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {taskTagOptions.length === 0 ? (
+                <div
+                  className={cn(
+                    'rounded-[1rem] border border-dashed px-3 py-4 text-sm',
+                    isLightTheme ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-800 bg-slate-900/70 text-slate-400',
+                  )}
+                >
+                  当前任务还没有可用标签。
+                </div>
+              ) : taskTagOptions.map((option) => {
+                const checked = selectedTagIds.includes(option.value);
+                return (
+                  <label
+                    key={option.value}
+                    className={cn(
+                      'flex cursor-pointer items-center justify-between gap-3 rounded-[1rem] border px-3 py-2 transition',
+                      checked
+                        ? isLightTheme
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-blue-400/40 bg-blue-500/10'
+                        : isLightTheme
+                          ? 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                          : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-900',
+                    )}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          'flex h-5 w-5 items-center justify-center rounded-full border transition',
+                          checked
+                            ? isLightTheme
+                              ? 'border-blue-500 bg-blue-500 text-white'
+                              : 'border-blue-400 bg-blue-400 text-slate-950'
+                            : isLightTheme
+                              ? 'border-slate-300 bg-white text-transparent'
+                              : 'border-slate-600 bg-slate-950 text-transparent',
+                        )}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={option.label}
+                        className="sr-only"
+                        checked={checked}
+                        onChange={() => toggleTagFilter(option.value)}
+                      />
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </span>
+                    <span className={cn('text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>{option.count}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <div
           aria-label="工时归属画布视口"

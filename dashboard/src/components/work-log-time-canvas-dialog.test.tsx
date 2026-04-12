@@ -288,7 +288,19 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('button', { name: '退出全屏' })).toBeInTheDocument();
     expect(screen.queryByText('沉浸式工时归属整理')).not.toBeInTheDocument();
     expect(screen.queryByText(/像白板一样在画布中浏览任务与工时卡片/)).not.toBeInTheDocument();
-    expect(within(screen.getByRole('dialog', { name: '工时归属整理画布' })).getByRole('textbox', { name: '筛选任务或工时' })).toBeInTheDocument();
+    const fullscreenDialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    expect(within(fullscreenDialog).getByRole('textbox', { name: '筛选任务或工时' })).toBeInTheDocument();
+
+    const toolbar = fullscreenDialog.querySelector('[data-filter-toolbar="true"]');
+    expect(toolbar).not.toBeNull();
+
+    fireEvent.click(within(fullscreenDialog).getByRole('button', { name: '按任务状态筛选' }));
+    const statusPanel = within(fullscreenDialog).getByRole('group', { name: '状态筛选面板' });
+    expect(toolbar?.contains(statusPanel)).toBe(false);
+
+    fireEvent.click(within(statusPanel).getByRole('checkbox', { name: '进行中' }));
+    expect(within(fullscreenDialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
+    expect(within(fullscreenDialog).queryByRole('group', { name: '工时画布节点 需求拆分' })).not.toBeInTheDocument();
   });
 
   it('记忆主题选择，并在重新打开后恢复', async () => {
