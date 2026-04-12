@@ -123,6 +123,8 @@ interface HoverPreviewState {
   taskTagLabels?: string[];
 }
 
+type HoverPreviewPayload = Omit<HoverPreviewState, 'cardRect'>;
+
 type FilterPanelKind = 'status' | 'tag';
 
 const ORPHAN_TASK_TITLE = '未归属 / 异常归属';
@@ -278,7 +280,7 @@ export function WorkLogTimeCanvasDialog({
     setHoverPreview(null);
   };
 
-  const scheduleHoverPreview = (preview: HoverPreviewState, cardElement: HTMLElement) => {
+  const scheduleHoverPreview = (preview: HoverPreviewPayload, cardElement: HTMLElement) => {
     if (draggingEntryId !== null || nodeDragOriginRef.current || nodeResizeOriginRef.current || isPanning) {
       return;
     }
