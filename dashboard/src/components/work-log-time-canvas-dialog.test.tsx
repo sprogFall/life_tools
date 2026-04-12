@@ -1,11 +1,12 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
 
 afterEach(() => {
   window.localStorage.clear();
+  vi.useRealTimers();
   cleanup();
 });
 
@@ -89,6 +90,44 @@ describe('WorkLogTimeCanvasDialog', () => {
 
     expect(within(sourceGroup).getByText('补录会议纪要')).toBeInTheDocument();
     expect(within(orphanGroup).queryByText('补录会议纪要')).not.toBeInTheDocument();
+  });
+
+  it('工时卡片悬浮 0.5 秒后显示详情浮窗，移出后隐藏', () => {
+    vi.useFakeTimers();
+
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={tasks}
+        items={items}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const entryCard = within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' });
+
+    fireEvent.mouseEnter(entryCard);
+
+    act(() => {
+      vi.advanceTimersByTime(499);
+    });
+    expect(screen.queryByRole('tooltip', { name: '工时详情浮窗 补录会议纪要' })).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    const tooltip = screen.getByRole('tooltip', { name: '工时详情浮窗 补录会议纪要' });
+    expect(within(tooltip).getByText('工时详情')).toBeInTheDocument();
+    expect(within(tooltip).getAllByText('补录会议纪要')).toHaveLength(2);
+    expect(within(tooltip).getByText(/任务：整理周报/)).toBeInTheDocument();
+    expect(within(tooltip).getByText('30 分钟')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(entryCard);
+
+    expect(screen.queryByRole('tooltip', { name: '工时详情浮窗 补录会议纪要' })).not.toBeInTheDocument();
   });
 
 

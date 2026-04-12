@@ -101,6 +101,20 @@ interface CanvasRenderNode extends CanvasLayoutNode {
   scaledHeight: number;
 }
 
+interface HoverPreviewRect {
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
+
+interface HoverPreviewState {
+  entry: WorkLogRow;
+  entryLabel: string;
+  taskTitle: string;
+  cardRect: HoverPreviewRect;
+}
+
 const ORPHAN_TASK_TITLE = '未归属 / 异常归属';
 const DEFAULT_VIEW: CanvasViewState = {
   scale: 1,
@@ -113,6 +127,11 @@ const SCALE_STEP = 0.1;
 const MIN_NODE_SCALE = 0.85;
 const MAX_NODE_SCALE = 1.6;
 const CANVAS_THEME_STORAGE_KEY = 'dashboard.work-log-canvas-theme';
+const HOVER_PREVIEW_DELAY_MS = 500;
+const HOVER_PREVIEW_WIDTH = 360;
+const HOVER_PREVIEW_HEIGHT = 320;
+const HOVER_PREVIEW_GAP = 20;
+const HOVER_PREVIEW_VIEWPORT_PADDING = 24;
 
 type CanvasTheme = 'dark' | 'light';
 
@@ -177,6 +196,7 @@ export function WorkLogTimeCanvasDialog({
   const panOriginRef = useRef<PanOrigin | null>(null);
   const nodeDragOriginRef = useRef<NodeDragOrigin | null>(null);
   const nodeResizeOriginRef = useRef<NodeResizeOrigin | null>(null);
+  const hoverPreviewTimerRef = useRef<number | null>(null);
   const [query, setQuery] = useState('');
   const [draftItems, setDraftItems] = useState<WorkLogRow[]>(items);
   const [draggingEntryId, setDraggingEntryId] = useState<number | null>(null);
@@ -189,6 +209,43 @@ export function WorkLogTimeCanvasDialog({
   const [isPanning, setIsPanning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>(getStoredCanvasTheme);
+  const [hoverPreview, setHoverPreview] = useState<HoverPreviewState | null>(null);
+
+  const clearHoverPreviewTimer = () => {
+    if (hoverPreviewTimerRef.current === null) {
+      return;
+    }
+    window.clearTimeout(hoverPreviewTimerRef.current);
+    hoverPreviewTimerRef.current = null;
+  };
+
+  const hideHoverPreview = () => {
+    clearHoverPreviewTimer();
+    setHoverPreview(null);
+  };
+
+  const scheduleHoverPreview = (entry: WorkLogRow, taskTitle: string, cardElement: HTMLDivElement) => {
+    if (draggingEntryId !== null || nodeDragOriginRef.current || nodeResizeOriginRef.current || isPanning) {
+      return;
+    }
+
+    hideHoverPreview();
+    hoverPreviewTimerRef.current = window.setTimeout(() => {
+      const rect = cardElement.getBoundingClientRect();
+      setHoverPreview({
+        entry,
+        entryLabel: getEntryLabel(entry),
+        taskTitle,
+        cardRect: {
+          top: rect.top,
+          left: rect.left,
+          right: rect.right,
+          bottom: rect.bottom,
+        },
+      });
+      hoverPreviewTimerRef.current = null;
+    }, HOVER_PREVIEW_DELAY_MS);
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -200,6 +257,7 @@ export function WorkLogTimeCanvasDialog({
 
   useEffect(() => {
     if (!open) {
+      hideHoverPreview();
       return;
     }
     setDraftItems(items);
@@ -212,10 +270,15 @@ export function WorkLogTimeCanvasDialog({
     setNodePositions({});
     setNodeScales({});
     setIsPanning(false);
+    setHoverPreview(null);
     panOriginRef.current = null;
     nodeDragOriginRef.current = null;
     nodeResizeOriginRef.current = null;
   }, [items, open]);
+
+  useEffect(() => () => {
+    clearHoverPreviewTimer();
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -378,6 +441,30 @@ export function WorkLogTimeCanvasDialog({
   const hasDraftChanges = JSON.stringify(items) !== JSON.stringify(draftItems);
   const isLightTheme = canvasTheme === 'light';
   const viewSummary = `缩放 ${Math.round(view.scale * 100)}% · 偏移 X ${Math.round(view.offsetX)} · 偏移 Y ${Math.round(view.offsetY)}`;
+  const hoverPreviewPosition = useMemo(() => {
+    if (!hoverPreview || typeof window === 'undefined') {
+      return null;
+    }
+
+    const maxLeft = window.innerWidth - HOVER_PREVIEW_WIDTH - HOVER_PREVIEW_VIEWPORT_PADDING;
+    const preferredRight = hoverPreview.cardRect.right + HOVER_PREVIEW_GAP;
+    const preferredLeft = hoverPreview.cardRect.left - HOVER_PREVIEW_WIDTH - HOVER_PREVIEW_GAP;
+    const left = preferredRight <= maxLeft
+      ? preferredRight
+      : Math.max(HOVER_PREVIEW_VIEWPORT_PADDING, Math.min(preferredLeft, maxLeft));
+    const top = Math.max(
+      HOVER_PREVIEW_VIEWPORT_PADDING,
+      Math.min(
+        hoverPreview.cardRect.top - 12,
+        window.innerHeight - HOVER_PREVIEW_HEIGHT - HOVER_PREVIEW_VIEWPORT_PADDING,
+      ),
+    );
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+    };
+  }, [hoverPreview]);
 
   const commitDraftChanges = () => {
     onCommit(draftItems);
@@ -393,6 +480,7 @@ export function WorkLogTimeCanvasDialog({
   };
 
   const clearDragState = () => {
+    hideHoverPreview();
     setDraggingEntryId(null);
     setActiveDropTaskId(null);
   };
@@ -479,6 +567,7 @@ export function WorkLogTimeCanvasDialog({
   };
 
   const zoomIn = () => {
+    hideHoverPreview();
     setView((current) => ({
       ...current,
       scale: clampScale(current.scale + SCALE_STEP),
@@ -486,6 +575,7 @@ export function WorkLogTimeCanvasDialog({
   };
 
   const zoomOut = () => {
+    hideHoverPreview();
     setView((current) => ({
       ...current,
       scale: clampScale(current.scale - SCALE_STEP),
@@ -493,6 +583,7 @@ export function WorkLogTimeCanvasDialog({
   };
 
   const resetView = () => {
+    hideHoverPreview();
     setView(DEFAULT_VIEW);
     setIsPanning(false);
     panOriginRef.current = null;
@@ -501,6 +592,7 @@ export function WorkLogTimeCanvasDialog({
   const startNodeDrag = (event: ReactMouseEvent<HTMLElement>, node: CanvasLayoutNode) => {
     event.preventDefault();
     event.stopPropagation();
+    hideHoverPreview();
     panOriginRef.current = null;
     nodeResizeOriginRef.current = null;
     setIsPanning(false);
@@ -517,6 +609,7 @@ export function WorkLogTimeCanvasDialog({
   const startNodeResize = (event: ReactMouseEvent<HTMLButtonElement>, node: CanvasRenderNode) => {
     event.preventDefault();
     event.stopPropagation();
+    hideHoverPreview();
     panOriginRef.current = null;
     nodeDragOriginRef.current = null;
     setIsPanning(false);
@@ -876,6 +969,7 @@ export function WorkLogTimeCanvasDialog({
             if (target.closest('[data-canvas-card="true"]') || target.closest('[data-ignore-pan="true"]')) {
               return;
             }
+            hideHoverPreview();
             panOriginRef.current = {
               startX: event.clientX,
               startY: event.clientY,
@@ -1131,6 +1225,14 @@ export function WorkLogTimeCanvasDialog({
                                 tabIndex={0}
                                 draggable={entryId !== null}
                                 aria-label={`工时卡片 ${entryLabel}`}
+                                onMouseEnter={(event) => {
+                                  scheduleHoverPreview(entry, group.title, event.currentTarget);
+                                }}
+                                onMouseLeave={hideHoverPreview}
+                                onFocus={(event) => {
+                                  scheduleHoverPreview(entry, group.title, event.currentTarget);
+                                }}
+                                onBlur={hideHoverPreview}
                                 onKeyDown={(event) => {
                                   if (event.key === 'Escape') {
                                     clearDragState();
@@ -1140,6 +1242,7 @@ export function WorkLogTimeCanvasDialog({
                                   if (entryId === null) {
                                     return;
                                   }
+                                  hideHoverPreview();
                                   setDraggingEntryId(entryId);
                                   setStatusMessage(`正在拖拽“${entryLabel}”`);
                                   event.dataTransfer?.setData('text/plain', String(entryId));
@@ -1227,6 +1330,103 @@ export function WorkLogTimeCanvasDialog({
           </div>
         </div>
       </div>
+      {hoverPreview && hoverPreviewPosition ? (
+        <aside
+          role="tooltip"
+          aria-label={`工时详情浮窗 ${hoverPreview.entryLabel}`}
+          className={cn(
+            'pointer-events-none fixed z-[140] w-[360px] max-w-[calc(100vw-48px)] overflow-hidden rounded-[1.75rem] border shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-xl',
+            isLightTheme
+              ? 'border-slate-200/90 bg-white/96 text-slate-900'
+              : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
+          )}
+          style={hoverPreviewPosition}
+        >
+          <div
+            className={cn(
+              'px-5 py-4',
+              isLightTheme
+                ? 'border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),transparent_38%),linear-gradient(135deg,#ffffff,#f8fafc)]'
+                : 'border-b border-slate-800/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.16),transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.94))]',
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.22em]', isLightTheme ? 'text-emerald-600' : 'text-emerald-300')}>
+                  工时详情
+                </p>
+                <h4 className={cn('mt-2 text-base font-semibold leading-6', isLightTheme ? 'text-slate-900' : 'text-white')}>
+                  {hoverPreview.entryLabel}
+                </h4>
+              </div>
+              <div
+                className={cn(
+                  'shrink-0 rounded-full px-3 py-1 text-xs font-medium',
+                  isLightTheme ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/10 text-blue-300',
+                )}
+              >
+                {formatNumber(Number(hoverPreview.entry.minutes ?? 0))} 分钟
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              <span
+                className={cn(
+                  'rounded-full px-3 py-1',
+                  isLightTheme ? 'border border-slate-200 bg-slate-50 text-slate-600' : 'border border-slate-700 bg-slate-900/80 text-slate-300',
+                )}
+              >
+                任务：{hoverPreview.taskTitle}
+              </span>
+              <span
+                className={cn(
+                  'rounded-full px-3 py-1',
+                  isLightTheme ? 'border border-slate-200 bg-slate-50 text-slate-600' : 'border border-slate-700 bg-slate-900/80 text-slate-300',
+                )}
+              >
+                日期：{formatTimestamp(Number(hoverPreview.entry.work_date ?? hoverPreview.entry.created_at ?? Date.now()))}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-4 px-5 py-4">
+            <div>
+              <p className={cn('text-[11px] font-semibold uppercase tracking-[0.2em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                内容全文
+              </p>
+              <p className={cn('mt-2 text-sm leading-6 whitespace-pre-wrap', isLightTheme ? 'text-slate-700' : 'text-slate-200')}>
+                {String(hoverPreview.entry.content ?? hoverPreview.entryLabel)}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div
+                className={cn(
+                  'rounded-2xl px-4 py-3',
+                  isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
+                )}
+              >
+                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                  记录 ID
+                </p>
+                <p className={cn('mt-2 font-medium', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
+                  {String(hoverPreview.entry.id ?? 'unknown')}
+                </p>
+              </div>
+              <div
+                className={cn(
+                  'rounded-2xl px-4 py-3',
+                  isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
+                )}
+              >
+                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                  最近更新时间
+                </p>
+                <p className={cn('mt-2 font-medium leading-5', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
+                  {formatTimestamp(Number(hoverPreview.entry.updated_at ?? hoverPreview.entry.work_date ?? hoverPreview.entry.created_at ?? Date.now()))}
+                </p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      ) : null}
     </div>
   );
 
