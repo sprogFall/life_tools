@@ -11,8 +11,24 @@ afterEach(() => {
 });
 
 const tasks = [
-  { id: 1, title: '整理周报', status: 1, estimated_minutes: 60, sort_index: 1, is_pinned: true },
-  { id: 2, title: '需求拆分', status: 0, estimated_minutes: 90, sort_index: 2, is_pinned: false },
+  {
+    id: 1,
+    title: '整理周报',
+    description: '补充风险说明并同步里程碑',
+    status: 1,
+    estimated_minutes: 60,
+    sort_index: 1,
+    is_pinned: true,
+  },
+  {
+    id: 2,
+    title: '需求拆分',
+    description: '重新梳理历史工时归属',
+    status: 0,
+    estimated_minutes: 90,
+    sort_index: 2,
+    is_pinned: false,
+  },
 ];
 
 const taskTags = [
@@ -143,7 +159,9 @@ describe('WorkLogTimeCanvasDialog', () => {
     expect(screen.queryByRole('tooltip', { name: '工时详情浮窗 补录会议纪要' })).not.toBeInTheDocument();
   });
 
-  it('支持按任务状态和标签筛选画布节点', () => {
+  it('任务标题悬浮 0.5 秒后显示状态、标签等详情信息', () => {
+    vi.useFakeTimers();
+
     render(
       <WorkLogTimeCanvasDialog
         open
@@ -157,26 +175,87 @@ describe('WorkLogTimeCanvasDialog', () => {
     );
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
+    const taskTitleTrigger = within(dialog).getByLabelText('任务标题 整理周报');
+
+    fireEvent.mouseEnter(taskTitleTrigger);
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    const tooltip = screen.getByRole('tooltip', { name: '任务详情浮窗 整理周报' });
+    expect(within(tooltip).getByText('任务状态')).toBeInTheDocument();
+    expect(within(tooltip).getByText('进行中')).toBeInTheDocument();
+    expect(within(tooltip).getByText('任务标签')).toBeInTheDocument();
+    expect(within(tooltip).getByText('项目A')).toBeInTheDocument();
+    expect(within(tooltip).getByText('补充风险说明并同步里程碑')).toBeInTheDocument();
+    expect(within(tooltip).getByText('预估 60 分钟')).toBeInTheDocument();
+    expect(within(tooltip).getByText('2 条记录')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(taskTitleTrigger);
+
+    expect(screen.queryByRole('tooltip', { name: '任务详情浮窗 整理周报' })).not.toBeInTheDocument();
+  });
+
+  it('支持按任务状态和标签多选筛选画布节点', () => {
+    const multiSelectTasks = [
+      { id: 1, title: '整理周报', status: 1, estimated_minutes: 60, sort_index: 1, is_pinned: true },
+      { id: 2, title: '需求拆分', status: 0, estimated_minutes: 90, sort_index: 2, is_pinned: false },
+      { id: 3, title: '交付复盘', status: 2, estimated_minutes: 45, sort_index: 3, is_pinned: false },
+    ];
+    const multiSelectItems = [
+      { id: 1, task_id: 1, minutes: 60, content: '完成文案整理', work_date: 1731000000000 },
+      { id: 2, task_id: 2, minutes: 30, content: '补录会议纪要', work_date: 1731086400000 },
+      { id: 3, task_id: 3, minutes: 45, content: '归档验收记录', work_date: 1731172800000 },
+    ];
+    const multiSelectTaskTags = [
+      { task_id: 1, tag_id: 10 },
+      { task_id: 2, tag_id: 11 },
+      { task_id: 3, tag_id: 12 },
+    ];
+    const multiSelectTagNames = {
+      10: '项目A',
+      11: '项目B',
+      12: '项目C',
+    };
+
+    render(
+      <WorkLogTimeCanvasDialog
+        open
+        tasks={multiSelectTasks}
+        items={multiSelectItems}
+        taskTags={multiSelectTaskTags}
+        tagNames={multiSelectTagNames}
+        onClose={vi.fn()}
+        onCommit={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
     expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
     expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 交付复盘' })).toBeInTheDocument();
 
-    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
-      target: { value: '1' },
-    });
+    fireEvent.click(within(dialog).getByRole('button', { name: '按任务状态筛选' }));
+    const statusPanel = within(dialog).getByRole('group', { name: '状态筛选面板' });
+    fireEvent.click(within(statusPanel).getByRole('checkbox', { name: '进行中' }));
+    fireEvent.click(within(statusPanel).getByRole('checkbox', { name: '待办' }));
+
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 交付复盘' })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 未归属 / 异常归属' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /按任务状态筛选/ })).toHaveTextContent('已选 2 项');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '按任务标签筛选' }));
+    const tagPanel = within(dialog).getByRole('group', { name: '标签筛选面板' });
+    fireEvent.click(within(tagPanel).getByRole('checkbox', { name: '项目A' }));
+    fireEvent.click(within(tagPanel).getByRole('checkbox', { name: '项目C' }));
 
     expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
     expect(within(dialog).queryByRole('group', { name: '工时画布节点 需求拆分' })).not.toBeInTheDocument();
-    expect(within(dialog).queryByRole('group', { name: '工时画布节点 未归属 / 异常归属' })).not.toBeInTheDocument();
-
-    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
-      target: { value: 'all' },
-    });
-    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务标签筛选' }), {
-      target: { value: '11' },
-    });
-
-    expect(within(dialog).queryByRole('group', { name: '工时画布节点 整理周报' })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: '工时画布节点 交付复盘' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /按任务标签筛选/ })).toHaveTextContent('已选 2 项');
   });
 
 

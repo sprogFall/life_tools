@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 import {
   AlertTriangle,
+  Check,
+  ChevronDown,
   Clock3,
   GripVertical,
+  ListFilter,
   ListTree,
   Maximize2,
   Minimize2,
@@ -18,6 +21,7 @@ import {
   RotateCcw,
   Search,
   Sparkles,
+  Tags,
   X,
 } from 'lucide-react';
 
@@ -111,10 +115,15 @@ interface HoverPreviewRect {
 }
 
 interface HoverPreviewState {
-  entry: WorkLogRow;
-  entryLabel: string;
+  kind: 'entry' | 'task';
   cardRect: HoverPreviewRect;
+  entry?: WorkLogRow;
+  entryLabel?: string;
+  group?: WorkLogTreeGroup;
+  taskTagLabels?: string[];
 }
+
+type FilterPanelKind = 'status' | 'tag';
 
 const ORPHAN_TASK_TITLE = '未归属 / 异常归属';
 const DEFAULT_VIEW: CanvasViewState = {
@@ -130,7 +139,7 @@ const MAX_NODE_SCALE = 1.6;
 const CANVAS_THEME_STORAGE_KEY = 'dashboard.work-log-canvas-theme';
 const HOVER_PREVIEW_DELAY_MS = 500;
 const HOVER_PREVIEW_WIDTH = 360;
-const HOVER_PREVIEW_HEIGHT = 240;
+const HOVER_PREVIEW_HEIGHT = 320;
 const HOVER_PREVIEW_GAP = 20;
 const HOVER_PREVIEW_VIEWPORT_PADDING = 24;
 const TASK_STATUS_OPTIONS = [
@@ -161,6 +170,36 @@ function clampScale(scale: number) {
 
 function clampNodeScale(scale: number) {
   return Math.min(MAX_NODE_SCALE, Math.max(MIN_NODE_SCALE, Number(scale.toFixed(2))));
+}
+
+function getStatusLabel(status: unknown) {
+  const value = String(status ?? '');
+  return TASK_STATUS_OPTIONS.find((option) => option.value === value)?.label ?? '未设置';
+}
+
+function getFilterSummary(
+  selectedValues: string[],
+  options: readonly { value: string; label: string }[],
+  allLabel: string,
+) {
+  if (selectedValues.length === 0) {
+    return allLabel;
+  }
+
+  if (selectedValues.length === 1) {
+    return options.find((option) => option.value === selectedValues[0])?.label ?? selectedValues[0];
+  }
+
+  return `已选 ${selectedValues.length} 项`;
+}
+
+function toggleFilterValue(current: string[], value: string, orderedValues: string[]) {
+  if (current.includes(value)) {
+    return current.filter((item) => item !== value);
+  }
+
+  const next = [...current, value];
+  return next.sort((left, right) => orderedValues.indexOf(left) - orderedValues.indexOf(right));
 }
 
 function getStoredCanvasTheme(): CanvasTheme {
@@ -202,13 +241,17 @@ export function WorkLogTimeCanvasDialog({
   savePending = false,
 }: WorkLogTimeCanvasDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const statusFilterRef = useRef<HTMLDivElement | null>(null);
+  const tagFilterRef = useRef<HTMLDivElement | null>(null);
   const panOriginRef = useRef<PanOrigin | null>(null);
   const nodeDragOriginRef = useRef<NodeDragOrigin | null>(null);
   const nodeResizeOriginRef = useRef<NodeResizeOrigin | null>(null);
   const hoverPreviewTimerRef = useRef<number | null>(null);
   const [query, setQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedTagId, setSelectedTagId] = useState('all');
+  const deferredQuery = useDeferredValue(query);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [openFilterPanel, setOpenFilterPanel] = useState<FilterPanelKind | null>(null);
   const [draftItems, setDraftItems] = useState<WorkLogRow[]>(items);
   const [draggingEntryId, setDraggingEntryId] = useState<number | null>(null);
   const [activeDropTaskId, setActiveDropTaskId] = useState<number | 'orphan' | null>(null);
@@ -235,7 +278,7 @@ export function WorkLogTimeCanvasDialog({
     setHoverPreview(null);
   };
 
-  const scheduleHoverPreview = (entry: WorkLogRow, cardElement: HTMLDivElement) => {
+  const scheduleHoverPreview = (preview: HoverPreviewState, cardElement: HTMLElement) => {
     if (draggingEntryId !== null || nodeDragOriginRef.current || nodeResizeOriginRef.current || isPanning) {
       return;
     }
@@ -244,8 +287,7 @@ export function WorkLogTimeCanvasDialog({
     hoverPreviewTimerRef.current = window.setTimeout(() => {
       const rect = cardElement.getBoundingClientRect();
       setHoverPreview({
-        entry,
-        entryLabel: getEntryLabel(entry),
+        ...preview,
         cardRect: {
           top: rect.top,
           left: rect.left,
@@ -266,14 +308,36 @@ export function WorkLogTimeCanvasDialog({
   }, [canvasTheme]);
 
   useEffect(() => {
+    if (!open || openFilterPanel === null) {
+      return;
+    }
+
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const activeRef = openFilterPanel === 'status' ? statusFilterRef.current : tagFilterRef.current;
+      if (activeRef?.contains(target)) {
+        return;
+      }
+      setOpenFilterPanel(null);
+    };
+
+    window.addEventListener('mousedown', handleMouseDown);
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [open, openFilterPanel]);
+
+  useEffect(() => {
     if (!open) {
       hideHoverPreview();
+      setOpenFilterPanel(null);
       return;
     }
     setDraftItems(items);
     setQuery('');
-    setSelectedStatus('all');
-    setSelectedTagId('all');
+    setSelectedStatuses([]);
+    setSelectedTagIds([]);
+    setOpenFilterPanel(null);
     setDraggingEntryId(null);
     setActiveDropTaskId(null);
     setStatusMessage('');
@@ -305,6 +369,10 @@ export function WorkLogTimeCanvasDialog({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        if (openFilterPanel !== null) {
+          setOpenFilterPanel(null);
+          return;
+        }
         onClose();
       }
     };
@@ -368,7 +436,7 @@ export function WorkLogTimeCanvasDialog({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onClose, open, view.scale]);
+  }, [onClose, open, openFilterPanel, view.scale]);
 
   const entryIndexMap = useMemo(() => {
     const mapping = new Map<number, number>();
@@ -408,6 +476,25 @@ export function WorkLogTimeCanvasDialog({
     return mapping;
   }, [taskTags]);
 
+  const statusFilterOptions = useMemo(
+    () =>
+      TASK_STATUS_OPTIONS.map((option) => ({
+        ...option,
+        count: tasks.filter((task) => String(task.status ?? '') === option.value).length,
+      })),
+    [tasks],
+  );
+
+  const taskCountByTagId = useMemo(() => {
+    const mapping = new Map<number, number>();
+    taskTagIdsByTaskId.forEach((tagIds) => {
+      tagIds.forEach((tagId) => {
+        mapping.set(tagId, (mapping.get(tagId) ?? 0) + 1);
+      });
+    });
+    return mapping;
+  }, [taskTagIdsByTaskId]);
+
   const taskTagOptions = useMemo(
     () =>
       Array.from(taskTagIdsByTaskId.values())
@@ -416,9 +503,30 @@ export function WorkLogTimeCanvasDialog({
         .map((tagId) => ({
           value: String(tagId),
           label: tagNames[String(tagId)] ?? `标签#${tagId}`,
+          count: taskCountByTagId.get(tagId) ?? 0,
         }))
         .sort((left, right) => left.label.localeCompare(right.label, 'zh-CN')),
-    [tagNames, taskTagIdsByTaskId],
+    [tagNames, taskCountByTagId, taskTagIdsByTaskId],
+  );
+
+  const taskTagLabelsByTaskId = useMemo(() => {
+    const mapping = new Map<number, string[]>();
+    taskTagIdsByTaskId.forEach((tagIds, taskId) => {
+      mapping.set(
+        taskId,
+        tagIds.map((tagId) => tagNames[String(tagId)] ?? `标签#${tagId}`),
+      );
+    });
+    return mapping;
+  }, [tagNames, taskTagIdsByTaskId]);
+
+  const statusFilterSummary = useMemo(
+    () => getFilterSummary(selectedStatuses, TASK_STATUS_OPTIONS, '全部状态'),
+    [selectedStatuses],
+  );
+  const tagFilterSummary = useMemo(
+    () => getFilterSummary(selectedTagIds, taskTagOptions, '全部标签'),
+    [selectedTagIds, taskTagOptions],
   );
 
   const resolveTaskTitle = (taskId: number | null) => {
@@ -429,15 +537,17 @@ export function WorkLogTimeCanvasDialog({
   };
 
   const groups = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
+    const keyword = deferredQuery.trim().toLowerCase();
     const tree = buildWorkLogTree(tasks, draftItems).filter((group) => {
       if (group.isOrphan) {
-        return selectedStatus === 'all' && selectedTagId === 'all';
+        return selectedStatuses.length === 0 && selectedTagIds.length === 0;
       }
 
-      const statusMatches = selectedStatus === 'all' || String(group.task?.status ?? '') === selectedStatus;
-      const tagMatches = selectedTagId === 'all'
-        || (group.taskId !== null && (taskTagIdsByTaskId.get(group.taskId) ?? []).includes(Number(selectedTagId)));
+      const statusMatches = selectedStatuses.length === 0
+        || selectedStatuses.includes(String(group.task?.status ?? ''));
+      const tagMatches = selectedTagIds.length === 0
+        || (group.taskId !== null
+          && (taskTagIdsByTaskId.get(group.taskId) ?? []).some((tagId) => selectedTagIds.includes(String(tagId))));
 
       return statusMatches && tagMatches;
     });
@@ -463,7 +573,7 @@ export function WorkLogTimeCanvasDialog({
         } satisfies WorkLogTreeGroup;
       })
       .filter((group): group is WorkLogTreeGroup => group !== null);
-  }, [draftItems, query, selectedStatus, selectedTagId, taskTagIdsByTaskId, tasks]);
+  }, [deferredQuery, draftItems, selectedStatuses, selectedTagIds, taskTagIdsByTaskId, tasks]);
 
   const layoutNodes = useMemo<CanvasRenderNode[]>(
     () =>
@@ -516,6 +626,25 @@ export function WorkLogTimeCanvasDialog({
       top: `${top}px`,
     };
   }, [hoverPreview]);
+
+  const toggleFilterPanel = (panel: FilterPanelKind) => {
+    hideHoverPreview();
+    setOpenFilterPanel((current) => (current === panel ? null : panel));
+  };
+
+  const toggleStatusFilter = (value: string) => {
+    hideHoverPreview();
+    setSelectedStatuses((current) =>
+      toggleFilterValue(current, value, TASK_STATUS_OPTIONS.map((option) => option.value)),
+    );
+  };
+
+  const toggleTagFilter = (value: string) => {
+    hideHoverPreview();
+    setSelectedTagIds((current) =>
+      toggleFilterValue(current, value, taskTagOptions.map((option) => option.value)),
+    );
+  };
 
   const commitDraftChanges = () => {
     onCommit(draftItems);
@@ -848,16 +977,25 @@ export function WorkLogTimeCanvasDialog({
           )}
         >
           <div className={cn('flex items-center gap-3', isFullscreen ? 'overflow-x-auto' : 'flex-wrap justify-between')}>
-            <div className={cn('flex items-center gap-2', isFullscreen ? 'min-w-max flex-nowrap' : 'flex-wrap')}>
+            <div
+              data-filter-toolbar="true"
+              className={cn(
+                'flex min-w-0 flex-1 flex-wrap items-center gap-3 rounded-[1.75rem] border px-3 py-3 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur-xl',
+                isFullscreen ? 'min-w-max flex-nowrap' : '',
+                isLightTheme
+                  ? 'border-slate-200/90 bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(241,245,249,0.92))]'
+                  : 'border-slate-800/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.82),rgba(2,6,23,0.92))]',
+              )}
+            >
               <label
                 className={cn(
-                  'flex min-w-0 items-center gap-2 rounded-full px-3 py-2 text-sm',
+                  'flex min-w-0 flex-1 items-center gap-2 rounded-full px-3 py-2 text-sm',
                   isLightTheme
-                    ? 'border border-slate-200 bg-slate-50 text-slate-700'
-                    : 'border border-slate-800 bg-slate-900/80 text-slate-300',
+                    ? 'border border-slate-200 bg-white/90 text-slate-700 shadow-sm'
+                    : 'border border-slate-700/80 bg-slate-950/70 text-slate-300',
                 )}
               >
-                <Search className={cn('h-4 w-4', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
+                <Search className={cn('h-4 w-4 shrink-0', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
                 <span className="sr-only">筛选任务或工时</span>
                 <input
                   aria-label="筛选任务或工时"
@@ -865,76 +1003,274 @@ export function WorkLogTimeCanvasDialog({
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="搜索任务名、工时内容或日期"
                   className={cn(
-                    isFullscreen ? 'w-52 bg-transparent text-sm outline-none lg:w-64' : 'w-full bg-transparent text-sm outline-none sm:w-64',
+                    isFullscreen ? 'w-52 bg-transparent text-sm outline-none lg:w-64' : 'w-full bg-transparent text-sm outline-none sm:min-w-[260px] sm:w-72',
                     isLightTheme ? 'text-slate-900 placeholder:text-slate-400' : 'text-slate-100 placeholder:text-slate-500',
                   )}
                 />
               </label>
-              <label
-                className={cn(
-                  'flex items-center gap-2 rounded-full px-3 py-2 text-sm',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-slate-50 text-slate-700'
-                    : 'border border-slate-800 bg-slate-900/80 text-slate-300',
-                )}
-              >
-                <span className="text-xs font-medium">状态</span>
-                <select
+
+              <div ref={statusFilterRef} className="relative">
+                <button
+                  type="button"
                   aria-label="按任务状态筛选"
-                  value={selectedStatus}
-                  onChange={(event) => {
-                    hideHoverPreview();
-                    setSelectedStatus(event.target.value);
-                  }}
+                  aria-haspopup="dialog"
+                  aria-expanded={openFilterPanel === 'status'}
+                  aria-controls="canvas-status-filter-panel"
+                  onClick={() => toggleFilterPanel('status')}
                   className={cn(
-                    'min-w-[112px] bg-transparent text-sm outline-none',
-                    isLightTheme ? 'text-slate-900' : 'text-slate-100',
+                    'inline-flex min-h-11 min-w-[170px] items-center gap-3 rounded-[1.15rem] border px-3 py-2 text-left transition',
+                    selectedStatuses.length > 0
+                      ? isLightTheme
+                        ? 'border-emerald-300 bg-emerald-50/80 text-emerald-900 shadow-[0_10px_24px_rgba(16,185,129,0.12)]'
+                        : 'border-emerald-400/40 bg-emerald-500/10 text-emerald-50 shadow-[0_10px_24px_rgba(16,185,129,0.10)]'
+                      : isLightTheme
+                        ? 'border-slate-200 bg-white/90 text-slate-700 hover:border-slate-300 hover:bg-white'
+                        : 'border-slate-700/80 bg-slate-950/70 text-slate-200 hover:border-slate-600 hover:bg-slate-950/90',
                   )}
                 >
-                  <option value="all">全部状态</option>
-                  {TASK_STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label
-                className={cn(
-                  'flex items-center gap-2 rounded-full px-3 py-2 text-sm',
-                  isLightTheme
-                    ? 'border border-slate-200 bg-slate-50 text-slate-700'
-                    : 'border border-slate-800 bg-slate-900/80 text-slate-300',
-                )}
-              >
-                <span className="text-xs font-medium">标签</span>
-                <select
+                  <ListFilter className={cn('h-4 w-4 shrink-0', selectedStatuses.length > 0 ? 'text-emerald-500' : isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
+                  <span className="min-w-0 flex-1">
+                    <span className={cn('block text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                      状态
+                    </span>
+                    <span className="block truncate text-sm font-medium">{statusFilterSummary}</span>
+                  </span>
+                  {selectedStatuses.length > 0 ? (
+                    <span
+                      className={cn(
+                        'inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold',
+                        isLightTheme ? 'bg-emerald-600 text-white' : 'bg-emerald-400 text-slate-950',
+                      )}
+                    >
+                      {selectedStatuses.length}
+                    </span>
+                  ) : null}
+                  <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', openFilterPanel === 'status' ? 'rotate-180' : '')} />
+                </button>
+
+                {openFilterPanel === 'status' ? (
+                  <div
+                    id="canvas-status-filter-panel"
+                    role="group"
+                    aria-label="状态筛选面板"
+                    className={cn(
+                      'absolute left-0 top-[calc(100%+0.75rem)] z-[120] w-[280px] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
+                      isLightTheme
+                        ? 'border-slate-200/90 bg-white/96 text-slate-900'
+                        : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={cn('text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>状态</p>
+                        <p className={cn('mt-1 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                          支持多选；不勾选时显示全部状态。
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="清空状态筛选"
+                        disabled={selectedStatuses.length === 0}
+                        onClick={() => setSelectedStatuses([])}
+                        className={cn(
+                          'rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed',
+                          isLightTheme
+                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:bg-slate-100 disabled:text-slate-300'
+                            : 'bg-slate-900 text-slate-300 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
+                        )}
+                      >
+                        清空
+                      </button>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {statusFilterOptions.map((option) => {
+                        const checked = selectedStatuses.includes(option.value);
+                        return (
+                          <label
+                            key={option.value}
+                            className={cn(
+                              'flex cursor-pointer items-center justify-between gap-3 rounded-[1rem] border px-3 py-2 transition',
+                              checked
+                                ? isLightTheme
+                                  ? 'border-emerald-300 bg-emerald-50'
+                                  : 'border-emerald-400/40 bg-emerald-500/10'
+                                : isLightTheme
+                                  ? 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                                  : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-900',
+                            )}
+                          >
+                            <span className="flex items-center gap-3">
+                              <span
+                                className={cn(
+                                  'flex h-5 w-5 items-center justify-center rounded-full border transition',
+                                  checked
+                                    ? isLightTheme
+                                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                                      : 'border-emerald-400 bg-emerald-400 text-slate-950'
+                                    : isLightTheme
+                                      ? 'border-slate-300 bg-white text-transparent'
+                                      : 'border-slate-600 bg-slate-950 text-transparent',
+                                )}
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </span>
+                              <input
+                                type="checkbox"
+                                aria-label={option.label}
+                                className="sr-only"
+                                checked={checked}
+                                onChange={() => toggleStatusFilter(option.value)}
+                              />
+                              <span className="text-sm font-medium">{option.label}</span>
+                            </span>
+                            <span className={cn('text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>{option.count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div ref={tagFilterRef} className="relative">
+                <button
+                  type="button"
                   aria-label="按任务标签筛选"
-                  value={selectedTagId}
-                  onChange={(event) => {
-                    hideHoverPreview();
-                    setSelectedTagId(event.target.value);
-                  }}
+                  aria-haspopup="dialog"
+                  aria-expanded={openFilterPanel === 'tag'}
+                  aria-controls="canvas-tag-filter-panel"
+                  onClick={() => toggleFilterPanel('tag')}
                   className={cn(
-                    'min-w-[112px] bg-transparent text-sm outline-none',
-                    isLightTheme ? 'text-slate-900' : 'text-slate-100',
+                    'inline-flex min-h-11 min-w-[170px] items-center gap-3 rounded-[1.15rem] border px-3 py-2 text-left transition',
+                    selectedTagIds.length > 0
+                      ? isLightTheme
+                        ? 'border-blue-300 bg-blue-50/85 text-blue-900 shadow-[0_10px_24px_rgba(59,130,246,0.12)]'
+                        : 'border-blue-400/40 bg-blue-500/10 text-blue-50 shadow-[0_10px_24px_rgba(59,130,246,0.10)]'
+                      : isLightTheme
+                        ? 'border-slate-200 bg-white/90 text-slate-700 hover:border-slate-300 hover:bg-white'
+                        : 'border-slate-700/80 bg-slate-950/70 text-slate-200 hover:border-slate-600 hover:bg-slate-950/90',
                   )}
                 >
-                  <option value="all">全部标签</option>
-                  {taskTagOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <Tags className={cn('h-4 w-4 shrink-0', selectedTagIds.length > 0 ? 'text-blue-500' : isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
+                  <span className="min-w-0 flex-1">
+                    <span className={cn('block text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                      标签
+                    </span>
+                    <span className="block truncate text-sm font-medium">{tagFilterSummary}</span>
+                  </span>
+                  {selectedTagIds.length > 0 ? (
+                    <span
+                      className={cn(
+                        'inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold',
+                        isLightTheme ? 'bg-blue-600 text-white' : 'bg-blue-400 text-slate-950',
+                      )}
+                    >
+                      {selectedTagIds.length}
+                    </span>
+                  ) : null}
+                  <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', openFilterPanel === 'tag' ? 'rotate-180' : '')} />
+                </button>
+
+                {openFilterPanel === 'tag' ? (
+                  <div
+                    id="canvas-tag-filter-panel"
+                    role="group"
+                    aria-label="标签筛选面板"
+                    className={cn(
+                      'absolute left-0 top-[calc(100%+0.75rem)] z-[120] w-[300px] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
+                      isLightTheme
+                        ? 'border-slate-200/90 bg-white/96 text-slate-900'
+                        : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={cn('text-sm font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>标签</p>
+                        <p className={cn('mt-1 text-xs leading-5', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                          支持多选；多个标签按并集匹配任务。
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="清空标签筛选"
+                        disabled={selectedTagIds.length === 0}
+                        onClick={() => setSelectedTagIds([])}
+                        className={cn(
+                          'rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed',
+                          isLightTheme
+                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:bg-slate-100 disabled:text-slate-300'
+                            : 'bg-slate-900 text-slate-300 hover:bg-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
+                        )}
+                      >
+                        清空
+                      </button>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {taskTagOptions.length === 0 ? (
+                        <div
+                          className={cn(
+                            'rounded-[1rem] border border-dashed px-3 py-4 text-sm',
+                            isLightTheme ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-800 bg-slate-900/70 text-slate-400',
+                          )}
+                        >
+                          当前任务还没有可用标签。
+                        </div>
+                      ) : taskTagOptions.map((option) => {
+                        const checked = selectedTagIds.includes(option.value);
+                        return (
+                          <label
+                            key={option.value}
+                            className={cn(
+                              'flex cursor-pointer items-center justify-between gap-3 rounded-[1rem] border px-3 py-2 transition',
+                              checked
+                                ? isLightTheme
+                                  ? 'border-blue-300 bg-blue-50'
+                                  : 'border-blue-400/40 bg-blue-500/10'
+                                : isLightTheme
+                                  ? 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                                  : 'border-slate-800 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-900',
+                            )}
+                          >
+                            <span className="flex items-center gap-3">
+                              <span
+                                className={cn(
+                                  'flex h-5 w-5 items-center justify-center rounded-full border transition',
+                                  checked
+                                    ? isLightTheme
+                                      ? 'border-blue-500 bg-blue-500 text-white'
+                                      : 'border-blue-400 bg-blue-400 text-slate-950'
+                                    : isLightTheme
+                                      ? 'border-slate-300 bg-white text-transparent'
+                                      : 'border-slate-600 bg-slate-950 text-transparent',
+                                )}
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </span>
+                              <input
+                                type="checkbox"
+                                aria-label={option.label}
+                                className="sr-only"
+                                checked={checked}
+                                onChange={() => toggleTagFilter(option.value)}
+                              />
+                              <span className="text-sm font-medium">{option.label}</span>
+                            </span>
+                            <span className={cn('text-xs', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>{option.count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
               {!isFullscreen ? (
                 <div
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs',
+                    'inline-flex items-center gap-2 rounded-[1.15rem] border px-3 py-2 text-xs',
                     isLightTheme
-                      ? 'border border-slate-200 bg-slate-50 text-slate-600'
-                      : 'border border-slate-800 bg-slate-900/80 text-slate-300',
+                      ? 'border-slate-200 bg-white/80 text-slate-600 shadow-sm'
+                      : 'border-slate-700/70 bg-slate-950/60 text-slate-300',
                   )}
                 >
                   <Move className={cn('h-3.5 w-3.5', isLightTheme ? 'text-slate-400' : 'text-slate-500')} />
@@ -1234,14 +1570,49 @@ export function WorkLogTimeCanvasDialog({
                       <div className={cn('px-5 py-4', isLightTheme ? 'border-b border-slate-200' : 'border-b border-slate-800/80')}>
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {group.isOrphan ? (
+                            {group.isOrphan ? (
+                              <div className="flex flex-wrap items-center gap-2">
                                 <AlertTriangle className={cn('h-4 w-4', isLightTheme ? 'text-amber-600' : 'text-amber-300')} />
-                              ) : (
+                                <h4 className={cn('text-base font-semibold', isLightTheme ? 'text-slate-900' : 'text-white')}>{group.title}</h4>
+                              </div>
+                            ) : (
+                              <div
+                                tabIndex={0}
+                                data-ignore-pan="true"
+                                aria-label={`任务标题 ${group.title}`}
+                                onMouseEnter={(event) => {
+                                  scheduleHoverPreview(
+                                    {
+                                      kind: 'task',
+                                      group,
+                                      taskTagLabels: group.taskId !== null ? (taskTagLabelsByTaskId.get(group.taskId) ?? []) : [],
+                                    },
+                                    event.currentTarget,
+                                  );
+                                }}
+                                onMouseLeave={hideHoverPreview}
+                                onFocus={(event) => {
+                                  scheduleHoverPreview(
+                                    {
+                                      kind: 'task',
+                                      group,
+                                      taskTagLabels: group.taskId !== null ? (taskTagLabelsByTaskId.get(group.taskId) ?? []) : [],
+                                    },
+                                    event.currentTarget,
+                                  );
+                                }}
+                                onBlur={hideHoverPreview}
+                                className={cn(
+                                  'inline-flex cursor-help items-center gap-2 rounded-full px-2 py-1 -ml-2 transition focus:outline-none focus:ring-2',
+                                  isLightTheme
+                                    ? 'hover:bg-emerald-50 focus:ring-emerald-500/60'
+                                    : 'hover:bg-emerald-500/10 focus:ring-emerald-400/60',
+                                )}
+                              >
                                 <ListTree className={cn('h-4 w-4', isLightTheme ? 'text-emerald-600' : 'text-emerald-300')} />
-                              )}
-                              <h4 className={cn('text-base font-semibold', isLightTheme ? 'text-slate-900' : 'text-white')}>{group.title}</h4>
-                            </div>
+                                <h4 className={cn('text-base font-semibold', isLightTheme ? 'text-slate-900' : 'text-white')}>{group.title}</h4>
+                              </div>
+                            )}
                             <p className={cn('mt-2 text-sm', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
                               {group.entryCount} 条记录 · {formatNumber(group.totalMinutes)} 分钟
                             </p>
@@ -1335,11 +1706,25 @@ export function WorkLogTimeCanvasDialog({
                                 draggable={entryId !== null}
                                 aria-label={`工时卡片 ${entryLabel}`}
                                 onMouseEnter={(event) => {
-                                  scheduleHoverPreview(entry, event.currentTarget);
+                                  scheduleHoverPreview(
+                                    {
+                                      kind: 'entry',
+                                      entry,
+                                      entryLabel,
+                                    },
+                                    event.currentTarget,
+                                  );
                                 }}
                                 onMouseLeave={hideHoverPreview}
                                 onFocus={(event) => {
-                                  scheduleHoverPreview(entry, event.currentTarget);
+                                  scheduleHoverPreview(
+                                    {
+                                      kind: 'entry',
+                                      entry,
+                                      entryLabel,
+                                    },
+                                    event.currentTarget,
+                                  );
                                 }}
                                 onBlur={hideHoverPreview}
                                 onKeyDown={(event) => {
@@ -1352,6 +1737,7 @@ export function WorkLogTimeCanvasDialog({
                                     return;
                                   }
                                   hideHoverPreview();
+                                  setOpenFilterPanel(null);
                                   setDraggingEntryId(entryId);
                                   setStatusMessage(`正在拖拽“${entryLabel}”`);
                                   event.dataTransfer?.setData('text/plain', String(entryId));
@@ -1442,7 +1828,11 @@ export function WorkLogTimeCanvasDialog({
       {hoverPreview && hoverPreviewPosition ? (
         <aside
           role="tooltip"
-          aria-label={`工时详情浮窗 ${hoverPreview.entryLabel}`}
+          aria-label={
+            hoverPreview.kind === 'task'
+              ? `任务详情浮窗 ${hoverPreview.group?.title ?? '任务'}`
+              : `工时详情浮窗 ${hoverPreview.entryLabel ?? '记录'}`
+          }
           className={cn(
             'pointer-events-none fixed z-[140] w-[360px] max-w-[calc(100vw-48px)] overflow-hidden rounded-[1.75rem] border shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-xl',
             isLightTheme
@@ -1451,44 +1841,154 @@ export function WorkLogTimeCanvasDialog({
           )}
           style={hoverPreviewPosition}
         >
-          <div className="space-y-4 px-5 py-5">
-            <div>
-              <p className={cn('text-[11px] font-semibold uppercase tracking-[0.2em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
-                内容全文
-              </p>
-              <p className={cn('mt-2 text-sm leading-6 whitespace-pre-wrap', isLightTheme ? 'text-slate-700' : 'text-slate-100')}>
-                {String(hoverPreview.entry.content ?? hoverPreview.entryLabel)}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div
-                className={cn(
-                  'rounded-2xl px-4 py-3',
-                  isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
-                )}
-              >
-                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
-                  记录 ID
+          {hoverPreview.kind === 'task' && hoverPreview.group ? (
+            <div className="space-y-4 px-5 py-5">
+              <div>
+                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.2em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                  任务概览
                 </p>
-                <p className={cn('mt-2 font-medium', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
-                  {String(hoverPreview.entry.id ?? 'unknown')}
+                <div className="mt-3 flex items-start gap-3">
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl',
+                      isLightTheme ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-500/10 text-emerald-300',
+                    )}
+                  >
+                    <ListTree className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={cn('text-base font-semibold', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
+                      {hoverPreview.group.title}
+                    </p>
+                    {hoverPreview.group.task?.description ? (
+                      <p className={cn('mt-2 text-sm leading-6', isLightTheme ? 'text-slate-600' : 'text-slate-300')}>
+                        {String(hoverPreview.group.task.description)}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div
+                  className={cn(
+                    'rounded-2xl px-4 py-3',
+                    isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
+                  )}
+                >
+                  <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                    任务状态
+                  </p>
+                  <p className={cn('mt-2 font-medium', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
+                    {getStatusLabel(hoverPreview.group.task?.status)}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-2xl px-4 py-3',
+                    isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
+                  )}
+                >
+                  <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                    任务标签
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(hoverPreview.taskTagLabels ?? []).length > 0 ? (
+                      hoverPreview.taskTagLabels?.map((label) => (
+                        <span
+                          key={label}
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-xs font-medium',
+                            isLightTheme ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/10 text-blue-300',
+                          )}
+                        >
+                          {label}
+                        </span>
+                      ))
+                    ) : (
+                      <span className={cn('text-sm', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>未设置标签</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span
+                  className={cn(
+                    'rounded-full px-3 py-1 font-medium',
+                    isLightTheme ? 'bg-slate-100 text-slate-700' : 'bg-slate-900/80 text-slate-200',
+                  )}
+                >
+                  {hoverPreview.group.entryCount} 条记录
+                </span>
+                <span
+                  className={cn(
+                    'rounded-full px-3 py-1 font-medium',
+                    isLightTheme ? 'bg-slate-100 text-slate-700' : 'bg-slate-900/80 text-slate-200',
+                  )}
+                >
+                  累计 {formatNumber(hoverPreview.group.totalMinutes)} 分钟
+                </span>
+                <span
+                  className={cn(
+                    'rounded-full px-3 py-1 font-medium',
+                    isLightTheme ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/10 text-emerald-300',
+                  )}
+                >
+                  {hoverPreview.group.task?.estimated_minutes
+                    ? `预估 ${formatNumber(Number(hoverPreview.group.task.estimated_minutes))} 分钟`
+                    : '未设置预估'}
+                </span>
+                {Boolean(hoverPreview.group.task?.is_pinned) ? (
+                  <span
+                    className={cn(
+                      'rounded-full px-3 py-1 font-medium',
+                      isLightTheme ? 'bg-amber-50 text-amber-700' : 'bg-amber-500/10 text-amber-300',
+                    )}
+                  >
+                    已置顶
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : hoverPreview.entry ? (
+            <div className="space-y-4 px-5 py-5">
+              <div>
+                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.2em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
+                  内容全文
+                </p>
+                <p className={cn('mt-2 text-sm leading-6 whitespace-pre-wrap', isLightTheme ? 'text-slate-700' : 'text-slate-100')}>
+                  {String(hoverPreview.entry.content ?? hoverPreview.entryLabel)}
                 </p>
               </div>
-              <div
-                className={cn(
-                  'rounded-2xl px-4 py-3',
-                  isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
-                )}
-              >
-                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
-                  最近更新时间
-                </p>
-                <p className={cn('mt-2 font-medium leading-5', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
-                  {formatTimestamp(Number(hoverPreview.entry.updated_at ?? hoverPreview.entry.work_date ?? hoverPreview.entry.created_at ?? Date.now()))}
-                </p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div
+                  className={cn(
+                    'rounded-2xl px-4 py-3',
+                    isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
+                  )}
+                >
+                  <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                    记录 ID
+                  </p>
+                  <p className={cn('mt-2 font-medium', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
+                    {String(hoverPreview.entry.id ?? 'unknown')}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-2xl px-4 py-3',
+                    isLightTheme ? 'bg-slate-50 text-slate-600' : 'bg-slate-900/80 text-slate-300',
+                  )}
+                >
+                  <p className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>
+                    最近更新时间
+                  </p>
+                  <p className={cn('mt-2 font-medium leading-5', isLightTheme ? 'text-slate-900' : 'text-slate-100')}>
+                    {formatTimestamp(Number(hoverPreview.entry.updated_at ?? hoverPreview.entry.work_date ?? hoverPreview.entry.created_at ?? Date.now()))}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
         </aside>
       ) : null}
     </div>

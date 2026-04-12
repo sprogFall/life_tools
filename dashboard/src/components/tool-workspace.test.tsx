@@ -243,7 +243,7 @@ describe('ToolWorkspace', () => {
     expect(screen.queryByRole('button', { name: '列表展示' })).not.toBeInTheDocument();
   });
 
-  it('画布支持按任务状态和标签筛选任务节点', () => {
+  it('画布支持按任务状态和标签多选筛选任务节点', () => {
     render(
       <ToolWorkspace
         userId="u1"
@@ -258,20 +258,18 @@ describe('ToolWorkspace', () => {
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
 
-    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
-      target: { value: '1' },
-    });
+    fireEvent.click(within(dialog).getByRole('button', { name: '按任务状态筛选' }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '进行中' }));
     expect(within(dialog).getByRole('group', { name: '工时画布节点 整理周报' })).toBeInTheDocument();
     expect(within(dialog).queryByRole('group', { name: '工时画布节点 需求拆分' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /按任务状态筛选/ })).toHaveTextContent('进行中');
 
-    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务状态筛选' }), {
-      target: { value: 'all' },
-    });
-    fireEvent.change(within(dialog).getByRole('combobox', { name: '按任务标签筛选' }), {
-      target: { value: '11' },
-    });
+    fireEvent.click(within(dialog).getByRole('button', { name: '清空状态筛选' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '按任务标签筛选' }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '项目B' }));
     expect(within(dialog).queryByRole('group', { name: '工时画布节点 整理周报' })).not.toBeInTheDocument();
     expect(within(dialog).getByRole('group', { name: '工时画布节点 需求拆分' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /按任务标签筛选/ })).toHaveTextContent('项目B');
   });
 
   it('移除画布内保存到草稿按钮，仅保留直白的保存按钮', () => {
