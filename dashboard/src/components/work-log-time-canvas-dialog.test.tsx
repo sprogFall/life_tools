@@ -120,10 +120,13 @@ describe('WorkLogTimeCanvasDialog', () => {
     });
 
     const tooltip = screen.getByRole('tooltip', { name: '工时详情浮窗 补录会议纪要' });
-    expect(within(tooltip).getByText('工时详情')).toBeInTheDocument();
-    expect(within(tooltip).getAllByText('补录会议纪要')).toHaveLength(2);
-    expect(within(tooltip).getByText(/任务：整理周报/)).toBeInTheDocument();
-    expect(within(tooltip).getByText('30 分钟')).toBeInTheDocument();
+    expect(within(tooltip).queryByText('工时详情')).not.toBeInTheDocument();
+    expect(within(tooltip).getByText('内容全文')).toBeInTheDocument();
+    expect(within(tooltip).getByText('记录 ID')).toBeInTheDocument();
+    expect(within(tooltip).getByText('最近更新时间')).toBeInTheDocument();
+    expect(within(tooltip).getByText('补录会议纪要')).toBeInTheDocument();
+    expect(within(tooltip).queryByText(/任务：整理周报/)).not.toBeInTheDocument();
+    expect(within(tooltip).queryByText('30 分钟')).not.toBeInTheDocument();
 
     fireEvent.mouseLeave(entryCard);
 

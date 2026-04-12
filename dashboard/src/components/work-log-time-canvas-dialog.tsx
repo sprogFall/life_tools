@@ -111,7 +111,6 @@ interface HoverPreviewRect {
 interface HoverPreviewState {
   entry: WorkLogRow;
   entryLabel: string;
-  taskTitle: string;
   cardRect: HoverPreviewRect;
 }
 
@@ -129,7 +128,7 @@ const MAX_NODE_SCALE = 1.6;
 const CANVAS_THEME_STORAGE_KEY = 'dashboard.work-log-canvas-theme';
 const HOVER_PREVIEW_DELAY_MS = 500;
 const HOVER_PREVIEW_WIDTH = 360;
-const HOVER_PREVIEW_HEIGHT = 320;
+const HOVER_PREVIEW_HEIGHT = 240;
 const HOVER_PREVIEW_GAP = 20;
 const HOVER_PREVIEW_VIEWPORT_PADDING = 24;
 
@@ -224,7 +223,7 @@ export function WorkLogTimeCanvasDialog({
     setHoverPreview(null);
   };
 
-  const scheduleHoverPreview = (entry: WorkLogRow, taskTitle: string, cardElement: HTMLDivElement) => {
+  const scheduleHoverPreview = (entry: WorkLogRow, cardElement: HTMLDivElement) => {
     if (draggingEntryId !== null || nodeDragOriginRef.current || nodeResizeOriginRef.current || isPanning) {
       return;
     }
@@ -235,7 +234,6 @@ export function WorkLogTimeCanvasDialog({
       setHoverPreview({
         entry,
         entryLabel: getEntryLabel(entry),
-        taskTitle,
         cardRect: {
           top: rect.top,
           left: rect.left,
@@ -1226,11 +1224,11 @@ export function WorkLogTimeCanvasDialog({
                                 draggable={entryId !== null}
                                 aria-label={`工时卡片 ${entryLabel}`}
                                 onMouseEnter={(event) => {
-                                  scheduleHoverPreview(entry, group.title, event.currentTarget);
+                                  scheduleHoverPreview(entry, event.currentTarget);
                                 }}
                                 onMouseLeave={hideHoverPreview}
                                 onFocus={(event) => {
-                                  scheduleHoverPreview(entry, group.title, event.currentTarget);
+                                  scheduleHoverPreview(entry, event.currentTarget);
                                 }}
                                 onBlur={hideHoverPreview}
                                 onKeyDown={(event) => {
@@ -1342,57 +1340,12 @@ export function WorkLogTimeCanvasDialog({
           )}
           style={hoverPreviewPosition}
         >
-          <div
-            className={cn(
-              'px-5 py-4',
-              isLightTheme
-                ? 'border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),transparent_38%),linear-gradient(135deg,#ffffff,#f8fafc)]'
-                : 'border-b border-slate-800/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.16),transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.94))]',
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className={cn('text-[11px] font-semibold uppercase tracking-[0.22em]', isLightTheme ? 'text-emerald-600' : 'text-emerald-300')}>
-                  工时详情
-                </p>
-                <h4 className={cn('mt-2 text-base font-semibold leading-6', isLightTheme ? 'text-slate-900' : 'text-white')}>
-                  {hoverPreview.entryLabel}
-                </h4>
-              </div>
-              <div
-                className={cn(
-                  'shrink-0 rounded-full px-3 py-1 text-xs font-medium',
-                  isLightTheme ? 'bg-blue-50 text-blue-700' : 'bg-blue-500/10 text-blue-300',
-                )}
-              >
-                {formatNumber(Number(hoverPreview.entry.minutes ?? 0))} 分钟
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <span
-                className={cn(
-                  'rounded-full px-3 py-1',
-                  isLightTheme ? 'border border-slate-200 bg-slate-50 text-slate-600' : 'border border-slate-700 bg-slate-900/80 text-slate-300',
-                )}
-              >
-                任务：{hoverPreview.taskTitle}
-              </span>
-              <span
-                className={cn(
-                  'rounded-full px-3 py-1',
-                  isLightTheme ? 'border border-slate-200 bg-slate-50 text-slate-600' : 'border border-slate-700 bg-slate-900/80 text-slate-300',
-                )}
-              >
-                日期：{formatTimestamp(Number(hoverPreview.entry.work_date ?? hoverPreview.entry.created_at ?? Date.now()))}
-              </span>
-            </div>
-          </div>
-          <div className="space-y-4 px-5 py-4">
+          <div className="space-y-4 px-5 py-5">
             <div>
               <p className={cn('text-[11px] font-semibold uppercase tracking-[0.2em]', isLightTheme ? 'text-slate-500' : 'text-slate-400')}>
                 内容全文
               </p>
-              <p className={cn('mt-2 text-sm leading-6 whitespace-pre-wrap', isLightTheme ? 'text-slate-700' : 'text-slate-200')}>
+              <p className={cn('mt-2 text-sm leading-6 whitespace-pre-wrap', isLightTheme ? 'text-slate-700' : 'text-slate-100')}>
                 {String(hoverPreview.entry.content ?? hoverPreview.entryLabel)}
               </p>
             </div>
