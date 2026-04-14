@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LayoutTemplate } from 'lucide-react';
 
 import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
 import {
@@ -717,6 +717,7 @@ function SectionPanel({
                 onClick={() => setCanvasOpen(true)}
                 className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800`}
               >
+                <LayoutTemplate className="h-4 w-4" />
                 打开工时归属画布
               </button>
             </div>

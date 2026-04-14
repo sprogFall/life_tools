@@ -252,6 +252,7 @@ export function WorkLogTimeCanvasDialog({
   const nodeDragOriginRef = useRef<NodeDragOrigin | null>(null);
   const nodeResizeOriginRef = useRef<NodeResizeOrigin | null>(null);
   const hoverPreviewTimerRef = useRef<number | null>(null);
+  const activeDropTaskIdRef = useRef<number | 'orphan' | null>(null);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -269,6 +270,7 @@ export function WorkLogTimeCanvasDialog({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>(getStoredCanvasTheme);
   const [hoverPreview, setHoverPreview] = useState<HoverPreviewState | null>(null);
+  const [resizeTick, setResizeTick] = useState(0);
 
   const clearHoverPreviewTimer = () => {
     if (hoverPreviewTimerRef.current === null) {
@@ -360,6 +362,12 @@ export function WorkLogTimeCanvasDialog({
 
   useEffect(() => () => {
     clearHoverPreviewTimer();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setResizeTick((t) => t + 1);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -575,7 +583,7 @@ export function WorkLogTimeCanvasDialog({
           ...group,
           entries,
           entryCount: entries.length,
-          totalMinutes: entries.reduce((total, entry) => total + (toNumericId(entry.minutes) ?? 0), 0),
+          totalMinutes: entries.reduce((total, entry) => total + (Number(entry.minutes ?? 0) || 0), 0),
         } satisfies WorkLogTreeGroup;
       })
       .filter((group): group is WorkLogTreeGroup => group !== null);
@@ -605,7 +613,7 @@ export function WorkLogTimeCanvasDialog({
     () => Math.max(920, ...layoutNodes.map((node) => node.y + node.scaledHeight + 120)),
     [layoutNodes],
   );
-  const hasDraftChanges = JSON.stringify(items) !== JSON.stringify(draftItems);
+  const hasDraftChanges = useMemo(() => JSON.stringify(items) !== JSON.stringify(draftItems), [items, draftItems]);
   const isLightTheme = canvasTheme === 'light';
   const viewSummary = `缩放 ${Math.round(view.scale * 100)}% · 偏移 X ${Math.round(view.offsetX)} · 偏移 Y ${Math.round(view.offsetY)}`;
   const hoverPreviewPosition = useMemo(() => {
@@ -662,7 +670,7 @@ export function WorkLogTimeCanvasDialog({
       top: `${Math.round(top)}px`,
       width: `${panelWidth}px`,
     };
-  }, [isFullscreen, openFilterPanel, selectedStatuses.length, selectedTagIds.length]);
+  }, [isFullscreen, openFilterPanel, selectedStatuses.length, selectedTagIds.length, resizeTick]);
 
   const toggleFilterPanel = (panel: FilterPanelKind) => {
     hideHoverPreview();
@@ -699,7 +707,15 @@ export function WorkLogTimeCanvasDialog({
   const clearDragState = () => {
     hideHoverPreview();
     setDraggingEntryId(null);
+    activeDropTaskIdRef.current = null;
     setActiveDropTaskId(null);
+  };
+
+  const setActiveDropTaskIdIfChanged = (value: number | 'orphan' | null) => {
+    if (activeDropTaskIdRef.current !== value) {
+      activeDropTaskIdRef.current = value;
+      setActiveDropTaskId(value);
+    }
   };
 
   const moveEntryToTask = ({
@@ -1276,7 +1292,7 @@ export function WorkLogTimeCanvasDialog({
             role="group"
             aria-label="状态筛选面板"
             className={cn(
-              'absolute z-[160] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
+              'absolute z-[160] origin-top overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl transition-all duration-200',
               isLightTheme
                 ? 'border-slate-200/90 bg-white/96 text-slate-900'
                 : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
@@ -1361,7 +1377,7 @@ export function WorkLogTimeCanvasDialog({
             role="group"
             aria-label="标签筛选面板"
             className={cn(
-              'absolute z-[160] overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl',
+              'absolute z-[160] origin-top overflow-hidden rounded-[1.5rem] border p-3 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl transition-all duration-200',
               isLightTheme
                 ? 'border-slate-200/90 bg-white/96 text-slate-900'
                 : 'border-slate-700/80 bg-slate-950/95 text-slate-100',
@@ -1494,13 +1510,15 @@ export function WorkLogTimeCanvasDialog({
             {layoutNodes.length === 0 ? (
               <div
                 className={cn(
-                  'absolute left-24 top-24 rounded-[1.75rem] border border-dashed px-6 py-8 text-sm',
+                  'absolute left-24 top-24 flex flex-col items-center gap-3 rounded-[1.75rem] border border-dashed px-8 py-10 text-sm',
                   isLightTheme
                     ? 'border-slate-300 bg-white text-slate-500 shadow-sm'
                     : 'border-slate-700 bg-slate-900/80 text-slate-400',
                 )}
               >
-                当前筛选下没有可展示的任务或工时卡片。
+                <Search className={cn('h-8 w-8', isLightTheme ? 'text-slate-300' : 'text-slate-600')} />
+                <span className="text-center">当前筛选下没有可展示的任务或工时卡片。</span>
+                <span className={cn('text-xs', isLightTheme ? 'text-slate-400' : 'text-slate-500')}>试试清空筛选条件或调整搜索词</span>
               </div>
             ) : (
               layoutNodes.map((node, index) => {
@@ -1527,7 +1545,7 @@ export function WorkLogTimeCanvasDialog({
                         return;
                       }
                       event.preventDefault();
-                      setActiveDropTaskId(group.taskId ?? 'orphan');
+                      setActiveDropTaskIdIfChanged(group.taskId ?? 'orphan');
                     }}
                     onDrop={(event) => {
                       if (!canAcceptDrop) {
@@ -1790,12 +1808,12 @@ export function WorkLogTimeCanvasDialog({
                                 className={cn(
                                   'cursor-grab rounded-[1.35rem] border border-l-[3px] p-4 transition-all duration-200 focus:outline-none focus:ring-2',
                                   isLightTheme
-                                    ? 'border-slate-200/80 border-l-emerald-300 bg-white hover:border-emerald-200 hover:border-l-emerald-400 hover:shadow-[0_4px_16px_rgba(16,185,129,0.10)] focus:ring-emerald-500/70'
-                                    : 'border-slate-700/50 border-l-emerald-500/40 bg-slate-900/60 hover:border-emerald-500/30 hover:border-l-emerald-400/60 hover:shadow-[0_4px_16px_rgba(52,211,153,0.08)] focus:ring-emerald-400/70',
+                                    ? 'border-slate-200/80 border-l-emerald-300 bg-white hover:-translate-y-0.5 hover:border-emerald-200 hover:border-l-emerald-400 hover:shadow-[0_4px_16px_rgba(16,185,129,0.10)] focus:ring-emerald-500/70'
+                                    : 'border-slate-700/50 border-l-emerald-500/40 bg-slate-900/60 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:border-l-emerald-400/60 hover:shadow-[0_4px_16px_rgba(52,211,153,0.08)] focus:ring-emerald-400/70',
                                   isDragging
                                     ? isLightTheme
-                                      ? 'scale-[1.02] border-emerald-300 border-l-emerald-500 bg-emerald-50/50 shadow-[0_8px_24px_rgba(16,185,129,0.16)]'
-                                      : 'scale-[1.02] border-emerald-400/40 border-l-emerald-400 bg-emerald-500/8 shadow-[0_8px_24px_rgba(52,211,153,0.14)]'
+                                      ? 'scale-[1.02] -rotate-2 border-emerald-300 border-l-emerald-500 bg-emerald-50/50 shadow-[0_8px_24px_rgba(16,185,129,0.16)]'
+                                      : 'scale-[1.02] -rotate-2 border-emerald-400/40 border-l-emerald-400 bg-emerald-500/8 shadow-[0_8px_24px_rgba(52,211,153,0.14)]'
                                     : '',
                                 )}
                               >
