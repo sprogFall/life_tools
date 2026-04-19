@@ -232,12 +232,17 @@ jobs:
         run: |
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           if [ "$BUILD_TYPE" = "release" ]; then
-            APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+            RAW_APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
             APK_NAME="life_tools-release-${{ github.sha }}.apk"
           else
-            APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
+            RAW_APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
             APK_NAME="life_tools-debug-${{ github.sha }}.apk"
           fi
+
+          APK_DIR="$(dirname "$RAW_APK_PATH")"
+          APK_PATH="${APK_DIR}/${APK_NAME}"
+          cp "$RAW_APK_PATH" "$APK_PATH"
+
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
           
