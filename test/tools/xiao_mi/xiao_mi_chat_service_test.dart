@@ -2,12 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/ai/ai_config.dart';
 import 'package:life_tools/core/ai/ai_config_service.dart';
 import 'package:life_tools/core/ai/ai_models.dart';
+import 'package:life_tools/core/tags/tag_repository.dart';
 import 'package:life_tools/core/ai/ai_service.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/tools/overcooked_kitchen/models/overcooked_recipe.dart';
 import 'package:life_tools/tools/overcooked_kitchen/repository/overcooked_repository.dart';
 import 'package:life_tools/tools/work_log/models/work_task.dart';
 import 'package:life_tools/tools/work_log/models/work_time_entry.dart';
+import 'package:life_tools/tools/work_log/repository/work_log_repository.dart';
 import 'package:life_tools/tools/xiao_mi/ai/xiao_mi_prompt_resolver.dart';
 import 'package:life_tools/tools/xiao_mi/models/xiao_mi_message.dart';
 import 'package:life_tools/tools/xiao_mi/repository/xiao_mi_repository.dart';
@@ -441,6 +443,121 @@ void main() {
       expect(
         fakeClient.lastRequest!.messages.last.content,
         contains('菜谱正文：步骤1：滑油。步骤2：爆香。'),
+      );
+      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
+    test('send 预选返回 work_log_query 时应按组合条件注入精简字段', () async {
+      var now = DateTime(2026, 4, 20, 8, 0, 0);
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final workLogRepository = WorkLogRepository.withDatabase(db);
+      final tagRepository = TagRepository.withDatabase(db);
+      final projectAId = await tagRepository.createTagForToolCategory(
+        name: '项目A',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+      final taskAId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '接口联调',
+          description: '支付回调对齐',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 4, 20, 9),
+        ),
+      );
+      final taskBId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '月度复盘',
+          description: '收尾',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.done,
+          estimatedMinutes: 0,
+          now: DateTime(2026, 4, 20, 9),
+        ),
+      );
+      await tagRepository.setTagsForWorkTask(taskAId, [projectAId]);
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskAId,
+          workDate: DateTime(2026, 4, 12),
+          minutes: 90,
+          content: '完成支付接口联调并验证回调',
+          now: DateTime(2026, 4, 12, 9),
+        ),
+      );
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskBId,
+          workDate: DateTime(2026, 4, 15),
+          minutes: 45,
+          content: '接口问题复盘',
+          now: DateTime(2026, 4, 15, 9),
+        ),
+      );
+
+      final fakeClient = FakeOpenAiClient(
+        replyText:
+            '{"type":"special_call","call":"work_log_query","arguments":{"start_date":"20260401","end_date":"20260430","keyword":"接口","statuses":["doing"],"affiliation_names":["项目A"],"fields":["work_date","task_title","minutes"],"limit":1}}',
+        streamReply: const [AiChatStreamChunk(textDelta: '查询结果已整理')],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: workLogRepository,
+          tagRepository: tagRepository,
+          nowProvider: () => DateTime(2026, 4, 20, 8),
+        ),
+      );
+      await service.init();
+      await service.send('查下四月项目A里跟接口相关且进行中的工作记录');
+
+      expect(service.messages.length, 2);
+      expect(service.messages.last.content, '查询结果已整理');
+      expect(
+        (service.messages.first.metadata ?? const {})['triggerSource'],
+        'pre_route',
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['queryStartDate'],
+        '2026-04-01',
+      );
+      expect(
+        (service.messages.first.metadata ?? const {})['queryEndDate'],
+        '2026-04-30',
+      );
+      expect(fakeClient.lastRequest, isNotNull);
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('工作记录查询结果'),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('work_date=2026-04-12 | task_title=接口联调 | minutes=90'),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        isNot(contains('content=')),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        isNot(contains('月度复盘')),
       );
       expect(fakeClient.chatCompletionsCallCount, 1);
       expect(fakeClient.chatCompletionsStreamCallCount, 1);

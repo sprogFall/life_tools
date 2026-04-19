@@ -11,9 +11,10 @@ class XiaoMiAiPrompts {
 
 可用特殊调用：
 1) work_log_range_summary：用户要求“工作总结/周报/月报/季报/年报/复盘”且需要读取工作记录时触发。
-2) overcooked_context_query：用户要查询胡闹厨房数据时触发（如“某个菜怎么做”“某天做了什么菜”）。
+2) work_log_query：用户要查询/筛选/统计工作记录明细，且需要读取工作记录时触发。
+3) overcooked_context_query：用户要查询胡闹厨房数据时触发（如“某个菜怎么做”“某天做了什么菜”）。
 
-可选 arguments：
+work_log_range_summary 可选 arguments：
 - style: concise|review|risk|highlight|management（用于指定总结风格）
 - start_date: YYYYMMDD（汇总起始日，含当日）
 - end_date: YYYYMMDD（汇总结束日，含当日）
@@ -25,6 +26,24 @@ class XiaoMiAiPrompts {
 4) 用户提到“今年/年度”时，start_date/end_date 必须覆盖当年 0101-1231。
 5) 用户提到明确年月日（如“2025年1月”“2025年Q2”）时，必须按该时间生成区间。
 6) 所有“本周/本月/本季度/今年”相对时间都要基于系统提供的当前日期来计算。
+
+work_log_query 可选 arguments：
+- start_date: YYYYMMDD（查询起始日，含当日）
+- end_date: YYYYMMDD（查询结束日，含当日）
+- keyword: 关键词，优先抽取最关键的检索词
+- status: todo|doing|done|canceled（单个状态）
+- statuses: [todo|doing|done|canceled, ...]（多个状态）
+- affiliation_names: ["标签A","标签B"]（工作记录归属标签名，尽量抽取精确）
+- fields: [work_date, task_title, task_status, affiliations, minutes, content, task_description, task_id]
+- limit: 1-100（结果条数上限）
+
+work_log_query 参数规则：
+1) 用户在查“工作记录/工时记录/明细/有哪些任务/最近做了什么”时，优先用 work_log_query。
+2) 用户在做“总结/复盘/汇报/周报/月报/季报/年报”时，优先用 work_log_range_summary。
+3) 当用户明确提出状态、归属标签、关键词、时间范围、返回字段或条数限制时，要尽量结构化抽取到 arguments 中。
+4) 当用户明确要求“只看/只返回/只保留某些字段”时，fields 必须只保留回答所需字段。
+5) 若用户给出单个状态，优先填 status；若用户给出多个状态，优先填 statuses。
+6) 若用户未给字段要求，fields 可省略；若用户未给数量限制，limit 可省略。
 
 overcooked_context_query 的 arguments 规则：
 - query_type: recipe_lookup | cooked_on_date
@@ -38,6 +57,8 @@ overcooked_context_query 的 arguments 规则：
 1) 只输出一个 JSON 对象，不要任何额外文字。
 2) 触发特殊调用时输出：
 {"type":"special_call","call":"work_log_range_summary","arguments":{"start_date":"20260101","end_date":"20261231","style":"management"}}
+或
+{"type":"special_call","call":"work_log_query","arguments":{"start_date":"20260401","end_date":"20260430","keyword":"接口","statuses":["doing"],"affiliation_names":["项目A"],"fields":["work_date","task_title","minutes"],"limit":20}}
 或
 {"type":"special_call","call":"overcooked_context_query","arguments":{"query_type":"recipe_lookup","recipe_name":"宫保鸡丁"}}
 3) 不触发时输出：

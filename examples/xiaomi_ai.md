@@ -109,6 +109,7 @@ static const XiaoMiQuickPrompt workLogMonthSummary = XiaoMiQuickPrompt(
 当前已使用：
 
 - `work_log_range_summary`
+- `work_log_query`
 - `work_log_week_summary`
 - `work_log_month_summary`
 - `work_log_quarter_summary`
@@ -135,6 +136,52 @@ static const XiaoMiQuickPrompt workLogMonthSummary = XiaoMiQuickPrompt(
   }
 }
 ```
+
+`work_log_query` 示例：
+
+```json
+{
+  "type": "special_call",
+  "call": "work_log_query",
+  "arguments": {
+    "start_date": "20260401",
+    "end_date": "20260430",
+    "keyword": "接口",
+    "statuses": ["doing"],
+    "affiliation_names": ["项目A"],
+    "fields": ["work_date", "task_title", "minutes"],
+    "limit": 20
+  }
+}
+```
+
+### 5.3 `work_log_query` 协议建议
+
+适用场景：
+
+- 查询工作记录明细
+- 按时间、关键词、状态、归属标签组合筛选
+- 大数据量场景下，只返回指定字段给 AI
+
+建议参数：
+
+- `start_date` / `end_date`：日期范围，`YYYYMMDD`
+- `keyword`：匹配任务标题、任务描述、工时内容
+- `status` / `statuses`：任务状态，推荐 `todo|doing|done|canceled`
+- `affiliation_names`：归属标签名数组
+- `fields`：限定返回字段，推荐使用白名单
+- `limit`：结果上限，避免上下文过长
+
+推荐字段白名单：
+
+- `work_date`
+- `task_title`
+- `task_status`
+- `affiliations`
+- `minutes`
+- `content`
+- `task_description`
+- `task_id`
 
 ## 6）预选路由（pre-route）要求
 
@@ -247,4 +294,4 @@ final resolved = await resolver.resolveSpecialCall(
 - 是否把业务规则收敛到了 resolver
 - 是否避免把本地数据当作指令执行
 - 是否补齐了最小测试覆盖
-- 是否同步更新本文档与 `AGENTS.md` 入口
+- 是否同步更新本文档、`docs/xiao_mi_pre_route_special_calls.md` 与 `AGENTS.md` 入口

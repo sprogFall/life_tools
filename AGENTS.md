@@ -13,6 +13,7 @@
 - UI 规范：`examples/ui.md`
 - AI/对象存储/标签/消息：`examples/ai.md`、`examples/objStore.md`、`examples/tags.md`、`examples/message.md`
 - 小蜜 AI（预置提示词/特殊调用/预选路由/调用方式）：`examples/xiaomi_ai.md`
+- 小蜜 AI 对外能力说明（触发提示词 / special_call / 参数协议）：`docs/xiao_mi_pre_route_special_calls.md`
 
 ## 提交与发布流程（三段式）
 按顺序执行以下脚本：
@@ -42,6 +43,7 @@
 - `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
 - `LD_LIBRARY_PATH=/tmp flutter test`
 5. 任务若明确要求“排除国际化内容”，不主动改动 i18n 文案语义与键值。
+6. 若对小蜜 AI 的提示词、预选路由协议、special_call 参数或触发文案做了优化修改，要酌情同步更新 `docs/xiao_mi_pre_route_special_calls.md`。
 
 ## Git 提交规范
 1. 推荐格式：`type(scope): 简要说明`

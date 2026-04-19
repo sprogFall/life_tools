@@ -1,5 +1,6 @@
 export 'xiao_mi_prompt_preset.dart';
 
+import '../../../core/tags/tag_repository.dart';
 import '../../work_log/repository/work_log_repository_base.dart';
 import '../../overcooked_kitchen/models/overcooked_recipe.dart';
 import '../../overcooked_kitchen/repository/overcooked_repository.dart';
@@ -32,14 +33,17 @@ class XiaoMiNoWorkLogDataException implements Exception {
 
 class XiaoMiPromptResolver {
   final WorkLogRepositoryBase _workLogRepository;
+  final TagRepository? _tagRepository;
   final OvercookedRepository? _overcookedRepository;
   final DateTime Function() _nowProvider;
 
   const XiaoMiPromptResolver({
     required WorkLogRepositoryBase workLogRepository,
+    TagRepository? tagRepository,
     OvercookedRepository? overcookedRepository,
     DateTime Function()? nowProvider,
   }) : _workLogRepository = workLogRepository,
+       _tagRepository = tagRepository,
        _overcookedRepository = overcookedRepository,
        _nowProvider = nowProvider ?? DateTime.now;
 
@@ -110,8 +114,42 @@ class XiaoMiPromptResolver {
     final now = _normalizeDay(_nowProvider());
     final builder = XiaoMiWorkLogSummaryPromptBuilder(
       repository: _workLogRepository,
+      tagRepository: _tagRepository,
       nowProvider: _nowProvider,
     );
+    if (callId == 'work_log_query') {
+      final start = _resolveQueryStartDate(
+        arguments: arguments,
+        displayText: displayText,
+        now: now,
+      );
+      final endInclusive = _resolveQueryEndDate(
+        arguments: arguments,
+        displayText: displayText,
+        now: now,
+      );
+      final prompt = await builder.buildQuery(
+        displayText: displayText,
+        start: start,
+        endInclusive: endInclusive,
+        keyword: _resolveWorkLogKeyword(arguments),
+        statusIds: _resolveWorkLogStatuses(arguments),
+        affiliationNames: _resolveWorkLogAffiliationNames(arguments),
+        fields: _resolveWorkLogFields(arguments),
+        limit: _resolveWorkLogLimit(arguments),
+      );
+      return _buildTriggeredPrompt(
+        displayText: displayText,
+        aiPrompt: prompt,
+        queryStart: start,
+        queryEnd: endInclusive,
+        extraMetadata: const <String, dynamic>{
+          'triggerTool': 'work_log',
+          'queryType': 'filtered_query',
+        },
+        triggerSource: triggerSource,
+      );
+    }
     final dateRange = _resolveCallDateRange(
       callId: callId,
       arguments: arguments,
@@ -379,6 +417,7 @@ ${recipeBlocks.join('\n')}
 
   static bool _isWorkLogSpecialCall(String callId) {
     return callId == 'work_log_range_summary' ||
+        callId == 'work_log_query' ||
         callId == 'work_log_week_summary' ||
         callId == 'work_log_month_summary' ||
         callId == 'work_log_quarter_summary' ||
@@ -579,6 +618,82 @@ ${recipeBlocks.join('\n')}
     return normalized;
   }
 
+  static String? _resolveWorkLogKeyword(Map<String, Object?> arguments) {
+    return _resolveStringArgument(
+      arguments,
+      keys: const <String>[
+        'keyword',
+        'keywords',
+        'query',
+        'task_keyword',
+        'search_keyword',
+      ],
+    );
+  }
+
+  static List<String> _resolveWorkLogStatuses(Map<String, Object?> arguments) {
+    final values = <String>[
+      ..._resolveStringListArgument(
+        arguments,
+        keys: const <String>['statuses', 'status_list'],
+      ),
+      ..._resolveStringListArgument(arguments, keys: const <String>['status']),
+    ];
+    final normalized = <String>[];
+    for (final value in values) {
+      final statusId = _normalizeWorkLogStatusId(value);
+      if (statusId == null || normalized.contains(statusId)) continue;
+      normalized.add(statusId);
+    }
+    return normalized;
+  }
+
+  static List<String> _resolveWorkLogAffiliationNames(
+    Map<String, Object?> arguments,
+  ) {
+    final values = _resolveStringListArgument(
+      arguments,
+      keys: const <String>[
+        'affiliation_names',
+        'affiliations',
+        'tag_names',
+        'tags',
+      ],
+    );
+    final normalized = <String>[];
+    for (final value in values) {
+      final name = value.trim();
+      if (name.isEmpty || normalized.contains(name)) continue;
+      normalized.add(name);
+    }
+    return normalized;
+  }
+
+  static List<String> _resolveWorkLogFields(Map<String, Object?> arguments) {
+    final values = _resolveStringListArgument(
+      arguments,
+      keys: const <String>[
+        'fields',
+        'return_fields',
+        'field_names',
+        'select_fields',
+      ],
+    );
+    final normalized = <String>[];
+    for (final value in values) {
+      final field = value.trim();
+      if (field.isEmpty || normalized.contains(field)) continue;
+      normalized.add(field);
+    }
+    return normalized;
+  }
+
+  static int? _resolveWorkLogLimit(Map<String, Object?> arguments) {
+    return _resolveInt(arguments['limit']) ??
+        _resolveInt(arguments['max_results']) ??
+        _resolveInt(arguments['top_k']);
+  }
+
   static DateTime _normalizeDay(DateTime dateTime) {
     return DateTime(dateTime.year, dateTime.month, dateTime.day);
   }
@@ -606,6 +721,18 @@ ${recipeBlocks.join('\n')}
       if (text.isNotEmpty) return text;
     }
     return null;
+  }
+
+  static List<String> _resolveStringListArgument(
+    Map<String, Object?> arguments, {
+    required List<String> keys,
+  }) {
+    for (final key in keys) {
+      final value = arguments[key];
+      final result = _asTrimmedStringList(value);
+      if (result.isNotEmpty) return result;
+    }
+    return const <String>[];
   }
 
   static int? _resolveYear(Object? value) {
@@ -719,6 +846,44 @@ ${recipeBlocks.join('\n')}
     throw const XiaoMiNoWorkLogDataException('未提供有效的时间范围，无法生成总结');
   }
 
+  static DateTime? _resolveQueryStartDate({
+    required Map<String, Object?> arguments,
+    required String displayText,
+    required DateTime now,
+  }) {
+    final start =
+        _resolveDate(arguments['start_date']) ??
+        _resolveDate(arguments['startDate']) ??
+        _resolveDate(arguments['start']) ??
+        _resolveDate(arguments['from']) ??
+        _resolveDate(arguments['from_date']);
+    if (start != null) return start;
+    final range = _resolveDateRangeByDisplayText(
+      displayText: displayText,
+      now: now,
+    );
+    return range?.start;
+  }
+
+  static DateTime? _resolveQueryEndDate({
+    required Map<String, Object?> arguments,
+    required String displayText,
+    required DateTime now,
+  }) {
+    final end =
+        _resolveDate(arguments['end_date']) ??
+        _resolveDate(arguments['endDate']) ??
+        _resolveDate(arguments['end']) ??
+        _resolveDate(arguments['to']) ??
+        _resolveDate(arguments['to_date']);
+    if (end != null) return end;
+    final range = _resolveDateRangeByDisplayText(
+      displayText: displayText,
+      now: now,
+    );
+    return range?.endInclusive;
+  }
+
   static _DateRange? _resolveDateRangeByDisplayText({
     required String displayText,
     required DateTime now,
@@ -801,6 +966,54 @@ ${recipeBlocks.join('\n')}
 
   static String _normalizeText(String value) {
     return value.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+  }
+
+  static List<String> _asTrimmedStringList(Object? value) {
+    if (value == null) return const <String>[];
+    if (value is Iterable) {
+      final result = <String>[];
+      for (final item in value) {
+        final text = item?.toString().trim() ?? '';
+        if (text.isNotEmpty) result.add(text);
+      }
+      return result;
+    }
+    final text = value.toString().trim();
+    if (text.isEmpty) return const <String>[];
+    return text
+        .split(RegExp(r'[,，、|/]+'))
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static String? _normalizeWorkLogStatusId(String rawValue) {
+    final normalized = rawValue.trim().toLowerCase();
+    switch (normalized) {
+      case 'todo':
+      case '待办':
+      case '未开始':
+      case '待处理':
+        return 'todo';
+      case 'doing':
+      case 'in_progress':
+      case '进行中':
+      case '处理中':
+      case '执行中':
+        return 'doing';
+      case 'done':
+      case 'completed':
+      case '已完成':
+      case '完成':
+        return 'done';
+      case 'canceled':
+      case 'cancelled':
+      case '已取消':
+      case '取消':
+        return 'canceled';
+      default:
+        return null;
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import '../../../core/ai/ai_errors.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/ai/ai_use_case.dart';
+import '../../../core/tags/tag_repository.dart';
 import '../../overcooked_kitchen/repository/overcooked_repository.dart';
 import '../../work_log/repository/work_log_repository.dart';
 import '../ai/xiao_mi_ai_prompts.dart';
@@ -40,6 +41,7 @@ class XiaoMiChatService extends ChangeNotifier {
            promptResolver ??
            XiaoMiPromptResolver(
              workLogRepository: WorkLogRepository(),
+             tagRepository: TagRepository(),
              overcookedRepository: OvercookedRepository(),
            );
 
