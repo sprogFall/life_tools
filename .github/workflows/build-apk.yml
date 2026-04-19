@@ -158,6 +158,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.should_build == 'true'
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -250,6 +252,43 @@ jobs:
           name: ${{ steps.apk-info.outputs.apk_name }}
           path: ${{ steps.apk-info.outputs.apk_path }}
           retention-days: 30
+          compression-level: 0
+
+      - name: Publish APK as release asset
+        id: release-info
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
+          APK_PATH="${{ steps.apk-info.outputs.apk_path }}"
+          APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
+          BRANCH="${{ github.ref_name }}"
+          SHORT_SHA="${GITHUB_SHA::12}"
+          TAG_NAME="apk-${BRANCH}-${SHORT_SHA}"
+          RELEASE_TITLE="APK ${BUILD_TYPE} ${BRANCH} ${SHORT_SHA}"
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/${APK_NAME}"
+          RELEASE_NOTES=$(cat <<EOF
+          Automated ${BUILD_TYPE} APK build for branch ${BRANCH}.
+
+          Commit: ${GITHUB_SHA}
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
+          )
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" "${APK_PATH}#${APK_NAME}" --clobber
+          else
+            gh release create "$TAG_NAME" "${APK_PATH}#${APK_NAME}" \
+              --target "${GITHUB_SHA}" \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES" \
+              --prerelease
+          fi
+
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "release_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
+          echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
 
       - name: Create release summary
         run: |
@@ -259,6 +298,8 @@ jobs:
           COMMIT_SHA="${{ github.sha }}"
           COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
           BRANCH="${{ github.ref_name }}"
+          RELEASE_URL="${{ steps.release-info.outputs.release_url }}"
+          DOWNLOAD_URL="${{ steps.release-info.outputs.download_url }}"
           
           echo "## 📱 APK Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -270,4 +311,6 @@ jobs:
           echo "- **Author**: $COMMIT_AUTHOR" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Download" >> $GITHUB_STEP_SUMMARY
-          echo "The APK has been uploaded as an artifact. You can download it from the Actions run page." >> $GITHUB_STEP_SUMMARY
+          echo "- [Direct APK download]($DOWNLOAD_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Release page]($RELEASE_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact fallback is still available on this Actions run page." >> $GITHUB_STEP_SUMMARY

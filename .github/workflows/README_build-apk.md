@@ -72,11 +72,24 @@ git push origin dev
 
 ### 下载位置
 
-构建完成后，APK 文件会作为 artifact 上传，保留 30 天。可以在以下位置下载：
+构建完成后，workflow 会同时产出两种下载方式：
 
-1. 进入 GitHub 仓库的 **Actions** 标签页
-2. 选择对应的 workflow 运行记录
-3. 在 **Artifacts** 部分下载 APK
+1. **直接 APK 下载链接（推荐）**
+   - 在 Actions 对应 run 的 Summary 中会显示：
+   - `Direct APK download`
+   - `Release page`
+   - 这里下载的是直接挂在 GitHub Release 上的 `.apk` 文件，不再需要先解压 artifact。
+2. **Artifact 兜底下载**
+   - 仍会保留一份 artifact，保留 30 天。
+   - 如果需要，也可以继续在 Actions run 页面里的 **Artifacts** 区域下载。
+
+### Release 规则
+
+- 每次成功构建都会创建一个对应 commit 的 **prerelease**。
+- Tag 规则：`apk-{branch}-{short_sha}`
+- APK 资源文件仍保持原命名：
+- **Debug**: `life_tools-debug-{commit_sha}.apk`
+- **Release**: `life_tools-release-{commit_sha}.apk`
 
 ### 构建信息
 
@@ -120,7 +133,9 @@ git push origin main
 
 - **Java**: Temurin JDK 17
 - **Flutter**: 稳定版通道
+- **GitHub CLI (`gh`)**: 由 GitHub Hosted Runner 预装，用于发布 Release asset
 - **GitHub Actions**: `actions/checkout@v6`、`actions/setup-java@v5`、`actions/cache@v5`、`actions/upload-artifact@v6`，已对齐 Node 24 运行时
+- **Workflow 权限**: `build-apk` job 需要 `contents: write`，以便创建 prerelease 并上传 APK
 
 ## 故障排查
 
@@ -150,4 +165,5 @@ git push origin main
 - dev 分支的每次推送都会触发构建，请确保代码可编译
 - release 构建需要确保代码经过充分测试
 - APK artifacts 保留 30 天后自动删除
+- 每次成功构建还会新增一个 prerelease 条目，方便直接下载 `.apk`
 - 若未来改用自建 runner，需要同步确认 runner 版本满足这些 action 对 Node 24 的最低要求

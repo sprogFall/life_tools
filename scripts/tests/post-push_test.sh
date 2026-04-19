@@ -205,6 +205,25 @@ test_monitor_for_android_changes() {
   assert_not_contains "$output" "跳过监控"
 }
 
+test_monitor_for_workflow_changes() {
+  local tmp_repo output sha
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  sha="$(create_commit "$tmp_repo" "ci: update build workflow" bash -lc '
+    cat >> .github/workflows/build-apk.yml <<'"'"'YAML'"'"'
+
+permissions:
+  contents: write
+YAML
+  ')"
+
+  output="${tmp_repo}/post_push_workflow.log"
+  run_post_push "$tmp_repo" "$output" --sha "$sha" --dry-run
+  assert_contains "$output" "[dry-run] 将执行轮询"
+  assert_not_contains "$output" "跳过监控"
+}
+
 main() {
   test_skip_monitor_for_backend_and_dashboard_changes
   test_force_monitor_overrides_backend_and_dashboard_skip
@@ -212,6 +231,7 @@ main() {
   test_skip_monitor_when_workflow_branches_do_not_match
   test_monitor_for_flutter_changes
   test_monitor_for_android_changes
+  test_monitor_for_workflow_changes
   echo "[post-push-test] all passed"
 }
 
