@@ -418,8 +418,16 @@ ${XiaoMiAiPrompts.preRouteUseCase.systemPrompt}
     required String currentUserPrompt,
   }) {
     final aiHistory = _buildAiHistory(history);
+    final nowText = _formatDateForPrompt(_nowProvider());
+    final systemPrompt =
+        '''
+${XiaoMiAiPrompts.chatUseCase.systemPrompt}
+
+系统当前日期（本地）：$nowText
+处理时间相关问题时，请基于该日期计算。
+''';
     return <AiMessage>[
-      AiMessage.system(XiaoMiAiPrompts.chatUseCase.systemPrompt),
+      AiMessage.system(systemPrompt),
       ...aiHistory,
       AiMessage.user(
         AiPromptComposer.compose(

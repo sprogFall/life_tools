@@ -379,13 +379,25 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
       task.description,
       entry.content,
     ].join('\n').toLowerCase();
-    final tokens = normalizedKeyword
-        .split(RegExp(r'\s+'))
-        .where((token) => token.isNotEmpty);
-    for (final token in tokens) {
-      if (!text.contains(token)) return false;
+    final subKeywords = _generateSubKeywords(normalizedKeyword);
+    for (final subKeyword in subKeywords) {
+      if (text.contains(subKeyword)) return true;
     }
-    return true;
+    return false;
+  }
+
+  static List<String> _generateSubKeywords(String keyword) {
+    final normalized = keyword.trim();
+    if (normalized.isEmpty) return const <String>[];
+    final length = normalized.length;
+    if (length <= 2) return <String>[normalized];
+    final subKeywords = <String>{normalized};
+    for (int len = 2; len < length; len++) {
+      for (int start = 0; start <= length - len; start++) {
+        subKeywords.add(normalized.substring(start, start + len));
+      }
+    }
+    return subKeywords.toList(growable: false);
   }
 
   static bool _matchesStatus(
@@ -405,8 +417,13 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
         .map((name) => name.trim().toLowerCase())
         .where((name) => name.isNotEmpty)
         .toSet();
-    for (final name in allowedAffiliationNames) {
-      if (normalized.contains(name.toLowerCase())) return true;
+    for (final allowedName in allowedAffiliationNames) {
+      final subKeywords = _generateSubKeywords(allowedName.toLowerCase());
+      for (final subKeyword in subKeywords) {
+        for (final affiliation in normalized) {
+          if (affiliation.contains(subKeyword)) return true;
+        }
+      }
     }
     return false;
   }

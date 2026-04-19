@@ -138,11 +138,13 @@ class XiaoMiPromptResolver {
         fields: _resolveWorkLogFields(arguments),
         limit: _resolveWorkLogLimit(arguments),
       );
+      final effectiveStart = start ?? DateTime(1970, 1, 1);
+      final effectiveEnd = endInclusive ?? now;
       return _buildTriggeredPrompt(
         displayText: displayText,
         aiPrompt: prompt,
-        queryStart: start,
-        queryEnd: endInclusive,
+        queryStart: effectiveStart,
+        queryEnd: effectiveEnd,
         extraMetadata: const <String, dynamic>{
           'triggerTool': 'work_log',
           'queryType': 'filtered_query',
@@ -836,6 +838,14 @@ ${recipeBlocks.join('\n')}
 
     if (start != null && end != null) {
       return _DateRange.normalize(start: start, endInclusive: end);
+    }
+
+    if (start != null) {
+      return _DateRange(start: start, endInclusive: now);
+    }
+
+    if (end != null) {
+      return _DateRange(start: DateTime(1970, 1, 1), endInclusive: end);
     }
 
     final fallback = _resolveDateRangeByDisplayText(
