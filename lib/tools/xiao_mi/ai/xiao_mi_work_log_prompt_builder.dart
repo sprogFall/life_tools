@@ -198,6 +198,7 @@ class XiaoMiWorkLogSummaryPromptBuilder {
       if (!_matchesKeyword(
         task: task,
         entry: entry,
+        affiliations: affiliations,
         keyword: normalizedKeyword,
       )) {
         continue;
@@ -370,6 +371,7 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
   static bool _matchesKeyword({
     required WorkTask task,
     required WorkTimeEntry entry,
+    required List<String> affiliations,
     required String keyword,
   }) {
     final normalizedKeyword = keyword.trim().toLowerCase();
@@ -378,6 +380,7 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
       task.title,
       task.description,
       entry.content,
+      ...affiliations,
     ].join('\n').toLowerCase();
     final subKeywords = _generateSubKeywords(normalizedKeyword);
     for (final subKeyword in subKeywords) {
