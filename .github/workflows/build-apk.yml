@@ -232,20 +232,15 @@ jobs:
         run: |
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           if [ "$BUILD_TYPE" = "release" ]; then
-            RAW_APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+            APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
             APK_NAME="life_tools-release-${{ github.sha }}.apk"
           else
-            RAW_APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
+            APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
             APK_NAME="life_tools-debug-${{ github.sha }}.apk"
           fi
-
-          APK_DIR="$(dirname "$RAW_APK_PATH")"
-          APK_PATH="${APK_DIR}/${APK_NAME}"
-          cp "$RAW_APK_PATH" "$APK_PATH"
-
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
-          
+
           if [ -f "$APK_PATH" ]; then
             APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
             echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
@@ -281,10 +276,14 @@ jobs:
           EOF
           )
 
+          # 先重命名 APK 文件为目标名称
+          RENAMED_APK_PATH="$(dirname "$APK_PATH")/${APK_NAME}"
+          cp "$APK_PATH" "$RENAMED_APK_PATH"
+
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release upload "$TAG_NAME" "${APK_PATH}#${APK_NAME}" --clobber
+            gh release upload "$TAG_NAME" "$RENAMED_APK_PATH" --clobber
           else
-            gh release create "$TAG_NAME" "${APK_PATH}#${APK_NAME}" \
+            gh release create "$TAG_NAME" "$RENAMED_APK_PATH" \
               --target "${GITHUB_SHA}" \
               --title "$RELEASE_TITLE" \
               --notes "$RELEASE_NOTES" \
