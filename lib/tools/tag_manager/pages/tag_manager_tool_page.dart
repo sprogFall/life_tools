@@ -715,8 +715,6 @@ class _ToolCategoryListState extends State<_ToolCategoryList> {
 
     if (ok == true && mounted) {
       await service.deleteTag(tagId);
-      if (!mounted) return;
-      await service.refreshToolTags(toolId);
     }
   }
 }

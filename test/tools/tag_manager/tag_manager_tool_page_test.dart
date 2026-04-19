@@ -206,8 +206,10 @@ void main() {
       await tester.runAsync(() async {
         final deadline = DateTime.now().add(const Duration(seconds: 5));
         while (DateTime.now().isBefore(deadline)) {
-          final exists = deps.service.allTags.any((e) => e.tag.id == id);
-          if (!deps.service.loading && !exists) return;
+          final exists = deps.service
+              .tagsForToolWithCategory('work_log')
+              .any((e) => e.tag.id == id);
+          if (!exists) return;
           await Future<void>.delayed(const Duration(milliseconds: 20));
         }
         fail('等待删除完成超时: tagId=$id');

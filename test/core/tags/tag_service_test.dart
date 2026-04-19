@@ -110,4 +110,31 @@ void main() {
       expect(tags.map((e) => e.id), contains(id));
     });
   });
+
+  group('TagService.deleteTag', () {
+    test('删除标签时应同步清理已加载的工具分类缓存', () async {
+      final service = TagService(repository: tagRepository);
+
+      final id = await service.createTagForToolCategory(
+        toolId: 'work_log',
+        categoryId: 'priority',
+        name: '重要',
+      );
+
+      await service.refreshAll();
+      await service.refreshToolTags('work_log');
+      expect(
+        service.tagsForToolWithCategory('work_log').map((e) => e.tag.id),
+        contains(id),
+      );
+
+      await service.deleteTag(id);
+
+      expect(service.allTags.map((e) => e.tag.id), isNot(contains(id)));
+      expect(
+        service.tagsForToolWithCategory('work_log').map((e) => e.tag.id),
+        isNot(contains(id)),
+      );
+    });
+  });
 }
