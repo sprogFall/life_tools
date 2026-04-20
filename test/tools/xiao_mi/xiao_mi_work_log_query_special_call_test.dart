@@ -158,5 +158,137 @@ void main() {
       expect(resolved.aiPrompt, isNot(contains('接口问题复盘')));
       expect(resolved.aiPrompt, isNot(contains('历史接口预研')));
     });
+
+    test('关键词与同名归属标签同时传入时，不应误过滤仅标题命中的记录', () async {
+      final now = DateTime(2026, 4, 20, 9);
+      final taskId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '今日防汛巡查',
+          description: '河道巡查与上报',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taskId,
+          workDate: DateTime(2026, 4, 18),
+          minutes: 180,
+          content: '完成堤坝巡检与值守安排',
+          now: now,
+        ),
+      );
+
+      final resolver = XiaoMiPromptResolver(
+        workLogRepository: workLogRepository,
+        tagRepository: tagRepository,
+        nowProvider: () => now,
+      );
+
+      final resolved = await resolver.resolveSpecialCall(
+        callId: 'work_log_query',
+        displayText: '帮我看一下我截止今天在防汛的工作花了多少天',
+        arguments: const <String, Object?>{
+          'keyword': '防汛',
+          'affiliation_names': <String>['防汛'],
+          'fields': <String>['work_date', 'task_title', 'minutes'],
+        },
+      );
+
+      expect(resolved.aiPrompt, contains('关键词：防汛'));
+      expect(resolved.aiPrompt, contains('归属标签：全部'));
+      expect(resolved.aiPrompt, contains('命中记录数：1'));
+      expect(
+        resolved.aiPrompt,
+        contains('work_date=2026-04-18 | task_title=今日防汛巡查 | minutes=180'),
+      );
+    });
+
+    test('用户明确要求按归属标签查询时，仍应严格按标签过滤', () async {
+      final now = DateTime(2026, 4, 20, 9);
+      final floodTagId = await tagRepository.createTagForToolCategory(
+        name: '防汛',
+        toolId: 'work_log',
+        categoryId: 'affiliation',
+      );
+
+      final titleOnlyTaskId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '防汛值守',
+          description: '标题命中但未打标签',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+      final taggedTaskId = await workLogRepository.createTask(
+        WorkTask.create(
+          title: '值守复盘',
+          description: '仅通过归属标签命中',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 0,
+          now: now,
+        ),
+      );
+
+      await tagRepository.setTagsForWorkTask(taggedTaskId, [floodTagId]);
+
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: titleOnlyTaskId,
+          workDate: DateTime(2026, 4, 18),
+          minutes: 120,
+          content: '现场值守',
+          now: now,
+        ),
+      );
+      await workLogRepository.createTimeEntry(
+        WorkTimeEntry.create(
+          taskId: taggedTaskId,
+          workDate: DateTime(2026, 4, 19),
+          minutes: 60,
+          content: '复盘值守安排',
+          now: now,
+        ),
+      );
+
+      final resolver = XiaoMiPromptResolver(
+        workLogRepository: workLogRepository,
+        tagRepository: tagRepository,
+        nowProvider: () => now,
+      );
+
+      final resolved = await resolver.resolveSpecialCall(
+        callId: 'work_log_query',
+        displayText: '查归属标签为防汛的工作记录',
+        arguments: const <String, Object?>{
+          'keyword': '防汛',
+          'affiliation_names': <String>['防汛'],
+          'fields': <String>[
+            'work_date',
+            'task_title',
+            'affiliations',
+            'minutes',
+          ],
+        },
+      );
+
+      expect(resolved.aiPrompt, contains('归属标签：防汛'));
+      expect(resolved.aiPrompt, contains('命中记录数：1'));
+      expect(
+        resolved.aiPrompt,
+        contains(
+          'work_date=2026-04-19 | task_title=值守复盘 | affiliations=防汛 | minutes=60',
+        ),
+      );
+      expect(resolved.aiPrompt, isNot(contains('task_title=防汛值守')));
+    });
   });
 }

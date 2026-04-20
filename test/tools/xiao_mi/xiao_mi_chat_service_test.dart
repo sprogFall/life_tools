@@ -563,6 +563,69 @@ void main() {
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 
+    test('send 预选返回 work_task_query 时应注入任务列表结果', () async {
+      var now = DateTime(2026, 4, 20, 8, 0, 0);
+      DateTime nextNow() {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      }
+
+      final workLogRepository = WorkLogRepository.withDatabase(db);
+      await workLogRepository.createTask(
+        WorkTask.create(
+          title: '防汛巡查',
+          description: '河道排查',
+          startAt: null,
+          endAt: null,
+          status: WorkTaskStatus.doing,
+          estimatedMinutes: 180,
+          now: DateTime(2026, 4, 20, 9),
+        ),
+      );
+
+      final fakeClient = FakeOpenAiClient(
+        replyText:
+            '{"type":"special_call","call":"work_task_query","arguments":{"keyword":"防汛","statuses":["doing"],"fields":["task_title","task_status","estimated_minutes"],"limit":1}}',
+        streamReply: const [AiChatStreamChunk(textDelta: '任务结果已整理')],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: nextNow,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: workLogRepository,
+          nowProvider: () => DateTime(2026, 4, 20, 8),
+        ),
+      );
+      await service.init();
+      await service.send('查一下防汛相关任务');
+
+      expect(service.messages.length, 2);
+      expect(service.messages.last.content, '任务结果已整理');
+      expect(
+        (service.messages.first.metadata ?? const {})['triggerSource'],
+        'pre_route',
+      );
+      expect(fakeClient.lastRequest, isNotNull);
+      expect(fakeClient.lastRequest!.messages.last.content, contains('任务查询结果'));
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        contains('task_title=防汛巡查 | task_status=doing | estimated_minutes=180'),
+      );
+      expect(
+        fakeClient.lastRequest!.messages.last.content,
+        isNot(contains('工作记录查询结果')),
+      );
+      expect(fakeClient.chatCompletionsCallCount, 1);
+      expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
     test('send 失败时应在会话中写入错误消息并附带原因', () async {
       var now = DateTime(2026, 1, 1, 8, 0, 0);
       DateTime nextNow() {

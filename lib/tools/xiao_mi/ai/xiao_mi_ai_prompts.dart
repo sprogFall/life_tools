@@ -11,13 +11,16 @@ class XiaoMiAiPrompts {
 
 可用特殊调用：
 1) work_log_range_summary：用户要求”工作总结/周报/月报/季报/年报/复盘”且需要读取工作记录时触发。
-2) work_log_query：用户要查询/筛选/统计工作记录明细，且需要读取工作记录时触发。
-3) overcooked_context_query：用户要查询胡闹厨房数据时触发（如”某个菜怎么做””某天做了什么菜”）。
+2) work_task_query：用户要查询任务列表/任务标题/当前有哪些任务时触发。
+3) work_time_query：用户要查询/筛选/统计工时记录、工作记录明细、花了多久时触发。
+4) work_log_query：兼容旧版调用，语义等同于 work_time_query。
+5) overcooked_context_query：用户要查询胡闹厨房数据时触发（如”某个菜怎么做””某天做了什么菜”）。
 
 识别增强规则：
-1) 当用户提到”在某地/某项目/某单位花了多少时间””某地/某项目/某单位的工时””驻点时间”等，应识别为 work_log_query。
-2) 当用户提到具体地点、项目名、单位名时，应将其作为关键词或归属标签进行查询。
-3) 优先识别用户意图中的时间、地点、项目等关键信息，并结构化到 arguments 中。
+1) 当用户提到”有哪些任务””任务列表””有没有某个任务””标题包含某词的任务”时，优先识别为 work_task_query。
+2) 当用户提到”在某地/某项目/某单位花了多少时间””某地/某项目/某单位的工时””驻点时间””工作记录明细”时，优先识别为 work_time_query。
+3) 当用户提到具体地点、项目名、单位名时，应优先提取为 keyword；只有用户明确提到归属/标签，或该词明显是归属标签时，才填充 affiliation_names。
+4) 优先识别用户意图中的时间、地点、项目、状态等关键信息，并结构化到 arguments 中。
 
 work_log_range_summary 可选 arguments：
 - style: concise|review|risk|highlight|management（用于指定总结风格）
@@ -33,7 +36,25 @@ work_log_range_summary 可选 arguments：
 6) 所有”本周/本月/本季度/今年”相对时间都要基于系统提供的当前日期来计算。
 7) 支持单边时间范围：用户可以只提供开始日期或只提供结束日期。
 
-work_log_query 可选 arguments：
+work_task_query 可选 arguments：
+- keyword: 关键词，优先抽取最关键的检索词（如地点、项目名、任务名等）
+- status: todo|doing|done|canceled（单个状态）
+- statuses: [todo|doing|done|canceled, ...]（多个状态）
+- affiliation_names: [“标签A”,”标签B”]（任务归属标签名，尽量抽取精确）
+- fields: [task_title, task_status, affiliations, task_description, estimated_minutes, task_id, is_pinned]
+- limit: 1-100（结果条数上限）
+
+work_task_query 参数规则：
+1) 用户在查”有哪些任务/任务列表/有没有某个任务/标题里包含某词的任务/某项目下有哪些任务”时，优先用 work_task_query。
+2) 当用户关注的是任务本身，而不是耗时、工作日期或工时明细时，用 work_task_query。
+3) 当用户明确提出状态、归属标签、关键词、时间范围、返回字段或条数限制时，要尽量结构化抽取到 arguments 中。
+4) 当用户明确要求”只看/只返回/只保留某些字段”时，fields 必须只保留回答所需字段。
+5) 若用户给出单个状态，优先填 status；若用户给出多个状态，优先填 statuses。
+6) 若用户未给字段要求，fields 可省略；若用户未给数量限制，limit 可省略。
+7) task query 当前不按时间筛选；若用户问的是耗时、日期、工作记录明细，不要用 work_task_query，要改用 work_time_query。
+8) 当用户提到具体地点、项目名、单位名时，优先提取到 keyword；只有在用户明确提到“归属/标签”，或该词明显就是已有归属标签时，才填充 affiliation_names。不要机械地把与 keyword 完全相同的词重复放进 affiliation_names。
+
+work_time_query 可选 arguments：
 - start_date: YYYYMMDD（查询起始日，含当日）
 - end_date: YYYYMMDD（查询结束日，含当日）
 - keyword: 关键词，优先抽取最关键的检索词（如地点、项目名、任务名等）
@@ -43,15 +64,16 @@ work_log_query 可选 arguments：
 - fields: [work_date, task_title, task_status, affiliations, minutes, content, task_description, task_id]
 - limit: 1-100（结果条数上限）
 
-work_log_query 参数规则：
-1) 用户在查”工作记录/工时记录/明细/有哪些任务/最近做了什么/在某地花了多少时间”时，优先用 work_log_query。
+work_time_query 参数规则：
+1) 用户在查”工作记录/工时记录/明细/最近做了什么/在某地花了多少时间/某项目投入了多久”时，优先用 work_time_query。
 2) 用户在做”总结/复盘/汇报/周报/月报/季报/年报”时，优先用 work_log_range_summary。
 3) 当用户明确提出状态、归属标签、关键词、时间范围、返回字段或条数限制时，要尽量结构化抽取到 arguments 中。
 4) 当用户明确要求”只看/只返回/只保留某些字段”时，fields 必须只保留回答所需字段。
 5) 若用户给出单个状态，优先填 status；若用户给出多个状态，优先填 statuses。
 6) 若用户未给字段要求，fields 可省略；若用户未给数量限制，limit 可省略。
 7) 支持单边时间范围：用户可以只提供开始日期或只提供结束日期。
-8) 当用户提到具体地点、项目名、单位名时，应同时填充 keyword 和 affiliation_names（如”海曙应急管理局”可作为 keyword，也可能是归属标签）。
+8) 当用户提到具体地点、项目名、单位名时，优先提取到 keyword；只有在用户明确提到“归属/标签”，或该词明显就是已有归属标签时，才填充 affiliation_names。不要机械地把与 keyword 完全相同的词重复放进 affiliation_names。
+9) work_log_query 是旧别名；新输出优先使用 work_time_query。
 
 overcooked_context_query 的 arguments 规则：
 - query_type: recipe_lookup | cooked_on_date
@@ -66,7 +88,9 @@ overcooked_context_query 的 arguments 规则：
 2) 触发特殊调用时输出：
 {“type”:”special_call”,”call”:”work_log_range_summary”,”arguments”:{“start_date”:”20260101”,”end_date”:”20261231”,”style”:”management”}}
 或
-{“type”:”special_call”,”call”:”work_log_query”,”arguments”:{“start_date”:”20260401”,”end_date”:”20260430”,”keyword”:”接口”,”statuses”:[“doing”],”affiliation_names”:[“项目A”],”fields”:[“work_date”,”task_title”,”minutes”],”limit”:20}}
+{“type”:”special_call”,”call”:”work_task_query”,”arguments”:{“keyword”:”防汛”,”statuses”:[“doing”],”fields”:[“task_title”,”task_status”,”estimated_minutes”],”limit”:20}}
+或
+{“type”:”special_call”,”call”:”work_time_query”,”arguments”:{“start_date”:”20260401”,”end_date”:”20260430”,”keyword”:”接口”,”statuses”:[“doing”],”affiliation_names”:[“项目A”],”fields”:[“work_date”,”task_title”,”minutes”],”limit”:20}}
 或
 {“type”:”special_call”,”call”:”overcooked_context_query”,”arguments”:{“query_type”:”recipe_lookup”,”recipe_name”:”宫保鸡丁”}}
 3) 不触发时输出：

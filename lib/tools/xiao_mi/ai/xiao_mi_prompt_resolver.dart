@@ -117,7 +117,13 @@ class XiaoMiPromptResolver {
       tagRepository: _tagRepository,
       nowProvider: _nowProvider,
     );
-    if (callId == 'work_log_query') {
+    if (callId == 'work_log_query' || callId == 'work_time_query') {
+      final keyword = _resolveWorkLogKeyword(arguments);
+      final affiliationNames = _sanitizeWorkLogAffiliationNames(
+        displayText: displayText,
+        keyword: keyword,
+        affiliationNames: _resolveWorkLogAffiliationNames(arguments),
+      );
       final start = _resolveQueryStartDate(
         arguments: arguments,
         displayText: displayText,
@@ -128,13 +134,13 @@ class XiaoMiPromptResolver {
         displayText: displayText,
         now: now,
       );
-      final prompt = await builder.buildQuery(
+      final prompt = await builder.buildTimeQuery(
         displayText: displayText,
         start: start,
         endInclusive: endInclusive,
-        keyword: _resolveWorkLogKeyword(arguments),
+        keyword: keyword,
         statusIds: _resolveWorkLogStatuses(arguments),
-        affiliationNames: _resolveWorkLogAffiliationNames(arguments),
+        affiliationNames: affiliationNames,
         fields: _resolveWorkLogFields(arguments),
         limit: _resolveWorkLogLimit(arguments),
       );
@@ -147,7 +153,32 @@ class XiaoMiPromptResolver {
         queryEnd: effectiveEnd,
         extraMetadata: const <String, dynamic>{
           'triggerTool': 'work_log',
-          'queryType': 'filtered_query',
+          'queryType': 'time_query',
+        },
+        triggerSource: triggerSource,
+      );
+    }
+    if (callId == 'work_task_query') {
+      final keyword = _resolveWorkLogKeyword(arguments);
+      final affiliationNames = _sanitizeWorkLogAffiliationNames(
+        displayText: displayText,
+        keyword: keyword,
+        affiliationNames: _resolveWorkLogAffiliationNames(arguments),
+      );
+      final prompt = await builder.buildTaskQuery(
+        displayText: displayText,
+        keyword: keyword,
+        statusIds: _resolveWorkLogStatuses(arguments),
+        affiliationNames: affiliationNames,
+        fields: _resolveWorkLogFields(arguments),
+        limit: _resolveWorkLogLimit(arguments),
+      );
+      return _buildTriggeredPrompt(
+        displayText: displayText,
+        aiPrompt: prompt,
+        extraMetadata: const <String, dynamic>{
+          'triggerTool': 'work_log',
+          'queryType': 'task_query',
         },
         triggerSource: triggerSource,
       );
@@ -420,6 +451,8 @@ ${recipeBlocks.join('\n')}
   static bool _isWorkLogSpecialCall(String callId) {
     return callId == 'work_log_range_summary' ||
         callId == 'work_log_query' ||
+        callId == 'work_time_query' ||
+        callId == 'work_task_query' ||
         callId == 'work_log_week_summary' ||
         callId == 'work_log_month_summary' ||
         callId == 'work_log_quarter_summary' ||
@@ -669,6 +702,46 @@ ${recipeBlocks.join('\n')}
       normalized.add(name);
     }
     return normalized;
+  }
+
+  static List<String> _sanitizeWorkLogAffiliationNames({
+    required String displayText,
+    required String? keyword,
+    required List<String> affiliationNames,
+  }) {
+    if (affiliationNames.isEmpty) return const <String>[];
+    final normalizedKeyword = keyword?.trim().toLowerCase() ?? '';
+    if (normalizedKeyword.isEmpty) return affiliationNames;
+    if (_hasExplicitAffiliationIntent(displayText)) {
+      return affiliationNames;
+    }
+    final sanitized = <String>[];
+    for (final affiliationName in affiliationNames) {
+      if (affiliationName.trim().toLowerCase() == normalizedKeyword) {
+        continue;
+      }
+      sanitized.add(affiliationName);
+    }
+    return sanitized;
+  }
+
+  static bool _hasExplicitAffiliationIntent(String displayText) {
+    final normalized = displayText.replaceAll(RegExp(r'\s+'), '');
+    const markers = <String>[
+      '归属标签',
+      '按标签',
+      '标签为',
+      '标签是',
+      '归属为',
+      '归属是',
+      '归类到',
+      '按归属',
+      '按标签查',
+    ];
+    for (final marker in markers) {
+      if (normalized.contains(marker)) return true;
+    }
+    return false;
   }
 
   static List<String> _resolveWorkLogFields(Map<String, Object?> arguments) {

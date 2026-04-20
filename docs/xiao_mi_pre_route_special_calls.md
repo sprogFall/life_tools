@@ -12,7 +12,7 @@
 预选结果示例：
 
 ```json
-{"type":"special_call","call":"work_log_query","arguments":{"start_date":"20260401","end_date":"20260430","keyword":"接口","statuses":["doing"],"affiliation_names":["项目A"],"fields":["work_date","task_title","minutes"],"limit":20}}
+{"type":"special_call","call":"work_time_query","arguments":{"start_date":"20260401","end_date":"20260430","keyword":"接口","statuses":["doing"],"affiliation_names":["项目A"],"fields":["work_date","task_title","minutes"],"limit":20}}
 ```
 
 未命中示例：
@@ -42,15 +42,17 @@
 | 用户说法示例 | 预期 special_call | 能力 |
 | --- | --- | --- |
 | 请基于今年记录写一个工作总结 | `work_log_range_summary` | 读取指定时间范围的工作记录并生成总结 |
-| 查下四月项目A里跟接口相关且进行中的工作记录 | `work_log_query` | 按时间、关键词、状态、归属标签组合筛选工作记录 |
-| 查最近两周已完成的工作记录，只看日期和任务名 | `work_log_query` | 查询工作记录并只返回指定字段 |
+| 查一下标题里有防汛的任务 | `work_task_query` | 直接查询当前任务列表，允许没有工时也能命中 |
+| 查下四月项目A里跟接口相关且进行中的工作记录 | `work_time_query` | 按时间、关键词、状态、归属标签组合筛选工时记录 |
+| 查最近两周已完成的工作记录，只看日期和任务名 | `work_time_query` | 查询工时记录并只返回指定字段 |
 | 宫保鸡丁怎么做 | `overcooked_context_query` | 查询胡闹厨房菜谱正文 |
 | 2026-03-05 做了什么菜 | `overcooked_context_query` | 查询指定日期做菜记录 |
 
 说明：
 
 - 总结/复盘/汇报类意图优先走 `work_log_range_summary`。
-- 查询/筛选/明细/统计类意图优先走 `work_log_query`。
+- 查任务列表/任务标题类意图优先走 `work_task_query`。
+- 查工时、工作记录明细、花了多久类意图优先走 `work_time_query`。
 - 胡闹厨房目前支持“查菜谱”和“查某天做了什么菜”两类本地数据查询。
 
 ## 3. Special Call 接口清单
@@ -62,7 +64,9 @@
 | `work_log_month_summary` | 月总结 | 兼容旧参数 | 自动换算月初到月末 |
 | `work_log_quarter_summary` | 季度总结 | 兼容旧参数 | 自动换算季度范围 |
 | `work_log_year_summary` | 年总结 | 兼容旧参数 | 自动换算全年范围 |
-| `work_log_query` | 工作记录查询 | `start_date` `end_date` `keyword` `status/statuses` `affiliation_names` `fields` `limit` | 多条件组合筛选 + 字段裁剪 |
+| `work_task_query` | 任务查询 | `keyword` `status/statuses` `affiliation_names` `fields` `limit` | 直接查询当前任务列表，不依赖工时存在 |
+| `work_time_query` | 工时查询 | `start_date` `end_date` `keyword` `status/statuses` `affiliation_names` `fields` `limit` | 多条件组合筛选 + 字段裁剪 |
+| `work_log_query` | 旧版工时查询别名 | 同 `work_time_query` | 向后兼容，语义等同于 `work_time_query` |
 | `overcooked_context_query` | 胡闹厨房本地数据查询 | `query_type` + 对应参数 | 查菜谱 / 查某天做菜记录 |
 
 向后兼容：
@@ -75,7 +79,9 @@
 这些旧 call 仍可继续使用，但新协议优先推荐：
 
 - 总结类统一用 `work_log_range_summary`
-- 明细查询类统一用 `work_log_query`
+- 任务查询类统一用 `work_task_query`
+- 工时明细查询类统一用 `work_time_query`
+- `work_log_query` 仅作为旧版兼容别名保留
 
 ## 4. 工作记录接口能力
 
@@ -97,7 +103,60 @@
 - 旧版总结 call 仍兼容 `date` / `anchor_date` / `year` / `month` / `quarter`。
 - 客户端会把相对时间换算成绝对日期。
 
-### 4.2 `work_log_query`
+### 4.2 `work_task_query`
+
+适用场景：
+
+- 查询当前有哪些任务
+- 查询标题包含某关键词的任务
+- 查询某个状态、某些归属标签下的任务
+- 明确要确认“是否存在某个任务”时
+
+参数：
+
+- `keyword`：关键词，会匹配任务标题、任务描述、归属标签
+- `status`：单个状态，`todo | doing | done | canceled`
+- `statuses`：多个状态，数组形式
+- `affiliation_names`：归属标签名数组，例如 `["项目A","团队B"]`
+- `fields`：限定返回字段，见下表
+- `limit`：返回结果条数上限，默认 20，最大 100
+
+字段白名单：
+
+| 字段名 | 含义 |
+| --- | --- |
+| `task_title` | 任务标题 |
+| `task_status` | 任务状态 |
+| `affiliations` | 任务归属标签 |
+| `task_description` | 任务描述 |
+| `estimated_minutes` | 预估工时 |
+| `task_id` | 任务 ID |
+| `is_pinned` | 是否置顶 |
+
+筛选行为：
+
+- `work_task_query` 查询的是当前任务列表，不要求任务已经有工时记录。
+- `keyword` 会匹配任务标题、任务描述和归属标签。
+- `affiliation_names` 基于工作记录工具的“归属”标签匹配。
+- 若 pre-route 把与 `keyword` 完全相同的词也放进了 `affiliation_names`，且用户并未明确要求“按归属/标签筛选”，客户端会自动去掉这类重复标签条件，避免把“标题命中但未打同名标签”的任务误过滤掉。
+- `fields` 只控制“任务列表”返回哪些字段。
+
+推荐输出示例：
+
+```json
+{
+  "type": "special_call",
+  "call": "work_task_query",
+  "arguments": {
+    "keyword": "防汛",
+    "statuses": ["doing"],
+    "fields": ["task_title", "task_status", "estimated_minutes"],
+    "limit": 20
+  }
+}
+```
+
+### 4.3 `work_time_query`
 
 适用场景：
 
@@ -135,6 +194,7 @@
 - 时间范围、关键词、状态、归属标签可以同时生效。
 - `keyword` 会同时匹配任务标题、任务描述和工时内容。
 - `affiliation_names` 基于工作记录工具的“归属”标签匹配。
+- 若 pre-route 把与 `keyword` 完全相同的词也放进了 `affiliation_names`，且用户并未明确要求“按归属/标签筛选”，客户端会自动去掉这类重复标签条件，避免把“标题命中但未打同名标签”的任务误过滤掉。
 - `fields` 只控制“记录列表”返回哪些字段，用于压缩注入上下文。
 
 推荐输出示例：
@@ -142,7 +202,7 @@
 ```json
 {
   "type": "special_call",
-  "call": "work_log_query",
+  "call": "work_time_query",
   "arguments": {
     "start_date": "20260401",
     "end_date": "20260430",
@@ -154,6 +214,10 @@
   }
 }
 ```
+
+兼容说明：
+
+- `work_log_query` 仍然可用，但客户端会将其按 `work_time_query` 处理。
 
 字段裁剪建议：
 
@@ -181,7 +245,7 @@
 
 - `triggerSource = "pre_route"` 或 `preset`
 - `triggerTool`：如 `work_log` / `overcooked`
-- 工作记录命中日期范围时写入 `queryStartDate` / `queryEndDate`
+- 工时查询/工作记录总结命中日期范围时写入 `queryStartDate` / `queryEndDate`
 - 胡闹厨房按日期查询时写入 `queryDate`
 
 聊天页展示行为：

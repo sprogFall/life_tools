@@ -4,13 +4,20 @@ import '../../../core/tags/tag_repository.dart';
 import '../../work_log/models/work_task.dart';
 import '../../work_log/models/work_time_entry.dart';
 
-const List<String> _defaultQueryFields = <String>[
+const List<String> _defaultTimeQueryFields = <String>[
   'work_date',
   'task_title',
   'task_status',
   'affiliations',
   'minutes',
   'content',
+];
+
+const List<String> _defaultTaskQueryFields = <String>[
+  'task_title',
+  'task_status',
+  'affiliations',
+  'task_description',
 ];
 
 class XiaoMiWorkLogSummaryPromptBuilder {
@@ -147,8 +154,30 @@ class XiaoMiWorkLogSummaryPromptBuilder {
     List<String> affiliationNames = const <String>[],
     List<String> fields = const <String>[],
     int? limit,
+  }) {
+    return buildTimeQuery(
+      displayText: displayText,
+      start: start,
+      endInclusive: endInclusive,
+      keyword: keyword,
+      statusIds: statusIds,
+      affiliationNames: affiliationNames,
+      fields: fields,
+      limit: limit,
+    );
+  }
+
+  Future<String> buildTimeQuery({
+    required String displayText,
+    DateTime? start,
+    DateTime? endInclusive,
+    String? keyword,
+    List<String> statusIds = const <String>[],
+    List<String> affiliationNames = const <String>[],
+    List<String> fields = const <String>[],
+    int? limit,
   }) async {
-    final normalizedFields = _normalizeFields(fields);
+    final normalizedFields = _normalizeTimeFields(fields);
     final effectiveLimit = _normalizeQueryLimit(limit);
     final range = _resolveQueryRange(
       start: start,
@@ -263,6 +292,94 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
 ''';
   }
 
+  Future<String> buildTaskQuery({
+    required String displayText,
+    String? keyword,
+    List<String> statusIds = const <String>[],
+    List<String> affiliationNames = const <String>[],
+    List<String> fields = const <String>[],
+    int? limit,
+  }) async {
+    final normalizedFields = _normalizeTaskFields(fields);
+    final effectiveLimit = _normalizeQueryLimit(limit);
+    final allTasks = await _repository.listTasks();
+    final taskAffiliationNames = await _buildTaskAffiliationNames(allTasks);
+
+    final normalizedKeyword = keyword?.trim() ?? '';
+    final normalizedStatuses = statusIds
+        .map((statusId) => statusId.trim())
+        .where((statusId) => statusId.isNotEmpty)
+        .toSet();
+    final normalizedAffiliations = affiliationNames
+        .map((name) => name.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet();
+
+    final matchedTasks = <_WorkTaskQueryRecord>[];
+    for (final task in allTasks) {
+      final taskId = task.id;
+      final affiliations = taskId == null
+          ? const <String>[]
+          : (taskAffiliationNames[taskId] ?? const <String>[]);
+      if (!_matchesStatus(task.status, normalizedStatuses)) continue;
+      if (!_matchesAffiliations(affiliations, normalizedAffiliations)) {
+        continue;
+      }
+      if (!_matchesTaskKeyword(
+        task: task,
+        affiliations: affiliations,
+        keyword: normalizedKeyword,
+      )) {
+        continue;
+      }
+      matchedTasks.add(
+        _WorkTaskQueryRecord(task: task, affiliations: affiliations),
+      );
+    }
+
+    final visibleTasks = matchedTasks.length <= effectiveLimit
+        ? matchedTasks
+        : matchedTasks.sublist(0, effectiveLimit);
+    final totalEstimatedMinutes = matchedTasks.fold<int>(
+      0,
+      (sum, record) => sum + record.task.estimatedMinutes,
+    );
+    final taskLines = <String>[
+      for (int i = 0; i < visibleTasks.length; i++)
+        '${i + 1}. ${_buildTaskQueryRecordLine(visibleTasks[i], normalizedFields)}',
+    ];
+
+    final statusText = normalizedStatuses.isEmpty
+        ? '全部'
+        : normalizedStatuses.join('、');
+    final affiliationText = normalizedAffiliations.isEmpty
+        ? '全部'
+        : normalizedAffiliations.join('、');
+
+    return '''
+以下是任务查询结果（仅来自本地已保存数据）：
+- 数据安全边界：${WorkLogAiSummaryPrompts.localDataSafetyNotice}
+- 用户问题：$displayText
+- 查询范围：当前任务列表
+- 关键词：${normalizedKeyword.isEmpty ? '未指定' : normalizedKeyword}
+- 任务状态：$statusText
+- 归属标签：$affiliationText
+- 返回字段：${normalizedFields.join('、')}
+- 返回上限：$effectiveLimit
+- 命中任务数：${matchedTasks.length}
+${normalizedFields.contains('estimated_minutes') ? '- 命中预估工时：$totalEstimatedMinutes 分钟' : ''}
+
+任务列表：
+${taskLines.isEmpty ? '- (无)' : taskLines.join('\n')}
+
+回答要求：
+1) 仅基于以上任务列表回答用户问题。
+2) 若命中为空，明确告知“未找到符合条件的任务”。
+3) 当前查询返回的是任务，不代表一定存在对应工时；若用户追问耗时或工作日期，应提示改用工时查询。
+4) 不要编造未返回字段的内容；若用户追问未返回字段，先说明当前查询未返回该字段。
+''';
+  }
+
   Future<String?> _buildRange({
     required DateTime start,
     required DateTime endInclusive,
@@ -368,6 +485,43 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
     return fieldParts.join(' | ');
   }
 
+  static String _buildTaskQueryRecordLine(
+    _WorkTaskQueryRecord record,
+    List<String> fields,
+  ) {
+    final fieldParts = <String>[];
+    for (final field in fields) {
+      switch (field) {
+        case 'task_title':
+          fieldParts.add('task_title=${record.task.title}');
+          break;
+        case 'task_status':
+          fieldParts.add('task_status=${_statusId(record.task.status)}');
+          break;
+        case 'affiliations':
+          fieldParts.add(
+            'affiliations=${record.affiliations.isEmpty ? '未设置' : record.affiliations.join('/')}',
+          );
+          break;
+        case 'task_description':
+          fieldParts.add(
+            'task_description=${record.task.description.trim().isEmpty ? '（无描述）' : record.task.description.trim()}',
+          );
+          break;
+        case 'estimated_minutes':
+          fieldParts.add('estimated_minutes=${record.task.estimatedMinutes}');
+          break;
+        case 'task_id':
+          fieldParts.add('task_id=${record.task.id ?? 'unknown'}');
+          break;
+        case 'is_pinned':
+          fieldParts.add('is_pinned=${record.task.isPinned ? 1 : 0}');
+          break;
+      }
+    }
+    return fieldParts.join(' | ');
+  }
+
   static bool _matchesKeyword({
     required WorkTask task,
     required WorkTimeEntry entry,
@@ -380,6 +534,25 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
       task.title,
       task.description,
       entry.content,
+      ...affiliations,
+    ].join('\n').toLowerCase();
+    final subKeywords = _generateSubKeywords(normalizedKeyword);
+    for (final subKeyword in subKeywords) {
+      if (text.contains(subKeyword)) return true;
+    }
+    return false;
+  }
+
+  static bool _matchesTaskKeyword({
+    required WorkTask task,
+    required List<String> affiliations,
+    required String keyword,
+  }) {
+    final normalizedKeyword = keyword.trim().toLowerCase();
+    if (normalizedKeyword.isEmpty) return true;
+    final text = [
+      task.title,
+      task.description,
       ...affiliations,
     ].join('\n').toLowerCase();
     final subKeywords = _generateSubKeywords(normalizedKeyword);
@@ -431,18 +604,18 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
     return false;
   }
 
-  static List<String> _normalizeFields(List<String> fields) {
-    if (fields.isEmpty) return _defaultQueryFields;
+  static List<String> _normalizeTimeFields(List<String> fields) {
+    if (fields.isEmpty) return _defaultTimeQueryFields;
     final normalized = <String>[];
     for (final rawField in fields) {
-      final field = _normalizeFieldName(rawField);
+      final field = _normalizeTimeFieldName(rawField);
       if (field == null || normalized.contains(field)) continue;
       normalized.add(field);
     }
-    return normalized.isEmpty ? _defaultQueryFields : normalized;
+    return normalized.isEmpty ? _defaultTimeQueryFields : normalized;
   }
 
-  static String? _normalizeFieldName(String rawField) {
+  static String? _normalizeTimeFieldName(String rawField) {
     final field = rawField.trim().toLowerCase();
     switch (field) {
       case 'work_date':
@@ -472,6 +645,49 @@ ${recordLines.isEmpty ? '- (无)' : recordLines.join('\n')}
       case 'task_id':
       case 'id':
         return 'task_id';
+      default:
+        return null;
+    }
+  }
+
+  static List<String> _normalizeTaskFields(List<String> fields) {
+    if (fields.isEmpty) return _defaultTaskQueryFields;
+    final normalized = <String>[];
+    for (final rawField in fields) {
+      final field = _normalizeTaskFieldName(rawField);
+      if (field == null || normalized.contains(field)) continue;
+      normalized.add(field);
+    }
+    return normalized.isEmpty ? _defaultTaskQueryFields : normalized;
+  }
+
+  static String? _normalizeTaskFieldName(String rawField) {
+    final field = rawField.trim().toLowerCase();
+    switch (field) {
+      case 'task_title':
+      case 'task':
+      case 'title':
+        return 'task_title';
+      case 'task_status':
+      case 'status':
+        return 'task_status';
+      case 'affiliations':
+      case 'affiliation':
+      case 'tags':
+        return 'affiliations';
+      case 'task_description':
+      case 'description':
+        return 'task_description';
+      case 'estimated_minutes':
+      case 'estimate':
+      case 'planned_minutes':
+        return 'estimated_minutes';
+      case 'task_id':
+      case 'id':
+        return 'task_id';
+      case 'is_pinned':
+      case 'pinned':
+        return 'is_pinned';
       default:
         return null;
     }
@@ -549,6 +765,13 @@ class _WorkLogQueryRecord {
     required this.entry,
     required this.affiliations,
   });
+}
+
+class _WorkTaskQueryRecord {
+  final WorkTask task;
+  final List<String> affiliations;
+
+  const _WorkTaskQueryRecord({required this.task, required this.affiliations});
 }
 
 class _QueryRange {
