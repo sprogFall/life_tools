@@ -110,11 +110,11 @@
 
 | 模块 | 说明 | 当前能力 |
 | --- | --- | --- |
-| 工作记录 `Work Log` | 把任务、工时、操作记录串成可回溯的数据链路 | 任务管理、工时记录、日历视图、语音输入、AI 整理、操作日志 |
+| 工作记录 `Work Log` | 把任务、工时、操作记录串成可回溯的数据链路 | 任务管理、任务排序、工时记录、工时查询、日历视图、语音输入、AI 整理、操作日志 |
 | 囤货助手 `Stockpile Assistant` | 管理库存、消耗与到期提醒 | 物品管理、消耗记录、临期提醒、AI 批量录入、标签筛选 |
-| 胡闹厨房 `Overcooked Kitchen` | 面向食谱和做饭节奏的轻量工具 | 食谱、愿望单、餐食计划、提醒与统计 |
+| 胡闹厨房 `Overcooked Kitchen` | 面向食谱和做饭节奏的轻量工具 | 食谱、愿望单、抽卡选餐、餐食计划、提醒与统计 |
 | 标签管理 `Tag Manager` | 全局标签能力，供多工具复用 | 分类、重命名、排序、删除、跨工具关联 |
-| 小蜜 `Xiao Mi` | 基于预置提示词和预选路由的 AI 对话工具 | 对话、提示词解析、消息导出、与工作记录联动 |
+| 小蜜 `Xiao Mi` | 基于预置提示词和预选路由的 AI 对话工具 | 对话、提示词解析、消息导出、与工作记录联动、工时查询 |
 
 ## 跨工具基础能力
 
@@ -124,6 +124,8 @@
 - 对象存储：支持本地对象存储，也可接入七牛云或数据胶囊
 - 消息中心：汇总提醒和事件，支持过期消息清理
 - 本地通知：在移动端为库存、愿望单等场景推送提醒
+- 语音输入：支持语音转文字与录音，供工作记录等场景使用
+- 国际化：内置中英文完整支持
 - 统一主题：项目内置 iOS 26 风格主题与一套自定义基础组件
 
 ## 系统结构
@@ -131,14 +133,17 @@
 ```text
 life_tools
 ├─ lib/                     # Flutter 主应用
-│  ├─ core/                 # AI、同步、备份、消息、对象存储、数据库、主题
+│  ├─ core/                 # AI、同步、备份、消息、对象存储、数据库、主题、语音
 │  ├─ tools/                # 各业务工具模块
 │  ├─ pages/                # 首页与设置等公共页面
+│  ├─ l10n/                 # 国际化（中英文）
 │  └─ main.dart             # 应用入口与服务初始化
-├─ test/                    # Flutter 单元/组件/页面测试
+├─ test/                    # Flutter 单元/组件/页面/设计约束测试
 ├─ backend/sync_server/     # FastAPI 同步后端
 ├─ dashboard/               # Next.js 静态管理面板
 ├─ docs/architecture/       # 架构图、时序图、ADR 与接口文档
+├─ examples/                # 代码规范与示例（AI、消息、对象存储、标签、UI）
+├─ design-system/           # 设计系统文档
 └─ scripts/                 # 开发、校验、提交流程脚本
 ```
 
@@ -155,9 +160,15 @@ life_tools
 - Flutter / Dart 3.10+
 - SQLite：`sqflite`、`sqflite_common_ffi`
 - 状态管理：`provider`
+- 本地存储：`shared_preferences`
 - 本地通知：`flutter_local_notifications`
 - 语音与媒体：`speech_to_text`、`record`、`image_picker`
-- 分享与文件：`share_plus`、`receive_sharing_intent`、`file_picker`
+- 分享与文件：`share_plus`、`receive_sharing_intent`、`file_picker`、`file_saver`
+- 网络：`connectivity_plus`、`network_info_plus`
+- 权限：`permission_handler`
+- 国际化：`intl`
+- Markdown：`flutter_markdown`
+- 滑动操作：`flutter_slidable`
 
 ### 服务端与面板
 
@@ -282,6 +293,7 @@ Android APK 构建 workflow 见：
 - Flutter：`flutter analyze`、`flutter test`
 - Backend：`cd backend/sync_server && .venv/bin/pytest`
 - Dashboard：`cd dashboard && npm test`
+- 设计约束：`test/design/` 下包含颜色、按钮、排版等自动化约束检查
 
 Linux 下若 Flutter 测试遇到 `libsqlite3.so` 缺失，可执行：
 
@@ -299,6 +311,7 @@ LD_LIBRARY_PATH=/tmp flutter test
 - [小蜜预选路由特殊调用](docs/xiao_mi_pre_route_special_calls.md)
 - [架构文档入口](docs/architecture/README.md)
 - [Android 签名说明](docs/android_release_signing.md)
+- [性能优化记录](docs/client_performance_optimization_summary_2026-02-25.md)
 - [Dashboard 说明](dashboard/README.md)
 - [Sync Server 说明](backend/sync_server/README.md)
 
