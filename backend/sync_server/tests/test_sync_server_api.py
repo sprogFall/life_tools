@@ -14,6 +14,27 @@ def test_healthz() -> None:
         assert resp.json()["status"] == "ok"
 
 
+def test_sync_v1_route_removed() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        resp = client.post(
+            "/sync",
+            json={
+                "user_id": "u1",
+                "tools_data": {
+                    "work_log": {
+                        "version": 1,
+                        "data": {"tasks": [], "time_entries": []},
+                    }
+                },
+            },
+        )
+
+        assert resp.status_code == 404
+
+
 def test_sync_v2_roundtrip_use_client_then_use_server() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         app = create_app(db_path=f"{tmp}/sync.db")
@@ -119,85 +140,3 @@ def test_sync_v2_force_use_client_overrides_server_newer_snapshot() -> None:
         assert body3["decision"] == "use_server"
         assert body3["tools_data"]["work_log"]["data"]["tasks"][0]["id"] == 2
 
-
-def test_sync_v1_use_server_when_server_newer() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        app = create_app(db_path=f"{tmp}/sync.db")
-        client = TestClient(app)
-
-        # 第一次：上传数据（服务端存储）
-        req1 = {
-            "user_id": "u1",
-            "tools_data": {
-                "work_log": {
-                    "version": 1,
-                    "data": {"tasks": [{"id": 1, "updated_at": 100}], "time_entries": []},
-                }
-            },
-        }
-        resp1 = client.post("/sync", json=req1)
-        assert resp1.status_code == 200
-        assert resp1.json()["success"] is True
-
-        # 第二次：客户端空快照；服务端应返回 tools_data
-        req2 = {
-            "user_id": "u1",
-            "tools_data": {
-                "work_log": {"version": 1, "data": {"tasks": [], "time_entries": []}}
-            },
-        }
-        resp2 = client.post("/sync", json=req2)
-        assert resp2.status_code == 200
-        body2 = resp2.json()
-        assert body2["success"] is True
-        assert "tools_data" in body2
-        assert body2["tools_data"]["work_log"]["data"]["tasks"][0]["id"] == 1
-
-
-def test_sync_v1_force_use_client_overrides_server_newer_snapshot() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        app = create_app(db_path=f"{tmp}/sync.db")
-        client = TestClient(app)
-
-        # 1) 写入服务端快照（updated_at=200）
-        req1 = {
-            "user_id": "u_force_v1",
-            "tools_data": {
-                "work_log": {
-                    "version": 1,
-                    "data": {"tasks": [{"id": 1, "updated_at": 200}], "time_entries": []},
-                }
-            },
-        }
-        resp1 = client.post("/sync", json=req1)
-        assert resp1.status_code == 200
-        assert resp1.json()["success"] is True
-
-        # 2) 客户端提供更旧的数据（updated_at=100），但强制 use_client，应覆盖服务端
-        req2 = {
-            "user_id": "u_force_v1",
-            "force_decision": "use_client",
-            "tools_data": {
-                "work_log": {
-                    "version": 1,
-                    "data": {"tasks": [{"id": 2, "updated_at": 100}], "time_entries": []},
-                }
-            },
-        }
-        resp2 = client.post("/sync", json=req2)
-        assert resp2.status_code == 200
-        body2 = resp2.json()
-        assert body2["success"] is True
-        # v1: use_client 时不返回 tools_data
-        assert body2.get("tools_data") is None
-
-        # 3) 空客户端来同步：应返回刚刚覆盖后的 id=2
-        req3 = {
-            "user_id": "u_force_v1",
-            "tools_data": {},
-        }
-        resp3 = client.post("/sync", json=req3)
-        assert resp3.status_code == 200
-        body3 = resp3.json()
-        assert body3["success"] is True
-        assert body3["tools_data"]["work_log"]["data"]["tasks"][0]["id"] == 2

@@ -1,13 +1,13 @@
 # sync_server（life_tools 同步后端）
 
 这是 `life_tools` 的后端同步服务，基于 **Python + FastAPI**。  
-客户端（Flutter）会优先请求 `POST /sync/v2`，若返回 404/405 才回退到 `POST /sync`（v1）。
+客户端（Flutter）与服务端当前统一使用 `POST /sync/v2`；历史 `POST /sync`（v1）已移除。
 
 ## 决策规则（按“最新更新时间”）
 
 - 以全量快照里出现的最大 `updated_at`（epoch ms）作为“快照最新更新时间”
-- 若服务端快照更新：返回 `use_server`（v2）/ `tools_data`（v1）让客户端覆盖导入
-- 若客户端快照更新：返回 `use_client`（v2）并在服务端覆盖保存
+- 若服务端快照更新：返回 `use_server` 与 `tools_data` 让客户端覆盖导入
+- 若客户端快照更新：返回 `use_client` 并在服务端覆盖保存
 - 若双方相同：`noop`
 - **空数据保护**：客户端空库不会覆盖服务端非空快照
 

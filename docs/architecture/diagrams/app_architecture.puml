@@ -62,7 +62,7 @@ package "Flutter 客户端（Dart）" {
     [TagService\n公共标签服务] as TagSvc <<Service>>
     [AiService\nOpenAI 兼容对话入口] as AiSvc <<Service>>
     [ObjStoreService\n本地/七牛/数据胶囊\n上传/解析/缓存] as ObjSvc <<Service>>
-    [SyncService\n全量快照同步\nv2 优先 v1 回退] as SyncSvc <<Service>>
+    [SyncService\n全量快照同步\n仅 /sync/v2] as SyncSvc <<Service>>
     [BackupRestoreService\nJSON 导出/导入\n与同步共享快照接口] as BackupSvc <<Service>>
     [AiConfigService\nAI 配置持久化] as AiCfg <<Service>>
     [ObjStoreConfigService\n对象存储配置/密钥] as ObjCfg <<Service>>
@@ -117,7 +117,7 @@ package "Flutter 客户端（Dart）" {
 }
 
 package "同步后端（可选，自建）" {
-  [sync_server（FastAPI）\n/sync /sync/v2\n/records /rollback] as SyncApi <<Network>>
+  [sync_server（FastAPI）\n/sync/v2\n/records /snapshots /rollback] as SyncApi <<Network>>
   [Sync Logic\n决策/判空/updated_at] as SyncLogic <<Network>>
   [SnapshotStore\nSQLite sync.db] as ServerDb <<Data>>
 }

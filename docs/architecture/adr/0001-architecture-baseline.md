@@ -23,7 +23,7 @@ life_tools 的产品形态是“把生活拆成工具箱”：打开即首页卡
    - 同步：`SyncService` / `SyncConfigService` / `SyncLocalStateService`
    - 标签：`TagService`
    - 消息中心：`MessageService`（可选本地通知）
-5. **同步采用“全量快照”模型，并支持协议版本演进（v2 优先、v1 回退）**
+5. **同步采用“全量快照”模型，并显式版本化协议（当前仅保留 v2，历史 v1 已下线）**
 6. **备份/还原与同步共享同一套快照接口 `ToolSyncProvider`**，避免重复定义数据结构
 
 ## 理由
@@ -52,4 +52,3 @@ life_tools 的产品形态是“把生活拆成工具箱”：打开即首页卡
 - Redux/BLoC 等更重的全局状态框架：对当前规模过重，且会引入额外样板代码
 - Drift/Isar 等更高层的数据层：可带来类型安全/性能优势，但迁移成本与复杂度更高
 - 增量同步（per-tool/per-record diff）：复杂度显著提升，先以快照满足当前规则与交付
-

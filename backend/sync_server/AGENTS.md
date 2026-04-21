@@ -11,7 +11,7 @@
 4. **安全默认值**：不在日志/异常中输出敏感信息（例如 Token、自定义 Header）
 
 ## 项目结构
-- `backend/sync_server/sync_server/main.py`：FastAPI 应用与路由（`/sync`、`/sync/v2`）
+- `backend/sync_server/sync_server/main.py`：FastAPI 应用与路由（`/sync/v2`、审计/回退、Dashboard）
 - `backend/sync_server/sync_server/storage.py`：SQLite 快照存储（按 `user_id` 保存全量快照）
 - `backend/sync_server/sync_server/sync_logic.py`：同步判定逻辑（按最新 `updated_at`）
 - `backend/sync_server/tests/**`：pytest 测试
@@ -22,11 +22,11 @@
   - 若 `serverUrl` 未填写 scheme：公网地址默认补 `https://`；本地/内网（localhost/127.0.0.1/10.x/192.168.x/172.16~31）默认补 `http://`
   - 本地开发建议显式填写：`http://127.0.0.1` 或 `http://<局域网IP>`，避免 TLS 握手错误
 - 请求路径：
-  - 优先：`POST /sync/v2`
-  - 回退：`POST /sync`
+  - 同步主接口：`POST /sync/v2`
   - 同步记录：`GET /sync/records`、`GET /sync/records/{id}`
   - 历史快照：`GET /sync/snapshots/{revision}`
   - 回退：`POST /sync/rollback`
+  - 历史 `POST /sync`（v1）已下线，不再兼容旧客户端
 
 ## 后端运行与校验
 - 创建虚拟环境并安装依赖：

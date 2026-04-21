@@ -1,6 +1,6 @@
 # life_tools APP 架构总览
 
-更新时间：2026-03-11
+更新时间：2026-04-21
 
 范围：
 
@@ -216,7 +216,7 @@
 
 ### 6.3 当前同步协议现状
 
-文档层需要明确一点：当前客户端 `SyncService` 已经只调用 `v2` 接口，不再在客户端侧保留 `v1` 回退逻辑；但后端仍同时暴露 `/sync` 与 `/sync/v2`，用于兼容历史客户端。
+当前客户端 `SyncService` 与后端都已统一收敛到 `/sync/v2`；历史 `/sync`（v1）兼容路由已下线。
 
 当前同步关键步骤：
 
@@ -276,7 +276,7 @@ AI 能力是可选的，未配置时不影响核心本地功能。
 
 它提供两类路由：
 
-- 同步相关：`/sync`、`/sync/v2`、`/sync/records`、`/sync/snapshots/{revision}`、`/sync/rollback`
+- 同步相关：`/sync/v2`、`/sync/records`、`/sync/snapshots/{revision}`、`/sync/rollback`
 - Dashboard 相关：`/dashboard/users`、`/dashboard/users/{user_id}`、`/dashboard/users/{user_id}/snapshot`、`/dashboard/users/{user_id}/tools/{tool_id}`
 
 ### 8.2 Dashboard 的定位

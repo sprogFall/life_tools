@@ -5,19 +5,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
-class SyncRequestV1(BaseModel):
-    user_id: str = Field(min_length=1)
-    force_decision: str | None = None
-    tools_data: dict[str, dict[str, Any]]
-
-
-class SyncResponseV1(BaseModel):
-    success: bool
-    message: str | None = None
-    tools_data: dict[str, dict[str, Any]] | None = None
-    server_time: int
-
-
 class SyncClientState(BaseModel):
     last_server_revision: int | None = None
     client_is_empty: bool

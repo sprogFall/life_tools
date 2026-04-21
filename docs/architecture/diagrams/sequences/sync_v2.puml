@@ -1,6 +1,6 @@
 @startuml
 !include docs/architecture/diagrams/_style.puml
-title 同步主流程（v2 优先 / v1 回退）
+title 同步主流程（仅 v2）
 
 autonumber
 skinparam shadowing false
@@ -58,13 +58,6 @@ else 配置合法
         Api ->> Server : POST /sync/v2
         Server -> ServerDb : 读取/保存用户快照\nrevision 自增（use_client）
         Server --> Api : SyncResponseV2\n(decision, tools_data?, server_revision)
-        alt 服务端不支持 v2（404/405）
-          Api --> Sync : 抛 SyncApiException(404/405)
-          Sync ->> Api : sync(config, request)\n（回退 /sync）
-          Api ->> Server : POST /sync
-          Server -> ServerDb : 读取/保存快照
-          Server --> Api : SyncResponseV1\n(tools_data?)
-        end
 
         alt decision = use_server（需要覆盖导入）
           Sync ->> ToolProviders : importData(snapshot)\n（tag_manager 优先）
