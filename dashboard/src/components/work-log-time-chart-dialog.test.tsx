@@ -36,7 +36,7 @@ const items = [
 ];
 
 describe('WorkLogTimeChartDialog', () => {
-  it('展示并列柱、图例，并在悬浮时显示对应任务工时', () => {
+  it('展示单画布分组柱状图，图例可切换系列，并在悬浮时显示对应任务工时', () => {
     render(
       <WorkLogTimeChartDialog
         open
@@ -50,11 +50,19 @@ describe('WorkLogTimeChartDialog', () => {
 
     const dialog = screen.getByRole('dialog', { name: '工时记录柱状图' });
 
-    expect(within(dialog).getByText('工时走势柱状图')).toBeInTheDocument();
+    expect(within(dialog).getByText('工时分组柱状图')).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时分组柱状图画布' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '分组柱状图图例' })).toBeInTheDocument();
     expect(within(dialog).getByText('整理周报')).toBeInTheDocument();
     expect(within(dialog).getByText('需求拆分')).toBeInTheDocument();
     expect(within(dialog).getByText('回归测试')).toBeInTheDocument();
     expect(within(dialog).getByText('2026-01-05')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: '工时柱 2026-01-05 需求拆分 90 分钟' })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '切换图例 需求拆分' }));
+    expect(within(dialog).queryByRole('button', { name: '工时柱 2026-01-05 需求拆分 90 分钟' })).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '切换图例 需求拆分' }));
     expect(within(dialog).getByRole('button', { name: '工时柱 2026-01-05 需求拆分 90 分钟' })).toBeInTheDocument();
 
     fireEvent.mouseEnter(within(dialog).getByRole('button', { name: '工时柱 2026-01-05 需求拆分 90 分钟' }));
@@ -97,7 +105,7 @@ describe('WorkLogTimeChartDialog', () => {
     fireEvent.click(within(taskPanel).getByRole('checkbox', { name: '回归测试' }));
 
     expect(within(dialog).getByRole('button', { name: '工时柱 2026-01-06 回归测试 45 分钟' })).toBeInTheDocument();
-    expect(within(dialog).queryByRole('button', { name: /整理周报/ })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: '工时柱 2026-01-06 整理周报 45 分钟' })).not.toBeInTheDocument();
   });
 
   it('支持切换全屏查看图表', () => {

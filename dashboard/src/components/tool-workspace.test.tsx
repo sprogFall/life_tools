@@ -258,8 +258,9 @@ describe('ToolWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '查看工时柱状图' }));
 
     const dialog = screen.getByRole('dialog', { name: '工时记录柱状图' });
-    expect(within(dialog).getByText('工时走势柱状图')).toBeInTheDocument();
-    expect(within(dialog).getByText('按日期查看查询范围内的任务工时分布，多任务同日会并列展示。')).toBeInTheDocument();
+    expect(within(dialog).getByText('工时分组柱状图')).toBeInTheDocument();
+    expect(within(dialog).getByText('按日期对比查询范围内的任务工时，点击图例可切换显示系列。')).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: '工时分组柱状图画布' })).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: /工时柱 .* 整理周报 60 分钟/ })).toBeInTheDocument();
   });
 

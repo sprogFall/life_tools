@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Maximize2,
   Minimize2,
+  RotateCcw,
   Tags,
   X,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import {
   buildDefaultWorkLogTimeChartFilters,
   buildWorkLogTimeChartDataset,
   type WorkLogTimeChartBar,
+  type WorkLogTimeChartDayGroup,
   type WorkLogTimeChartFilterState,
   type WorkLogTimeChartTagOption,
   type WorkLogTimeChartTaskOption,
@@ -43,6 +45,11 @@ interface TooltipState {
   bar: WorkLogTimeChartBar;
   top: number;
   left: number;
+}
+
+interface ChartTick {
+  value: number;
+  ratio: number;
 }
 
 type FilterPanelKind = 'task' | 'tag';
@@ -74,9 +81,61 @@ function toggleFilterValue(current: string[], value: string, orderedValues: stri
 
 function positionTooltip(target: HTMLElement) {
   const rect = target.getBoundingClientRect();
-  const left = Math.max(20, Math.min(rect.left + rect.width / 2 - 120, window.innerWidth - 260));
-  const top = Math.max(20, rect.top - 92);
+  const left = Math.max(24, Math.min(rect.left + rect.width / 2 - 124, window.innerWidth - 272));
+  const top = Math.max(24, rect.top - 104);
   return { left, top };
+}
+
+function toRgba(hex: string, alpha: number) {
+  const normalized = hex.replace('#', '');
+  if (!/^[\da-fA-F]{6}$/.test(normalized)) {
+    return hex;
+  }
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function getNiceMax(value: number) {
+  if (value <= 0) {
+    return 100;
+  }
+
+  const exponent = Math.floor(Math.log10(value));
+  const magnitude = 10 ** exponent;
+  const normalized = value / magnitude;
+
+  let niceBase = 1;
+  if (normalized <= 1) {
+    niceBase = 1;
+  } else if (normalized <= 2) {
+    niceBase = 2;
+  } else if (normalized <= 2.5) {
+    niceBase = 2.5;
+  } else if (normalized <= 5) {
+    niceBase = 5;
+  } else {
+    niceBase = 10;
+  }
+
+  return niceBase * magnitude;
+}
+
+function buildChartTicks(maxValue: number) {
+  const safeMax = getNiceMax(Math.max(maxValue * 1.12, 1));
+  const stepCount = 5;
+  const step = safeMax / stepCount;
+
+  return Array.from({ length: stepCount + 1 }, (_, index) => {
+    const value = step * (stepCount - index);
+    return {
+      value,
+      ratio: value / safeMax,
+    } satisfies ChartTick;
+  });
 }
 
 function FilterPanel({
@@ -90,7 +149,7 @@ function FilterPanel({
 }) {
   if (options.length === 0) {
     return (
-      <div className="rounded-3xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-500">
+      <div className="rounded-[1.35rem] bg-slate-50/90 px-4 py-4 text-sm text-slate-500">
         当前没有可筛选项。
       </div>
     );
@@ -106,10 +165,10 @@ function FilterPanel({
           <label
             key={option.value}
             className={cn(
-              'flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition',
+              'flex cursor-pointer items-center gap-3 rounded-full px-4 py-3 text-sm transition',
               selected
-                ? 'border-brand-200 bg-brand-50 text-brand-900'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-slate-50',
+                ? 'bg-[#2f6594] text-white shadow-[0_16px_28px_rgba(47,101,148,0.18)]'
+                : 'bg-slate-100/85 text-slate-700 hover:bg-slate-200/85',
             )}
           >
             <input
@@ -118,7 +177,11 @@ function FilterPanel({
               checked={selected}
               onChange={() => onToggle(option.value)}
             />
-            <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ backgroundColor: swatch }} aria-hidden="true" />
+            <span
+              className="h-3.5 w-3.5 shrink-0 rounded-full"
+              style={{ backgroundColor: swatch }}
+              aria-hidden="true"
+            />
             <span className="min-w-0 flex-1 truncate">{option.label}</span>
             {selected ? <Check className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
           </label>
@@ -164,15 +227,18 @@ export function WorkLogTimeChartDialog({
   );
   const [openFilterPanel, setOpenFilterPanel] = useState<FilterPanelKind | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hiddenLegendKeys, setHiddenLegendKeys] = useState<string[]>([]);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   useEffect(() => {
     if (!open) {
       return;
     }
+
     setFilters(buildDefaultWorkLogTimeChartFilters(baseDataset.availableRange));
     setOpenFilterPanel(null);
     setIsFullscreen(false);
+    setHiddenLegendKeys([]);
     setTooltip(null);
   }, [baseDataset.availableRange, open]);
 
@@ -247,12 +313,40 @@ export function WorkLogTimeChartDialog({
     return () => window.removeEventListener('mousedown', handlePointerDown);
   }, [open, openFilterPanel]);
 
+  useEffect(() => {
+    setHiddenLegendKeys((current) =>
+      current.filter((key) => dataset.legendItems.some((item) => item.key === key)),
+    );
+  }, [dataset.legendItems]);
+
+  useEffect(() => {
+    setTooltip(null);
+  }, [filters, hiddenLegendKeys]);
+
   if (!open || typeof document === 'undefined') {
     return null;
   }
 
   const taskFilterValues = baseDataset.taskOptions.map((option) => option.value);
   const tagFilterValues = baseDataset.tagOptions.map((option) => option.value);
+  const visibleLegendKeySet = new Set(
+    dataset.legendItems
+      .filter((item) => !hiddenLegendKeys.includes(item.key))
+      .map((item) => item.key),
+  );
+  const visibleDays = dataset.days.map((day) => ({
+    ...day,
+    bars: day.bars.filter((bar) => visibleLegendKeySet.has(bar.taskKey)),
+  })) satisfies WorkLogTimeChartDayGroup[];
+  const visibleMaxMinutes = visibleDays.reduce((max, day) => {
+    const dayMax = day.bars.reduce((current, bar) => Math.max(current, bar.minutes), 0);
+    return Math.max(max, dayMax);
+  }, 0);
+  const chartTicks = buildChartTicks(visibleMaxMinutes);
+  const chartMax = chartTicks[0]?.value ?? 100;
+  const hasVisibleBars = visibleDays.some((day) => day.bars.length > 0);
+  const plotHeight = isFullscreen ? 520 : 420;
+  const chartMinWidth = Math.max(visibleDays.length * 156, 720);
   const showTooltip = (bar: WorkLogTimeChartBar, target: HTMLElement) => {
     const nextPosition = positionTooltip(target);
     setTooltip({
@@ -263,7 +357,7 @@ export function WorkLogTimeChartDialog({
 
   const dialogContent = (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),transparent_24%),rgba(15,23,42,0.32)] p-4 backdrop-blur-[6px]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -276,295 +370,354 @@ export function WorkLogTimeChartDialog({
         aria-label="工时记录柱状图"
         data-fullscreen={isFullscreen ? 'true' : 'false'}
         className={cn(
-          'relative z-50 flex max-h-[calc(100vh-2rem)] w-[min(96vw,1280px)] flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] shadow-[0_28px_100px_rgba(15,23,42,0.28)]',
+          'relative z-50 flex max-h-[calc(100vh-2rem)] w-[min(96vw,1320px)] flex-col overflow-hidden rounded-[2.25rem] bg-[linear-gradient(180deg,#f8fbff,#f3f7fc)] shadow-[0_30px_90px_rgba(72,106,149,0.24)] ring-1 ring-white/80',
           isFullscreen && 'h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-none',
         )}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="border-b border-slate-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.16),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] px-6 py-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">
-                <BarChart3 className="h-4 w-4" aria-hidden="true" />
-                Time Analytics
+        <div className="px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.05rem] bg-[#24324b] text-white shadow-[0_18px_32px_rgba(36,50,75,0.18)]">
+                <BarChart3 className="h-7 w-7" aria-hidden="true" />
               </div>
-              <h2 className="mt-3 text-2xl font-semibold text-ink">工时走势柱状图</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                按日期查看查询范围内的任务工时分布，多任务同日会并列展示。
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+              <div className="min-w-0">
+                <h2 className="text-[clamp(2.1rem,3vw,3rem)] font-semibold tracking-[-0.04em] text-slate-800">
+                  工时分组柱状图
+                </h2>
+                <p className="mt-3 text-base leading-7 text-slate-500 sm:text-lg">
+                  按日期对比查询范围内的任务工时，点击图例可切换显示系列。
+                </p>
+                <p className="mt-3 text-sm font-medium text-slate-400">
+                  {formatNumber(dataset.days.length)} 天 · {formatNumber(dataset.totalEntries)} 条记录 ·{' '}
                   {formatNumber(dataset.totalMinutes)} 分钟
-                </span>
-                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
-                  {formatNumber(dataset.totalEntries)} 条记录
-                </span>
-                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
-                  {formatNumber(dataset.days.length)} 天
-                </span>
+                </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="flex items-center gap-2 self-end lg:self-start">
               <button
                 type="button"
                 aria-label={isFullscreen ? '退出全屏' : '进入全屏'}
                 onClick={() => setIsFullscreen((current) => !current)}
-                className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/88 text-slate-600 shadow-[0_12px_24px_rgba(148,163,184,0.18)] transition hover:bg-white hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
               >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
-                {isFullscreen ? '退出全屏' : '进入全屏'}
+                {isFullscreen ? <Minimize2 className="h-5 w-5" aria-hidden="true" /> : <Maximize2 className="h-5 w-5" aria-hidden="true" />}
               </button>
               <button
                 ref={closeButtonRef}
                 type="button"
                 aria-label="关闭工时柱状图"
                 onClick={onClose}
-                className={`${DASHBOARD_PILL_BUTTON_MD} bg-ink text-white hover:bg-slate-800`}
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/88 text-slate-600 shadow-[0_12px_24px_rgba(148,163,184,0.18)] transition hover:bg-white hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
               >
-                <X className="h-4 w-4" aria-hidden="true" />
-                关闭
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="rounded-[1.75rem] border border-slate-200/80 bg-slate-50/80 p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="grid gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
-                <label className="block space-y-1 text-sm text-slate-700">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    <CalendarRange className="h-3.5 w-3.5" aria-hidden="true" />
-                    时间范围
-                  </span>
-                  <input
-                    aria-label="开始日期"
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(event) =>
-                      setFilters((current) => ({
-                        ...current,
-                        startDate: event.target.value,
-                      }))
-                    }
-                    className="h-11 min-w-[11rem] rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
-                  />
-                </label>
-                <label className="block space-y-1 text-sm text-slate-700">
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">结束日期</span>
-                  <input
-                    aria-label="结束日期"
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(event) =>
-                      setFilters((current) => ({
-                        ...current,
-                        endDate: event.target.value,
-                      }))
-                    }
-                    className="h-11 min-w-[11rem] rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-brand-400 focus:bg-white"
-                  />
-                </label>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  ref={taskFilterRef}
-                  type="button"
-                  aria-label="按任务筛选"
-                  aria-expanded={openFilterPanel === 'task'}
-                  onClick={() => setOpenFilterPanel((current) => (current === 'task' ? null : 'task'))}
-                  className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
-                >
-                  <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-                  {getFilterSummary(filters.selectedTaskIds, baseDataset.taskOptions, '全部任务')}
-                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                </button>
-                <button
-                  ref={tagFilterRef}
-                  type="button"
-                  aria-label="按任务标签筛选"
-                  aria-expanded={openFilterPanel === 'tag'}
-                  onClick={() => setOpenFilterPanel((current) => (current === 'tag' ? null : 'tag'))}
-                  className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
-                >
-                  <Tags className="h-4 w-4" aria-hidden="true" />
-                  {getFilterSummary(filters.selectedTagIds, baseDataset.tagOptions, '全部标签')}
-                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilters(buildDefaultWorkLogTimeChartFilters(baseDataset.availableRange))}
-                  className={`${DASHBOARD_PILL_BUTTON_SM} border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50`}
-                >
-                  重置筛选
-                </button>
-              </div>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-full bg-slate-100/90 px-4 py-2 shadow-[0_12px_24px_rgba(148,163,184,0.12)]">
+              <CalendarRange className="h-4 w-4 text-slate-500" aria-hidden="true" />
+              <span className="text-sm font-medium text-slate-600">时间范围</span>
+              <input
+                aria-label="开始日期"
+                type="date"
+                value={filters.startDate}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    startDate: event.target.value,
+                  }))
+                }
+                className="h-10 min-w-[10.5rem] rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-brand-400"
+              />
+              <span className="text-sm text-slate-400">至</span>
+              <input
+                aria-label="结束日期"
+                type="date"
+                value={filters.endDate}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    endDate: event.target.value,
+                  }))
+                }
+                className="h-10 min-w-[10.5rem] rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-brand-400"
+              />
             </div>
 
-            {openFilterPanel === 'task' ? (
-              <div
-                ref={taskFilterPanelRef}
-                role="group"
-                aria-label="工时图任务筛选面板"
-                className="mt-4 rounded-3xl border border-slate-200 bg-white/90 p-4"
-              >
-                <FilterPanel
-                  options={baseDataset.taskOptions}
-                  selectedValues={filters.selectedTaskIds}
-                  onToggle={(value) =>
-                    setFilters((current) => ({
-                      ...current,
-                      selectedTaskIds: toggleFilterValue(current.selectedTaskIds, value, taskFilterValues),
-                    }))
-                  }
-                />
-              </div>
-            ) : null}
+            <button
+              ref={taskFilterRef}
+              type="button"
+              aria-label="按任务筛选"
+              aria-expanded={openFilterPanel === 'task'}
+              onClick={() => setOpenFilterPanel((current) => (current === 'task' ? null : 'task'))}
+              className={`${DASHBOARD_PILL_BUTTON_MD} bg-slate-100/95 text-slate-700 shadow-[0_12px_24px_rgba(148,163,184,0.12)] hover:bg-slate-200/90`}
+            >
+              <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
+              {getFilterSummary(filters.selectedTaskIds, baseDataset.taskOptions, '全部任务')}
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            </button>
 
-            {openFilterPanel === 'tag' ? (
-              <div
-                ref={tagFilterPanelRef}
-                role="group"
-                aria-label="工时图标签筛选面板"
-                className="mt-4 rounded-3xl border border-slate-200 bg-white/90 p-4"
-              >
-                <FilterPanel
-                  options={baseDataset.tagOptions}
-                  selectedValues={filters.selectedTagIds}
-                  onToggle={(value) =>
-                    setFilters((current) => ({
-                      ...current,
-                      selectedTagIds: toggleFilterValue(current.selectedTagIds, value, tagFilterValues),
-                    }))
-                  }
-                />
-              </div>
-            ) : null}
+            <button
+              ref={tagFilterRef}
+              type="button"
+              aria-label="按任务标签筛选"
+              aria-expanded={openFilterPanel === 'tag'}
+              onClick={() => setOpenFilterPanel((current) => (current === 'tag' ? null : 'tag'))}
+              className={`${DASHBOARD_PILL_BUTTON_MD} bg-slate-100/95 text-slate-700 shadow-[0_12px_24px_rgba(148,163,184,0.12)] hover:bg-slate-200/90`}
+            >
+              <Tags className="h-4 w-4" aria-hidden="true" />
+              {getFilterSummary(filters.selectedTagIds, baseDataset.tagOptions, '全部标签')}
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFilters(buildDefaultWorkLogTimeChartFilters(baseDataset.availableRange));
+                setHiddenLegendKeys([]);
+              }}
+              className={`${DASHBOARD_PILL_BUTTON_MD} bg-[#2f6594] text-white shadow-[0_18px_36px_rgba(47,101,148,0.24)] hover:bg-[#25557d]`}
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              重置显示
+            </button>
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_290px]">
-            <section className="min-w-0 rounded-[1.75rem] border border-slate-200/80 bg-white/88 p-5 shadow-sm">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-ink">按日并列柱状图</h3>
-                  <p className="mt-1 text-sm text-slate-600">同一天内有多个任务时，会使用不同颜色并列展示。</p>
-                </div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                  Max {formatNumber(dataset.maxMinutes)} min
-                </p>
+          {openFilterPanel === 'task' ? (
+            <div
+              ref={taskFilterPanelRef}
+              role="group"
+              aria-label="工时图任务筛选面板"
+              className="mt-4 rounded-[1.6rem] bg-white/82 p-4 shadow-[0_16px_40px_rgba(148,163,184,0.16)]"
+            >
+              <FilterPanel
+                options={baseDataset.taskOptions}
+                selectedValues={filters.selectedTaskIds}
+                onToggle={(value) =>
+                  setFilters((current) => ({
+                    ...current,
+                    selectedTaskIds: toggleFilterValue(current.selectedTaskIds, value, taskFilterValues),
+                  }))
+                }
+              />
+            </div>
+          ) : null}
+
+          {openFilterPanel === 'tag' ? (
+            <div
+              ref={tagFilterPanelRef}
+              role="group"
+              aria-label="工时图标签筛选面板"
+              className="mt-4 rounded-[1.6rem] bg-white/82 p-4 shadow-[0_16px_40px_rgba(148,163,184,0.16)]"
+            >
+              <FilterPanel
+                options={baseDataset.tagOptions}
+                selectedValues={filters.selectedTagIds}
+                onToggle={(value) =>
+                  setFilters((current) => ({
+                    ...current,
+                    selectedTagIds: toggleFilterValue(current.selectedTagIds, value, tagFilterValues),
+                  }))
+                }
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="border-t border-slate-200/75" />
+
+        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-6 sm:px-8 lg:px-10 lg:pb-8">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+            <div className="hidden lg:block" />
+            <div
+              role="group"
+              aria-label="分组柱状图图例"
+              className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3"
+            >
+              {dataset.legendItems.map((item) => {
+                const visible = !hiddenLegendKeys.includes(item.key);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    aria-label={`切换图例 ${item.label}`}
+                    aria-pressed={visible}
+                    onClick={() =>
+                      setHiddenLegendKeys((current) =>
+                        current.includes(item.key)
+                          ? current.filter((key) => key !== item.key)
+                          : [...current, item.key],
+                      )
+                    }
+                    className={cn(
+                      'inline-flex items-center gap-3 rounded-full px-3 py-2 text-base transition',
+                      visible ? 'text-slate-700 hover:bg-white/70' : 'text-slate-400 hover:bg-white/60',
+                    )}
+                  >
+                    <span
+                      className="h-4 w-4 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: visible ? item.color : toRgba(item.color, 0.35),
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span className={cn('font-medium', !visible && 'line-through')}>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-start gap-2 lg:justify-end">
+              <button
+                type="button"
+                aria-label="重置图例显示"
+                disabled={hiddenLegendKeys.length === 0}
+                onClick={() => setHiddenLegendKeys([])}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/88 text-slate-500 shadow-[0_12px_24px_rgba(148,163,184,0.18)] transition hover:bg-white hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <RotateCcw className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <section
+            role="group"
+            aria-label="工时分组柱状图画布"
+            className="mt-6 rounded-[2rem] bg-white/78 px-4 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_18px_45px_rgba(148,163,184,0.14)] sm:px-6 lg:px-8"
+          >
+            {dataset.days.length === 0 ? (
+              <div className="flex min-h-[26rem] items-center justify-center rounded-[1.6rem] bg-slate-50/85 px-6 text-center text-sm text-slate-500">
+                当前筛选下暂无工时记录，可调整时间范围、任务或标签后重试。
               </div>
-
-              {dataset.days.length === 0 ? (
-                <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-16 text-center text-sm text-slate-500">
-                  当前筛选下暂无工时记录，可调整时间范围、任务或标签后重试。
-                </div>
-              ) : (
-                <div className="mt-5 overflow-x-auto pb-2">
-                  <div className="flex min-w-max gap-4">
-                    {dataset.days.map((day) => (
-                      <section
-                        key={day.dateKey}
-                        className="w-[11.5rem] shrink-0 rounded-[1.5rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.95))] p-4"
+            ) : !hasVisibleBars ? (
+              <div className="flex min-h-[26rem] items-center justify-center rounded-[1.6rem] bg-slate-50/85 px-6 text-center text-sm text-slate-500">
+                当前已隐藏所有图例系列，可点击上方图例或右侧重置按钮恢复显示。
+              </div>
+            ) : (
+              <div className="overflow-x-auto pb-2">
+                <div
+                  className="grid gap-4"
+                  style={{
+                    minWidth: `${chartMinWidth}px`,
+                    gridTemplateColumns: '84px minmax(0, 1fr)',
+                  }}
+                >
+                  <div className="relative" style={{ height: `${plotHeight}px` }}>
+                    <div className="text-sm font-medium tracking-[0.01em] text-slate-600">工时（分钟）</div>
+                    {chartTicks.map((tick) => (
+                      <span
+                        key={`tick-${tick.value}`}
+                        className="absolute left-0 -translate-y-1/2 text-sm font-medium text-slate-400"
+                        style={{ bottom: `${tick.ratio * 100}%` }}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-ink">{day.dateLabel}</p>
-                            <p className="mt-1 text-xs text-slate-500">{formatNumber(day.totalMinutes)} 分钟</p>
-                          </div>
-                          <div className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500">
-                            {day.bars.length} 任务
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex h-72 items-end gap-2 rounded-[1.25rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(241,245,249,0.92))] p-3">
-                          {day.bars.map((bar) => {
-                            const heightRatio = dataset.maxMinutes > 0 ? bar.minutes / dataset.maxMinutes : 0;
-                            const barHeight = Math.max(22, Math.round(heightRatio * 224));
-
-                            return (
-                              <button
-                                key={bar.key}
-                                type="button"
-                                aria-label={`工时柱 ${bar.dateKey} ${bar.taskTitle} ${bar.minutes} 分钟`}
-                                onMouseEnter={(event) => showTooltip(bar, event.currentTarget)}
-                                onMouseLeave={() => setTooltip(null)}
-                                onFocus={(event) => showTooltip(bar, event.currentTarget)}
-                                onBlur={() => setTooltip(null)}
-                                onClick={(event) => showTooltip(bar, event.currentTarget)}
-                                className="flex min-w-0 flex-1 cursor-pointer flex-col justify-end rounded-[1.15rem] px-2 pb-3 pt-4 text-left text-white shadow-[0_12px_32px_rgba(15,23,42,0.22)] transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-                                style={{
-                                  height: `${barHeight}px`,
-                                  background: `linear-gradient(180deg, ${bar.color}, rgba(15,23,42,0.92))`,
-                                }}
-                              >
-                                <span className="text-xs font-semibold leading-5">{formatNumber(bar.minutes)}</span>
-                                <span className="mt-1 text-[11px] leading-4 text-white/80">{bar.entryCount} 条</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </section>
+                        {formatNumber(tick.value)}
+                      </span>
                     ))}
                   </div>
-                </div>
-              )}
-            </section>
 
-            <aside className="rounded-[1.75rem] border border-slate-200/80 bg-white/88 p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-ink">图例</h3>
-              <p className="mt-1 text-sm text-slate-600">颜色与任务保持一一对应，悬浮柱体可查看当天工时。</p>
+                  <div>
+                    <div className="relative" style={{ height: `${plotHeight}px` }}>
+                      {chartTicks.map((tick) => (
+                        <div
+                          key={`grid-${tick.value}`}
+                          className="absolute inset-x-0 border-t border-dashed border-[#d9e2ee]"
+                          style={{ bottom: `${tick.ratio * 100}%` }}
+                        />
+                      ))}
 
-              {dataset.legendItems.length === 0 ? (
-                <div className="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-                  当前筛选下没有可展示的任务图例。
-                </div>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  {dataset.legendItems.map((item) => (
-                    <div
-                      key={item.key}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                        <span className="truncate text-sm font-medium text-slate-700">{item.label}</span>
+                      <div className="absolute inset-x-0 bottom-0 border-t-2 border-slate-300/90" />
+
+                      <div className="absolute inset-0 flex items-end">
+                        {visibleDays.map((day) => (
+                          <div key={day.dateKey} className="flex flex-1 items-end justify-center px-3">
+                            <div className="flex h-full w-full max-w-[11rem] items-end justify-center gap-2 sm:gap-3">
+                              {day.bars.map((bar) => {
+                                const barHeight = Math.max(
+                                  52,
+                                  Math.round((bar.minutes / chartMax) * (plotHeight - 92)),
+                                );
+
+                                return (
+                                  <div
+                                    key={bar.key}
+                                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-3"
+                                  >
+                                    <span className="rounded-full bg-white/96 px-3 py-1 text-sm font-semibold text-slate-700 shadow-[0_10px_24px_rgba(148,163,184,0.18)] ring-1 ring-slate-200/75">
+                                      {formatNumber(bar.minutes)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      aria-label={`工时柱 ${bar.dateKey} ${bar.taskTitle} ${bar.minutes} 分钟`}
+                                      onMouseEnter={(event) => showTooltip(bar, event.currentTarget)}
+                                      onMouseLeave={() => setTooltip(null)}
+                                      onFocus={(event) => showTooltip(bar, event.currentTarget)}
+                                      onBlur={() => setTooltip(null)}
+                                      onClick={(event) => showTooltip(bar, event.currentTarget)}
+                                      className="w-full rounded-t-[1.05rem] rounded-b-[0.9rem] transition duration-300 hover:-translate-y-1 hover:brightness-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                                      style={{
+                                        height: `${barHeight}px`,
+                                        background: `linear-gradient(180deg, ${toRgba(bar.color, 0.88)} 0%, ${bar.color} 74%)`,
+                                        boxShadow: `0 16px 28px ${toRgba(bar.color, 0.26)}`,
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <span className="shrink-0 text-xs font-semibold text-slate-500">{formatNumber(item.totalMinutes)} 分钟</span>
                     </div>
-                  ))}
+
+                    <div className="mt-5 flex">
+                      {visibleDays.map((day) => (
+                        <div key={`label-${day.dateKey}`} className="flex-1 px-3 text-center">
+                          <div className="mx-auto max-w-[11rem] text-base font-medium tracking-[0.01em] text-slate-600">
+                            {day.dateLabel}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </aside>
-          </div>
+              </div>
+            )}
+          </section>
         </div>
 
         {tooltip ? (
           <div
             role="tooltip"
             aria-label={`工时提示 ${tooltip.bar.dateKey} ${tooltip.bar.taskTitle}`}
-            className="pointer-events-none fixed z-[60] w-60 rounded-2xl border border-slate-200/90 bg-white/96 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.22)]"
+            className="pointer-events-none fixed z-[60] w-64 rounded-[1.4rem] bg-white/97 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.28)] ring-1 ring-slate-200/80"
             style={{
               top: `${tooltip.top}px`,
               left: `${tooltip.left}px`,
             }}
           >
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tooltip.bar.color }} aria-hidden="true" />
+              <span
+                className="h-3 w-3 rounded-full"
+                style={{ backgroundColor: tooltip.bar.color }}
+                aria-hidden="true"
+              />
               Hover Detail
             </div>
-            <p className="mt-3 text-base font-semibold text-ink">{tooltip.bar.taskTitle}</p>
+            <p className="mt-3 text-base font-semibold text-slate-800">{tooltip.bar.taskTitle}</p>
             <div className="mt-3 grid gap-2 text-sm text-slate-600">
               <div className="flex items-center justify-between gap-3">
                 <span>日期</span>
-                <span className="font-medium text-ink">{tooltip.bar.dateKey}</span>
+                <span className="font-medium text-slate-800">{tooltip.bar.dateKey}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span>工时</span>
-                <span className="font-medium text-ink">{formatNumber(tooltip.bar.minutes)} 分钟</span>
+                <span className="font-medium text-slate-800">{formatNumber(tooltip.bar.minutes)} 分钟</span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span>记录数</span>
-                <span className="font-medium text-ink">{formatNumber(tooltip.bar.entryCount)} 条</span>
+                <span className="font-medium text-slate-800">{formatNumber(tooltip.bar.entryCount)} 条</span>
               </div>
             </div>
           </div>
