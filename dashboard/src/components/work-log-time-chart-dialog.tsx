@@ -632,7 +632,7 @@ export function WorkLogTimeChartDialog({
                       <div className="absolute inset-0 flex items-end">
                         {visibleDays.map((day) => (
                           <div key={day.dateKey} className="flex flex-1 items-end justify-center px-3">
-                            <div className="flex h-full w-full max-w-[11rem] items-end justify-center gap-2 sm:gap-3">
+                            <div className="flex h-full w-full max-w-[11rem] items-end justify-center">
                               {day.bars.map((bar) => {
                                 const barHeight = Math.max(
                                   52,
@@ -642,9 +642,9 @@ export function WorkLogTimeChartDialog({
                                 return (
                                   <div
                                     key={bar.key}
-                                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-3"
+                                    className="group relative flex min-w-0 flex-1 flex-col items-center justify-end"
                                   >
-                                    <span className="rounded-full bg-white/96 px-3 py-1 text-sm font-semibold text-slate-700 shadow-[0_10px_24px_rgba(148,163,184,0.18)] ring-1 ring-slate-200/75">
+                                    <span className="absolute -top-10 rounded-full bg-white/96 px-3 py-1 text-sm font-semibold text-slate-700 opacity-0 shadow-[0_10px_24px_rgba(148,163,184,0.18)] ring-1 ring-slate-200/75 transition-opacity duration-200 group-hover:opacity-100">
                                       {formatNumber(bar.minutes)}
                                     </span>
                                     <button
@@ -655,11 +655,11 @@ export function WorkLogTimeChartDialog({
                                       onFocus={(event) => showTooltip(bar, event.currentTarget)}
                                       onBlur={() => setTooltip(null)}
                                       onClick={(event) => showTooltip(bar, event.currentTarget)}
-                                      className="w-full rounded-t-[1.05rem] rounded-b-[0.9rem] transition duration-300 hover:-translate-y-1 hover:brightness-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                                      className="w-full rounded-t-lg transition duration-300 hover:-translate-y-1 hover:brightness-105 hover:shadow-[0_20px_36px_rgba(0,0,0,0.15)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
                                       style={{
                                         height: `${barHeight}px`,
-                                        background: `linear-gradient(180deg, ${toRgba(bar.color, 0.88)} 0%, ${bar.color} 74%)`,
-                                        boxShadow: `0 16px 28px ${toRgba(bar.color, 0.26)}`,
+                                        background: `linear-gradient(180deg, ${toRgba(bar.color, 0.92)} 0%, ${bar.color} 100%)`,
+                                        boxShadow: `0 12px 24px ${toRgba(bar.color, 0.24)}`,
                                       }}
                                     />
                                   </div>
