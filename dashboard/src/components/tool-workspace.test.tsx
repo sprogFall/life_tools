@@ -239,8 +239,28 @@ describe('ToolWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
 
     expect(screen.getByRole('button', { name: '打开工时归属画布' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '查看工时柱状图' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '树状展示' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '列表展示' })).not.toBeInTheDocument();
+  });
+
+  it('工时记录区提供柱状图模态入口，支持查看按日期聚合的任务工时', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={tool}
+        relationContext={buildRelationContext(detail)}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '查看工时柱状图' }));
+
+    const dialog = screen.getByRole('dialog', { name: '工时记录柱状图' });
+    expect(within(dialog).getByText('工时走势柱状图')).toBeInTheDocument();
+    expect(within(dialog).getByText('按日期查看查询范围内的任务工时分布，多任务同日会并列展示。')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /工时柱 .* 整理周报 60 分钟/ })).toBeInTheDocument();
   });
 
   it('画布支持按任务状态和标签多选筛选任务节点', () => {

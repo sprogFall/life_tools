@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
-import { Eye, EyeOff, LayoutTemplate } from 'lucide-react';
+import { BarChart3, Eye, EyeOff, LayoutTemplate } from 'lucide-react';
 
 import { WorkLogTimeCanvasDialog } from '@/components/work-log-time-canvas-dialog';
+import { WorkLogTimeChartDialog } from '@/components/work-log-time-chart-dialog';
 import {
   DASHBOARD_PILL_BUTTON_MD,
   DASHBOARD_PILL_BUTTON_SM,
@@ -425,11 +426,13 @@ function SectionPanel({
   const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
   const [mobilePane, setMobilePane] = useState<MobilePane>('list');
   const [canvasOpen, setCanvasOpen] = useState(false);
+  const [chartOpen, setChartOpen] = useState(false);
   const [collapsedPanes, setCollapsedPanes] = useState<Record<CollapsiblePane, boolean>>({
     list: false,
     editor: false,
   });
   const canvasTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const chartTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const supportsTreeView = toolId === 'work_log' && sectionKey === 'time_entries' && !isSingleMode;
   const workLogTasks = useMemo(
@@ -474,6 +477,7 @@ function SectionPanel({
 
   useEffect(() => {
     setCanvasOpen(false);
+    setChartOpen(false);
     setCollapsedPanes({
       list: false,
       editor: false,
@@ -703,6 +707,9 @@ function SectionPanel({
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                 通过弹出式无边界画布查看任务全貌，支持缩放、拖动画布和拖拽工时卡片改归属；当前页面保留列表查阅与精细编辑。
               </p>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                需要按日期回看投入分布时，可直接打开柱状图，在模态框里按任务、标签和时间范围筛选。
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
@@ -719,6 +726,15 @@ function SectionPanel({
               >
                 <LayoutTemplate className="h-4 w-4" />
                 打开工时归属画布
+              </button>
+              <button
+                ref={chartTriggerRef}
+                type="button"
+                onClick={() => setChartOpen(true)}
+                className={`${DASHBOARD_PILL_BUTTON_MD} border border-brand-200 bg-white text-brand-800 hover:border-brand-300 hover:bg-brand-50`}
+              >
+                <BarChart3 className="h-4 w-4" />
+                查看工时柱状图
               </button>
             </div>
           </div>
@@ -1122,6 +1138,21 @@ function SectionPanel({
           onCommitToBackend={(nextItems) => {
             onCommitItems(nextItems);
             setError(null);
+          }}
+        />
+      ) : null}
+      {supportsTreeView ? (
+        <WorkLogTimeChartDialog
+          open={chartOpen}
+          tasks={workLogTasks}
+          taskTags={workLogTaskTags}
+          tagNames={relationContext.tagNames}
+          items={items}
+          onClose={() => {
+            setChartOpen(false);
+            window.requestAnimationFrame(() => {
+              chartTriggerRef.current?.focus();
+            });
           }}
         />
       ) : null}
