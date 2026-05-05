@@ -24,7 +24,7 @@ from .storage import DashboardUser, SqliteSnapshotStore, SyncRecord, UserSnapsho
 from .sync_diff import build_tools_diff
 from .sync_logic import (
     compute_latest_updated_at_ms,
-    decide_sync_v2,
+    decide_sync_v2_by_revision,
     is_all_tools_empty,
 )
 
@@ -200,6 +200,16 @@ def create_app(*, db_path: str) -> FastAPI:
 
         snapshot = store.get_snapshot(user_id)
         force = _normalize_force_decision(request.force_decision)
+        decision = decide_sync_v2_by_revision(
+            client_has_snapshot=bool(client_tools_data),
+            client_is_empty=client_is_empty,
+            client_last_server_revision=request.client_state.last_server_revision,
+            client_updated_at_ms=client_updated_at_ms,
+            server_has_snapshot=snapshot is not None,
+            server_is_empty=True if snapshot is None else is_all_tools_empty(snapshot.tools_data),
+            server_revision=0 if snapshot is None else snapshot.server_revision,
+            server_updated_at_ms=0 if snapshot is None else snapshot.updated_at_ms,
+        )
 
         if force == "use_client":
             server_revision_before = snapshot.server_revision if snapshot else 0
@@ -274,13 +284,6 @@ def create_app(*, db_path: str) -> FastAPI:
             )
 
         if snapshot is None:
-            decision = decide_sync_v2(
-                client_is_empty=client_is_empty,
-                client_updated_at_ms=client_updated_at_ms,
-                server_has_snapshot=False,
-                server_is_empty=True,
-                server_updated_at_ms=0,
-            )
             if decision == "use_client":
                 diff = build_tools_diff(
                     server_tools_data={},
@@ -322,13 +325,6 @@ def create_app(*, db_path: str) -> FastAPI:
 
         server_tools_data = snapshot.tools_data
         server_is_empty = is_all_tools_empty(server_tools_data)
-        decision = decide_sync_v2(
-            client_is_empty=client_is_empty,
-            client_updated_at_ms=client_updated_at_ms,
-            server_has_snapshot=True,
-            server_is_empty=server_is_empty,
-            server_updated_at_ms=snapshot.updated_at_ms,
-        )
 
         if decision == "use_server":
             diff = build_tools_diff(

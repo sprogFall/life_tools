@@ -110,3 +110,35 @@ def decide_sync_v2(
         return "use_client"
     return "noop"
 
+
+def decide_sync_v2_by_revision(
+    *,
+    client_has_snapshot: bool,
+    client_is_empty: bool,
+    client_last_server_revision: int | None,
+    client_updated_at_ms: int,
+    server_has_snapshot: bool,
+    server_is_empty: bool,
+    server_revision: int,
+    server_updated_at_ms: int,
+) -> str:
+    """根据服务端游标优先决策，保留更新时间作为同游标兜底。
+
+    v2 的核心语义是：客户端从未见过或落后于当前服务端非空快照时，
+    必须先拉服务端，避免新装客户端用本地空/默认配置覆盖账号数据。
+    """
+
+    if not server_has_snapshot:
+        return "use_client" if client_has_snapshot or not client_is_empty else "noop"
+
+    last_revision = int(client_last_server_revision or 0)
+    if server_revision > last_revision and not server_is_empty:
+        return "use_server"
+
+    return decide_sync_v2(
+        client_is_empty=client_is_empty,
+        client_updated_at_ms=client_updated_at_ms,
+        server_has_snapshot=server_has_snapshot,
+        server_is_empty=server_is_empty,
+        server_updated_at_ms=server_updated_at_ms,
+    )

@@ -1,5 +1,6 @@
 from sync_server.sync_logic import (
     compute_latest_updated_at_ms,
+    decide_sync_v2_by_revision,
     is_all_tools_empty,
     is_tool_snapshot_empty,
     decide_sync_v2,
@@ -111,3 +112,44 @@ def test_decide_sync_v2_new_user_uses_client() -> None:
     )
     assert decision == "use_client"
 
+
+def test_decide_sync_v2_by_revision_new_client_pulls_existing_server_snapshot() -> None:
+    decision = decide_sync_v2_by_revision(
+        client_has_snapshot=True,
+        client_is_empty=False,
+        client_last_server_revision=None,
+        client_updated_at_ms=2000,
+        server_has_snapshot=True,
+        server_is_empty=False,
+        server_revision=3,
+        server_updated_at_ms=100,
+    )
+    assert decision == "use_server"
+
+
+def test_decide_sync_v2_by_revision_first_config_only_snapshot_uses_client() -> None:
+    decision = decide_sync_v2_by_revision(
+        client_has_snapshot=True,
+        client_is_empty=True,
+        client_last_server_revision=None,
+        client_updated_at_ms=100,
+        server_has_snapshot=False,
+        server_is_empty=True,
+        server_revision=0,
+        server_updated_at_ms=0,
+    )
+    assert decision == "use_client"
+
+
+def test_decide_sync_v2_by_revision_empty_server_does_not_clear_client_data() -> None:
+    decision = decide_sync_v2_by_revision(
+        client_has_snapshot=True,
+        client_is_empty=False,
+        client_last_server_revision=None,
+        client_updated_at_ms=100,
+        server_has_snapshot=True,
+        server_is_empty=True,
+        server_revision=1,
+        server_updated_at_ms=0,
+    )
+    assert decision == "use_client"
