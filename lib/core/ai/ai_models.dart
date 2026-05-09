@@ -20,6 +20,21 @@ class AiMessage {
 
 enum AiResponseFormat { text, jsonObject }
 
+class AiTokenUsage {
+  final int? promptTokens;
+  final int? completionTokens;
+  final int? totalTokens;
+
+  const AiTokenUsage({
+    this.promptTokens,
+    this.completionTokens,
+    this.totalTokens,
+  });
+
+  bool get isEmpty =>
+      promptTokens == null && completionTokens == null && totalTokens == null;
+}
+
 class AiChatRequest {
   final List<AiMessage> messages;
   final double? temperature;
@@ -37,15 +52,22 @@ class AiChatRequest {
 class AiChatResult {
   final String text;
   final String reasoning;
+  final AiTokenUsage? usage;
 
-  const AiChatResult({required this.text, this.reasoning = ''});
+  const AiChatResult({required this.text, this.reasoning = '', this.usage});
 }
 
 class AiChatStreamChunk {
   final String textDelta;
   final String reasoningDelta;
+  final AiTokenUsage? usage;
 
-  const AiChatStreamChunk({this.textDelta = '', this.reasoningDelta = ''});
+  const AiChatStreamChunk({
+    this.textDelta = '',
+    this.reasoningDelta = '',
+    this.usage,
+  });
 
-  bool get isEmpty => textDelta.isEmpty && reasoningDelta.isEmpty;
+  bool get isEmpty =>
+      textDelta.isEmpty && reasoningDelta.isEmpty && usage == null;
 }

@@ -105,6 +105,58 @@ void main() {
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 
+    test('send 应把 AI 回复 token 与耗时写入 assistant metadata', () async {
+      final now = DateTime(2026, 1, 1, 8, 0, 0);
+      final fakeClient = FakeOpenAiClient(
+        replyText: '{"type":"no_special_call"}',
+        streamReply: const [
+          AiChatStreamChunk(textDelta: '统计完成'),
+          AiChatStreamChunk(
+            usage: AiTokenUsage(
+              promptTokens: 1234,
+              completionTokens: 56,
+              totalTokens: 1290,
+            ),
+          ),
+        ],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        nowProvider: () => now,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+        ),
+      );
+      await service.init();
+      await service.send('你好');
+
+      final metadata = service.messages.last.metadata ?? const {};
+      final usage =
+          metadata[XiaoMiChatService.assistantUsageMetadataKey] as Map;
+      expect(usage['promptTokens'], 1234);
+      expect(usage['completionTokens'], 56);
+      expect(usage['totalTokens'], 1290);
+      expect(usage['durationMs'], 0);
+
+      final persisted = await repository.listMessages(
+        service.currentConversation!.id!,
+      );
+      final persistedUsage =
+          (persisted.last.metadata ??
+                  const {})[XiaoMiChatService.assistantUsageMetadataKey]
+              as Map;
+      expect(persistedUsage['promptTokens'], 1234);
+      expect(persistedUsage['completionTokens'], 56);
+      expect(persistedUsage['totalTokens'], 1290);
+      expect(persistedUsage['durationMs'], 0);
+    });
+
     test('send 命中内置预置词时应跳过预选路由并直接注入上下文', () async {
       var now = DateTime(2026, 5, 20, 8, 0, 0);
       DateTime nextNow() {

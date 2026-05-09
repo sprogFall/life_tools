@@ -17,6 +17,7 @@ import '../repository/xiao_mi_repository.dart';
 class XiaoMiChatService extends ChangeNotifier {
   static const String assistantThinkingMetadataKey = 'thinking';
   static const String assistantErrorMetadataKey = 'error';
+  static const String assistantUsageMetadataKey = 'aiUsage';
 
   final XiaoMiRepository _repository;
   final AiService _aiService;
@@ -257,6 +258,8 @@ class XiaoMiChatService extends ChangeNotifier {
 
       final answerBuffer = StringBuffer();
       final thinkingBuffer = StringBuffer();
+      AiTokenUsage? tokenUsage;
+      final requestStartedAt = _nowProvider();
       XiaoMiMessage? streamingAssistantMessage;
 
       await for (final chunk in _aiService.chatStream(
@@ -272,6 +275,9 @@ class XiaoMiChatService extends ChangeNotifier {
         }
         if (chunk.reasoningDelta.isNotEmpty) {
           thinkingBuffer.write(chunk.reasoningDelta);
+        }
+        if (chunk.usage != null) {
+          tokenUsage = chunk.usage;
         }
 
         if (chunk.isEmpty) {
@@ -304,6 +310,8 @@ class XiaoMiChatService extends ChangeNotifier {
       final assistantText = answerBuffer.toString().trim();
       final assistantMetadata = _buildAssistantMetadata(
         thinkingBuffer.toString(),
+        usage: tokenUsage,
+        duration: _nowProvider().difference(requestStartedAt),
       );
       final assistantMessage = XiaoMiMessage.create(
         conversationId: activeId,
@@ -463,12 +471,44 @@ ${XiaoMiAiPrompts.chatUseCase.systemPrompt}
         .toList(growable: false);
   }
 
-  Map<String, dynamic>? _buildAssistantMetadata(String thinking) {
+  Map<String, dynamic>? _buildAssistantMetadata(
+    String thinking, {
+    AiTokenUsage? usage,
+    Duration? duration,
+  }) {
+    final metadata = <String, dynamic>{};
     final trimmedThinking = thinking.trim();
-    if (trimmedThinking.isEmpty) {
+    if (trimmedThinking.isNotEmpty) {
+      metadata[assistantThinkingMetadataKey] = trimmedThinking;
+    }
+    final usageMetadata = _buildAssistantUsageMetadata(usage, duration);
+    if (usageMetadata != null) {
+      metadata[assistantUsageMetadataKey] = usageMetadata;
+    }
+    return metadata.isEmpty ? null : metadata;
+  }
+
+  Map<String, dynamic>? _buildAssistantUsageMetadata(
+    AiTokenUsage? usage,
+    Duration? duration,
+  ) {
+    final hasUsage =
+        usage != null &&
+        (usage.promptTokens != null ||
+            usage.completionTokens != null ||
+            usage.totalTokens != null);
+    final durationMs = duration?.inMilliseconds;
+    final hasDuration = durationMs != null && durationMs >= 0;
+    if (!hasUsage && !hasDuration) {
       return null;
     }
-    return <String, dynamic>{assistantThinkingMetadataKey: trimmedThinking};
+    return <String, dynamic>{
+      if (usage?.promptTokens != null) 'promptTokens': usage!.promptTokens,
+      if (usage?.completionTokens != null)
+        'completionTokens': usage!.completionTokens,
+      if (usage?.totalTokens != null) 'totalTokens': usage!.totalTokens,
+      if (hasDuration) 'durationMs': durationMs,
+    };
   }
 
   Future<void> _appendAssistantErrorMessage({

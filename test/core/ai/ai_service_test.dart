@@ -81,10 +81,22 @@ void main() {
 
       final fakeClient = FakeOpenAiClient(
         replyText: 'hello',
+        replyUsage: const AiTokenUsage(
+          promptTokens: 12,
+          completionTokens: 5,
+          totalTokens: 17,
+        ),
         streamReply: const [
           AiChatStreamChunk(textDelta: 'A'),
           AiChatStreamChunk(reasoningDelta: '思考'),
           AiChatStreamChunk(textDelta: 'B'),
+          AiChatStreamChunk(
+            usage: AiTokenUsage(
+              promptTokens: 21,
+              completionTokens: 8,
+              totalTokens: 29,
+            ),
+          ),
         ],
       );
       final aiService = AiService(
@@ -96,10 +108,20 @@ void main() {
           .chatStream(messages: const [AiMessage.user('请流式返回')])
           .toList();
 
-      expect(chunks.length, 3);
+      expect(chunks.length, 4);
       expect(chunks[0].textDelta, 'A');
       expect(chunks[1].reasoningDelta, '思考');
       expect(chunks[2].textDelta, 'B');
+      expect(chunks[3].usage?.promptTokens, 21);
+      expect(chunks[3].usage?.completionTokens, 8);
+      expect(chunks[3].usage?.totalTokens, 29);
+
+      final chatResult = await aiService.chat(
+        messages: const [AiMessage.user('请返回')],
+      );
+      expect(chatResult.usage?.promptTokens, 12);
+      expect(chatResult.usage?.completionTokens, 5);
+      expect(chatResult.usage?.totalTokens, 17);
     });
   });
 }

@@ -17,10 +17,15 @@ class FakeOpenAiClient extends OpenAiClient {
   FakeOpenAiClient({
     required String replyText,
     String replyReasoning = '',
+    AiTokenUsage? replyUsage,
     this.responseDelay = Duration.zero,
     this.streamReply = const [],
     this.streamChunkDelay = Duration.zero,
-  }) : reply = AiChatResult(text: replyText, reasoning: replyReasoning);
+  }) : reply = AiChatResult(
+         text: replyText,
+         reasoning: replyReasoning,
+         usage: replyUsage,
+       );
 
   @override
   Future<AiChatResult> chatCompletions({
@@ -54,6 +59,7 @@ class FakeOpenAiClient extends OpenAiClient {
         yield AiChatStreamChunk(
           textDelta: reply.text,
           reasoningDelta: reply.reasoning,
+          usage: reply.usage,
         );
       }
       return;

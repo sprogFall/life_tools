@@ -189,6 +189,7 @@ class ChatMessageBubble extends StatelessWidget {
   Widget _buildAiContent(BuildContext context, AppLocalizations l10n) {
     final errorData = _resolveErrorData(message.metadata);
     final isErrorMessage = errorData != null;
+    final usageData = _resolveUsageData(message.metadata);
     final thinking =
         ((message.metadata ??
                     const {})[XiaoMiChatService.assistantThinkingMetadataKey]
@@ -236,6 +237,10 @@ class ChatMessageBubble extends StatelessWidget {
           if (!isErrorMessage && thinking.isNotEmpty) ...[
             const SizedBox(height: IOS26Theme.spacingSm),
             ChatThinkingPanel(thinking: thinking),
+          ],
+          if (!isErrorMessage && usageData != null) ...[
+            const SizedBox(height: IOS26Theme.spacingSm),
+            _MessageUsageFooter(data: usageData),
           ],
         ],
       ),
@@ -304,12 +309,186 @@ class ChatMessageBubble extends StatelessWidget {
     if (reason.isEmpty) return null;
     return _MessageErrorData(reason: reason);
   }
+
+  _MessageUsageData? _resolveUsageData(Map<String, dynamic>? metadata) {
+    final value =
+        (metadata ??
+        const <String, dynamic>{})[XiaoMiChatService.assistantUsageMetadataKey];
+    if (value is! Map) return null;
+    final map = value.cast<Object?, Object?>();
+    final data = _MessageUsageData(
+      promptTokens: _readInt(map['promptTokens']),
+      completionTokens: _readInt(map['completionTokens']),
+      totalTokens: _readInt(map['totalTokens']),
+      durationMs: _readInt(map['durationMs']),
+    );
+    return data.isEmpty ? null : data;
+  }
+
+  int? _readInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
+  }
 }
 
 class _MessageErrorData {
   final String reason;
 
   const _MessageErrorData({required this.reason});
+}
+
+class _MessageUsageData {
+  final int? promptTokens;
+  final int? completionTokens;
+  final int? totalTokens;
+  final int? durationMs;
+
+  const _MessageUsageData({
+    this.promptTokens,
+    this.completionTokens,
+    this.totalTokens,
+    this.durationMs,
+  });
+
+  bool get isEmpty =>
+      promptTokens == null &&
+      completionTokens == null &&
+      totalTokens == null &&
+      durationMs == null;
+}
+
+class _MessageUsageFooter extends StatelessWidget {
+  final _MessageUsageData data;
+
+  const _MessageUsageFooter({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <_UsageMetricData>[
+      if (data.promptTokens != null)
+        _UsageMetricData(
+          icon: CupertinoIcons.arrow_up_circle,
+          label: '上送',
+          value: _formatNumber(data.promptTokens!),
+        ),
+      if (data.completionTokens != null)
+        _UsageMetricData(
+          icon: CupertinoIcons.arrow_down_circle,
+          label: '输出',
+          value: _formatNumber(data.completionTokens!),
+        ),
+      if (data.totalTokens != null)
+        _UsageMetricData(
+          icon: CupertinoIcons.number,
+          label: '总计',
+          value: _formatNumber(data.totalTokens!),
+        ),
+      if (data.durationMs != null)
+        _UsageMetricData(
+          icon: CupertinoIcons.timer,
+          label: '耗时',
+          value: _formatDuration(data.durationMs!),
+        ),
+    ];
+
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: items
+          .map((item) => _UsageMetricChip(item: item))
+          .toList(growable: false),
+    );
+  }
+
+  static String _formatNumber(int value) {
+    final raw = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < raw.length; i += 1) {
+      final remaining = raw.length - i;
+      buffer.write(raw[i]);
+      if (remaining > 1 && remaining % 3 == 1) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
+  }
+
+  static String _formatDuration(int milliseconds) {
+    if (milliseconds < 1000) {
+      return '${milliseconds}ms';
+    }
+    final seconds = milliseconds / 1000;
+    if (seconds < 10) {
+      return '${seconds.toStringAsFixed(1)}s';
+    }
+    final totalSeconds = seconds.round();
+    if (totalSeconds < 60) {
+      return '${totalSeconds}s';
+    }
+    final minutes = totalSeconds ~/ 60;
+    final remainSeconds = totalSeconds % 60;
+    return '${minutes}m ${remainSeconds}s';
+  }
+}
+
+class _UsageMetricData {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _UsageMetricData({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+}
+
+class _UsageMetricChip extends StatelessWidget {
+  final _UsageMetricData item;
+
+  const _UsageMetricChip({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = IOS26Theme.textSecondary;
+    final border = IOS26Theme.textTertiary.withValues(
+      alpha: IOS26Theme.isDarkMode ? 0.34 : 0.24,
+    );
+    final background = IOS26Theme.surfaceVariant.withValues(
+      alpha: IOS26Theme.isDarkMode ? 0.34 : 0.42,
+    );
+    return Container(
+      constraints: const BoxConstraints(minHeight: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(IOS26Theme.radiusSm),
+        border: Border.all(color: border, width: 0.7),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IOS26Icon(item.icon, size: 11, color: foreground),
+          const SizedBox(width: 4),
+          Text(
+            '${item.label} ${item.value}',
+            style: IOS26Theme.bodySmall.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: foreground,
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ErrorReasonPanel extends StatefulWidget {

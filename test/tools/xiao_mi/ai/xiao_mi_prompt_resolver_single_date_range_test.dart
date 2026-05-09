@@ -67,9 +67,7 @@ void main() {
       final resolved = await resolver.resolveSpecialCall(
         callId: 'work_log_range_summary',
         displayText: '从4月1日开始的工作总结',
-        arguments: const <String, Object?>{
-          'start_date': '20260401',
-        },
+        arguments: const <String, Object?>{'start_date': '20260401'},
       );
 
       final metadata = resolved.metadata ?? const <String, dynamic>{};
@@ -111,9 +109,7 @@ void main() {
       final resolved = await resolver.resolveSpecialCall(
         callId: 'work_log_range_summary',
         displayText: '到4月15日为止的工作总结',
-        arguments: const <String, Object?>{
-          'end_date': '20260415',
-        },
+        arguments: const <String, Object?>{'end_date': '20260415'},
       );
 
       final metadata = resolved.metadata ?? const <String, dynamic>{};
@@ -155,9 +151,7 @@ void main() {
       final resolved = await resolver.resolveSpecialCall(
         callId: 'work_log_query',
         displayText: '查询4月1日之后的工作记录',
-        arguments: const <String, Object?>{
-          'start_date': '20260401',
-        },
+        arguments: const <String, Object?>{'start_date': '20260401'},
       );
 
       final metadata = resolved.metadata ?? const <String, dynamic>{};
@@ -199,9 +193,7 @@ void main() {
       final resolved = await resolver.resolveSpecialCall(
         callId: 'work_log_query',
         displayText: '查询4月15日之前的工作记录',
-        arguments: const <String, Object?>{
-          'end_date': '20260415',
-        },
+        arguments: const <String, Object?>{'end_date': '20260415'},
       );
 
       final metadata = resolved.metadata ?? const <String, dynamic>{};

@@ -143,9 +143,9 @@ class TagService extends ChangeNotifier {
   Future<void> deleteTag(int tagId) async {
     await _repository.deleteTag(tagId);
 
-    final nextAll = _all.where((item) => item.tag.id != tagId).toList(
-      growable: false,
-    );
+    final nextAll = _all
+        .where((item) => item.tag.id != tagId)
+        .toList(growable: false);
     final nextTagsByToolId = <String, List<TagInToolCategory>>{};
     var cacheChanged = nextAll.length != _all.length;
 

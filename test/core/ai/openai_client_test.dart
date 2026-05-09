@@ -32,6 +32,11 @@ void main() {
                 'message': {'role': 'assistant', 'content': 'hello'},
               },
             ],
+            'usage': {
+              'prompt_tokens': 12,
+              'completion_tokens': 5,
+              'total_tokens': 17,
+            },
           }),
           200,
           headers: {'Content-Type': 'application/json'},
@@ -53,6 +58,9 @@ void main() {
       );
 
       expect(result.text, 'hello');
+      expect(result.usage?.promptTokens, 12);
+      expect(result.usage?.completionTokens, 5);
+      expect(result.usage?.totalTokens, 17);
     });
 
     test('baseUrl含/v1时不应重复拼接/v1', () async {
@@ -186,6 +194,7 @@ void main() {
         final req = request as http.Request;
         final body = jsonDecode(req.body) as Map<String, dynamic>;
         expect(body['stream'], isTrue);
+        expect(body['stream_options'], {'include_usage': true});
         expect(body['model'], 'gpt-4o-mini');
 
         final sse = [
@@ -193,6 +202,7 @@ void main() {
           'data: {"choices":[{"delta":{"reasoning_content":"数据"}}]}\n\n',
           'data: {"choices":[{"delta":{"content":"结论："}}]}\n\n',
           'data: {"choices":[{"delta":{"content":"完成"}}]}\n\n',
+          'data: {"choices":[],"usage":{"prompt_tokens":21,"completion_tokens":8,"total_tokens":29}}\n\n',
           'data: [DONE]\n\n',
         ].join();
 
@@ -219,11 +229,73 @@ void main() {
           )
           .toList();
 
-      expect(chunks.length, 4);
+      expect(chunks.length, 5);
       expect(chunks[0].reasoningDelta, '先看');
       expect(chunks[1].reasoningDelta, '数据');
       expect(chunks[2].textDelta, '结论：');
       expect(chunks[3].textDelta, '完成');
+      expect(chunks[4].usage?.promptTokens, 21);
+      expect(chunks[4].usage?.completionTokens, 8);
+      expect(chunks[4].usage?.totalTokens, 29);
+    });
+
+    test('chatCompletionsStream 遇到不支持 stream_options 时应降级重试', () async {
+      var callCount = 0;
+      final bodies = <Map<String, dynamic>>[];
+      final streamClient = RecordingHttpClient((request) async {
+        callCount += 1;
+        final req = request as http.Request;
+        final body = jsonDecode(req.body) as Map<String, dynamic>;
+        bodies.add(body);
+
+        if (callCount == 1) {
+          expect(body['stream_options'], {'include_usage': true});
+          return http.StreamedResponse(
+            Stream.value(
+              utf8.encode(
+                jsonEncode({
+                  'error': {'message': 'Unknown parameter: stream_options'},
+                }),
+              ),
+            ),
+            400,
+            headers: {'Content-Type': 'application/json'},
+          );
+        }
+
+        expect(body.containsKey('stream_options'), isFalse);
+        final sse = [
+          'data: {"choices":[{"delta":{"content":"兼容"}}]}\n\n',
+          'data: {"choices":[{"delta":{"content":"完成"}}]}\n\n',
+          'data: [DONE]\n\n',
+        ].join();
+        return http.StreamedResponse(
+          Stream.value(utf8.encode(sse)),
+          200,
+          headers: {'Content-Type': 'text/event-stream'},
+        );
+      });
+
+      final client = OpenAiClient(httpClient: streamClient);
+      const config = AiConfig(
+        baseUrl: 'https://example.com',
+        apiKey: 'test-key',
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        maxOutputTokens: 128,
+      );
+
+      final chunks = await client
+          .chatCompletionsStream(
+            config: config,
+            request: const AiChatRequest(messages: [AiMessage.user('hi')]),
+          )
+          .toList();
+
+      expect(callCount, 2);
+      expect(bodies.length, 2);
+      expect(chunks.map((chunk) => chunk.textDelta).join(), '兼容完成');
+      expect(chunks.any((chunk) => chunk.usage != null), isFalse);
     });
   });
 }

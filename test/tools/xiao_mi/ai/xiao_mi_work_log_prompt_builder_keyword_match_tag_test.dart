@@ -75,7 +75,12 @@ void main() {
         start: DateTime(2026, 4, 1),
         endInclusive: DateTime(2026, 4, 30),
         keyword: '海曙应急局',
-        fields: const <String>['work_date', 'task_title', 'affiliations', 'minutes'],
+        fields: const <String>[
+          'work_date',
+          'task_title',
+          'affiliations',
+          'minutes',
+        ],
       );
 
       expect(prompt, contains('工作记录查询结果'));
@@ -83,7 +88,9 @@ void main() {
       expect(prompt, contains('命中记录数：1'));
       expect(
         prompt,
-        contains('work_date=2026-04-12 | task_title=系统维护 | affiliations=海曙应急管理局 | minutes=120'),
+        contains(
+          'work_date=2026-04-12 | task_title=系统维护 | affiliations=海曙应急管理局 | minutes=120',
+        ),
       );
     });
 
@@ -127,7 +134,12 @@ void main() {
         start: DateTime(2026, 4, 1),
         endInclusive: DateTime(2026, 4, 30),
         keyword: '应急局',
-        fields: const <String>['work_date', 'task_title', 'affiliations', 'minutes'],
+        fields: const <String>[
+          'work_date',
+          'task_title',
+          'affiliations',
+          'minutes',
+        ],
       );
 
       expect(prompt, contains('工作记录查询结果'));
@@ -135,7 +147,9 @@ void main() {
       expect(prompt, contains('命中记录数：1'));
       expect(
         prompt,
-        contains('work_date=2026-04-12 | task_title=系统维护 | affiliations=海曙应急管理局 | minutes=120'),
+        contains(
+          'work_date=2026-04-12 | task_title=系统维护 | affiliations=海曙应急管理局 | minutes=120',
+        ),
       );
     });
 
@@ -179,7 +193,12 @@ void main() {
         start: DateTime(2026, 4, 1),
         endInclusive: DateTime(2026, 4, 30),
         keyword: '海曙应急局',
-        fields: const <String>['work_date', 'task_title', 'affiliations', 'minutes'],
+        fields: const <String>[
+          'work_date',
+          'task_title',
+          'affiliations',
+          'minutes',
+        ],
       );
 
       expect(prompt, contains('工作记录查询结果'));

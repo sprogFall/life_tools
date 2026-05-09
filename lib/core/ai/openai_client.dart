@@ -83,33 +83,79 @@ class OpenAiClient {
     Duration timeout = const Duration(seconds: 60),
   }) async* {
     final uri = _buildChatCompletionsUri(config.baseUrl);
-    final body = _buildChatRequestBody(
+    var response = await _sendChatCompletionsStreamRequest(
+      uri: uri,
       config: config,
-      request: request,
-      stream: true,
+      body: _buildChatRequestBody(
+        config: config,
+        request: request,
+        stream: true,
+      ),
+      timeout: timeout,
     );
 
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final error = await _buildStreamError(response);
+      if (!_shouldRetryStreamWithoutUsage(error)) {
+        throw error;
+      }
+      response = await _sendChatCompletionsStreamRequest(
+        uri: uri,
+        config: config,
+        body: _buildChatRequestBody(
+          config: config,
+          request: request,
+          stream: true,
+          includeStreamUsage: false,
+        ),
+        timeout: timeout,
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw await _buildStreamError(response);
+      }
+    }
+
+    yield* _readChatCompletionsStreamResponse(response);
+  }
+
+  Future<http.StreamedResponse> _sendChatCompletionsStreamRequest({
+    required Uri uri,
+    required AiConfig config,
+    required Map<String, dynamic> body,
+    required Duration timeout,
+  }) {
     final httpRequest = http.Request('POST', uri)
       ..headers.addAll({
         'Authorization': 'Bearer ${config.apiKey}',
         'Content-Type': 'application/json',
       })
       ..body = jsonEncode(body);
+    return _httpClient.send(httpRequest).timeout(timeout);
+  }
 
-    final response = await _httpClient.send(httpRequest).timeout(timeout);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final responseBodyBytes = await response.stream.toBytes();
-      final responseBody = _decodeUtf8Bytes(responseBodyBytes);
-      throw AiApiException(
-        statusCode: response.statusCode,
-        message: _extractErrorMessageFromBody(
-          responseBody,
-          response.statusCode,
-        ),
-        responseBody: responseBody,
-      );
-    }
+  Future<AiApiException> _buildStreamError(
+    http.StreamedResponse response,
+  ) async {
+    final responseBodyBytes = await response.stream.toBytes();
+    final responseBody = _decodeUtf8Bytes(responseBodyBytes);
+    return AiApiException(
+      statusCode: response.statusCode,
+      message: _extractErrorMessageFromBody(responseBody, response.statusCode),
+      responseBody: responseBody,
+    );
+  }
 
+  bool _shouldRetryStreamWithoutUsage(AiApiException error) {
+    final detail = '${error.message}\n${error.responseBody ?? ''}'
+        .toLowerCase();
+    return detail.contains('stream_options') ||
+        detail.contains('include_usage') ||
+        detail.contains('include usage');
+  }
+
+  Stream<AiChatStreamChunk> _readChatCompletionsStreamResponse(
+    http.StreamedResponse response,
+  ) async* {
     final contentType = (response.headers['content-type'] ?? '').toLowerCase();
     if (contentType.contains('application/json')) {
       final responseBodyBytes = await response.stream.toBytes();
@@ -119,6 +165,7 @@ class OpenAiClient {
       yield AiChatStreamChunk(
         textDelta: result.text,
         reasoningDelta: result.reasoning,
+        usage: result.usage,
       );
       return;
     }
@@ -175,6 +222,7 @@ class OpenAiClient {
     required AiConfig config,
     required AiChatRequest request,
     required bool stream,
+    bool includeStreamUsage = true,
   }) {
     final body = <String, dynamic>{
       'model': config.model,
@@ -189,6 +237,9 @@ class OpenAiClient {
 
     if (stream) {
       body['stream'] = true;
+      if (includeStreamUsage) {
+        body['stream_options'] = {'include_usage': true};
+      }
     }
 
     return body;
@@ -206,7 +257,11 @@ class OpenAiClient {
         message: '响应中未找到 choices[0].message.content',
       );
     }
-    return AiChatResult(text: content, reasoning: reasoning);
+    return AiChatResult(
+      text: content,
+      reasoning: reasoning,
+      usage: _parseTokenUsage(json['usage']),
+    );
   }
 
   _SseParseResult _parseSsePayload(List<String> dataLines) {
@@ -237,6 +292,10 @@ class OpenAiClient {
     final first = (choices?.firstOrNull as Map<String, dynamic>?);
     final delta = first?['delta'] as Map<String, dynamic>?;
     if (delta == null) {
+      final usage = _parseTokenUsage(json['usage']);
+      if (usage != null) {
+        return _SseParseResult(chunk: AiChatStreamChunk(usage: usage));
+      }
       return const _SseParseResult();
     }
 
@@ -246,8 +305,41 @@ class OpenAiClient {
       chunk: AiChatStreamChunk(
         textDelta: textDelta,
         reasoningDelta: reasoningDelta,
+        usage: _parseTokenUsage(json['usage']),
       ),
     );
+  }
+
+  AiTokenUsage? _parseTokenUsage(Object? raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final map = raw.cast<Object?, Object?>();
+    final usage = AiTokenUsage(
+      promptTokens: _readInt(map, const ['prompt_tokens', 'input_tokens']),
+      completionTokens: _readInt(map, const [
+        'completion_tokens',
+        'output_tokens',
+      ]),
+      totalTokens: _readInt(map, const ['total_tokens']),
+    );
+    return usage.isEmpty ? null : usage;
+  }
+
+  int? _readInt(Map<Object?, Object?> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is int) {
+        return value;
+      }
+      if (value is num) {
+        return value.toInt();
+      }
+      if (value is String) {
+        return int.tryParse(value.trim());
+      }
+    }
+    return null;
   }
 
   String _extractReasoningFromMessage(Map<String, dynamic>? message) {

@@ -167,6 +167,107 @@ void main() {
       expect(find.text('思考过程'), findsOneWidget);
     });
 
+    testWidgets('AI消息尾部显示 token 与耗时信息', (tester) async {
+      final message = XiaoMiMessage(
+        id: 7,
+        conversationId: 1,
+        role: XiaoMiMessageRole.assistant,
+        content: 'Response',
+        metadata: {
+          'aiUsage': {
+            'promptTokens': 1234,
+            'completionTokens': 56,
+            'totalTokens': 1290,
+            'durationMs': 1234,
+          },
+        },
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+            onExport: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('上送 1,234'), findsOneWidget);
+      expect(find.text('输出 56'), findsOneWidget);
+      expect(find.text('总计 1,290'), findsOneWidget);
+      expect(find.text('耗时 1.2s'), findsOneWidget);
+    });
+
+    testWidgets('AI消息耗时接近分钟边界时按四舍五入总秒数展示', (tester) async {
+      final message = XiaoMiMessage(
+        id: 9,
+        conversationId: 1,
+        role: XiaoMiMessageRole.assistant,
+        content: 'Response',
+        metadata: {
+          'aiUsage': {'durationMs': 119600},
+        },
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+            onExport: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('耗时 2m 0s'), findsOneWidget);
+    });
+
+    testWidgets('用户消息不显示 AI token 信息', (tester) async {
+      final message = XiaoMiMessage(
+        id: 8,
+        conversationId: 1,
+        role: XiaoMiMessageRole.user,
+        content: '用户消息',
+        metadata: {
+          'aiUsage': {
+            'promptTokens': 10,
+            'completionTokens': 20,
+            'durationMs': 300,
+          },
+        },
+        createdAt: testDate,
+      );
+
+      await tester.pumpWidget(
+        wrapWidget(
+          ChatMessageBubble(
+            message: message,
+            selectionMode: false,
+            selected: false,
+            onTap: () {},
+            onLongPress: () {},
+            onCopy: () {},
+            onExport: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('上送 10'), findsNothing);
+      expect(find.text('输出 20'), findsNothing);
+      expect(find.text('耗时 300ms'), findsNothing);
+    });
+
     testWidgets('非选择模式下用户消息也应展示复制按钮并可触发回调', (tester) async {
       var copied = false;
       final message = XiaoMiMessage(
