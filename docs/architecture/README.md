@@ -1,6 +1,6 @@
 # life_tools 架构文档
 
-更新时间：2026-03-11
+更新时间：2026-05-31
 
 这组文档用于说明当前仓库的真实架构边界，而不是抽象设计稿。范围覆盖：
 
@@ -25,6 +25,7 @@
 | [APP_ARCHITECTURE.md](APP_ARCHITECTURE.md) | 系统级架构总览，说明模块边界、依赖方向、启动流程和关键数据流 | 想快速理解项目整体结构时 |
 | [PUBLIC_INTERFACES.md](PUBLIC_INTERFACES.md) | 汇总 Flutter 公共服务、同步接口、Dashboard API 与关键调用链 | 想接入功能、改接口或排查调用链时 |
 | [adr/README.md](adr/README.md) | 架构决策记录目录 | 想看历史约束和兼容策略时 |
+| [../version-record.md](../version-record.md) | 项目日历与版本记录 | 想确认功能加入时间和阶段性演进时 |
 | `exports/svg/app_architecture.svg` | 主架构图 | 想先看结构图再读代码时 |
 | `exports/svg/public_interfaces.svg` | 公共接口图 | 想快速定位服务之间的关系时 |
 | `exports/svg/state_data_flow.svg` | 状态与数据流图 | 想理解 Provider、Repository 和存储流向时 |
@@ -50,6 +51,8 @@
 - `AppConfigSyncProvider` 已纳入统一同步快照
 - `backend/sync_server` 同时承担同步后端和 Dashboard API
 - `dashboard/` 为 Next.js 静态管理面板，不是 Flutter 内嵌管理页
+- Dashboard 已覆盖用户资料、工具快照、应用配置、同步记录、工作记录工时树/画布/柱状图
+- 小蜜 AI 已具备工作总结、任务查询、工时查询、胡闹厨房本地查询和调用用量/耗时展示
 
 ## 一键导出图
 

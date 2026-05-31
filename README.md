@@ -17,6 +17,7 @@
   <a href="#module-overview">模块总览</a> ·
   <a href="#architecture-preview">架构预览</a> ·
   <a href="#feature-matrix">功能矩阵</a> ·
+  <a href="#project-calendar">项目日历</a> ·
   <a href="#quick-start">快速开始</a> ·
   <a href="#development-workflow">开发流程</a> ·
   <a href="#documents">相关文档</a>
@@ -32,6 +33,14 @@
 - Flutter 主应用：日常工具与核心能力的实现主体
 - `backend/sync_server`：基于 FastAPI 的可选自建同步后端
 - `dashboard/`：基于 Next.js 的静态管理面板
+
+当前代码状态（截至 2026-05-31）：
+
+- 客户端版本：`1.0.0+2`
+- 已注册工具：工作记录、囤货助手、胡闹厨房、小蜜、标签管理
+- 同步主路径：仅保留 `POST /sync/v2`
+- 同步快照范围：4 个业务/公共工具 + `app_config`
+- 管理面板范围：用户、快照、工具数据、应用配置、同步记录、工作记录工时视图
 
 <a id="module-overview"></a>
 ## 模块总览
@@ -114,11 +123,11 @@
 | 囤货助手 `Stockpile Assistant` | 管理库存、消耗与到期提醒 | 物品管理、消耗记录、临期提醒、AI 批量录入、标签筛选 |
 | 胡闹厨房 `Overcooked Kitchen` | 面向食谱和做饭节奏的轻量工具 | 食谱、愿望单、抽卡选餐、餐食计划、提醒与统计 |
 | 标签管理 `Tag Manager` | 全局标签能力，供多工具复用 | 分类、重命名、排序、删除、跨工具关联 |
-| 小蜜 `Xiao Mi` | 基于预置提示词和预选路由的 AI 对话工具 | 对话、提示词解析、消息导出、与工作记录联动、工时查询 |
+| 小蜜 `Xiao Mi` | 基于预置提示词和预选路由的 AI 对话工具 | 流式对话、思考过程查看、消息导出、历史会话批量删除、工作总结、任务查询、工时查询、胡闹厨房本地查询 |
 
 ## 跨工具基础能力
 
-- AI 能力：兼容 OpenAI 风格接口，支持配置 Base URL、模型与 Key
+- AI 能力：兼容 OpenAI 风格接口，支持配置 Base URL、模型与 Key，并记录最近调用用量与耗时
 - 数据同步：客户端优先使用 `POST /sync/v2`，支持公网和局域网 WiFi 场景
 - 备份恢复：支持 JSON / TXT 导出，支持分享接收导入
 - 对象存储：支持本地对象存储，也可接入七牛云或数据胶囊
@@ -127,6 +136,7 @@
 - 语音输入：支持语音转文字与录音，供工作记录等场景使用
 - 国际化：内置中英文完整支持
 - 统一主题：项目内置 iOS 26 风格主题与一套自定义基础组件
+- Dashboard：可静态部署，用于查看用户快照、编辑工具数据、回退同步快照和分析工作记录工时
 
 ## 系统结构
 
@@ -174,6 +184,25 @@ life_tools
 
 - Sync Server：Python + FastAPI + SQLite
 - Dashboard：Next.js 15 + React 19 + TypeScript + Tailwind CSS + Vitest
+
+<a id="project-calendar"></a>
+## 项目日历
+
+完整日历见 [docs/version-record.md](docs/version-record.md)。下表只列当前功能形态的关键节点，日期来自 git 提交历史。
+
+| 日期 | 新增或完成的主要能力 |
+| --- | --- |
+| 2026-01-10 | Flutter 基础工程、iOS 26 风格主题、工作记录核心功能 |
+| 2026-01-11 ~ 2026-01-15 | OpenAI 兼容 AI 配置、同步与备份雏形、中文本地化、TXT 导入导出、标签系统、任务筛选与分页 |
+| 2026-01-16 ~ 2026-01-22 | 囤货助手、消息中心、本地通知、临期/补货提醒、对象存储、本地/七牛、工具标签分类、胡闹厨房 |
+| 2026-01-23 ~ 2026-01-29 | 胡闹厨房图片缓存与查看、菜谱评分、数据胶囊对象存储、通用标签选择器、首页工具排序与工具管理 |
+| 2026-02-03 ~ 2026-02-05 | FastAPI 同步后端、同步记录/差异/回退、`app_config` 同步、启动自动同步、用户不匹配保护 |
+| 2026-02-07 ~ 2026-02-12 | 工作记录 AI 总结、胡闹厨房 AI 菜谱、全局暗黑模式、AI 调用历史及其同步/备份 |
+| 2026-02-13 ~ 2026-02-25 | 三段式提交流程、关于页构建信息、全部消息页滑动操作、客户端性能优化 |
+| 2026-03-02 ~ 2026-03-06 | 小蜜 AI 聊天、流式输出、预选路由、special_call、消息导出、胡闹厨房本地数据注入、Next.js Dashboard 初版 |
+| 2026-03-08 ~ 2026-03-18 | Dashboard 工作记录工时树/画布、快照编辑、静态部署、版本信息、同步回流兼容 |
+| 2026-04-12 ~ 2026-04-22 | Dashboard 工时画布筛选与悬浮详情、小蜜任务/工时查询增强、同步统一收口 v2、工时柱状图 |
+| 2026-05-06 ~ 2026-05-09 | 新装应用同步 AI 配置修复、小蜜 AI 用量与耗时展示 |
 
 <a id="quick-start"></a>
 ## 快速开始
@@ -309,6 +338,7 @@ LD_LIBRARY_PATH=/tmp flutter test
 - [公共接口与调用链](docs/architecture/PUBLIC_INTERFACES.md)
 - [同步协议 v2](docs/sync_protocol_v2.md)
 - [小蜜预选路由特殊调用](docs/xiao_mi_pre_route_special_calls.md)
+- [项目日历与版本记录](docs/version-record.md)
 - [架构文档入口](docs/architecture/README.md)
 - [Android 签名说明](docs/android_release_signing.md)
 - [性能优化记录](docs/client_performance_optimization_summary_2026-02-25.md)

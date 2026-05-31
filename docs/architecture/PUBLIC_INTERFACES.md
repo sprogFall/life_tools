@@ -1,6 +1,6 @@
 # life_tools 公共接口与调用链
 
-更新时间：2026-04-21
+更新时间：2026-05-31
 
 这里的“公共接口”指会被多个页面、多个工具、或多个子系统复用的入口，不展开列出单个页面内部的私有方法。
 
@@ -187,6 +187,8 @@
 - `server_revision`
 - `tools_data`
 
+请求也支持 `force_decision`，当前仅接受 `use_server` / `use_client`，用于客户端在用户确认覆盖方向后重试同步。
+
 ### 4.3 同步审计与回退接口
 
 - `GET /sync/records`
@@ -220,6 +222,8 @@ Dashboard 相关接口同样在 `backend/sync_server/sync_server/main.py`。
 - 整体替换某个用户的快照
 - 单独查看和修改某个工具的快照
 
+Dashboard 写入快照时会生成 `decision=dashboard_update` 的同步记录；后端会在写入前执行 `apply_dashboard_work_log_rules`，用于保持工作记录工时归属等派生关系与客户端导入逻辑兼容。
+
 ## 6. Dashboard 前端接口使用面
 
 Dashboard 工程位置：`dashboard/**`
@@ -230,6 +234,16 @@ Dashboard 工程位置：`dashboard/**`
 - `/sync/*`
 
 因此从系统边界上看，Dashboard 不是单独的后端服务，而是复用同步后端提供的数据接口。
+
+Dashboard 当前内置结构化编辑配置：
+
+- `work_log`
+- `stockpile_assistant`
+- `overcooked_kitchen`
+- `tag_manager`
+- `app_config`
+
+其中 `app_config` 覆盖 AI 配置、同步配置、对象存储配置、对象存储密钥、AI 调用历史和全局设置。敏感字段在前端按配置做掩码展示。
 
 ## 7. 关键调用链
 
