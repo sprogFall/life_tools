@@ -10,10 +10,15 @@ fail() {
   exit 1
 }
 
+assert_file_exists() {
+  local file="$1"
+  [[ -f "$file" ]] || fail "期望文件存在: ${file}"
+}
+
 assert_contains() {
   local file="$1"
   local expected="$2"
-  if ! grep -Fq "$expected" "$file"; then
+  if ! grep -Fq -- "$expected" "$file"; then
     echo "[post-push-test] file content:" >&2
     cat "$file" >&2 || true
     fail "期望包含: ${expected}"
@@ -23,7 +28,7 @@ assert_contains() {
 assert_not_contains() {
   local file="$1"
   local unexpected="$2"
-  if grep -Fq "$unexpected" "$file"; then
+  if grep -Fq -- "$unexpected" "$file"; then
     echo "[post-push-test] file content:" >&2
     cat "$file" >&2 || true
     fail "不应包含: ${unexpected}"
@@ -224,6 +229,63 @@ YAML
   assert_not_contains "$output" "跳过监控"
 }
 
+test_record_failure_when_max_polls_reached() {
+  local tmp_repo output sha remote_repo
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  local fake_tools_dir
+  fake_tools_dir="$(mktemp -d)"
+  cat > "${fake_tools_dir}/sleep" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  cat > "${fake_tools_dir}/curl" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+echo '{"workflow_runs":[]}'
+SH
+  cat > "${fake_tools_dir}/jq" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "-c" ]]; then
+  exit 0
+fi
+exit 0
+SH
+  chmod +x "${fake_tools_dir}/sleep" "${fake_tools_dir}/curl" "${fake_tools_dir}/jq"
+
+  (
+    cd "$tmp_repo"
+    git remote add origin "https://github.com/example/demo.git"
+  )
+
+  sha="$(create_commit "$tmp_repo" "fix: update flutter" bash -lc '
+    echo "String app() => \"v4\";" > lib/main.dart
+  ')"
+
+  output="${tmp_repo}/post_push_failure_record.log"
+  set +e
+  (
+    PATH="$fake_tools_dir:$PATH"
+    run_post_push "$tmp_repo" "$output" --sha "$sha" --force-monitor --max-polls 1
+  )
+  local code=$?
+  set -e
+
+  if [[ "$code" -eq 0 ]]; then
+    fail "达到最大轮询次数时 post-push 应返回非 0"
+  fi
+
+  local record_file
+  record_file="$(find "${tmp_repo}/failure-records/flutter" -type f -name '*.md' | head -n 1)"
+  assert_file_exists "$record_file"
+  assert_contains "$record_file" "阶段: post-push"
+  assert_contains "$record_file" "模块: flutter"
+  assert_contains "$record_file" "达到最大轮询次数"
+  assert_contains "$record_file" "- lib/main.dart"
+}
+
 main() {
   test_skip_monitor_for_backend_and_dashboard_changes
   test_force_monitor_overrides_backend_and_dashboard_skip
@@ -232,6 +294,7 @@ main() {
   test_monitor_for_flutter_changes
   test_monitor_for_android_changes
   test_monitor_for_workflow_changes
+  test_record_failure_when_max_polls_reached
   echo "[post-push-test] all passed"
 }
 

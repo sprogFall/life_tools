@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 代码规范：`examples/code_standards.md`
 - UI 规范：`examples/ui.md`
 - AI/对象存储/标签/消息：`examples/ai.md`、`examples/objStore.md`、`examples/tags.md`、`examples/message.md`
+- 失败记录：`failure-records/<module>/`
 
 ## 提交与发布流程（三段式）
 按顺序执行以下脚本：
@@ -29,7 +30,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 3. `bash scripts/post-push.sh`
 - 轮询 GitHub Action 状态并输出 run URL/最终结论。
+- 默认会对仅 `backend` / `dashboard` / `docs` 改动，或 `doc:` / `docs:` 前缀提交跳过轮询；若当前提交不命中目标 workflow 的 `branches/paths` 触发条件，也会自动跳过。
 - 常用参数：`--force-monitor`、`--max-polls`。
+
+4. 失败记录与归纳
+- 当 `pre-push` / `exec-push` / `post-push` 检测到报错或构建失败时，脚本会自动在 `failure-records/<module>/` 生成记录。
+- 记录默认包含：精简错误信息、解决方案、预防方案、原始日志摘要与关联改动文件。
+- AI 开发前应优先查看当前模块及相关模块的 failure records，按模块借鉴已有修复和预防方案。
+- 修复后要补全记录中的归纳内容，保持后续开发可直接复用。
 
 ## 兼容补充规则（对齐原版）
 1. 校验分流与原版一致：
@@ -37,11 +45,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 仅后端改动时，不跑 Flutter 校验，只跑后端测试。
 - 仅文档改动时，可不执行 Flutter/后端测试。
 2. 提交信息以 `doc:` / `docs:` 开头时，远端构建默认跳过（除非显式强制监控）。
-3. `post-push.sh` 默认会对"仅 backend/docs 或 doc 前缀提交"跳过轮询；需要时用 `--force-monitor` 覆盖。
+3. `post-push.sh` 默认会对“仅 backend/dashboard/docs 改动、doc 前缀提交、或不命中目标 workflow 的 branches/paths 条件”跳过轮询；需要时用 `--force-monitor` 覆盖。
 4. Linux 下若 `flutter test` 报 `libsqlite3.so` 缺失，可先执行：
 - `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
 - `LD_LIBRARY_PATH=/tmp flutter test`
 5. 任务若明确要求"排除国际化内容"，不主动改动 i18n 文案语义与键值。
+6. 若本次开发或排错产生了新的失败记录，应同步补充对应模块的 `failure-records/<module>/` 文档归纳。
 
 ## Git 提交规范
 1. 推荐格式：`type(scope): 简要说明`

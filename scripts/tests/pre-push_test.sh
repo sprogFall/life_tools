@@ -10,6 +10,11 @@ fail() {
   exit 1
 }
 
+assert_file_exists() {
+  local file="$1"
+  [[ -f "$file" ]] || fail "期望文件存在: ${file}"
+}
+
 assert_contains() {
   local file="$1"
   local expected="$2"
@@ -121,6 +126,28 @@ set -euo pipefail
 
 log_file="${FAKE_NPM_LOG:?}"
 echo "$*" >> "$log_file"
+EOT
+  chmod +x "$file"
+}
+
+create_failing_flutter() {
+  local file="$1"
+  cat > "$file" <<'EOT'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "--version" && "${2:-}" == "--machine" ]]; then
+  echo '{"frameworkVersion":"3.38.6"}'
+  exit 0
+fi
+
+if [[ "${1:-}" == "--version" ]]; then
+  echo 'Flutter 3.38.6'
+  exit 0
+fi
+
+echo "fake flutter failure: $*" >&2
+exit 42
 EOT
   chmod +x "$file"
 }
@@ -242,7 +269,7 @@ test_pub_get_hash_short_circuit() {
   assert_empty_file "$second_log"
 }
 
-test_run_pre_push_self_test_when_script_changed() {
+test_run_release_script_self_tests_when_scripts_changed() {
   local tmp_repo
   tmp_repo="$(mktemp -d)"
   setup_repo "$tmp_repo"
@@ -256,15 +283,35 @@ test_run_pre_push_self_test_when_script_changed() {
   cat > "${tmp_repo}/scripts/pre-push.sh" <<'EOT'
 # changed
 EOT
+  cat > "${tmp_repo}/scripts/exec-push.sh" <<'EOT'
+# changed
+EOT
+  cat > "${tmp_repo}/scripts/post-push.sh" <<'EOT'
+# changed
+EOT
   cat > "${tmp_repo}/scripts/tests/pre-push_test.sh" <<'EOT'
 #!/usr/bin/env bash
 set -euo pipefail
-echo "self-test-ran" >> self_test.log
+echo "pre-push-self-test-ran" >> self_test.log
+EOT
+  cat > "${tmp_repo}/scripts/tests/exec-push_test.sh" <<'EOT'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "exec-push-self-test-ran" >> self_test.log
+EOT
+  cat > "${tmp_repo}/scripts/tests/post-push_test.sh" <<'EOT'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "post-push-self-test-ran" >> self_test.log
 EOT
   chmod +x "${tmp_repo}/scripts/tests/pre-push_test.sh"
+  chmod +x "${tmp_repo}/scripts/tests/exec-push_test.sh"
+  chmod +x "${tmp_repo}/scripts/tests/post-push_test.sh"
 
   run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-analyze --skip-test
-  assert_contains "${tmp_repo}/self_test.log" "self-test-ran"
+  assert_contains "${tmp_repo}/self_test.log" "pre-push-self-test-ran"
+  assert_contains "${tmp_repo}/self_test.log" "exec-push-self-test-ran"
+  assert_contains "${tmp_repo}/self_test.log" "post-push-self-test-ran"
 }
 
 test_fail_when_pre_push_self_test_failed() {
@@ -298,13 +345,44 @@ EOT
   fi
 }
 
+test_record_failure_when_flutter_check_failed() {
+  local tmp_repo
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  local fake_flutter="${tmp_repo}/failing_flutter.sh"
+  local log_file="${tmp_repo}/flutter.log"
+  create_failing_flutter "$fake_flutter"
+  : > "$log_file"
+
+  echo "String demo() => 'v2';" > "${tmp_repo}/lib/foo/bar.dart"
+
+  set +e
+  run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-test
+  local code=$?
+  set -e
+
+  if [[ "$code" -eq 0 ]]; then
+    fail "flutter analyze 失败时 pre-push 应返回非 0"
+  fi
+
+  local record_file
+  record_file="$(find "${tmp_repo}/failure-records/flutter" -type f -name '*.md' | head -n 1)"
+  assert_file_exists "$record_file"
+  assert_contains "$record_file" "阶段: pre-push"
+  assert_contains "$record_file" "模块: flutter"
+  assert_contains "$record_file" "fake flutter failure: analyze"
+  assert_contains "$record_file" "- lib/foo/bar.dart"
+}
+
 main() {
   test_changed_priority_with_guaranteed_coverage
   test_dashboard_only_change_runs_dashboard_checks_in_auto_scope
   test_fallback_full_test_for_unmappable_flutter_change
   test_pub_get_hash_short_circuit
-  test_run_pre_push_self_test_when_script_changed
+  test_run_release_script_self_tests_when_scripts_changed
   test_fail_when_pre_push_self_test_failed
+  test_record_failure_when_flutter_check_failed
   echo "[pre-push-test] all passed"
 }
 

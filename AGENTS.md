@@ -14,6 +14,7 @@
 - AI/对象存储/标签/消息：`examples/ai.md`、`examples/objStore.md`、`examples/tags.md`、`examples/message.md`
 - 小蜜 AI（预置提示词/特殊调用/预选路由/调用方式）：`examples/xiaomi_ai.md`
 - 小蜜 AI 对外能力说明（触发提示词 / special_call / 参数协议）：`docs/xiao_mi_pre_route_special_calls.md`
+- 失败记录：`failure-records/<module>/`
 
 ## 提交与发布流程（三段式）
 按顺序执行以下脚本：
@@ -32,6 +33,12 @@
 - 默认会对仅 `backend` / `dashboard` / `docs` 改动，或 `doc:` / `docs:` 前缀提交跳过轮询；若当前提交不命中目标 workflow 的 `branches/paths` 触发条件，也会自动跳过。
 - 常用参数：`--force-monitor`、`--max-polls`。
 
+4. 失败记录与归纳
+- 当 `pre-push` / `exec-push` / `post-push` 检测到报错或构建失败时，脚本会自动在 `failure-records/<module>/` 生成记录。
+- 记录默认包含：精简错误信息、解决方案、预防方案、原始日志摘要与关联改动文件。
+- AI 开发前应优先查看当前模块及相关模块的 failure records，按模块借鉴已有修复和预防方案。
+- 修复后要补全记录中的归纳内容，保持后续开发可直接复用。
+
 ## 兼容补充规则（对齐原版）
 1. 校验分流与原版一致：
 - 涉及 Flutter 侧改动时，必须通过 `flutter analyze` 与 `flutter test`（由 `pre-push.sh` 执行）。
@@ -44,6 +51,7 @@
 - `LD_LIBRARY_PATH=/tmp flutter test`
 5. 任务若明确要求“排除国际化内容”，不主动改动 i18n 文案语义与键值。
 6. 若对小蜜 AI 的提示词、预选路由协议、special_call 参数或触发文案做了优化修改，要酌情同步更新 `docs/xiao_mi_pre_route_special_calls.md`。
+7. 若本次开发或排错产生了新的失败记录，应同步补充对应模块的 `failure-records/<module>/` 文档归纳。
 
 ## Git 提交规范
 1. 推荐格式：`type(scope): 简要说明`

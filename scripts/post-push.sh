@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FAILURE_RECORD_SCRIPT="${SCRIPT_DIR}/failure-record.sh"
+
 DOC_PREFIX_REGEX='^docs?($|[:( ].*)'
 
 SHA=""
@@ -17,6 +20,7 @@ JSON_MODE=""
 PYTHON_CMD=()
 SKIP_REASON=""
 CHANGED_FILES=()
+REPO_ROOT=""
 
 log() {
   echo "[post-push] $*"
@@ -25,6 +29,111 @@ log() {
 die() {
   echo "[post-push] ERROR: $*" >&2
   exit 1
+}
+
+record_failure() {
+  local module="$1"
+  local exit_code="$2"
+  local command_text="$3"
+  local log_file="$4"
+
+  [[ -x "$FAILURE_RECORD_SCRIPT" ]] || return 0
+
+  local -a args=(
+    --repo-root "$REPO_ROOT"
+    --stage "post-push"
+    --module "$module"
+    --exit-code "$exit_code"
+    --command "$command_text"
+    --log-file "$log_file"
+  )
+
+  local changed
+  for changed in "${CHANGED_FILES[@]}"; do
+    args+=(--changed-file "$changed")
+  done
+
+  local output record_file
+  if output="$(bash "$FAILURE_RECORD_SCRIPT" "${args[@]}" 2>/dev/null)"; then
+    record_file="$(echo "$output" | sed -n 's/^record_file=//p')"
+    if [[ -n "$record_file" ]]; then
+      log "已记录失败: $record_file"
+    fi
+  else
+    log "失败记录写入失败，请检查 scripts/failure-record.sh"
+  fi
+}
+
+is_failure_record_flutter_file() {
+  local file="$1"
+  case "$file" in
+    lib/*|test/*|android/*|ios/*|macos/*|windows/*|linux/*|web/*|assets/*|pubspec.yaml|pubspec.lock|analysis_options.yaml|l10n.yaml)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+infer_failure_module() {
+  local has_backend="false"
+  local has_dashboard="false"
+  local has_flutter="false"
+  local has_docs="false"
+  local has_other="false"
+  local file
+
+  for file in "${CHANGED_FILES[@]}"; do
+    case "$file" in
+      backend/*)
+        has_backend="true"
+        ;;
+      dashboard/*)
+        has_dashboard="true"
+        ;;
+      docs/*|examples/*|*.md)
+        has_docs="true"
+        ;;
+      *)
+        if is_failure_record_flutter_file "$file"; then
+          has_flutter="true"
+        else
+          has_other="true"
+        fi
+        ;;
+    esac
+  done
+
+  if [[ "$has_flutter" == "true" && "$has_backend" != "true" && "$has_dashboard" != "true" && "$has_other" != "true" ]]; then
+    echo "flutter"
+    return
+  fi
+  if [[ "$has_backend" == "true" && "$has_flutter" != "true" && "$has_dashboard" != "true" && "$has_other" != "true" ]]; then
+    echo "backend"
+    return
+  fi
+  if [[ "$has_dashboard" == "true" && "$has_flutter" != "true" && "$has_backend" != "true" && "$has_other" != "true" ]]; then
+    echo "dashboard"
+    return
+  fi
+  if [[ "$has_docs" == "true" && "$has_flutter" != "true" && "$has_backend" != "true" && "$has_dashboard" != "true" && "$has_other" != "true" ]]; then
+    echo "docs"
+    return
+  fi
+
+  echo "repo"
+}
+
+record_post_push_failure_text() {
+  local exit_code="$1"
+  local command_text="$2"
+  local message="$3"
+  local log_file
+  log_file="$(mktemp)"
+  printf '%s\n' "$message" > "$log_file"
+  record_failure "$(infer_failure_module)" "$exit_code" "$command_text" "$log_file"
+  rm -f "$log_file"
 }
 
 need_cmd() {
@@ -644,7 +753,10 @@ run_monitor_loop() {
 
   remote_url="$(git remote get-url "$REMOTE_NAME")"
   repo_path="$(extract_repo_from_remote "$remote_url")"
-  [[ -n "$repo_path" ]] || die "无法从 remote 解析仓库: $remote_url"
+  if [[ -z "$repo_path" ]]; then
+    record_post_push_failure_text "remote_parse_failed" "post-push monitor" "无法从 remote 解析仓库: ${remote_url}"
+    die "无法从 remote 解析仓库: $remote_url"
+  fi
 
   owner="${repo_path%%/*}"
   repo="${repo_path##*/}"
@@ -670,6 +782,14 @@ run_monitor_loop() {
     attempt=$((attempt + 1))
 
     if (( max_polls_value > 0 && attempt > max_polls_value )); then
+      record_post_push_failure_text "max_polls_exceeded" "post-push monitor" "$(cat <<EOF
+达到最大轮询次数 MAX_POLLS=${max_polls_value}
+attempt=${attempt}
+max_polls=${max_polls_value}
+sha=${SHA}
+workflow=${WORKFLOW_NAME}
+EOF
+)"
       die "达到最大轮询次数 MAX_POLLS=${max_polls_value}"
     fi
 
@@ -706,10 +826,45 @@ run_monitor_loop() {
     jobs_api="https://api.github.com/repos/${owner}/${repo}/actions/runs/${run_id}/jobs"
     if jobs_json="$(gh_api "$jobs_api")"; then
       log "done: ${conclusion}"
-      print_failed_steps "$jobs_json"
-      print_failure_logs "$owner" "$repo" "$jobs_json" "$LOG_TAIL_LINES"
+      local failure_details failed_steps_text failure_logs_text
+      failed_steps_text="$(print_failed_steps "$jobs_json")"
+      failure_logs_text="$(print_failure_logs "$owner" "$repo" "$jobs_json" "$LOG_TAIL_LINES")"
+
+      if [[ -n "$failed_steps_text" ]]; then
+        log "失败步骤:"
+        printf '%s\n' "$failed_steps_text"
+      fi
+
+      if [[ -n "$failure_logs_text" ]]; then
+        printf '%s\n' "$failure_logs_text"
+      fi
+
+      failure_details="$(cat <<EOF
+workflow=${name}
+run_id=${run_id}
+run_url=${url}
+status=${status}
+conclusion=${conclusion}
+
+failed_steps:
+${failed_steps_text:-none}
+
+failure_logs:
+${failure_logs_text:-none}
+EOF
+)"
+      record_post_push_failure_text "$conclusion" "post-push monitor" "$failure_details"
     else
       log "done: ${conclusion}（获取 jobs 失败）"
+      record_post_push_failure_text "$conclusion" "post-push monitor" "$(cat <<EOF
+workflow=${name}
+run_id=${run_id}
+run_url=${url}
+status=${status}
+conclusion=${conclusion}
+jobs_fetch=failed
+EOF
+)"
     fi
 
     return 1
@@ -759,4 +914,6 @@ main() {
   log "完成"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

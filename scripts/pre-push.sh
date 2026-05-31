@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FAILURE_RECORD_SCRIPT="${SCRIPT_DIR}/failure-record.sh"
+
 SCOPE="auto"
 CHANGE_SOURCE="working-tree"
 ALLOW_NO_CHANGES="false"
@@ -23,6 +26,7 @@ AUTO_SCOPE_HAS_UNKNOWN="false"
 RUN_BACKEND_CHECKS="false"
 RUN_DASHBOARD_CHECKS="false"
 RUN_FLUTTER_CHECKS="false"
+CURRENT_FAILURE_MODULE=""
 
 log() {
   echo "[pre-push] $*"
@@ -44,7 +48,24 @@ run_cmd() {
     log "[dry-run] $*"
     return 0
   fi
-  "$@"
+
+  local log_file exit_code command_text module
+  log_file="$(mktemp)"
+  command_text="$(quote_command "$@")"
+  module="$(current_failure_module)"
+
+  set +e
+  "$@" 2>&1 | tee "$log_file"
+  exit_code=${PIPESTATUS[0]}
+  set -e
+
+  if [[ "$exit_code" -ne 0 ]]; then
+    record_failure "$module" "$exit_code" "$command_text" "$log_file"
+    rm -f "$log_file"
+    return "$exit_code"
+  fi
+
+  rm -f "$log_file"
 }
 
 run_shell() {
@@ -52,7 +73,76 @@ run_shell() {
     log "[dry-run] $*"
     return 0
   fi
-  bash -lc "$*"
+
+  local log_file exit_code module
+  log_file="$(mktemp)"
+  module="$(current_failure_module)"
+
+  set +e
+  bash -lc "$*" 2>&1 | tee "$log_file"
+  exit_code=${PIPESTATUS[0]}
+  set -e
+
+  if [[ "$exit_code" -ne 0 ]]; then
+    record_failure "$module" "$exit_code" "$*" "$log_file"
+    rm -f "$log_file"
+    return "$exit_code"
+  fi
+
+  rm -f "$log_file"
+}
+
+quote_command() {
+  printf '%q ' "$@"
+}
+
+current_failure_module() {
+  if [[ -n "$CURRENT_FAILURE_MODULE" ]]; then
+    echo "$CURRENT_FAILURE_MODULE"
+    return
+  fi
+
+  case "${EFFECTIVE_SCOPE:-}" in
+    backend|dashboard|flutter|docs)
+      echo "$EFFECTIVE_SCOPE"
+      ;;
+    *)
+      echo "repo"
+      ;;
+  esac
+}
+
+record_failure() {
+  local module="$1"
+  local exit_code="$2"
+  local command_text="$3"
+  local log_file="$4"
+
+  [[ -x "$FAILURE_RECORD_SCRIPT" ]] || return 0
+
+  local -a args=(
+    --repo-root "$REPO_ROOT"
+    --stage "pre-push"
+    --module "$module"
+    --exit-code "$exit_code"
+    --command "$command_text"
+    --log-file "$log_file"
+  )
+
+  local changed
+  for changed in "${CHANGED_FILES[@]}"; do
+    args+=(--changed-file "$changed")
+  done
+
+  local output record_file
+  if output="$(bash "$FAILURE_RECORD_SCRIPT" "${args[@]}" 2>/dev/null)"; then
+    record_file="$(echo "$output" | sed -n 's/^record_file=//p')"
+    if [[ -n "$record_file" ]]; then
+      log "已记录失败: $record_file"
+    fi
+  else
+    log "失败记录写入失败，请检查 scripts/failure-record.sh"
+  fi
 }
 
 prepare_sqlite_for_flutter_tests() {
@@ -71,7 +161,7 @@ prepare_sqlite_for_flutter_tests() {
   if [[ "$DRY_RUN" == "true" ]]; then
     log "[dry-run] ln -sf $sqlite_so_target $sqlite_so_link"
   else
-    ln -sf "$sqlite_so_target" "$sqlite_so_link"
+    run_cmd ln -sf "$sqlite_so_target" "$sqlite_so_link"
   fi
 
   local current_ld="${LD_LIBRARY_PATH:-}"
@@ -523,7 +613,37 @@ should_run_pre_push_self_test() {
   local f
   for f in "${CHANGED_FILES[@]}"; do
     case "$f" in
-      scripts/pre-push.sh|scripts/tests/pre-push_test.sh)
+      scripts/pre-push.sh|scripts/failure-record.sh|scripts/tests/pre-push_test.sh|scripts/tests/failure-record_test.sh)
+        return 0
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  return 1
+}
+
+should_run_exec_push_self_test() {
+  local f
+  for f in "${CHANGED_FILES[@]}"; do
+    case "$f" in
+      scripts/exec-push.sh|scripts/tests/exec-push_test.sh|scripts/failure-record.sh|scripts/tests/failure-record_test.sh)
+        return 0
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  return 1
+}
+
+should_run_post_push_self_test() {
+  local f
+  for f in "${CHANGED_FILES[@]}"; do
+    case "$f" in
+      scripts/post-push.sh|scripts/tests/post-push_test.sh|scripts/failure-record.sh|scripts/tests/failure-record_test.sh)
         return 0
         ;;
       *)
@@ -551,7 +671,53 @@ run_pre_push_self_test_if_needed() {
     return 0
   fi
 
-  bash "$self_test_script"
+  CURRENT_FAILURE_MODULE="repo"
+  run_cmd bash "$self_test_script"
+  CURRENT_FAILURE_MODULE=""
+}
+
+run_exec_push_self_test_if_needed() {
+  local self_test_script="${REPO_ROOT}/scripts/tests/exec-push_test.sh"
+
+  if ! should_run_exec_push_self_test; then
+    return 0
+  fi
+
+  if [[ ! -x "$self_test_script" ]]; then
+    die "检测到 exec-push 相关改动，但自测脚本不可执行: $self_test_script"
+  fi
+
+  log "检测到 exec-push 相关改动，执行脚本自测: scripts/tests/exec-push_test.sh"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "[dry-run] bash scripts/tests/exec-push_test.sh"
+    return 0
+  fi
+
+  CURRENT_FAILURE_MODULE="repo"
+  run_cmd bash "$self_test_script"
+  CURRENT_FAILURE_MODULE=""
+}
+
+run_post_push_self_test_if_needed() {
+  local self_test_script="${REPO_ROOT}/scripts/tests/post-push_test.sh"
+
+  if ! should_run_post_push_self_test; then
+    return 0
+  fi
+
+  if [[ ! -x "$self_test_script" ]]; then
+    die "检测到 post-push 相关改动，但自测脚本不可执行: $self_test_script"
+  fi
+
+  log "检测到 post-push 相关改动，执行脚本自测: scripts/tests/post-push_test.sh"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "[dry-run] bash scripts/tests/post-push_test.sh"
+    return 0
+  fi
+
+  CURRENT_FAILURE_MODULE="repo"
+  run_cmd bash "$self_test_script"
+  CURRENT_FAILURE_MODULE=""
 }
 
 add_target_test_file() {
@@ -756,6 +922,8 @@ main() {
   load_changed_files
   print_change_summary
   run_pre_push_self_test_if_needed
+  run_exec_push_self_test_if_needed
+  run_post_push_self_test_if_needed
 
   if [[ "$SCOPE" == "auto" ]]; then
     categorize_scope_auto
@@ -772,14 +940,18 @@ main() {
       ;;
     backend|dashboard|flutter|mixed)
       if [[ "$RUN_BACKEND_CHECKS" == "true" ]]; then
+        CURRENT_FAILURE_MODULE="backend"
         run_backend_checks
       fi
       if [[ "$RUN_DASHBOARD_CHECKS" == "true" ]]; then
+        CURRENT_FAILURE_MODULE="dashboard"
         run_dashboard_checks
       fi
       if [[ "$RUN_FLUTTER_CHECKS" == "true" ]]; then
+        CURRENT_FAILURE_MODULE="flutter"
         run_flutter_checks
       fi
+      CURRENT_FAILURE_MODULE=""
       ;;
     *)
       die "未知执行范围: $EFFECTIVE_SCOPE"

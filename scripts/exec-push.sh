@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FAILURE_RECORD_SCRIPT="${SCRIPT_DIR}/failure-record.sh"
+
 STAGE_ALL="false"
 PUSH="true"
 ALLOW_NO_CHANGES="false"
@@ -16,6 +19,7 @@ BODY=""
 BODY_FILE=""
 
 DRY_RUN="false"
+REPO_ROOT=""
 
 log() {
   echo "[exec-push] $*"
@@ -37,7 +41,61 @@ run_cmd() {
     log "[dry-run] $*"
     return 0
   fi
-  "$@"
+
+  local log_file exit_code command_text module
+  log_file="$(mktemp)"
+  command_text="$(quote_command "$@")"
+  module="${DETECTED_SCOPE:-repo}"
+
+  set +e
+  "$@" 2>&1 | tee "$log_file"
+  exit_code=${PIPESTATUS[0]}
+  set -e
+
+  if [[ "$exit_code" -ne 0 ]]; then
+    record_failure "$module" "$exit_code" "$command_text" "$log_file"
+    rm -f "$log_file"
+    return "$exit_code"
+  fi
+
+  rm -f "$log_file"
+}
+
+quote_command() {
+  printf '%q ' "$@"
+}
+
+record_failure() {
+  local module="$1"
+  local exit_code="$2"
+  local command_text="$3"
+  local log_file="$4"
+
+  [[ -x "$FAILURE_RECORD_SCRIPT" ]] || return 0
+
+  local -a args=(
+    --repo-root "$REPO_ROOT"
+    --stage "exec-push"
+    --module "$module"
+    --exit-code "$exit_code"
+    --command "$command_text"
+    --log-file "$log_file"
+  )
+
+  local changed
+  for changed in "${STAGED_FILES[@]}"; do
+    args+=(--changed-file "$changed")
+  done
+
+  local output record_file
+  if output="$(bash "$FAILURE_RECORD_SCRIPT" "${args[@]}" 2>/dev/null)"; then
+    record_file="$(echo "$output" | sed -n 's/^record_file=//p')"
+    if [[ -n "$record_file" ]]; then
+      log "已记录失败: $record_file"
+    fi
+  else
+    log "失败记录写入失败，请检查 scripts/failure-record.sh"
+  fi
 }
 
 usage() {
@@ -386,9 +444,9 @@ commit_changes() {
   fi
 
   if [[ -n "$BODY" ]]; then
-    git commit -m "$COMMIT_SUBJECT" -m "$BODY"
+    run_cmd git commit -m "$COMMIT_SUBJECT" -m "$BODY"
   else
-    git commit -m "$COMMIT_SUBJECT"
+    run_cmd git commit -m "$COMMIT_SUBJECT"
   fi
 }
 
