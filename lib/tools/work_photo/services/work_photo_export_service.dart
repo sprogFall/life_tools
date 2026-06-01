@@ -146,15 +146,7 @@ class WorkPhotoExportService {
     WorkPhotoProjectItem? item,
   ) async {
     final snapshot = item?.hierarchyPathSnapshot ?? const <String>[];
-    if (snapshot.isNotEmpty) {
-      return _sanitizePathSegments(snapshot);
-    }
-    final sourceItemId = item?.sourceItemId;
-    if (sourceItemId == null) return const [];
-    final fallback = await _repository.resolveCaptureItemHierarchyPath(
-      sourceItemId,
-    );
-    return _sanitizePathSegments(fallback);
+    return _sanitizePathSegments(snapshot);
   }
 
   static List<String> _sanitizePathSegments(Iterable<String> segments) {

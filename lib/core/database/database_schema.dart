@@ -999,25 +999,18 @@ WHERE tool_id = ? AND category_id = ?
   }
 
   static Future<void> _upgradeToVersion21(Database db) async {
-    // v21: 外拍配置改为模板化，旧的全局层级/拍摄项迁到默认模板。
-    await _createWorkPhotoTemplateTable(db);
-    await _ensureWorkPhotoTemplateColumns(db);
-    await _ensureWorkPhotoTreeColumns(db);
-    await _ensureWorkPhotoProjectItemTreeColumns(db);
-    await _ensureWorkPhotoIndexes(db);
-    await _migrateWorkPhotoGlobalConfigToDefaultTemplate(db);
+    // 外拍助手不再兼容早期开发版本，旧表直接重建为当前结构。
+    await _resetWorkPhotoTables(db);
   }
 
   static Future<void> _upgradeToVersion22(Database db) async {
-    // v22: 外拍模板配置支持层级树，拍摄项可挂在模板根节点或任意层级下。
-    await _ensureWorkPhotoTreeColumns(db);
-    await _ensureWorkPhotoProjectItemTreeColumns(db);
-    await _ensureWorkPhotoIndexes(db);
+    // 外拍助手不再兼容早期开发版本，旧表直接重建为当前结构。
+    await _resetWorkPhotoTables(db);
   }
 
   static Future<void> _upgradeToVersion23(Database db) async {
-    // v23: 项目拍摄项保存模板树层级路径快照，用于导出时还原文件夹层级。
-    await _ensureWorkPhotoProjectItemTreeColumns(db);
+    // 外拍助手不再兼容早期开发版本，旧表直接重建为当前结构。
+    await _resetWorkPhotoTables(db);
   }
 
   static Future<void> _createXiaoMiTables(Database db) async {
@@ -1189,6 +1182,21 @@ WHERE tool_id = ? AND category_id = ?
     ''');
   }
 
+  static Future<void> _resetWorkPhotoTables(DatabaseExecutor db) async {
+    await db.execute('DROP TABLE IF EXISTS work_photo_assets');
+    await db.execute('DROP TABLE IF EXISTS work_photo_project_items');
+    await db.execute(
+      'DROP TABLE IF EXISTS work_photo_project_hierarchy_values',
+    );
+    await db.execute('DROP TABLE IF EXISTS work_photo_projects');
+    await db.execute('DROP TABLE IF EXISTS work_photo_export_profiles');
+    await db.execute('DROP TABLE IF EXISTS work_photo_capture_items');
+    await db.execute('DROP TABLE IF EXISTS work_photo_hierarchy_options');
+    await db.execute('DROP TABLE IF EXISTS work_photo_hierarchy_levels');
+    await db.execute('DROP TABLE IF EXISTS work_photo_templates');
+    await _createWorkPhotoTables(db);
+  }
+
   static Future<void> _ensureWorkPhotoIndexes(DatabaseExecutor db) async {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_templates_sort ON work_photo_templates(sort_index ASC, id ASC)',
@@ -1226,119 +1234,6 @@ WHERE tool_id = ? AND category_id = ?
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_assets_taken_at ON work_photo_assets(taken_at DESC, id DESC)',
     );
-  }
-
-  static Future<void> _ensureWorkPhotoTemplateColumns(Database db) async {
-    Future<Set<String>> columnNames(String table) async {
-      final rows = await db.rawQuery('PRAGMA table_info($table)');
-      return rows.map((e) => e['name']).whereType<String>().toSet();
-    }
-
-    final levelColumns = await columnNames('work_photo_hierarchy_levels');
-    if (!levelColumns.contains('template_id')) {
-      await db.execute(
-        'ALTER TABLE work_photo_hierarchy_levels ADD COLUMN template_id INTEGER',
-      );
-    }
-
-    final itemColumns = await columnNames('work_photo_capture_items');
-    if (!itemColumns.contains('template_id')) {
-      await db.execute(
-        'ALTER TABLE work_photo_capture_items ADD COLUMN template_id INTEGER',
-      );
-    }
-
-    final projectColumns = await columnNames('work_photo_projects');
-    if (!projectColumns.contains('template_id')) {
-      await db.execute(
-        'ALTER TABLE work_photo_projects ADD COLUMN template_id INTEGER',
-      );
-    }
-    if (!projectColumns.contains('template_name_snapshot')) {
-      await db.execute(
-        "ALTER TABLE work_photo_projects ADD COLUMN template_name_snapshot TEXT NOT NULL DEFAULT ''",
-      );
-    }
-  }
-
-  static Future<void> _ensureWorkPhotoTreeColumns(Database db) async {
-    Future<Set<String>> columnNames(String table) async {
-      final rows = await db.rawQuery('PRAGMA table_info($table)');
-      return rows.map((e) => e['name']).whereType<String>().toSet();
-    }
-
-    final levelColumns = await columnNames('work_photo_hierarchy_levels');
-    if (!levelColumns.contains('parent_level_id')) {
-      await db.execute(
-        'ALTER TABLE work_photo_hierarchy_levels ADD COLUMN parent_level_id INTEGER',
-      );
-    }
-
-    final itemColumns = await columnNames('work_photo_capture_items');
-    if (!itemColumns.contains('parent_level_id')) {
-      await db.execute(
-        'ALTER TABLE work_photo_capture_items ADD COLUMN parent_level_id INTEGER',
-      );
-    }
-  }
-
-  static Future<void> _ensureWorkPhotoProjectItemTreeColumns(
-    Database db,
-  ) async {
-    final rows = await db.rawQuery(
-      'PRAGMA table_info(work_photo_project_items)',
-    );
-    final names = rows.map((e) => e['name']).whereType<String>().toSet();
-    if (!names.contains('hierarchy_path_snapshot')) {
-      await db.execute(
-        "ALTER TABLE work_photo_project_items ADD COLUMN hierarchy_path_snapshot TEXT NOT NULL DEFAULT '[]'",
-      );
-    }
-  }
-
-  static Future<void> _migrateWorkPhotoGlobalConfigToDefaultTemplate(
-    Database db,
-  ) async {
-    final levelCount =
-        Sqflite.firstIntValue(
-          await db.rawQuery(
-            'SELECT COUNT(*) FROM work_photo_hierarchy_levels WHERE template_id IS NULL',
-          ),
-        ) ??
-        0;
-    final itemCount =
-        Sqflite.firstIntValue(
-          await db.rawQuery(
-            'SELECT COUNT(*) FROM work_photo_capture_items WHERE template_id IS NULL',
-          ),
-        ) ??
-        0;
-    if (levelCount == 0 && itemCount == 0) return;
-
-    var templateId = Sqflite.firstIntValue(
-      await db.rawQuery(
-        "SELECT id FROM work_photo_templates WHERE name = '默认模板' ORDER BY id ASC LIMIT 1",
-      ),
-    );
-    final now = DateTime.now().millisecondsSinceEpoch;
-    templateId ??= await db.insert('work_photo_templates', {
-      'name': '默认模板',
-      'sort_index': 0,
-      'is_archived': 0,
-      'created_at': now,
-      'updated_at': now,
-    });
-
-    await db.update('work_photo_hierarchy_levels', {
-      'template_id': templateId,
-    }, where: 'template_id IS NULL');
-    await db.update('work_photo_capture_items', {
-      'template_id': templateId,
-    }, where: 'template_id IS NULL');
-    await db.update('work_photo_projects', {
-      'template_id': templateId,
-      'template_name_snapshot': '默认模板',
-    }, where: 'template_id IS NULL');
   }
 
   static Future<void> _trimOperationLogs(DatabaseExecutor db) async {

@@ -424,7 +424,7 @@ void main() {
       expect(archivedItem.maxCount, 5);
     });
 
-    test('v20 全局外拍配置升级到 v21 时迁移到默认模板', () async {
+    test('旧版全局外拍配置升级时不再迁入默认模板', () async {
       final path = await databaseFactory.getDatabasesPath();
       final dbPath = '$path/work_photo_v20_upgrade_test.db';
       await databaseFactory.deleteDatabase(dbPath);
@@ -561,16 +561,9 @@ void main() {
       addTearDown(upgraded.close);
 
       final repo = WorkPhotoRepository.withDatabase(upgraded);
-      final template = (await repo.listTemplates()).single;
-      expect(template.name, '默认模板');
-      expect(
-        (await repo.listHierarchyLevels(templateId: template.id)).single.name,
-        '区域',
-      );
-      expect(
-        (await repo.listCaptureItems(templateId: template.id)).single.name,
-        '门头',
-      );
+      expect(await repo.listTemplates(), isEmpty);
+      expect(await repo.listHierarchyLevels(), isEmpty);
+      expect(await repo.listCaptureItems(), isEmpty);
     });
   });
 }

@@ -219,6 +219,81 @@ void main() {
       expect(names, contains('项目树/门店/入口/门头/20260601_143000_门头_001.jpg'));
       expect(names, contains('项目树/总览/20260601_143000_总览_001.jpg'));
     });
+
+    test('导出只使用项目拍摄项层级快照', () async {
+      final now = DateTime(2026, 6, 1, 9);
+      final templateId = await repository.createTemplate(
+        WorkPhotoTemplate.create(name: '树形模板', sortIndex: 0, now: now),
+      );
+      final storeLevelId = await repository.createHierarchyLevel(
+        WorkPhotoHierarchyLevel.create(
+          templateId: templateId,
+          name: '门店',
+          sortIndex: 0,
+          now: now,
+        ),
+      );
+      final entranceLevelId = await repository.createHierarchyLevel(
+        WorkPhotoHierarchyLevel.create(
+          templateId: templateId,
+          parentLevelId: storeLevelId,
+          name: '入口',
+          sortIndex: 0,
+          now: now,
+        ),
+      );
+      await repository.createCaptureItem(
+        WorkPhotoCaptureItem.create(
+          templateId: templateId,
+          parentLevelId: entranceLevelId,
+          name: '门头',
+          sortIndex: 0,
+          minCount: 1,
+          now: now,
+        ),
+      );
+      final projectId = await repository.createProjectFromTemplate(
+        name: '项目纯净',
+        note: '',
+        templateId: templateId,
+        hierarchySelections: const [],
+        now: now,
+      );
+      final item = (await repository.getProjectDetail(projectId))!.items.single;
+      await db.update(
+        'work_photo_project_items',
+        {'hierarchy_path_snapshot': '[]'},
+        where: 'id = ?',
+        whereArgs: [item.id],
+      );
+
+      final source = File('${mediaStore.baseDirectory.path}/source.jpg');
+      await source.writeAsBytes([1, 2, 3], flush: true);
+      final stored = await mediaStore.savePhoto(
+        projectId: projectId,
+        sourceFile: source,
+        now: now,
+      );
+      await repository.createAsset(
+        projectId: projectId,
+        projectItemId: item.id!,
+        relativePath: stored.relativePath,
+        originalFilename: 'source.jpg',
+        mimeType: 'image/jpeg',
+        fileSize: 3,
+        width: null,
+        height: null,
+        takenAt: DateTime(2026, 6, 1, 14, 30),
+        now: now,
+      );
+
+      final result = await service.buildZip(projectIds: [projectId]);
+      final archive = ZipDecoder().decodeBytes(result.bytes);
+      final names = archive.files.map((e) => e.name).toList();
+
+      expect(names, contains('项目纯净/门头/20260601_143000_门头_001.jpg'));
+      expect(names.any((e) => e.contains('门店') || e.contains('入口')), isFalse);
+    });
   });
 }
 

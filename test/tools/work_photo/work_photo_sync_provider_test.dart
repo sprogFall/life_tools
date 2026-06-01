@@ -88,7 +88,7 @@ void main() {
       expect((await repo2.listTemplates()).single.name, '巡拍模板');
     });
 
-    test('兼容导入旧版无模板快照并迁入默认模板', () async {
+    test('拒绝导入旧版同步快照', () async {
       final db = await openDatabase(
         inMemoryDatabasePath,
         version: DatabaseSchema.version,
@@ -98,64 +98,16 @@ void main() {
       );
       addTearDown(db.close);
 
-      final now = DateTime(2026, 6, 1, 9).millisecondsSinceEpoch;
       final repo = WorkPhotoRepository.withDatabase(db);
-      await WorkPhotoSyncProvider(repository: repo).importData({
-        'version': 1,
-        'data': {
-          'hierarchy_levels': [
-            {
-              'id': 1,
-              'name': '区域',
-              'sort_index': 0,
-              'is_required': 1,
-              'is_archived': 0,
-              'created_at': now,
-              'updated_at': now,
-            },
-          ],
-          'hierarchy_options': [
-            {
-              'id': 1,
-              'level_id': 1,
-              'parent_option_id': null,
-              'name': '东区',
-              'sort_index': 0,
-              'is_archived': 0,
-              'created_at': now,
-              'updated_at': now,
-            },
-          ],
-          'capture_items': [
-            {
-              'id': 1,
-              'name': '门头',
-              'sort_index': 0,
-              'min_count': 1,
-              'max_count': null,
-              'is_archived': 0,
-              'created_at': now,
-              'updated_at': now,
-            },
-          ],
-          'export_profiles': [],
-          'projects': [],
-          'project_hierarchy_values': [],
-          'project_items': [],
-          'assets': [],
-        },
-      });
+      final provider = WorkPhotoSyncProvider(repository: repo);
 
-      final template = (await repo.listTemplates()).single;
-      expect(template.name, '默认模板');
-      expect(
-        (await repo.listHierarchyLevels(templateId: template.id)).single.name,
-        '区域',
+      await expectLater(
+        provider.importData(const {'version': 1, 'data': {}}),
+        throwsA(
+          predicate((Object error) => error.toString().contains('不支持的数据版本: 1')),
+        ),
       );
-      expect(
-        (await repo.listCaptureItems(templateId: template.id)).single.name,
-        '门头',
-      );
+      expect(await repo.listTemplates(), isEmpty);
     });
   });
 }

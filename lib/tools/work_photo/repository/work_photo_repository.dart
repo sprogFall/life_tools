@@ -700,19 +700,6 @@ class WorkPhotoRepository
   Future<List<Map<String, Object?>>> exportAssets() =>
       _exportTable('work_photo_assets', 'id ASC');
 
-  Future<List<String>> resolveCaptureItemHierarchyPath(int sourceItemId) async {
-    final item = await getCaptureItem(sourceItemId);
-    if (item == null) return const [];
-    final templateId = item.templateId;
-    if (templateId == null) return const [];
-    final levels = await listHierarchyLevels(
-      templateId: templateId,
-      includeArchived: true,
-    );
-    final paths = _buildItemHierarchyPaths(levels: levels, items: [item]);
-    return paths[item.id] ?? const [];
-  }
-
   Future<List<Map<String, Object?>>> _exportTable(
     String table,
     String orderBy,
@@ -758,54 +745,7 @@ class WorkPhotoRepository
       );
       await _insertRows(txn, 'work_photo_project_items', projectItems);
       await _insertRows(txn, 'work_photo_assets', assets);
-
-      await _ensureImportedTemplateScope(
-        txn,
-        templatesImported: templates.isNotEmpty,
-      );
     });
-  }
-
-  static Future<void> _ensureImportedTemplateScope(
-    DatabaseExecutor txn, {
-    required bool templatesImported,
-  }) async {
-    final unscopedLevels =
-        Sqflite.firstIntValue(
-          await txn.rawQuery(
-            'SELECT COUNT(*) FROM work_photo_hierarchy_levels WHERE template_id IS NULL',
-          ),
-        ) ??
-        0;
-    final unscopedItems =
-        Sqflite.firstIntValue(
-          await txn.rawQuery(
-            'SELECT COUNT(*) FROM work_photo_capture_items WHERE template_id IS NULL',
-          ),
-        ) ??
-        0;
-    if (templatesImported || (unscopedLevels == 0 && unscopedItems == 0)) {
-      return;
-    }
-
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final templateId = await txn.insert('work_photo_templates', {
-      'name': '默认模板',
-      'sort_index': 0,
-      'is_archived': 0,
-      'created_at': now,
-      'updated_at': now,
-    });
-    await txn.update('work_photo_hierarchy_levels', {
-      'template_id': templateId,
-    }, where: 'template_id IS NULL');
-    await txn.update('work_photo_capture_items', {
-      'template_id': templateId,
-    }, where: 'template_id IS NULL');
-    await txn.update('work_photo_projects', {
-      'template_id': templateId,
-      'template_name_snapshot': '默认模板',
-    }, where: 'template_id IS NULL');
   }
 
   static Future<void> _insertRows(

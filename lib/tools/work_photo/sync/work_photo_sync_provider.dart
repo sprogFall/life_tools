@@ -35,7 +35,7 @@ class WorkPhotoSyncProvider implements ToolSyncProvider {
   @override
   Future<void> importData(Map<String, dynamic> data) async {
     final version = data['version'] as int?;
-    if (version != 1 && version != snapshotVersion) {
+    if (version != snapshotVersion) {
       throw Exception('不支持的数据版本: $version');
     }
     final dataMap = data['data'];
