@@ -87,6 +87,8 @@ class _StatefulToolSyncProvider implements ToolSyncProvider {
 
 void main() {
   group('BackupRestoreService', () {
+    late Database db;
+
     setUpAll(() {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -96,7 +98,22 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
       SharedPreferences.setMockInitialValues({});
       ToolRegistry.instance.registerAll();
+
+      db = await openDatabase(
+        inMemoryDatabasePath,
+        version: DatabaseSchema.version,
+        onConfigure: DatabaseSchema.onConfigure,
+        onCreate: DatabaseSchema.onCreate,
+        onUpgrade: DatabaseSchema.onUpgrade,
+      );
     });
+
+    tearDown(() async {
+      await db.close();
+    });
+
+    SettingsService createSettingsService() =>
+        SettingsService(databaseProvider: () async => db);
 
     test('exportAsJson 默认应避免导出敏感信息（AI Key/同步 Headers/七牛 AKSK）', () async {
       final aiConfigService = AiConfigService();
@@ -125,7 +142,7 @@ void main() {
         ),
       );
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
       await settingsService.setDefaultTool('work_log');
 
@@ -206,7 +223,7 @@ void main() {
         ),
       );
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -267,7 +284,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -305,7 +322,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -365,7 +382,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -403,7 +420,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -532,7 +549,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -563,7 +580,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -657,7 +674,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -751,7 +768,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -840,7 +857,7 @@ void main() {
         ),
       );
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -926,7 +943,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -973,7 +990,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(
@@ -1044,7 +1061,7 @@ void main() {
         final syncConfigService = SyncConfigService();
         await syncConfigService.init();
 
-        final settingsService = SettingsService();
+        final settingsService = createSettingsService();
         await settingsService.init();
 
         final objStoreConfigService = ObjStoreConfigService(
@@ -1111,7 +1128,7 @@ void main() {
       final syncConfigService = SyncConfigService();
       await syncConfigService.init();
 
-      final settingsService = SettingsService();
+      final settingsService = createSettingsService();
       await settingsService.init();
 
       final objStoreConfigService = ObjStoreConfigService(

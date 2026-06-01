@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_capture_item.dart';
+import 'package:life_tools/tools/work_photo/models/work_photo_template.dart';
 import 'package:life_tools/tools/work_photo/repository/work_photo_repository.dart';
 import 'package:life_tools/tools/work_photo/services/work_photo_capture_coordinator.dart';
 import 'package:life_tools/tools/work_photo/services/work_photo_media_store.dart';
@@ -44,8 +45,12 @@ void main() {
 
     test('拍照成功后自动落盘并写入图片记录', () async {
       final now = DateTime(2026, 6, 1, 10);
+      final templateId = await repository.createTemplate(
+        WorkPhotoTemplate.create(name: '巡拍模板', sortIndex: 0, now: now),
+      );
       await repository.createCaptureItem(
         WorkPhotoCaptureItem.create(
+          templateId: templateId,
           name: '门头',
           sortIndex: 0,
           minCount: 1,
@@ -53,9 +58,10 @@ void main() {
           now: now,
         ),
       );
-      final projectId = await repository.createProject(
+      final projectId = await repository.createProjectFromTemplate(
         name: '项目',
         note: '',
+        templateId: templateId,
         hierarchySelections: const [],
         now: now,
       );

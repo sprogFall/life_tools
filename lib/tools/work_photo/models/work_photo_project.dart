@@ -16,6 +16,8 @@ enum WorkPhotoProjectStatus {
 
 class WorkPhotoProject {
   final int? id;
+  final int? templateId;
+  final String templateNameSnapshot;
   final String name;
   final WorkPhotoProjectStatus status;
   final String note;
@@ -24,6 +26,8 @@ class WorkPhotoProject {
 
   const WorkPhotoProject({
     required this.id,
+    required this.templateId,
+    required this.templateNameSnapshot,
     required this.name,
     required this.status,
     required this.note,
@@ -32,6 +36,8 @@ class WorkPhotoProject {
   });
 
   factory WorkPhotoProject.create({
+    int? templateId,
+    String templateNameSnapshot = '',
     required String name,
     required String note,
     DateTime? now,
@@ -43,6 +49,8 @@ class WorkPhotoProject {
     final time = now ?? DateTime.now();
     return WorkPhotoProject(
       id: null,
+      templateId: templateId,
+      templateNameSnapshot: templateNameSnapshot.trim(),
       name: trimmed,
       status: WorkPhotoProjectStatus.active,
       note: note.trim(),
@@ -53,6 +61,8 @@ class WorkPhotoProject {
 
   WorkPhotoProject copyWith({
     int? id,
+    int? templateId,
+    String? templateNameSnapshot,
     String? name,
     WorkPhotoProjectStatus? status,
     String? note,
@@ -61,6 +71,8 @@ class WorkPhotoProject {
   }) {
     return WorkPhotoProject(
       id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
+      templateNameSnapshot: templateNameSnapshot ?? this.templateNameSnapshot,
       name: name ?? this.name,
       status: status ?? this.status,
       note: note ?? this.note,
@@ -72,6 +84,8 @@ class WorkPhotoProject {
   Map<String, Object?> toMap({bool includeId = true}) {
     return {
       if (includeId) 'id': id,
+      'template_id': templateId,
+      'template_name_snapshot': templateNameSnapshot.trim(),
       'name': name.trim(),
       'status': status.value,
       'note': note.trim(),
@@ -83,6 +97,8 @@ class WorkPhotoProject {
   static WorkPhotoProject fromMap(Map<String, Object?> map) {
     return WorkPhotoProject(
       id: map['id'] as int?,
+      templateId: (map['template_id'] as num?)?.toInt(),
+      templateNameSnapshot: map['template_name_snapshot'] as String? ?? '',
       name: map['name'] as String? ?? '',
       status: WorkPhotoProjectStatus.fromValue(
         (map['status'] as num?)?.toInt() ?? 0,

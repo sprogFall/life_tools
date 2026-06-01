@@ -7,6 +7,7 @@ import 'package:life_tools/core/database/database_schema.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_capture_item.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_hierarchy_level.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_hierarchy_option.dart';
+import 'package:life_tools/tools/work_photo/models/work_photo_template.dart';
 import 'package:life_tools/tools/work_photo/repository/work_photo_repository.dart';
 import 'package:life_tools/tools/work_photo/services/work_photo_export_service.dart';
 import 'package:life_tools/tools/work_photo/services/work_photo_media_store.dart';
@@ -74,8 +75,12 @@ void main() {
 
     test('图片记录对应文件缺失时写入导出说明', () async {
       final now = DateTime(2026, 6, 1, 9);
+      final templateId = await repository.createTemplate(
+        WorkPhotoTemplate.create(name: '巡拍模板', sortIndex: 0, now: now),
+      );
       await repository.createCaptureItem(
         WorkPhotoCaptureItem.create(
+          templateId: templateId,
           name: '桌面',
           sortIndex: 0,
           minCount: 1,
@@ -83,9 +88,10 @@ void main() {
           now: now,
         ),
       );
-      final projectId = await repository.createProject(
+      final projectId = await repository.createProjectFromTemplate(
         name: '项目二',
         note: '',
+        templateId: templateId,
         hierarchySelections: const [],
         now: now,
       );
@@ -115,6 +121,25 @@ void main() {
       );
       expect(utf8.decode(report.content as List<int>), contains('missing.jpg'));
     });
+
+    test('单项目导出时跳过空层级，不生成未命名层级目录', () async {
+      final projectId = await _seedProjectWithOneAsset(
+        repository: repository,
+        mediaStore: mediaStore,
+        levelName: '区域',
+        optionName: '',
+        projectName: '项目三',
+        itemName: '门头',
+        imageBytes: [1, 2, 3],
+      );
+
+      final result = await service.buildZip(projectIds: [projectId]);
+      final archive = ZipDecoder().decodeBytes(result.bytes);
+      final names = archive.files.map((e) => e.name).toList();
+
+      expect(names, contains('项目三/门头/20260601_143000_门头_001.jpg'));
+      expect(names.any((name) => name.contains('未命名')), isFalse);
+    });
   });
 }
 
@@ -122,26 +147,39 @@ Future<int> _seedProjectWithOneAsset({
   required WorkPhotoRepository repository,
   required WorkPhotoMediaStore mediaStore,
   required String levelName,
-  required String optionName,
+  String? optionName,
   required String projectName,
   required String itemName,
   required List<int> imageBytes,
 }) async {
   final now = DateTime(2026, 6, 1, 9);
-  final levelId = await repository.createHierarchyLevel(
-    WorkPhotoHierarchyLevel.create(name: levelName, sortIndex: 0, now: now),
+  final templateId = await repository.createTemplate(
+    WorkPhotoTemplate.create(name: '巡拍模板', sortIndex: 0, now: now),
   );
-  final optionId = await repository.createHierarchyOption(
-    WorkPhotoHierarchyOption.create(
-      levelId: levelId,
-      parentOptionId: null,
-      name: optionName,
+  final levelId = await repository.createHierarchyLevel(
+    WorkPhotoHierarchyLevel.create(
+      templateId: templateId,
+      name: levelName,
       sortIndex: 0,
       now: now,
     ),
   );
+  int? optionId;
+  final trimmedOptionName = optionName?.trim() ?? '';
+  if (trimmedOptionName.isNotEmpty) {
+    optionId = await repository.createHierarchyOption(
+      WorkPhotoHierarchyOption.create(
+        levelId: levelId,
+        parentOptionId: null,
+        name: trimmedOptionName,
+        sortIndex: 0,
+        now: now,
+      ),
+    );
+  }
   await repository.createCaptureItem(
     WorkPhotoCaptureItem.create(
+      templateId: templateId,
       name: itemName,
       sortIndex: 0,
       minCount: 1,
@@ -149,9 +187,10 @@ Future<int> _seedProjectWithOneAsset({
       now: now,
     ),
   );
-  final projectId = await repository.createProject(
+  final projectId = await repository.createProjectFromTemplate(
     name: projectName,
     note: '',
+    templateId: templateId,
     hierarchySelections: [
       WorkPhotoHierarchySelection(levelId: levelId, optionId: optionId),
     ],

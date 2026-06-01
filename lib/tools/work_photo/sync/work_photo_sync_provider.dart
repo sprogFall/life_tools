@@ -3,7 +3,7 @@ import '../repository/work_photo_repository.dart';
 import '../work_photo_constants.dart';
 
 class WorkPhotoSyncProvider implements ToolSyncProvider {
-  static const int snapshotVersion = 1;
+  static const int snapshotVersion = 2;
 
   final WorkPhotoRepository _repository;
 
@@ -18,6 +18,7 @@ class WorkPhotoSyncProvider implements ToolSyncProvider {
     return {
       'version': snapshotVersion,
       'data': {
+        'templates': await _repository.exportTemplates(),
         'hierarchy_levels': await _repository.exportHierarchyLevels(),
         'hierarchy_options': await _repository.exportHierarchyOptions(),
         'capture_items': await _repository.exportCaptureItems(),
@@ -34,7 +35,7 @@ class WorkPhotoSyncProvider implements ToolSyncProvider {
   @override
   Future<void> importData(Map<String, dynamic> data) async {
     final version = data['version'] as int?;
-    if (version != snapshotVersion) {
+    if (version != 1 && version != snapshotVersion) {
       throw Exception('不支持的数据版本: $version');
     }
     final dataMap = data['data'];
@@ -49,6 +50,7 @@ class WorkPhotoSyncProvider implements ToolSyncProvider {
     }
 
     await _repository.importFromServer(
+      templates: readList('templates'),
       hierarchyLevels: readList('hierarchy_levels'),
       hierarchyOptions: readList('hierarchy_options'),
       captureItems: readList('capture_items'),

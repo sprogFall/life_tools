@@ -89,7 +89,9 @@ class WorkPhotoExportService {
   ) async {
     final projectName = sanitizePathSegment(detail.project.name);
     final levelSegments = detail.hierarchyValues
-        .map((e) => sanitizePathSegment(e.optionNameSnapshot))
+        .map((e) => e.optionNameSnapshot.trim())
+        .where((e) => e.isNotEmpty)
+        .map(sanitizePathSegment)
         .where((e) => e.isNotEmpty)
         .toList();
     final itemById = {

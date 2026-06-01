@@ -1349,6 +1349,84 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add capture items in Field Photo Config before creating a project.';
 
   @override
+  String get work_photo_templates_section => 'Templates';
+
+  @override
+  String get work_photo_no_templates =>
+      'No templates yet. Add a template first.';
+
+  @override
+  String get work_photo_add_template => 'Add template';
+
+  @override
+  String get work_photo_template_name_title => 'Template name';
+
+  @override
+  String get work_photo_template_name_placeholder =>
+      'e.g. Store capture template';
+
+  @override
+  String get work_photo_templates_levels_suffix => 'levels';
+
+  @override
+  String get work_photo_templates_items_suffix => 'items';
+
+  @override
+  String work_photo_templates_summary(int levels, int items) {
+    return '$levels levels · $items items';
+  }
+
+  @override
+  String get work_photo_project_mode_title => 'Creation mode';
+
+  @override
+  String get work_photo_project_mode_template => 'From template';
+
+  @override
+  String get work_photo_project_mode_custom => 'Custom';
+
+  @override
+  String get work_photo_project_mode_template_hint =>
+      'Create a project from the template hierarchy and capture items. Later template edits will not change the project.';
+
+  @override
+  String get work_photo_project_mode_custom_hint =>
+      'Configure hierarchy and capture items only for this project without saving them to a template.';
+
+  @override
+  String get work_photo_project_template_label => 'Project template';
+
+  @override
+  String get work_photo_no_templates_warning =>
+      'Add a template first, or switch to custom creation.';
+
+  @override
+  String get work_photo_no_custom_hierarchy =>
+      'No custom hierarchy yet. Add one if needed.';
+
+  @override
+  String get work_photo_no_custom_capture_items =>
+      'No custom capture items yet. Add at least one.';
+
+  @override
+  String get work_photo_no_custom_capture_items_warning =>
+      'A custom project needs at least one capture item.';
+
+  @override
+  String get work_photo_custom_hierarchy_title => 'Custom hierarchy';
+
+  @override
+  String get work_photo_custom_hierarchy_placeholder =>
+      'Enter \"Level/Option\", e.g. Zone/East';
+
+  @override
+  String get work_photo_custom_level_default => 'Level';
+
+  @override
+  String get work_photo_custom_capture_item_placeholder =>
+      'Enter \"Item/Min/Max\", e.g. Sign/1/3';
+
+  @override
   String get work_photo_export_saved_and_shared =>
       'ZIP saved and share sheet opened.';
 }
@@ -2696,6 +2774,84 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   @override
   String get work_photo_no_capture_items_warning =>
       'Add capture items in Field Photo Config before creating a project.';
+
+  @override
+  String get work_photo_templates_section => 'Templates';
+
+  @override
+  String get work_photo_no_templates =>
+      'No templates yet. Add a template first.';
+
+  @override
+  String get work_photo_add_template => 'Add template';
+
+  @override
+  String get work_photo_template_name_title => 'Template name';
+
+  @override
+  String get work_photo_template_name_placeholder =>
+      'e.g. Store capture template';
+
+  @override
+  String get work_photo_templates_levels_suffix => 'levels';
+
+  @override
+  String get work_photo_templates_items_suffix => 'items';
+
+  @override
+  String work_photo_templates_summary(int levels, int items) {
+    return '$levels levels · $items items';
+  }
+
+  @override
+  String get work_photo_project_mode_title => 'Creation mode';
+
+  @override
+  String get work_photo_project_mode_template => 'From template';
+
+  @override
+  String get work_photo_project_mode_custom => 'Custom';
+
+  @override
+  String get work_photo_project_mode_template_hint =>
+      'Create a project from the template hierarchy and capture items. Later template edits will not change the project.';
+
+  @override
+  String get work_photo_project_mode_custom_hint =>
+      'Configure hierarchy and capture items only for this project without saving them to a template.';
+
+  @override
+  String get work_photo_project_template_label => 'Project template';
+
+  @override
+  String get work_photo_no_templates_warning =>
+      'Add a template first, or switch to custom creation.';
+
+  @override
+  String get work_photo_no_custom_hierarchy =>
+      'No custom hierarchy yet. Add one if needed.';
+
+  @override
+  String get work_photo_no_custom_capture_items =>
+      'No custom capture items yet. Add at least one.';
+
+  @override
+  String get work_photo_no_custom_capture_items_warning =>
+      'A custom project needs at least one capture item.';
+
+  @override
+  String get work_photo_custom_hierarchy_title => 'Custom hierarchy';
+
+  @override
+  String get work_photo_custom_hierarchy_placeholder =>
+      'Enter \"Level/Option\", e.g. Zone/East';
+
+  @override
+  String get work_photo_custom_level_default => 'Level';
+
+  @override
+  String get work_photo_custom_capture_item_placeholder =>
+      'Enter \"Item/Min/Max\", e.g. Sign/1/3';
 
   @override
   String get work_photo_export_saved_and_shared =>

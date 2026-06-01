@@ -156,7 +156,7 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> updateToolOrder(List<String> newOrder) async {
-    _toolOrder = _ensureTagManagerLast(newOrder);
+    _toolOrder = _ensureTagManagerLast(_dedupeStrings(newOrder).toList());
     await _saveToolOrder();
     await _touchUpdatedAt();
     notifyListeners();

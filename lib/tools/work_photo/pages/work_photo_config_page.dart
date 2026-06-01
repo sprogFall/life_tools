@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../models/work_photo_capture_item.dart';
 import '../models/work_photo_hierarchy_level.dart';
 import '../models/work_photo_hierarchy_option.dart';
+import '../models/work_photo_template.dart';
 import '../repository/work_photo_repository.dart';
 
 class WorkPhotoConfigPage extends StatefulWidget {
@@ -21,9 +22,22 @@ class WorkPhotoConfigPage extends StatefulWidget {
 class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
   late final WorkPhotoRepository _repository;
   bool _loading = true;
+  List<WorkPhotoTemplate> _templates = const [];
+  List<WorkPhotoHierarchyLevel> _allLevels = const [];
+  List<WorkPhotoCaptureItem> _allItems = const [];
   List<WorkPhotoHierarchyLevel> _levels = const [];
   List<WorkPhotoHierarchyOption> _options = const [];
   List<WorkPhotoCaptureItem> _items = const [];
+  int? _selectedTemplateId;
+
+  WorkPhotoTemplate? get _selectedTemplate {
+    final selectedId = _selectedTemplateId;
+    if (selectedId == null) return null;
+    for (final template in _templates) {
+      if (template.id == selectedId) return template;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -34,11 +48,34 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
 
   Future<void> _reload() async {
     setState(() => _loading = true);
-    final levels = await _repository.listHierarchyLevels();
-    final options = await _repository.listHierarchyOptions();
-    final items = await _repository.listCaptureItems();
+    final templates = await _repository.listTemplates();
+    final allLevels = await _repository.listHierarchyLevels();
+    final allItems = await _repository.listCaptureItems();
+    var selectedTemplateId = _selectedTemplateId;
+    final selectedStillExists = templates.any(
+      (e) => e.id == selectedTemplateId,
+    );
+    if (!selectedStillExists) {
+      selectedTemplateId = templates.isEmpty ? null : templates.first.id;
+    }
+    final levels = selectedTemplateId == null
+        ? <WorkPhotoHierarchyLevel>[]
+        : allLevels.where((e) => e.templateId == selectedTemplateId).toList();
+    final options = <WorkPhotoHierarchyOption>[];
+    for (final level in levels) {
+      final levelId = level.id;
+      if (levelId == null) continue;
+      options.addAll(await _repository.listHierarchyOptions(levelId: levelId));
+    }
+    final items = selectedTemplateId == null
+        ? <WorkPhotoCaptureItem>[]
+        : allItems.where((e) => e.templateId == selectedTemplateId).toList();
     if (!mounted) return;
     setState(() {
+      _templates = templates;
+      _allLevels = allLevels;
+      _allItems = allItems;
+      _selectedTemplateId = selectedTemplateId;
       _levels = levels;
       _options = options;
       _items = items;
@@ -66,29 +103,40 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
                   IOS26Theme.spacingXxl,
                 ),
                 children: [
-                  _sectionTitle(l10n.work_photo_levels_section),
-                  if (_levels.isEmpty)
-                    _emptyText(l10n.work_photo_no_hierarchy)
-                  else
-                    for (final level in _levels) _buildLevelBlock(level, l10n),
-                  const SizedBox(height: IOS26Theme.spacingMd),
+                  _sectionTitle(l10n.work_photo_templates_section),
+                  _buildTemplateSelector(l10n),
                   IOS26Button(
-                    onPressed: _addLevel,
+                    onPressed: _addTemplate,
                     variant: IOS26ButtonVariant.secondary,
-                    child: IOS26ButtonLabel(l10n.work_photo_add_level),
+                    child: IOS26ButtonLabel(l10n.work_photo_add_template),
                   ),
                   const SizedBox(height: IOS26Theme.spacingXl),
-                  _sectionTitle(l10n.work_photo_capture_items_section),
-                  if (_items.isEmpty)
-                    _emptyText(l10n.work_photo_no_capture_items)
-                  else
-                    for (final item in _items) _buildItemRow(item, l10n),
-                  const SizedBox(height: IOS26Theme.spacingMd),
-                  IOS26Button(
-                    onPressed: _addCaptureItem,
-                    variant: IOS26ButtonVariant.secondary,
-                    child: IOS26ButtonLabel(l10n.work_photo_add_capture_item),
-                  ),
+                  if (_selectedTemplate != null) ...[
+                    _sectionTitle(l10n.work_photo_levels_section),
+                    if (_levels.isEmpty)
+                      _emptyText(l10n.work_photo_no_hierarchy)
+                    else
+                      for (final level in _levels)
+                        _buildLevelBlock(level, l10n),
+                    const SizedBox(height: IOS26Theme.spacingMd),
+                    IOS26Button(
+                      onPressed: _addLevel,
+                      variant: IOS26ButtonVariant.secondary,
+                      child: IOS26ButtonLabel(l10n.work_photo_add_level),
+                    ),
+                    const SizedBox(height: IOS26Theme.spacingXl),
+                    _sectionTitle(l10n.work_photo_capture_items_section),
+                    if (_items.isEmpty)
+                      _emptyText(l10n.work_photo_no_capture_items)
+                    else
+                      for (final item in _items) _buildItemRow(item, l10n),
+                    const SizedBox(height: IOS26Theme.spacingMd),
+                    IOS26Button(
+                      onPressed: _addCaptureItem,
+                      variant: IOS26ButtonVariant.secondary,
+                      child: IOS26ButtonLabel(l10n.work_photo_add_capture_item),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -154,6 +202,90 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
                   _buildOptionChip(option, options.indexOf(option)),
               ],
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateSelector(AppLocalizations l10n) {
+    if (_templates.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: IOS26Theme.spacingMd),
+        child: _emptyText(l10n.work_photo_no_templates),
+      );
+    }
+
+    return GlassContainer(
+      borderRadius: IOS26Theme.radiusLg,
+      padding: const EdgeInsets.all(IOS26Theme.spacingLg),
+      margin: const EdgeInsets.only(bottom: IOS26Theme.spacingMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final template in _templates) _buildTemplateRow(template, l10n),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateRow(WorkPhotoTemplate template, AppLocalizations l10n) {
+    final id = template.id;
+    if (id == null) return const SizedBox.shrink();
+    final selected = id == _selectedTemplateId;
+    final levelCount = _allLevels.where((e) => e.templateId == id).length;
+    final itemCount = _allItems.where((e) => e.templateId == id).length;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: IOS26Theme.spacingXs),
+      child: Row(
+        children: [
+          Expanded(
+            child: IOS26Button.plain(
+              padding: const EdgeInsets.symmetric(
+                vertical: IOS26Theme.spacingSm,
+              ),
+              onPressed: () async {
+                setState(() => _selectedTemplateId = id);
+                await _reload();
+              },
+              child: Row(
+                children: [
+                  IOS26Icon(
+                    selected
+                        ? CupertinoIcons.check_mark_circled_solid
+                        : CupertinoIcons.circle,
+                    tone: selected
+                        ? IOS26IconTone.accent
+                        : IOS26IconTone.secondary,
+                    size: 22,
+                  ),
+                  const SizedBox(width: IOS26Theme.spacingMd),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(template.name, style: IOS26Theme.titleMedium),
+                        const SizedBox(height: IOS26Theme.spacingXs),
+                        Text(
+                          l10n.work_photo_templates_summary(
+                            levelCount,
+                            itemCount,
+                          ),
+                          style: IOS26Theme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: IOS26Theme.spacingSm),
+          IOS26IconButton(
+            icon: CupertinoIcons.ellipsis,
+            semanticLabel: l10n.work_photo_config_actions,
+            onPressed: () => _showTemplateActions(template),
+            tone: IOS26IconTone.secondary,
+          ),
         ],
       ),
     );
@@ -232,6 +364,15 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
 
   Future<void> _addLevel() async {
     final l10n = AppLocalizations.of(context)!;
+    final templateId = _selectedTemplateId;
+    if (templateId == null) {
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.work_photo_template_name_title,
+        content: l10n.work_photo_no_templates_warning,
+      );
+      return;
+    }
     final name = await AppDialogs.showInput(
       context,
       title: l10n.work_photo_level_name_title,
@@ -240,6 +381,7 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
     if (name == null || name.trim().isEmpty) return;
     await _repository.createHierarchyLevel(
       WorkPhotoHierarchyLevel.create(
+        templateId: templateId,
         name: name,
         sortIndex: _levels.length,
         now: DateTime.now(),
@@ -271,6 +413,15 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
 
   Future<void> _addCaptureItem() async {
     final l10n = AppLocalizations.of(context)!;
+    final templateId = _selectedTemplateId;
+    if (templateId == null) {
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.work_photo_template_name_title,
+        content: l10n.work_photo_no_templates_warning,
+      );
+      return;
+    }
     final name = await AppDialogs.showInput(
       context,
       title: l10n.work_photo_capture_item_name_title,
@@ -279,6 +430,7 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
     if (name == null || name.trim().isEmpty) return;
     await _repository.createCaptureItem(
       WorkPhotoCaptureItem.create(
+        templateId: templateId,
         name: name,
         sortIndex: _items.length,
         minCount: 1,
@@ -308,6 +460,66 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
       await _moveLevel(level, 1);
     } else if (action == _ConfigAction.archive) {
       await _archiveLevel(level);
+    }
+  }
+
+  Future<void> _addTemplate() async {
+    final l10n = AppLocalizations.of(context)!;
+    final name = await AppDialogs.showInput(
+      context,
+      title: l10n.work_photo_template_name_title,
+      placeholder: l10n.work_photo_template_name_placeholder,
+    );
+    if (name == null || name.trim().isEmpty) return;
+    await _repository.createTemplate(
+      WorkPhotoTemplate.create(
+        name: name,
+        sortIndex: _templates.length,
+        now: DateTime.now(),
+      ),
+    );
+    await _reload();
+  }
+
+  Future<void> _showTemplateActions(WorkPhotoTemplate template) async {
+    final l10n = AppLocalizations.of(context)!;
+    final action = await AppDialogs.showActionSheet<_ConfigAction>(
+      context,
+      title: template.name,
+      actions: [
+        CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context, _ConfigAction.rename),
+          child: Text(l10n.common_rename),
+        ),
+        CupertinoActionSheetAction(
+          isDestructiveAction: true,
+          onPressed: () => Navigator.pop(context, _ConfigAction.archive),
+          child: Text(l10n.work_photo_archive),
+        ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        onPressed: () => Navigator.pop(context),
+        child: Text(l10n.common_cancel),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == _ConfigAction.rename) {
+      final name = await AppDialogs.showInput(
+        context,
+        title: l10n.work_photo_template_name_title,
+        placeholder: l10n.work_photo_template_name_placeholder,
+        defaultValue: template.name,
+      );
+      if (name == null || name.trim().isEmpty || template.id == null) return;
+      await _repository.updateTemplate(
+        template.copyWith(name: name, updatedAt: DateTime.now()),
+      );
+      await _reload();
+    } else if (action == _ConfigAction.archive && template.id != null) {
+      await _repository.updateTemplate(
+        template.copyWith(isArchived: true, updatedAt: DateTime.now()),
+      );
+      await _reload();
     }
   }
 
@@ -495,10 +707,15 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
   }
 
   Future<void> _moveLevel(WorkPhotoHierarchyLevel level, int direction) async {
-    final index = _levels.indexWhere((e) => e.id == level.id);
+    final siblings = _levels
+        .where((e) => e.templateId == level.templateId)
+        .toList();
+    final index = siblings.indexWhere((e) => e.id == level.id);
     final targetIndex = index + direction;
-    if (index < 0 || targetIndex < 0 || targetIndex >= _levels.length) return;
-    final target = _levels[targetIndex];
+    if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) {
+      return;
+    }
+    final target = siblings[targetIndex];
     final now = DateTime.now();
     await _repository.updateHierarchyLevel(
       level.copyWith(sortIndex: target.sortIndex, updatedAt: now),
@@ -534,10 +751,15 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
     WorkPhotoCaptureItem item,
     int direction,
   ) async {
-    final index = _items.indexWhere((e) => e.id == item.id);
+    final siblings = _items
+        .where((e) => e.templateId == item.templateId)
+        .toList();
+    final index = siblings.indexWhere((e) => e.id == item.id);
     final targetIndex = index + direction;
-    if (index < 0 || targetIndex < 0 || targetIndex >= _items.length) return;
-    final target = _items[targetIndex];
+    if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) {
+      return;
+    }
+    final target = siblings[targetIndex];
     final now = DateTime.now();
     await _repository.updateCaptureItem(
       item.copyWith(sortIndex: target.sortIndex, updatedAt: now),

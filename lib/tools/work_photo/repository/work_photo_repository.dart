@@ -10,6 +10,7 @@ import '../models/work_photo_project.dart';
 import '../models/work_photo_project_detail.dart';
 import '../models/work_photo_project_hierarchy_value.dart';
 import '../models/work_photo_project_item.dart';
+import '../models/work_photo_template.dart';
 
 class WorkPhotoHierarchySelection {
   final int levelId;
@@ -21,6 +22,30 @@ class WorkPhotoHierarchySelection {
   });
 }
 
+class WorkPhotoCustomHierarchyValue {
+  final String levelName;
+  final String optionName;
+
+  const WorkPhotoCustomHierarchyValue({
+    required this.levelName,
+    required this.optionName,
+  });
+}
+
+class WorkPhotoCustomCaptureItem {
+  final String name;
+  final int sortIndex;
+  final int minCount;
+  final int? maxCount;
+
+  const WorkPhotoCustomCaptureItem({
+    required this.name,
+    required this.sortIndex,
+    this.minCount = 1,
+    this.maxCount,
+  });
+}
+
 class WorkPhotoRepository {
   final Future<Database> _database;
 
@@ -29,6 +54,47 @@ class WorkPhotoRepository {
 
   WorkPhotoRepository.withDatabase(Database database)
     : _database = Future.value(database);
+
+  Future<int> createTemplate(WorkPhotoTemplate template) async {
+    final db = await _database;
+    return db.insert('work_photo_templates', template.toMap(includeId: false));
+  }
+
+  Future<WorkPhotoTemplate?> getTemplate(int id) async {
+    final db = await _database;
+    final rows = await db.query(
+      'work_photo_templates',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return WorkPhotoTemplate.fromMap(rows.single);
+  }
+
+  Future<List<WorkPhotoTemplate>> listTemplates({
+    bool includeArchived = false,
+  }) async {
+    final db = await _database;
+    final rows = await db.query(
+      'work_photo_templates',
+      where: includeArchived ? null : 'is_archived = 0',
+      orderBy: 'sort_index ASC, id ASC',
+    );
+    return rows.map(WorkPhotoTemplate.fromMap).toList();
+  }
+
+  Future<void> updateTemplate(WorkPhotoTemplate template) async {
+    final id = template.id;
+    if (id == null) throw ArgumentError('updateTemplate 需要 id');
+    final db = await _database;
+    await db.update(
+      'work_photo_templates',
+      template.toMap(includeId: false),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 
   Future<int> createHierarchyLevel(WorkPhotoHierarchyLevel level) async {
     final db = await _database;
@@ -51,13 +117,24 @@ class WorkPhotoRepository {
   }
 
   Future<List<WorkPhotoHierarchyLevel>> listHierarchyLevels({
+    int? templateId,
     bool includeArchived = false,
   }) async {
     final db = await _database;
+    final where = <String>[];
+    final args = <Object?>[];
+    if (templateId != null) {
+      where.add('template_id = ?');
+      args.add(templateId);
+    }
+    if (!includeArchived) {
+      where.add('is_archived = 0');
+    }
     final rows = await db.query(
       'work_photo_hierarchy_levels',
-      where: includeArchived ? null : 'is_archived = 0',
-      orderBy: 'sort_index ASC, id ASC',
+      where: where.isEmpty ? null : where.join(' AND '),
+      whereArgs: args.isEmpty ? null : args,
+      orderBy: 'template_id ASC, sort_index ASC, id ASC',
     );
     return rows.map(WorkPhotoHierarchyLevel.fromMap).toList();
   }
@@ -147,13 +224,24 @@ class WorkPhotoRepository {
   }
 
   Future<List<WorkPhotoCaptureItem>> listCaptureItems({
+    int? templateId,
     bool includeArchived = false,
   }) async {
     final db = await _database;
+    final where = <String>[];
+    final args = <Object?>[];
+    if (templateId != null) {
+      where.add('template_id = ?');
+      args.add(templateId);
+    }
+    if (!includeArchived) {
+      where.add('is_archived = 0');
+    }
     final rows = await db.query(
       'work_photo_capture_items',
-      where: includeArchived ? null : 'is_archived = 0',
-      orderBy: 'sort_index ASC, id ASC',
+      where: where.isEmpty ? null : where.join(' AND '),
+      whereArgs: args.isEmpty ? null : args,
+      orderBy: 'template_id ASC, sort_index ASC, id ASC',
     );
     return rows.map(WorkPhotoCaptureItem.fromMap).toList();
   }
@@ -193,10 +281,42 @@ class WorkPhotoRepository {
     required List<WorkPhotoHierarchySelection> hierarchySelections,
     DateTime? now,
   }) async {
+    final templates = await listTemplates();
+    if (templates.isEmpty || templates.first.id == null) {
+      throw StateError('请先创建外拍模板');
+    }
+    return createProjectFromTemplate(
+      name: name,
+      note: note,
+      templateId: templates.first.id!,
+      hierarchySelections: hierarchySelections,
+      now: now,
+    );
+  }
+
+  Future<int> createProjectFromTemplate({
+    required String name,
+    required String note,
+    required int templateId,
+    required List<WorkPhotoHierarchySelection> hierarchySelections,
+    DateTime? now,
+  }) async {
     final db = await _database;
     final time = now ?? DateTime.now();
     return db.transaction((txn) async {
+      final templateRows = await txn.query(
+        'work_photo_templates',
+        where: 'id = ?',
+        whereArgs: [templateId],
+        limit: 1,
+      );
+      if (templateRows.isEmpty) {
+        throw StateError('外拍模板不存在');
+      }
+      final template = WorkPhotoTemplate.fromMap(templateRows.single);
       final project = WorkPhotoProject.create(
+        templateId: templateId,
+        templateNameSnapshot: template.name,
         name: name,
         note: note,
         now: time,
@@ -208,6 +328,8 @@ class WorkPhotoRepository {
 
       final levels = await txn.query(
         'work_photo_hierarchy_levels',
+        where: 'template_id = ? AND is_archived = 0',
+        whereArgs: [templateId],
         orderBy: 'sort_index ASC, id ASC',
       );
       final selectedByLevelId = {
@@ -251,7 +373,8 @@ class WorkPhotoRepository {
 
       final itemRows = await txn.query(
         'work_photo_capture_items',
-        where: 'is_archived = 0',
+        where: 'template_id = ? AND is_archived = 0',
+        whereArgs: [templateId],
         orderBy: 'sort_index ASC, id ASC',
       );
       for (final itemRow in itemRows) {
@@ -260,6 +383,64 @@ class WorkPhotoRepository {
           'project_id': projectId,
           'source_item_id': item.id,
           'name_snapshot': item.name,
+          'sort_index': item.sortIndex,
+          'min_count': item.minCount,
+          'max_count': item.maxCount,
+        });
+      }
+
+      return projectId;
+    });
+  }
+
+  Future<int> createCustomProject({
+    required String name,
+    required String note,
+    required List<WorkPhotoCustomHierarchyValue> hierarchyValues,
+    required List<WorkPhotoCustomCaptureItem> captureItems,
+    DateTime? now,
+  }) async {
+    final db = await _database;
+    final time = now ?? DateTime.now();
+    return db.transaction((txn) async {
+      final project = WorkPhotoProject.create(
+        name: name,
+        note: note,
+        now: time,
+      );
+      final projectId = await txn.insert(
+        'work_photo_projects',
+        project.toMap(includeId: false),
+      );
+
+      for (final entry in hierarchyValues.indexed) {
+        final value = entry.$2;
+        final levelName = value.levelName.trim();
+        final optionName = value.optionName.trim();
+        if (levelName.isEmpty && optionName.isEmpty) continue;
+        await txn.insert('work_photo_project_hierarchy_values', {
+          'project_id': projectId,
+          'level_id': null,
+          'option_id': null,
+          'level_name_snapshot': levelName,
+          'option_name_snapshot': optionName,
+          'sort_index': entry.$1,
+        });
+      }
+
+      for (final item in captureItems) {
+        final itemName = item.name.trim();
+        if (itemName.isEmpty) continue;
+        if (item.minCount < 0) {
+          throw ArgumentError('minCount 不能小于 0');
+        }
+        if (item.maxCount != null && item.maxCount! < item.minCount) {
+          throw ArgumentError('maxCount 不能小于 minCount');
+        }
+        await txn.insert('work_photo_project_items', {
+          'project_id': projectId,
+          'source_item_id': null,
+          'name_snapshot': itemName,
           'sort_index': item.sortIndex,
           'min_count': item.minCount,
           'max_count': item.maxCount,
@@ -423,6 +604,9 @@ class WorkPhotoRepository {
   Future<List<Map<String, Object?>>> exportHierarchyLevels() =>
       _exportTable('work_photo_hierarchy_levels', 'id ASC');
 
+  Future<List<Map<String, Object?>>> exportTemplates() =>
+      _exportTable('work_photo_templates', 'id ASC');
+
   Future<List<Map<String, Object?>>> exportHierarchyOptions() =>
       _exportTable('work_photo_hierarchy_options', 'id ASC');
 
@@ -454,6 +638,7 @@ class WorkPhotoRepository {
   }
 
   Future<void> importFromServer({
+    required List<Map<String, dynamic>> templates,
     required List<Map<String, dynamic>> hierarchyLevels,
     required List<Map<String, dynamic>> hierarchyOptions,
     required List<Map<String, dynamic>> captureItems,
@@ -473,7 +658,9 @@ class WorkPhotoRepository {
       await txn.delete('work_photo_capture_items');
       await txn.delete('work_photo_hierarchy_options');
       await txn.delete('work_photo_hierarchy_levels');
+      await txn.delete('work_photo_templates');
 
+      await _insertRows(txn, 'work_photo_templates', templates);
       await _insertRows(txn, 'work_photo_hierarchy_levels', hierarchyLevels);
       await _insertRows(txn, 'work_photo_hierarchy_options', hierarchyOptions);
       await _insertRows(txn, 'work_photo_capture_items', captureItems);
@@ -486,7 +673,54 @@ class WorkPhotoRepository {
       );
       await _insertRows(txn, 'work_photo_project_items', projectItems);
       await _insertRows(txn, 'work_photo_assets', assets);
+
+      await _ensureImportedTemplateScope(
+        txn,
+        templatesImported: templates.isNotEmpty,
+      );
     });
+  }
+
+  static Future<void> _ensureImportedTemplateScope(
+    DatabaseExecutor txn, {
+    required bool templatesImported,
+  }) async {
+    final unscopedLevels =
+        Sqflite.firstIntValue(
+          await txn.rawQuery(
+            'SELECT COUNT(*) FROM work_photo_hierarchy_levels WHERE template_id IS NULL',
+          ),
+        ) ??
+        0;
+    final unscopedItems =
+        Sqflite.firstIntValue(
+          await txn.rawQuery(
+            'SELECT COUNT(*) FROM work_photo_capture_items WHERE template_id IS NULL',
+          ),
+        ) ??
+        0;
+    if (templatesImported || (unscopedLevels == 0 && unscopedItems == 0)) {
+      return;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final templateId = await txn.insert('work_photo_templates', {
+      'name': '默认模板',
+      'sort_index': 0,
+      'is_archived': 0,
+      'created_at': now,
+      'updated_at': now,
+    });
+    await txn.update('work_photo_hierarchy_levels', {
+      'template_id': templateId,
+    }, where: 'template_id IS NULL');
+    await txn.update('work_photo_capture_items', {
+      'template_id': templateId,
+    }, where: 'template_id IS NULL');
+    await txn.update('work_photo_projects', {
+      'template_id': templateId,
+      'template_name_snapshot': '默认模板',
+    }, where: 'template_id IS NULL');
   }
 
   static Future<void> _insertRows(

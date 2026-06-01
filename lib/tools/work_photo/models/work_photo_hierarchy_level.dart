@@ -1,5 +1,6 @@
 class WorkPhotoHierarchyLevel {
   final int? id;
+  final int? templateId;
   final String name;
   final int sortIndex;
   final bool isRequired;
@@ -9,6 +10,7 @@ class WorkPhotoHierarchyLevel {
 
   const WorkPhotoHierarchyLevel({
     required this.id,
+    required this.templateId,
     required this.name,
     required this.sortIndex,
     required this.isRequired,
@@ -18,6 +20,7 @@ class WorkPhotoHierarchyLevel {
   });
 
   factory WorkPhotoHierarchyLevel.create({
+    int? templateId,
     required String name,
     required int sortIndex,
     bool isRequired = true,
@@ -30,6 +33,7 @@ class WorkPhotoHierarchyLevel {
     final time = now ?? DateTime.now();
     return WorkPhotoHierarchyLevel(
       id: null,
+      templateId: templateId,
       name: trimmed,
       sortIndex: sortIndex,
       isRequired: isRequired,
@@ -41,6 +45,7 @@ class WorkPhotoHierarchyLevel {
 
   WorkPhotoHierarchyLevel copyWith({
     int? id,
+    int? templateId,
     String? name,
     int? sortIndex,
     bool? isRequired,
@@ -50,6 +55,7 @@ class WorkPhotoHierarchyLevel {
   }) {
     return WorkPhotoHierarchyLevel(
       id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
       name: name ?? this.name,
       sortIndex: sortIndex ?? this.sortIndex,
       isRequired: isRequired ?? this.isRequired,
@@ -62,6 +68,7 @@ class WorkPhotoHierarchyLevel {
   Map<String, Object?> toMap({bool includeId = true}) {
     return {
       if (includeId) 'id': id,
+      'template_id': templateId,
       'name': name.trim(),
       'sort_index': sortIndex,
       'is_required': isRequired ? 1 : 0,
@@ -74,6 +81,7 @@ class WorkPhotoHierarchyLevel {
   static WorkPhotoHierarchyLevel fromMap(Map<String, Object?> map) {
     return WorkPhotoHierarchyLevel(
       id: map['id'] as int?,
+      templateId: (map['template_id'] as num?)?.toInt(),
       name: map['name'] as String? ?? '',
       sortIndex: (map['sort_index'] as num?)?.toInt() ?? 0,
       isRequired: ((map['is_required'] as num?)?.toInt() ?? 1) == 1,

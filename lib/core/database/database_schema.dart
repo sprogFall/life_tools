@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 20;
+  static const int version = 21;
   static const int _maxOperationLogRecords = 10;
 
   static Future<void> onConfigure(Database db) async {
@@ -95,6 +95,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 20) {
       await _upgradeToVersion20(db);
+    }
+    if (oldVersion < 21) {
+      await _upgradeToVersion21(db);
     }
   }
 
@@ -989,6 +992,14 @@ WHERE tool_id = ? AND category_id = ?
     await _createWorkPhotoTables(db);
   }
 
+  static Future<void> _upgradeToVersion21(Database db) async {
+    // v21: 外拍配置改为模板化，旧的全局层级/拍摄项迁到默认模板。
+    await _createWorkPhotoTemplateTable(db);
+    await _ensureWorkPhotoTemplateColumns(db);
+    await _ensureWorkPhotoIndexes(db);
+    await _migrateWorkPhotoGlobalConfigToDefaultTemplate(db);
+  }
+
   static Future<void> _createXiaoMiTables(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS xiao_mi_conversations (
@@ -1017,15 +1028,19 @@ WHERE tool_id = ? AND category_id = ?
   }
 
   static Future<void> _createWorkPhotoTables(DatabaseExecutor db) async {
+    await _createWorkPhotoTemplateTable(db);
+
     await db.execute('''
       CREATE TABLE IF NOT EXISTS work_photo_hierarchy_levels (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        template_id INTEGER,
         name TEXT NOT NULL,
         sort_index INTEGER NOT NULL DEFAULT 0,
         is_required INTEGER NOT NULL DEFAULT 1,
         is_archived INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE CASCADE
       )
     ''');
 
@@ -1047,13 +1062,15 @@ WHERE tool_id = ? AND category_id = ?
     await db.execute('''
       CREATE TABLE IF NOT EXISTS work_photo_capture_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        template_id INTEGER,
         name TEXT NOT NULL,
         sort_index INTEGER NOT NULL DEFAULT 0,
         min_count INTEGER NOT NULL DEFAULT 1,
         max_count INTEGER,
         is_archived INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE CASCADE
       )
     ''');
 
@@ -1072,11 +1089,14 @@ WHERE tool_id = ? AND category_id = ?
     await db.execute('''
       CREATE TABLE IF NOT EXISTS work_photo_projects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        template_id INTEGER,
+        template_name_snapshot TEXT NOT NULL DEFAULT '',
         name TEXT NOT NULL,
         status INTEGER NOT NULL DEFAULT 0,
         note TEXT NOT NULL DEFAULT '',
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE SET NULL
       )
     ''');
 
@@ -1128,14 +1148,34 @@ WHERE tool_id = ? AND category_id = ?
       )
     ''');
 
+    await _ensureWorkPhotoIndexes(db);
+  }
+
+  static Future<void> _createWorkPhotoTemplateTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sort_index INTEGER NOT NULL DEFAULT 0,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  static Future<void> _ensureWorkPhotoIndexes(DatabaseExecutor db) async {
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_levels_sort ON work_photo_hierarchy_levels(sort_index ASC, id ASC)',
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_templates_sort ON work_photo_templates(sort_index ASC, id ASC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_levels_template_sort ON work_photo_hierarchy_levels(template_id, sort_index ASC, id ASC)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_options_level_parent_sort ON work_photo_hierarchy_options(level_id, parent_option_id, sort_index ASC, id ASC)',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_work_photo_capture_items_sort ON work_photo_capture_items(sort_index ASC, id ASC)',
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_capture_items_template_sort ON work_photo_capture_items(template_id, sort_index ASC, id ASC)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_projects_updated_at ON work_photo_projects(updated_at DESC, id DESC)',
@@ -1155,6 +1195,84 @@ WHERE tool_id = ? AND category_id = ?
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_assets_taken_at ON work_photo_assets(taken_at DESC, id DESC)',
     );
+  }
+
+  static Future<void> _ensureWorkPhotoTemplateColumns(Database db) async {
+    Future<Set<String>> columnNames(String table) async {
+      final rows = await db.rawQuery('PRAGMA table_info($table)');
+      return rows.map((e) => e['name']).whereType<String>().toSet();
+    }
+
+    final levelColumns = await columnNames('work_photo_hierarchy_levels');
+    if (!levelColumns.contains('template_id')) {
+      await db.execute(
+        'ALTER TABLE work_photo_hierarchy_levels ADD COLUMN template_id INTEGER',
+      );
+    }
+
+    final itemColumns = await columnNames('work_photo_capture_items');
+    if (!itemColumns.contains('template_id')) {
+      await db.execute(
+        'ALTER TABLE work_photo_capture_items ADD COLUMN template_id INTEGER',
+      );
+    }
+
+    final projectColumns = await columnNames('work_photo_projects');
+    if (!projectColumns.contains('template_id')) {
+      await db.execute(
+        'ALTER TABLE work_photo_projects ADD COLUMN template_id INTEGER',
+      );
+    }
+    if (!projectColumns.contains('template_name_snapshot')) {
+      await db.execute(
+        "ALTER TABLE work_photo_projects ADD COLUMN template_name_snapshot TEXT NOT NULL DEFAULT ''",
+      );
+    }
+  }
+
+  static Future<void> _migrateWorkPhotoGlobalConfigToDefaultTemplate(
+    Database db,
+  ) async {
+    final levelCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM work_photo_hierarchy_levels WHERE template_id IS NULL',
+          ),
+        ) ??
+        0;
+    final itemCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM work_photo_capture_items WHERE template_id IS NULL',
+          ),
+        ) ??
+        0;
+    if (levelCount == 0 && itemCount == 0) return;
+
+    var templateId = Sqflite.firstIntValue(
+      await db.rawQuery(
+        "SELECT id FROM work_photo_templates WHERE name = '默认模板' ORDER BY id ASC LIMIT 1",
+      ),
+    );
+    final now = DateTime.now().millisecondsSinceEpoch;
+    templateId ??= await db.insert('work_photo_templates', {
+      'name': '默认模板',
+      'sort_index': 0,
+      'is_archived': 0,
+      'created_at': now,
+      'updated_at': now,
+    });
+
+    await db.update('work_photo_hierarchy_levels', {
+      'template_id': templateId,
+    }, where: 'template_id IS NULL');
+    await db.update('work_photo_capture_items', {
+      'template_id': templateId,
+    }, where: 'template_id IS NULL');
+    await db.update('work_photo_projects', {
+      'template_id': templateId,
+      'template_name_snapshot': '默认模板',
+    }, where: 'template_id IS NULL');
   }
 
   static Future<void> _trimOperationLogs(DatabaseExecutor db) async {

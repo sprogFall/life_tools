@@ -678,5 +678,33 @@
   "work_photo_count_input_placeholder": "Leave max blank for unlimited, e.g. 1/5",
   "work_photo_invalid_count": "Invalid count format. Enter min/max, e.g. 1/5.",
   "work_photo_no_capture_items_warning": "Add capture items in Field Photo Config before creating a project.",
+  "work_photo_templates_section": "Templates",
+  "work_photo_no_templates": "No templates yet. Add a template first.",
+  "work_photo_add_template": "Add template",
+  "work_photo_template_name_title": "Template name",
+  "work_photo_template_name_placeholder": "e.g. Store capture template",
+  "work_photo_templates_levels_suffix": "levels",
+  "work_photo_templates_items_suffix": "items",
+  "work_photo_templates_summary": "{levels} levels · {items} items",
+  "@work_photo_templates_summary": {
+    "placeholders": {
+      "levels": { "type": "int" },
+      "items": { "type": "int" }
+    }
+  },
+  "work_photo_project_mode_title": "Creation mode",
+  "work_photo_project_mode_template": "From template",
+  "work_photo_project_mode_custom": "Custom",
+  "work_photo_project_mode_template_hint": "Create a project from the template hierarchy and capture items. Later template edits will not change the project.",
+  "work_photo_project_mode_custom_hint": "Configure hierarchy and capture items only for this project without saving them to a template.",
+  "work_photo_project_template_label": "Project template",
+  "work_photo_no_templates_warning": "Add a template first, or switch to custom creation.",
+  "work_photo_no_custom_hierarchy": "No custom hierarchy yet. Add one if needed.",
+  "work_photo_no_custom_capture_items": "No custom capture items yet. Add at least one.",
+  "work_photo_no_custom_capture_items_warning": "A custom project needs at least one capture item.",
+  "work_photo_custom_hierarchy_title": "Custom hierarchy",
+  "work_photo_custom_hierarchy_placeholder": "Enter \"Level/Option\", e.g. Zone/East",
+  "work_photo_custom_level_default": "Level",
+  "work_photo_custom_capture_item_placeholder": "Enter \"Item/Min/Max\", e.g. Sign/1/3",
   "work_photo_export_saved_and_shared": "ZIP saved and share sheet opened."
 }

@@ -2431,6 +2431,138 @@ abstract class AppLocalizations {
   /// **'Add capture items in Field Photo Config before creating a project.'**
   String get work_photo_no_capture_items_warning;
 
+  /// No description provided for @work_photo_templates_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get work_photo_templates_section;
+
+  /// No description provided for @work_photo_no_templates.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates yet. Add a template first.'**
+  String get work_photo_no_templates;
+
+  /// No description provided for @work_photo_add_template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add template'**
+  String get work_photo_add_template;
+
+  /// No description provided for @work_photo_template_name_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get work_photo_template_name_title;
+
+  /// No description provided for @work_photo_template_name_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Store capture template'**
+  String get work_photo_template_name_placeholder;
+
+  /// No description provided for @work_photo_templates_levels_suffix.
+  ///
+  /// In en, this message translates to:
+  /// **'levels'**
+  String get work_photo_templates_levels_suffix;
+
+  /// No description provided for @work_photo_templates_items_suffix.
+  ///
+  /// In en, this message translates to:
+  /// **'items'**
+  String get work_photo_templates_items_suffix;
+
+  /// No description provided for @work_photo_templates_summary.
+  ///
+  /// In en, this message translates to:
+  /// **'{levels} levels · {items} items'**
+  String work_photo_templates_summary(int levels, int items);
+
+  /// No description provided for @work_photo_project_mode_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Creation mode'**
+  String get work_photo_project_mode_title;
+
+  /// No description provided for @work_photo_project_mode_template.
+  ///
+  /// In en, this message translates to:
+  /// **'From template'**
+  String get work_photo_project_mode_template;
+
+  /// No description provided for @work_photo_project_mode_custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get work_photo_project_mode_custom;
+
+  /// No description provided for @work_photo_project_mode_template_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a project from the template hierarchy and capture items. Later template edits will not change the project.'**
+  String get work_photo_project_mode_template_hint;
+
+  /// No description provided for @work_photo_project_mode_custom_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure hierarchy and capture items only for this project without saving them to a template.'**
+  String get work_photo_project_mode_custom_hint;
+
+  /// No description provided for @work_photo_project_template_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Project template'**
+  String get work_photo_project_template_label;
+
+  /// No description provided for @work_photo_no_templates_warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a template first, or switch to custom creation.'**
+  String get work_photo_no_templates_warning;
+
+  /// No description provided for @work_photo_no_custom_hierarchy.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom hierarchy yet. Add one if needed.'**
+  String get work_photo_no_custom_hierarchy;
+
+  /// No description provided for @work_photo_no_custom_capture_items.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom capture items yet. Add at least one.'**
+  String get work_photo_no_custom_capture_items;
+
+  /// No description provided for @work_photo_no_custom_capture_items_warning.
+  ///
+  /// In en, this message translates to:
+  /// **'A custom project needs at least one capture item.'**
+  String get work_photo_no_custom_capture_items_warning;
+
+  /// No description provided for @work_photo_custom_hierarchy_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom hierarchy'**
+  String get work_photo_custom_hierarchy_title;
+
+  /// No description provided for @work_photo_custom_hierarchy_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter \"Level/Option\", e.g. Zone/East'**
+  String get work_photo_custom_hierarchy_placeholder;
+
+  /// No description provided for @work_photo_custom_level_default.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get work_photo_custom_level_default;
+
+  /// No description provided for @work_photo_custom_capture_item_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter \"Item/Min/Max\", e.g. Sign/1/3'**
+  String get work_photo_custom_capture_item_placeholder;
+
   /// No description provided for @work_photo_export_saved_and_shared.
   ///
   /// In en, this message translates to:

@@ -1297,6 +1297,76 @@ class AppLocalizationsZh extends AppLocalizations {
   String get work_photo_no_capture_items_warning => '请先在外拍配置中新增拍摄项，再创建项目。';
 
   @override
+  String get work_photo_templates_section => '模板';
+
+  @override
+  String get work_photo_no_templates => '暂无模板，请先新增一个模板。';
+
+  @override
+  String get work_photo_add_template => '新增模板';
+
+  @override
+  String get work_photo_template_name_title => '模板名称';
+
+  @override
+  String get work_photo_template_name_placeholder => '如：门店巡拍模板';
+
+  @override
+  String get work_photo_templates_levels_suffix => '层级';
+
+  @override
+  String get work_photo_templates_items_suffix => '拍摄项';
+
+  @override
+  String work_photo_templates_summary(int levels, int items) {
+    return '$levels 个层级 · $items 个拍摄项';
+  }
+
+  @override
+  String get work_photo_project_mode_title => '创建方式';
+
+  @override
+  String get work_photo_project_mode_template => '从模板';
+
+  @override
+  String get work_photo_project_mode_custom => '全自定义';
+
+  @override
+  String get work_photo_project_mode_template_hint =>
+      '使用模板中的层级和拍摄项创建项目，后续修改模板不影响已创建项目。';
+
+  @override
+  String get work_photo_project_mode_custom_hint => '只为当前项目配置层级和拍摄项，不写入模板。';
+
+  @override
+  String get work_photo_project_template_label => '项目模板';
+
+  @override
+  String get work_photo_no_templates_warning => '请先新增模板，或切换为全自定义创建。';
+
+  @override
+  String get work_photo_no_custom_hierarchy => '暂无自定义层级，可按需添加。';
+
+  @override
+  String get work_photo_no_custom_capture_items => '暂无自定义拍摄项，请至少添加一个。';
+
+  @override
+  String get work_photo_no_custom_capture_items_warning => '全自定义项目至少需要一个拍摄项。';
+
+  @override
+  String get work_photo_custom_hierarchy_title => '自定义层级';
+
+  @override
+  String get work_photo_custom_hierarchy_placeholder => '输入“层级/选项”，如：商圈/东区';
+
+  @override
+  String get work_photo_custom_level_default => '层级';
+
+  @override
+  String get work_photo_custom_capture_item_placeholder =>
+      '输入“拍摄项/最少/最多”，如：门头/1/3';
+
+  @override
   String get work_photo_export_saved_and_shared => 'ZIP 已保存并调起分享。';
 }
 
@@ -2591,6 +2661,76 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get work_photo_no_capture_items_warning => '请先在外拍配置中新增拍摄项，再创建项目。';
+
+  @override
+  String get work_photo_templates_section => '模板';
+
+  @override
+  String get work_photo_no_templates => '暂无模板，请先新增一个模板。';
+
+  @override
+  String get work_photo_add_template => '新增模板';
+
+  @override
+  String get work_photo_template_name_title => '模板名称';
+
+  @override
+  String get work_photo_template_name_placeholder => '如：门店巡拍模板';
+
+  @override
+  String get work_photo_templates_levels_suffix => '层级';
+
+  @override
+  String get work_photo_templates_items_suffix => '拍摄项';
+
+  @override
+  String work_photo_templates_summary(int levels, int items) {
+    return '$levels 个层级 · $items 个拍摄项';
+  }
+
+  @override
+  String get work_photo_project_mode_title => '创建方式';
+
+  @override
+  String get work_photo_project_mode_template => '从模板';
+
+  @override
+  String get work_photo_project_mode_custom => '全自定义';
+
+  @override
+  String get work_photo_project_mode_template_hint =>
+      '使用模板中的层级和拍摄项创建项目，后续修改模板不影响已创建项目。';
+
+  @override
+  String get work_photo_project_mode_custom_hint => '只为当前项目配置层级和拍摄项，不写入模板。';
+
+  @override
+  String get work_photo_project_template_label => '项目模板';
+
+  @override
+  String get work_photo_no_templates_warning => '请先新增模板，或切换为全自定义创建。';
+
+  @override
+  String get work_photo_no_custom_hierarchy => '暂无自定义层级，可按需添加。';
+
+  @override
+  String get work_photo_no_custom_capture_items => '暂无自定义拍摄项，请至少添加一个。';
+
+  @override
+  String get work_photo_no_custom_capture_items_warning => '全自定义项目至少需要一个拍摄项。';
+
+  @override
+  String get work_photo_custom_hierarchy_title => '自定义层级';
+
+  @override
+  String get work_photo_custom_hierarchy_placeholder => '输入“层级/选项”，如：商圈/东区';
+
+  @override
+  String get work_photo_custom_level_default => '层级';
+
+  @override
+  String get work_photo_custom_capture_item_placeholder =>
+      '输入“拍摄项/最少/最多”，如：门头/1/3';
 
   @override
   String get work_photo_export_saved_and_shared => 'ZIP 已保存并调起分享。';
