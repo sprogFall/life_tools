@@ -216,10 +216,7 @@ void main() {
       final archive = ZipDecoder().decodeBytes(result.bytes);
       final names = archive.files.map((e) => e.name).toList();
 
-      expect(
-        names,
-        contains('项目树/门店/入口/门头/20260601_143000_门头_001.jpg'),
-      );
+      expect(names, contains('项目树/门店/入口/门头/20260601_143000_门头_001.jpg'));
       expect(names, contains('项目树/总览/20260601_143000_总览_001.jpg'));
     });
   });

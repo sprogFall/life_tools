@@ -1003,6 +1003,7 @@ WHERE tool_id = ? AND category_id = ?
     await _createWorkPhotoTemplateTable(db);
     await _ensureWorkPhotoTemplateColumns(db);
     await _ensureWorkPhotoTreeColumns(db);
+    await _ensureWorkPhotoProjectItemTreeColumns(db);
     await _ensureWorkPhotoIndexes(db);
     await _migrateWorkPhotoGlobalConfigToDefaultTemplate(db);
   }
@@ -1010,6 +1011,7 @@ WHERE tool_id = ? AND category_id = ?
   static Future<void> _upgradeToVersion22(Database db) async {
     // v22: 外拍模板配置支持层级树，拍摄项可挂在模板根节点或任意层级下。
     await _ensureWorkPhotoTreeColumns(db);
+    await _ensureWorkPhotoProjectItemTreeColumns(db);
     await _ensureWorkPhotoIndexes(db);
   }
 
@@ -1280,8 +1282,12 @@ WHERE tool_id = ? AND category_id = ?
     }
   }
 
-  static Future<void> _ensureWorkPhotoProjectItemTreeColumns(Database db) async {
-    final rows = await db.rawQuery('PRAGMA table_info(work_photo_project_items)');
+  static Future<void> _ensureWorkPhotoProjectItemTreeColumns(
+    Database db,
+  ) async {
+    final rows = await db.rawQuery(
+      'PRAGMA table_info(work_photo_project_items)',
+    );
     final names = rows.map((e) => e['name']).whereType<String>().toSet();
     if (!names.contains('hierarchy_path_snapshot')) {
       await db.execute(

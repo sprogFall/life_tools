@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -17,9 +19,17 @@ class WorkPhotoStoredFile {
 
 class WorkPhotoMediaStore {
   final Directory? _baseDirectory;
+  final Future<Directory> Function()? _visibleGalleryRootDirectoryProvider;
+  final WorkPhotoMediaIndexer _mediaIndexer;
 
-  WorkPhotoMediaStore({Directory? baseDirectory})
-    : _baseDirectory = baseDirectory;
+  WorkPhotoMediaStore({
+    Directory? baseDirectory,
+    Future<Directory> Function()? visibleGalleryRootDirectoryProvider,
+    WorkPhotoMediaIndexer? mediaIndexer,
+  }) : _baseDirectory = baseDirectory,
+       _visibleGalleryRootDirectoryProvider =
+           visibleGalleryRootDirectoryProvider,
+       _mediaIndexer = mediaIndexer ?? const WorkPhotoMediaChannelIndexer();
 
   Future<Directory> get rootDirectory async {
     final injected = _baseDirectory;
@@ -27,11 +37,17 @@ class WorkPhotoMediaStore {
       await injected.create(recursive: true);
       return injected;
     }
-    final documents = await getApplicationDocumentsDirectory();
+    final galleryRoot =
+        await (_visibleGalleryRootDirectoryProvider?.call() ??
+            WorkPhotoMediaDirectories.visibleGalleryRootDirectory());
     final root = Directory(
-      p.join(documents.path, WorkPhotoConstants.mediaRootFolder),
+      p.join(galleryRoot.path, WorkPhotoConstants.mediaRootFolder),
     );
-    await root.create(recursive: true);
+    try {
+      await root.create(recursive: true);
+    } on FileSystemException {
+      if (!Platform.isAndroid) rethrow;
+    }
     return root;
   }
 
@@ -50,31 +66,54 @@ class WorkPhotoMediaStore {
   }) async {
     final root = await rootDirectory;
     final time = now ?? DateTime.now();
+    final usePlatformGallery = _baseDirectory == null && Platform.isAndroid;
     final photosDir = Directory(
       p.join(root.path, WorkPhotoConstants.photosFolder, '$projectId'),
     );
-    await photosDir.create(recursive: true);
+    if (!usePlatformGallery) {
+      await photosDir.create(recursive: true);
+    }
 
     final originalName = sourceFile.uri.pathSegments.isEmpty
         ? 'photo'
         : p.basenameWithoutExtension(sourceFile.path);
     final safeName = _sanitizeFileNameStem(originalName);
     final fileName = '${time.microsecondsSinceEpoch}_$safeName.jpg';
+    final relativePath = p
+        .join(WorkPhotoConstants.photosFolder, '$projectId', fileName)
+        .replaceAll(p.separator, '/');
     final target = File(p.join(photosDir.path, fileName));
-    await sourceFile.copy(target.path);
-    final size = await target.length();
-    return WorkPhotoStoredFile(
-      relativePath: p
-          .join(WorkPhotoConstants.photosFolder, '$projectId', fileName)
-          .replaceAll(p.separator, '/'),
-      fileSize: size,
-    );
+
+    final platformPath = usePlatformGallery
+        ? await _mediaIndexer.saveImage(
+            sourcePath: sourceFile.path,
+            albumRelativePath: p
+                .join(
+                  WorkPhotoConstants.mediaRootFolder,
+                  WorkPhotoConstants.photosFolder,
+                  '$projectId',
+                )
+                .replaceAll(p.separator, '/'),
+            displayName: fileName,
+          )
+        : null;
+    final storedFile = platformPath == null ? target : File(platformPath);
+    if (platformPath == null) {
+      await sourceFile.copy(target.path);
+      await _mediaIndexer.scanFile(target.path);
+    }
+    final size = await storedFile.exists()
+        ? await storedFile.length()
+        : await sourceFile.length();
+    return WorkPhotoStoredFile(relativePath: relativePath, fileSize: size);
   }
 
   Future<void> deleteStoredFile(String relativePath) async {
     final file = await resolveStoredFile(relativePath);
-    if (await file.exists()) {
+    final mediaStoreDeleted = await _mediaIndexer.deleteFile(file.path);
+    if (!mediaStoreDeleted && await file.exists()) {
       await file.delete();
+      await _mediaIndexer.scanFile(file.path);
     }
   }
 
@@ -119,5 +158,87 @@ class WorkPhotoMediaStore {
       value = value.substring(0, value.length - 1);
     }
     return value.isEmpty ? 'photo' : value;
+  }
+}
+
+abstract class WorkPhotoMediaIndexer {
+  Future<String?> saveImage({
+    required String sourcePath,
+    required String albumRelativePath,
+    required String displayName,
+  });
+
+  Future<void> scanFile(String path);
+
+  Future<bool> deleteFile(String path);
+}
+
+class WorkPhotoMediaChannelIndexer implements WorkPhotoMediaIndexer {
+  static const MethodChannel _channel = MethodChannel('life_tools/media_store');
+
+  const WorkPhotoMediaChannelIndexer();
+
+  @override
+  Future<String?> saveImage({
+    required String sourcePath,
+    required String albumRelativePath,
+    required String displayName,
+  }) async {
+    try {
+      return await _channel.invokeMethod<String>('saveImage', {
+        'sourcePath': sourcePath,
+        'albumRelativePath': albumRelativePath,
+        'displayName': displayName,
+      });
+    } on FlutterError {
+      return null;
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> scanFile(String path) async {
+    await _invokeSafely('scanFile', path);
+  }
+
+  @override
+  Future<bool> deleteFile(String path) async {
+    try {
+      return await _channel.invokeMethod<bool>('deleteFile', {'path': path}) ??
+          false;
+    } on FlutterError {
+      return false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  static Future<void> _invokeSafely(String method, String path) async {
+    try {
+      await _channel.invokeMethod<void>(method, {'path': path});
+    } on FlutterError {
+      // 纯 Dart 测试未初始化 ServicesBinding 时安全降级。
+    } on MissingPluginException {
+      // 单元测试、桌面平台或旧包未注册通道时，不影响应用内文件管理。
+    } on PlatformException {
+      // 媒体库索引失败不应阻断拍照保存/删除本地文件。
+    }
+  }
+}
+
+class WorkPhotoMediaDirectories {
+  WorkPhotoMediaDirectories._();
+
+  static Future<Directory> visibleGalleryRootDirectory() async {
+    if (Platform.isAndroid) {
+      return Directory('/storage/emulated/0/Pictures');
+    }
+    final documents = await getApplicationDocumentsDirectory();
+    return documents;
   }
 }

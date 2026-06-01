@@ -6,6 +6,7 @@ import 'package:file_saver/file_saver.dart';
 
 import '../models/work_photo_asset.dart';
 import '../models/work_photo_project_detail.dart';
+import '../models/work_photo_project_item.dart';
 import '../repository/work_photo_repository.dart';
 import 'work_photo_media_store.dart';
 
@@ -118,12 +119,18 @@ class WorkPhotoExportService {
 
       final item = itemById[asset.projectItemId];
       final itemName = sanitizePathSegment(item?.nameSnapshot ?? '未命名');
+      final itemHierarchySegments = await _itemHierarchySegments(item);
       final index = itemAssetIndex.update(
         asset.projectItemId,
         (value) => value + 1,
         ifAbsent: () => 1,
       );
-      final baseSegments = <String>[projectName, ...levelSegments, itemName];
+      final baseSegments = <String>[
+        projectName,
+        ...levelSegments,
+        ...itemHierarchySegments,
+        itemName,
+      ];
       final fileName =
           '${_formatDateTime(asset.takenAt)}_${itemName}_${index.toString().padLeft(3, '0')}.jpg';
       final zipPath = _dedupePath(
@@ -133,6 +140,30 @@ class WorkPhotoExportService {
       final bytes = await file.readAsBytes();
       archive.addFile(ArchiveFile(zipPath, bytes.length, bytes));
     }
+  }
+
+  Future<List<String>> _itemHierarchySegments(
+    WorkPhotoProjectItem? item,
+  ) async {
+    final snapshot = item?.hierarchyPathSnapshot ?? const <String>[];
+    if (snapshot.isNotEmpty) {
+      return _sanitizePathSegments(snapshot);
+    }
+    final sourceItemId = item?.sourceItemId;
+    if (sourceItemId == null) return const [];
+    final fallback = await _repository.resolveCaptureItemHierarchyPath(
+      sourceItemId,
+    );
+    return _sanitizePathSegments(fallback);
+  }
+
+  static List<String> _sanitizePathSegments(Iterable<String> segments) {
+    return segments
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .map(sanitizePathSegment)
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
   }
 
   static String sanitizePathSegment(String raw) {

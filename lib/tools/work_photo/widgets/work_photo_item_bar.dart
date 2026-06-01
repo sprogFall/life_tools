@@ -10,6 +10,8 @@ class WorkPhotoItemBar extends StatelessWidget {
   final Map<int, List<WorkPhotoAsset>> assetsByItemId;
   final int? selectedItemId;
   final ValueChanged<WorkPhotoProjectItem> onSelected;
+  final Map<int, GlobalKey>? itemKeys;
+  final ScrollController? controller;
 
   const WorkPhotoItemBar({
     super.key,
@@ -17,6 +19,8 @@ class WorkPhotoItemBar extends StatelessWidget {
     required this.assetsByItemId,
     required this.selectedItemId,
     required this.onSelected,
+    this.itemKeys,
+    this.controller,
   });
 
   @override
@@ -24,6 +28,7 @@ class WorkPhotoItemBar extends StatelessWidget {
     return SizedBox(
       height: 96,
       child: ListView.separated(
+        controller: controller,
         padding: const EdgeInsets.symmetric(
           horizontal: IOS26Theme.spacingLg,
           vertical: IOS26Theme.spacingMd,
@@ -39,6 +44,7 @@ class WorkPhotoItemBar extends StatelessWidget {
               : (assetsByItemId[itemId]?.length ?? 0);
           final selected = itemId != null && itemId == selectedItemId;
           return _WorkPhotoItemChip(
+            key: itemId == null ? null : itemKeys?[itemId],
             item: item,
             count: count,
             selected: selected,
@@ -57,6 +63,7 @@ class _WorkPhotoItemChip extends StatelessWidget {
   final VoidCallback onPressed;
 
   const _WorkPhotoItemChip({
+    super.key,
     required this.item,
     required this.count,
     required this.selected,
@@ -98,19 +105,28 @@ class _WorkPhotoItemChip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: IOS26Theme.titleSmall.copyWith(color: colors.foreground),
               ),
-              const SizedBox(height: IOS26Theme.spacingXs),
-              Text(
-                '${l10n.work_photo_photo_count(count)} / ${item.minCount}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: IOS26Theme.bodySmall.copyWith(color: colors.foreground),
-              ),
-              const SizedBox(height: IOS26Theme.spacingXs),
-              Text(
-                done ? l10n.work_photo_done_item : l10n.work_photo_missing_item,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: IOS26Theme.bodySmall.copyWith(color: colors.foreground),
+              const Spacer(),
+              Row(
+                children: [
+                  Icon(
+                    done
+                        ? CupertinoIcons.check_mark_circled_solid
+                        : CupertinoIcons.circle,
+                    size: 15,
+                    color: colors.foreground,
+                  ),
+                  const SizedBox(width: IOS26Theme.spacingXs),
+                  Expanded(
+                    child: Text(
+                      '${l10n.work_photo_photo_count(count)} / ${item.minCount}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: IOS26Theme.bodySmall.copyWith(
+                        color: colors.foreground,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

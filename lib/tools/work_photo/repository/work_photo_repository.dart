@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/database/database_helper.dart';
@@ -438,12 +440,19 @@ class WorkPhotoRepository
         levels: itemLevels,
         items: templateItems,
       );
+      final itemHierarchyPaths = _buildItemHierarchyPaths(
+        levels: itemLevels,
+        items: templateItems,
+      );
       for (final entry in orderedItems.indexed) {
         final item = entry.$2;
         await txn.insert('work_photo_project_items', {
           'project_id': projectId,
           'source_item_id': item.id,
           'name_snapshot': item.name,
+          'hierarchy_path_snapshot': jsonEncode(
+            itemHierarchyPaths[item.id] ?? const <String>[],
+          ),
           'sort_index': entry.$1,
           'min_count': item.minCount,
           'max_count': item.maxCount,
@@ -502,6 +511,7 @@ class WorkPhotoRepository
           'project_id': projectId,
           'source_item_id': null,
           'name_snapshot': itemName,
+          'hierarchy_path_snapshot': '[]',
           'sort_index': item.sortIndex,
           'min_count': item.minCount,
           'max_count': item.maxCount,
@@ -690,6 +700,19 @@ class WorkPhotoRepository
   Future<List<Map<String, Object?>>> exportAssets() =>
       _exportTable('work_photo_assets', 'id ASC');
 
+  Future<List<String>> resolveCaptureItemHierarchyPath(int sourceItemId) async {
+    final item = await getCaptureItem(sourceItemId);
+    if (item == null) return const [];
+    final templateId = item.templateId;
+    if (templateId == null) return const [];
+    final levels = await listHierarchyLevels(
+      templateId: templateId,
+      includeArchived: true,
+    );
+    final paths = _buildItemHierarchyPaths(levels: levels, items: [item]);
+    return paths[item.id] ?? const [];
+  }
+
   Future<List<Map<String, Object?>>> _exportTable(
     String table,
     String orderBy,
@@ -852,6 +875,38 @@ class WorkPhotoRepository
           ..sort((a, b) => _compareSort(a.sortIndex, a.id, b.sortIndex, b.id));
     result.addAll(orphanItems);
     return result;
+  }
+
+  static Map<int, List<String>> _buildItemHierarchyPaths({
+    required List<WorkPhotoHierarchyLevel> levels,
+    required List<WorkPhotoCaptureItem> items,
+  }) {
+    final levelById = <int, WorkPhotoHierarchyLevel>{
+      for (final level in levels)
+        if (level.id != null) level.id!: level,
+    };
+    final cache = <int, List<String>>{};
+
+    List<String> pathForLevel(int? levelId, Set<int> visiting) {
+      if (levelId == null) return const [];
+      final cached = cache[levelId];
+      if (cached != null) return cached;
+      if (!visiting.add(levelId)) return const [];
+      final level = levelById[levelId];
+      if (level == null) return const [];
+      final parentPath = pathForLevel(level.parentLevelId, visiting);
+      visiting.remove(levelId);
+      final name = level.name.trim();
+      final result = [...parentPath, if (name.isNotEmpty) name];
+      cache[levelId] = result;
+      return result;
+    }
+
+    return {
+      for (final item in items)
+        if (item.id != null)
+          item.id!: pathForLevel(item.parentLevelId, <int>{}),
+    };
   }
 
   static int _compareSort(int aSort, int? aId, int bSort, int? bId) {

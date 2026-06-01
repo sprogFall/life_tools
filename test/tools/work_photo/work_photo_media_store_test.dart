@@ -106,8 +106,20 @@ class _FakeMediaIndexer implements WorkPhotoMediaIndexer {
   const _FakeMediaIndexer({required this.onScan, required this.onDelete});
 
   @override
+  Future<String?> saveImage({
+    required String sourcePath,
+    required String albumRelativePath,
+    required String displayName,
+  }) async {
+    return null;
+  }
+
+  @override
   Future<void> scanFile(String path) async => onScan(path);
 
   @override
-  Future<void> deleteFile(String path) async => onDelete(path);
+  Future<bool> deleteFile(String path) async {
+    onDelete(path);
+    return false;
+  }
 }

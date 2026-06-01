@@ -42,6 +42,8 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
   String? _error;
   WorkPhotoProjectDetail? _detail;
   int? _selectedItemId;
+  final Map<int, GlobalKey> _itemKeys = {};
+  final ScrollController _itemScrollController = ScrollController();
 
   @override
   void initState() {
@@ -55,6 +57,7 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
 
   @override
   void dispose() {
+    _itemScrollController.dispose();
     if (_ownsCameraService) {
       _cameraService.dispose();
     }
@@ -89,6 +92,7 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
         _selectedItemId = _pickInitialItem(detail);
         _loading = false;
       });
+      _scrollSelectedItemIntoView();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -152,6 +156,7 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
 
   Widget _buildCamera(AppLocalizations l10n) {
     final detail = _detail!;
+    final selectedItem = _selectedItem(detail);
     return Stack(
       children: [
         Positioned.fill(
@@ -173,7 +178,7 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
           right: 0,
           top: 0,
           child: IOS26AppBar(
-            title: detail.project.name,
+            title: selectedItem?.nameSnapshot ?? detail.project.name,
             showBackButton: true,
             useSafeArea: false,
             actions: [
@@ -219,7 +224,9 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
             items: detail.items,
             assetsByItemId: detail.assetsByItemId,
             selectedItemId: _selectedItemId,
-            onSelected: (item) => setState(() => _selectedItemId = item.id),
+            itemKeys: _itemKeys,
+            controller: _itemScrollController,
+            onSelected: _selectItem,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -307,6 +314,7 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
         _detail = detail;
         _selectedItemId = _nextItemAfterCapture(detail, currentItemId: itemId);
       });
+      _scrollSelectedItemIntoView();
     } catch (e) {
       if (!mounted) return;
       await AppDialogs.showInfo(
@@ -317,6 +325,46 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
     } finally {
       if (mounted) setState(() => _capturing = false);
     }
+  }
+
+  void _selectItem(WorkPhotoProjectItem item) {
+    setState(() => _selectedItemId = item.id);
+    _scrollSelectedItemIntoView();
+  }
+
+  WorkPhotoProjectItem? _selectedItem(WorkPhotoProjectDetail detail) {
+    final id = _selectedItemId;
+    if (id == null) return null;
+    return _findItem(detail.items, id);
+  }
+
+  void _scrollSelectedItemIntoView() {
+    final selectedId = _selectedItemId;
+    if (selectedId == null) return;
+    final key = _itemKeys.putIfAbsent(selectedId, GlobalKey.new);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = key.currentContext;
+      if (context == null || !_itemScrollController.hasClients) return;
+      final box = context.findRenderObject() as RenderBox?;
+      final viewport =
+          _itemScrollController.position.context.storageContext
+                  .findRenderObject()
+              as RenderBox?;
+      if (box == null || viewport == null) return;
+      final itemLeft = box.localToGlobal(Offset.zero, ancestor: viewport).dx;
+      final itemCenter = itemLeft + box.size.width / 2;
+      final viewportCenter = viewport.size.width / 2;
+      final target =
+          (_itemScrollController.offset + itemCenter - viewportCenter).clamp(
+            _itemScrollController.position.minScrollExtent,
+            _itemScrollController.position.maxScrollExtent,
+          );
+      _itemScrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   int? _nextItemAfterCapture(
