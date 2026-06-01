@@ -37,6 +37,7 @@ void main() {
       expect(tools.any((t) => t.id == 'work_log'), true);
       expect(tools.any((t) => t.id == 'stockpile_assistant'), true);
       expect(tools.any((t) => t.id == 'overcooked_kitchen'), true);
+      expect(tools.any((t) => t.id == 'work_photo'), true);
       expect(tools.any((t) => t.id == 'tag_manager'), true);
     });
 
@@ -73,14 +74,17 @@ void main() {
       final workIndex = ids.indexOf('work_log');
       final stockIndex = ids.indexOf('stockpile_assistant');
       final overcookedIndex = ids.indexOf('overcooked_kitchen');
+      final workPhotoIndex = ids.indexOf('work_photo');
       final tagIndex = ids.indexOf('tag_manager');
 
       expect(workIndex, isNonNegative);
       expect(stockIndex, workIndex + 1);
       expect(overcookedIndex, stockIndex + 1);
+      expect(workPhotoIndex, overcookedIndex + 1);
       expect(tagIndex, ids.length - 1);
       expect(stockIndex, lessThan(tagIndex));
       expect(overcookedIndex, lessThan(tagIndex));
+      expect(workPhotoIndex, lessThan(tagIndex));
     });
 
     test('registerAll 不应在注册阶段触发默认数据库初始化', () async {

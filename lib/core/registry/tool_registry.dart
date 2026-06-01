@@ -14,6 +14,9 @@ import '../../tools/tag_manager/pages/tag_manager_tool_page.dart';
 import '../../tools/work_log/pages/work_log_tool_page.dart';
 import '../../tools/work_log/repository/work_log_repository.dart';
 import '../../tools/work_log/sync/work_log_sync_provider.dart';
+import '../../tools/work_photo/pages/work_photo_tool_page.dart';
+import '../../tools/work_photo/repository/work_photo_repository.dart';
+import '../../tools/work_photo/sync/work_photo_sync_provider.dart';
 import '../../tools/xiao_mi/pages/xiao_mi_tool_page.dart';
 
 /// 工具注册表，管理所有可用工具
@@ -32,6 +35,7 @@ class ToolRegistry {
     WorkLogRepository? workLogRepository;
     StockpileRepository? stockpileRepository;
     OvercookedRepository? overcookedRepository;
+    WorkPhotoRepository? workPhotoRepository;
 
     TagRepository getTagRepository() => tagRepository ??= TagRepository();
     WorkLogRepository getWorkLogRepository() =>
@@ -40,6 +44,8 @@ class ToolRegistry {
         stockpileRepository ??= StockpileRepository();
     OvercookedRepository getOvercookedRepository() =>
         overcookedRepository ??= OvercookedRepository();
+    WorkPhotoRepository getWorkPhotoRepository() =>
+        workPhotoRepository ??= WorkPhotoRepository();
 
     // 注册工作记录工具（支持同步）
     register(
@@ -92,6 +98,23 @@ class ToolRegistry {
           toolId: 'overcooked_kitchen',
           create: () =>
               OvercookedSyncProvider(repository: getOvercookedRepository()),
+        ),
+      ),
+    );
+
+    register(
+      ToolInfo(
+        id: 'work_photo',
+        name: '外拍助手',
+        description: '现场拍照与项目导出',
+        icon: CupertinoIcons.camera_viewfinder,
+        color: IOS26Theme.toolBlue,
+        pageBuilder: () =>
+            WorkPhotoToolPage(repository: getWorkPhotoRepository()),
+        syncProvider: _LazyToolSyncProvider(
+          toolId: 'work_photo',
+          create: () =>
+              WorkPhotoSyncProvider(repository: getWorkPhotoRepository()),
         ),
       ),
     );

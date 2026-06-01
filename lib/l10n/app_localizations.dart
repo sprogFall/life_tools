@@ -2016,6 +2016,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unread'**
   String get messages_unread_label;
+
+  /// No description provided for @tool_work_photo_name.
+  ///
+  /// In en, this message translates to:
+  /// **'Field Photo'**
+  String get tool_work_photo_name;
+
+  /// No description provided for @tool_work_photo_description.
+  ///
+  /// In en, this message translates to:
+  /// **'On-site capture and project export'**
+  String get tool_work_photo_description;
+
+  /// No description provided for @work_photo_config_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Field Photo Config'**
+  String get work_photo_config_title;
+
+  /// No description provided for @work_photo_export_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Field Photo Export'**
+  String get work_photo_export_title;
+
+  /// No description provided for @work_photo_project_new_title.
+  ///
+  /// In en, this message translates to:
+  /// **'New Field Project'**
+  String get work_photo_project_new_title;
+
+  /// No description provided for @work_photo_project_detail_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Project Detail'**
+  String get work_photo_project_detail_title;
+
+  /// No description provided for @work_photo_camera_title.
+  ///
+  /// In en, this message translates to:
+  /// **'On-site Capture'**
+  String get work_photo_camera_title;
+
+  /// No description provided for @work_photo_create_project.
+  ///
+  /// In en, this message translates to:
+  /// **'New Project'**
+  String get work_photo_create_project;
+
+  /// No description provided for @work_photo_config_entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Config'**
+  String get work_photo_config_entry;
+
+  /// No description provided for @work_photo_export_entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get work_photo_export_entry;
+
+  /// No description provided for @work_photo_empty_projects.
+  ///
+  /// In en, this message translates to:
+  /// **'No field projects yet. Create one to start capturing.'**
+  String get work_photo_empty_projects;
+
+  /// No description provided for @work_photo_project_progress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed}/{total} items done · {assets} photos'**
+  String work_photo_project_progress(int completed, int total, int assets);
+
+  /// No description provided for @work_photo_project_name_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Project name'**
+  String get work_photo_project_name_label;
+
+  /// No description provided for @work_photo_project_name_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Store capture 0601'**
+  String get work_photo_project_name_placeholder;
+
+  /// No description provided for @work_photo_note_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get work_photo_note_label;
+
+  /// No description provided for @work_photo_note_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get work_photo_note_placeholder;
+
+  /// No description provided for @work_photo_hierarchy_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Hierarchy'**
+  String get work_photo_hierarchy_section;
+
+  /// No description provided for @work_photo_capture_items_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture items'**
+  String get work_photo_capture_items_section;
+
+  /// No description provided for @work_photo_levels_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Hierarchy levels'**
+  String get work_photo_levels_section;
+
+  /// No description provided for @work_photo_options_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get work_photo_options_section;
+
+  /// No description provided for @work_photo_add_level.
+  ///
+  /// In en, this message translates to:
+  /// **'Add level'**
+  String get work_photo_add_level;
+
+  /// No description provided for @work_photo_add_option.
+  ///
+  /// In en, this message translates to:
+  /// **'Add option'**
+  String get work_photo_add_option;
+
+  /// No description provided for @work_photo_add_capture_item.
+  ///
+  /// In en, this message translates to:
+  /// **'Add capture item'**
+  String get work_photo_add_capture_item;
+
+  /// No description provided for @work_photo_level_name_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Level name'**
+  String get work_photo_level_name_title;
+
+  /// No description provided for @work_photo_level_name_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Region, store'**
+  String get work_photo_level_name_placeholder;
+
+  /// No description provided for @work_photo_option_name_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Option name'**
+  String get work_photo_option_name_title;
+
+  /// No description provided for @work_photo_option_name_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Region A'**
+  String get work_photo_option_name_placeholder;
+
+  /// No description provided for @work_photo_capture_item_name_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture item name'**
+  String get work_photo_capture_item_name_title;
+
+  /// No description provided for @work_photo_capture_item_name_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Sign, desk, person'**
+  String get work_photo_capture_item_name_placeholder;
+
+  /// No description provided for @work_photo_min_count_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum photos'**
+  String get work_photo_min_count_title;
+
+  /// No description provided for @work_photo_max_count_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum photos'**
+  String get work_photo_max_count_title;
+
+  /// No description provided for @work_photo_no_hierarchy.
+  ///
+  /// In en, this message translates to:
+  /// **'No levels yet. Add as many business levels as needed.'**
+  String get work_photo_no_hierarchy;
+
+  /// No description provided for @work_photo_no_capture_items.
+  ///
+  /// In en, this message translates to:
+  /// **'No capture items yet. Add the photo types you need.'**
+  String get work_photo_no_capture_items;
+
+  /// No description provided for @work_photo_select_option.
+  ///
+  /// In en, this message translates to:
+  /// **'Select option'**
+  String get work_photo_select_option;
+
+  /// No description provided for @work_photo_not_selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not selected'**
+  String get work_photo_not_selected;
+
+  /// No description provided for @work_photo_start_capture.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Capture'**
+  String get work_photo_start_capture;
+
+  /// No description provided for @work_photo_continue_capture.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Capture'**
+  String get work_photo_continue_capture;
+
+  /// No description provided for @work_photo_export_project.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Project'**
+  String get work_photo_export_project;
+
+  /// No description provided for @work_photo_no_assets.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos'**
+  String get work_photo_no_assets;
+
+  /// No description provided for @work_photo_missing_item.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing'**
+  String get work_photo_missing_item;
+
+  /// No description provided for @work_photo_done_item.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get work_photo_done_item;
+
+  /// No description provided for @work_photo_photo_count.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos'**
+  String work_photo_photo_count(int count);
+
+  /// No description provided for @work_photo_selected_count.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} projects selected'**
+  String work_photo_selected_count(int count);
+
+  /// No description provided for @work_photo_build_zip.
+  ///
+  /// In en, this message translates to:
+  /// **'Build ZIP'**
+  String get work_photo_build_zip;
+
+  /// No description provided for @work_photo_save_zip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save ZIP'**
+  String get work_photo_save_zip;
+
+  /// No description provided for @work_photo_share_zip.
+  ///
+  /// In en, this message translates to:
+  /// **'Share ZIP'**
+  String get work_photo_share_zip;
+
+  /// No description provided for @work_photo_export_saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved: {path}'**
+  String work_photo_export_saved(String path);
+
+  /// No description provided for @work_photo_export_missing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} image files were missing and listed in the export report.'**
+  String work_photo_export_missing(int count);
+
+  /// No description provided for @work_photo_export_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get work_photo_export_failed;
+
+  /// No description provided for @work_photo_camera_permission_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera permission required'**
+  String get work_photo_camera_permission_title;
+
+  /// No description provided for @work_photo_camera_permission_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera permission before on-site capture.'**
+  String get work_photo_camera_permission_content;
+
+  /// No description provided for @work_photo_camera_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unavailable: {error}'**
+  String work_photo_camera_error(String error);
+
+  /// No description provided for @work_photo_capture_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture failed'**
+  String get work_photo_capture_failed;
+
+  /// No description provided for @work_photo_switch_camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch camera'**
+  String get work_photo_switch_camera;
+
+  /// No description provided for @work_photo_toggle_flash.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash'**
+  String get work_photo_toggle_flash;
+
+  /// No description provided for @work_photo_last_photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest photo'**
+  String get work_photo_last_photo;
+
+  /// No description provided for @work_photo_delete_photo_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete photo?'**
+  String get work_photo_delete_photo_title;
+
+  /// No description provided for @work_photo_delete_photo_content.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes both the local image file and its project link.'**
+  String get work_photo_delete_photo_content;
+
+  /// No description provided for @work_photo_delete_project_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete project?'**
+  String get work_photo_delete_project_title;
+
+  /// No description provided for @work_photo_delete_project_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Project records cannot be restored after deletion. Handle saved image files carefully before export.'**
+  String get work_photo_delete_project_content;
+
+  /// No description provided for @work_photo_config_saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Config updated'**
+  String get work_photo_config_saved;
+
+  /// No description provided for @work_photo_config_actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Config actions'**
+  String get work_photo_config_actions;
+
+  /// No description provided for @work_photo_archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get work_photo_archive;
+
+  /// No description provided for @work_photo_move_up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get work_photo_move_up;
+
+  /// No description provided for @work_photo_move_down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get work_photo_move_down;
+
+  /// No description provided for @work_photo_edit_counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit counts'**
+  String get work_photo_edit_counts;
+
+  /// No description provided for @work_photo_count_input_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave max blank for unlimited, e.g. 1/5'**
+  String get work_photo_count_input_placeholder;
+
+  /// No description provided for @work_photo_invalid_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid count format. Enter min/max, e.g. 1/5.'**
+  String get work_photo_invalid_count;
+
+  /// No description provided for @work_photo_no_capture_items_warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Add capture items in Field Photo Config before creating a project.'**
+  String get work_photo_no_capture_items_warning;
+
+  /// No description provided for @work_photo_export_saved_and_shared.
+  ///
+  /// In en, this message translates to:
+  /// **'ZIP saved and share sheet opened.'**
+  String get work_photo_export_saved_and_shared;
 }
 
 class _AppLocalizationsDelegate

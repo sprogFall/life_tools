@@ -576,5 +576,107 @@
   "messages_go_to_tool": "Go to Tool",
   "messages_no_route": "This message does not provide a tool route",
   "messages_read_label": "Read",
-  "messages_unread_label": "Unread"
+  "messages_unread_label": "Unread",
+  "tool_work_photo_name": "Field Photo",
+  "tool_work_photo_description": "On-site capture and project export",
+  "work_photo_config_title": "Field Photo Config",
+  "work_photo_export_title": "Field Photo Export",
+  "work_photo_project_new_title": "New Field Project",
+  "work_photo_project_detail_title": "Project Detail",
+  "work_photo_camera_title": "On-site Capture",
+  "work_photo_create_project": "New Project",
+  "work_photo_config_entry": "Config",
+  "work_photo_export_entry": "Export",
+  "work_photo_empty_projects": "No field projects yet. Create one to start capturing.",
+  "work_photo_project_progress": "{completed}/{total} items done · {assets} photos",
+  "@work_photo_project_progress": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" },
+      "assets": { "type": "int" }
+    }
+  },
+  "work_photo_project_name_label": "Project name",
+  "work_photo_project_name_placeholder": "e.g. Store capture 0601",
+  "work_photo_note_label": "Note",
+  "work_photo_note_placeholder": "Optional",
+  "work_photo_hierarchy_section": "Hierarchy",
+  "work_photo_capture_items_section": "Capture items",
+  "work_photo_levels_section": "Hierarchy levels",
+  "work_photo_options_section": "Options",
+  "work_photo_add_level": "Add level",
+  "work_photo_add_option": "Add option",
+  "work_photo_add_capture_item": "Add capture item",
+  "work_photo_level_name_title": "Level name",
+  "work_photo_level_name_placeholder": "e.g. Region, store",
+  "work_photo_option_name_title": "Option name",
+  "work_photo_option_name_placeholder": "e.g. Region A",
+  "work_photo_capture_item_name_title": "Capture item name",
+  "work_photo_capture_item_name_placeholder": "e.g. Sign, desk, person",
+  "work_photo_min_count_title": "Minimum photos",
+  "work_photo_max_count_title": "Maximum photos",
+  "work_photo_no_hierarchy": "No levels yet. Add as many business levels as needed.",
+  "work_photo_no_capture_items": "No capture items yet. Add the photo types you need.",
+  "work_photo_select_option": "Select option",
+  "work_photo_not_selected": "Not selected",
+  "work_photo_start_capture": "Start Capture",
+  "work_photo_continue_capture": "Continue Capture",
+  "work_photo_export_project": "Export Project",
+  "work_photo_no_assets": "No photos",
+  "work_photo_missing_item": "Missing",
+  "work_photo_done_item": "Done",
+  "work_photo_photo_count": "{count} photos",
+  "@work_photo_photo_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "work_photo_selected_count": "{count} projects selected",
+  "@work_photo_selected_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "work_photo_build_zip": "Build ZIP",
+  "work_photo_save_zip": "Save ZIP",
+  "work_photo_share_zip": "Share ZIP",
+  "work_photo_export_saved": "Saved: {path}",
+  "@work_photo_export_saved": {
+    "placeholders": {
+      "path": { "type": "String" }
+    }
+  },
+  "work_photo_export_missing": "{count} image files were missing and listed in the export report.",
+  "@work_photo_export_missing": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "work_photo_export_failed": "Export failed",
+  "work_photo_camera_permission_title": "Camera permission required",
+  "work_photo_camera_permission_content": "Allow camera permission before on-site capture.",
+  "work_photo_camera_error": "Camera unavailable: {error}",
+  "@work_photo_camera_error": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "work_photo_capture_failed": "Capture failed",
+  "work_photo_switch_camera": "Switch camera",
+  "work_photo_toggle_flash": "Flash",
+  "work_photo_last_photo": "Latest photo",
+  "work_photo_delete_photo_title": "Delete photo?",
+  "work_photo_delete_photo_content": "This removes both the local image file and its project link.",
+  "work_photo_delete_project_title": "Delete project?",
+  "work_photo_delete_project_content": "Project records cannot be restored after deletion. Handle saved image files carefully before export.",
+  "work_photo_config_saved": "Config updated",
+  "work_photo_config_actions": "Config actions",
+  "work_photo_archive": "Archive",
+  "work_photo_move_up": "Move up",
+  "work_photo_move_down": "Move down",
+  "work_photo_edit_counts": "Edit counts",
+  "work_photo_count_input_placeholder": "Leave max blank for unlimited, e.g. 1/5",
+  "work_photo_invalid_count": "Invalid count format. Enter min/max, e.g. 1/5.",
+  "work_photo_no_capture_items_warning": "Add capture items in Field Photo Config before creating a project.",
+  "work_photo_export_saved_and_shared": "ZIP saved and share sheet opened."
 }

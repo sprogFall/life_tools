@@ -1075,6 +1075,229 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get messages_unread_label => '未读';
+
+  @override
+  String get tool_work_photo_name => '外拍助手';
+
+  @override
+  String get tool_work_photo_description => '现场拍照与项目导出';
+
+  @override
+  String get work_photo_config_title => '外拍配置';
+
+  @override
+  String get work_photo_export_title => '外拍导出';
+
+  @override
+  String get work_photo_project_new_title => '新建外拍项目';
+
+  @override
+  String get work_photo_project_detail_title => '项目详情';
+
+  @override
+  String get work_photo_camera_title => '现场拍摄';
+
+  @override
+  String get work_photo_create_project => '新建项目';
+
+  @override
+  String get work_photo_config_entry => '配置';
+
+  @override
+  String get work_photo_export_entry => '导出';
+
+  @override
+  String get work_photo_empty_projects => '暂无外拍项目，先新建一个项目开始采集。';
+
+  @override
+  String work_photo_project_progress(int completed, int total, int assets) {
+    return '$completed/$total 项已拍 · $assets 张照片';
+  }
+
+  @override
+  String get work_photo_project_name_label => '项目名称';
+
+  @override
+  String get work_photo_project_name_placeholder => '如：门店巡拍 0601';
+
+  @override
+  String get work_photo_note_label => '备注';
+
+  @override
+  String get work_photo_note_placeholder => '可选';
+
+  @override
+  String get work_photo_hierarchy_section => '层级';
+
+  @override
+  String get work_photo_capture_items_section => '拍摄项';
+
+  @override
+  String get work_photo_levels_section => '层级配置';
+
+  @override
+  String get work_photo_options_section => '选项';
+
+  @override
+  String get work_photo_add_level => '新增层级';
+
+  @override
+  String get work_photo_add_option => '新增选项';
+
+  @override
+  String get work_photo_add_capture_item => '新增拍摄项';
+
+  @override
+  String get work_photo_level_name_title => '层级名称';
+
+  @override
+  String get work_photo_level_name_placeholder => '如：区域、门店';
+
+  @override
+  String get work_photo_option_name_title => '选项名称';
+
+  @override
+  String get work_photo_option_name_placeholder => '如：A 区';
+
+  @override
+  String get work_photo_capture_item_name_title => '拍摄项名称';
+
+  @override
+  String get work_photo_capture_item_name_placeholder => '如：门头、桌面、人物';
+
+  @override
+  String get work_photo_min_count_title => '最少张数';
+
+  @override
+  String get work_photo_max_count_title => '最多张数';
+
+  @override
+  String get work_photo_no_hierarchy => '暂无层级，可按业务新增任意层级。';
+
+  @override
+  String get work_photo_no_capture_items => '暂无拍摄项，请先添加需要采集的照片类型。';
+
+  @override
+  String get work_photo_select_option => '选择选项';
+
+  @override
+  String get work_photo_not_selected => '未选择';
+
+  @override
+  String get work_photo_start_capture => '开始拍摄';
+
+  @override
+  String get work_photo_continue_capture => '继续拍摄';
+
+  @override
+  String get work_photo_export_project => '导出项目';
+
+  @override
+  String get work_photo_no_assets => '暂无照片';
+
+  @override
+  String get work_photo_missing_item => '缺失';
+
+  @override
+  String get work_photo_done_item => '达标';
+
+  @override
+  String work_photo_photo_count(int count) {
+    return '$count 张';
+  }
+
+  @override
+  String work_photo_selected_count(int count) {
+    return '已选择 $count 个项目';
+  }
+
+  @override
+  String get work_photo_build_zip => '生成 ZIP';
+
+  @override
+  String get work_photo_save_zip => '保存 ZIP';
+
+  @override
+  String get work_photo_share_zip => '分享 ZIP';
+
+  @override
+  String work_photo_export_saved(String path) {
+    return '已保存：$path';
+  }
+
+  @override
+  String work_photo_export_missing(int count) {
+    return '有 $count 个图片文件缺失，已写入导出说明。';
+  }
+
+  @override
+  String get work_photo_export_failed => '导出失败';
+
+  @override
+  String get work_photo_camera_permission_title => '需要相机权限';
+
+  @override
+  String get work_photo_camera_permission_content => '请允许相机权限后再进行现场拍摄。';
+
+  @override
+  String work_photo_camera_error(String error) {
+    return '相机不可用：$error';
+  }
+
+  @override
+  String get work_photo_capture_failed => '拍摄失败';
+
+  @override
+  String get work_photo_switch_camera => '切换镜头';
+
+  @override
+  String get work_photo_toggle_flash => '闪光灯';
+
+  @override
+  String get work_photo_last_photo => '最近一张';
+
+  @override
+  String get work_photo_delete_photo_title => '删除照片？';
+
+  @override
+  String get work_photo_delete_photo_content => '删除后会同时移除本地图片文件和项目关联记录。';
+
+  @override
+  String get work_photo_delete_project_title => '删除项目？';
+
+  @override
+  String get work_photo_delete_project_content =>
+      '删除后项目记录不可恢复，已保存的图片文件需在导出前谨慎处理。';
+
+  @override
+  String get work_photo_config_saved => '配置已更新';
+
+  @override
+  String get work_photo_config_actions => '配置操作';
+
+  @override
+  String get work_photo_archive => '归档';
+
+  @override
+  String get work_photo_move_up => '上移';
+
+  @override
+  String get work_photo_move_down => '下移';
+
+  @override
+  String get work_photo_edit_counts => '编辑张数';
+
+  @override
+  String get work_photo_count_input_placeholder => '留空表示不限制最多张数，如：1/5';
+
+  @override
+  String get work_photo_invalid_count => '张数格式不正确，请输入“最少/最多”，如 1/5。';
+
+  @override
+  String get work_photo_no_capture_items_warning => '请先在外拍配置中新增拍摄项，再创建项目。';
+
+  @override
+  String get work_photo_export_saved_and_shared => 'ZIP 已保存并调起分享。';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -2148,4 +2371,227 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get messages_unread_label => '未读';
+
+  @override
+  String get tool_work_photo_name => '外拍助手';
+
+  @override
+  String get tool_work_photo_description => '现场拍照与项目导出';
+
+  @override
+  String get work_photo_config_title => '外拍配置';
+
+  @override
+  String get work_photo_export_title => '外拍导出';
+
+  @override
+  String get work_photo_project_new_title => '新建外拍项目';
+
+  @override
+  String get work_photo_project_detail_title => '项目详情';
+
+  @override
+  String get work_photo_camera_title => '现场拍摄';
+
+  @override
+  String get work_photo_create_project => '新建项目';
+
+  @override
+  String get work_photo_config_entry => '配置';
+
+  @override
+  String get work_photo_export_entry => '导出';
+
+  @override
+  String get work_photo_empty_projects => '暂无外拍项目，先新建一个项目开始采集。';
+
+  @override
+  String work_photo_project_progress(int completed, int total, int assets) {
+    return '$completed/$total 项已拍 · $assets 张照片';
+  }
+
+  @override
+  String get work_photo_project_name_label => '项目名称';
+
+  @override
+  String get work_photo_project_name_placeholder => '如：门店巡拍 0601';
+
+  @override
+  String get work_photo_note_label => '备注';
+
+  @override
+  String get work_photo_note_placeholder => '可选';
+
+  @override
+  String get work_photo_hierarchy_section => '层级';
+
+  @override
+  String get work_photo_capture_items_section => '拍摄项';
+
+  @override
+  String get work_photo_levels_section => '层级配置';
+
+  @override
+  String get work_photo_options_section => '选项';
+
+  @override
+  String get work_photo_add_level => '新增层级';
+
+  @override
+  String get work_photo_add_option => '新增选项';
+
+  @override
+  String get work_photo_add_capture_item => '新增拍摄项';
+
+  @override
+  String get work_photo_level_name_title => '层级名称';
+
+  @override
+  String get work_photo_level_name_placeholder => '如：区域、门店';
+
+  @override
+  String get work_photo_option_name_title => '选项名称';
+
+  @override
+  String get work_photo_option_name_placeholder => '如：A 区';
+
+  @override
+  String get work_photo_capture_item_name_title => '拍摄项名称';
+
+  @override
+  String get work_photo_capture_item_name_placeholder => '如：门头、桌面、人物';
+
+  @override
+  String get work_photo_min_count_title => '最少张数';
+
+  @override
+  String get work_photo_max_count_title => '最多张数';
+
+  @override
+  String get work_photo_no_hierarchy => '暂无层级，可按业务新增任意层级。';
+
+  @override
+  String get work_photo_no_capture_items => '暂无拍摄项，请先添加需要采集的照片类型。';
+
+  @override
+  String get work_photo_select_option => '选择选项';
+
+  @override
+  String get work_photo_not_selected => '未选择';
+
+  @override
+  String get work_photo_start_capture => '开始拍摄';
+
+  @override
+  String get work_photo_continue_capture => '继续拍摄';
+
+  @override
+  String get work_photo_export_project => '导出项目';
+
+  @override
+  String get work_photo_no_assets => '暂无照片';
+
+  @override
+  String get work_photo_missing_item => '缺失';
+
+  @override
+  String get work_photo_done_item => '达标';
+
+  @override
+  String work_photo_photo_count(int count) {
+    return '$count 张';
+  }
+
+  @override
+  String work_photo_selected_count(int count) {
+    return '已选择 $count 个项目';
+  }
+
+  @override
+  String get work_photo_build_zip => '生成 ZIP';
+
+  @override
+  String get work_photo_save_zip => '保存 ZIP';
+
+  @override
+  String get work_photo_share_zip => '分享 ZIP';
+
+  @override
+  String work_photo_export_saved(String path) {
+    return '已保存：$path';
+  }
+
+  @override
+  String work_photo_export_missing(int count) {
+    return '有 $count 个图片文件缺失，已写入导出说明。';
+  }
+
+  @override
+  String get work_photo_export_failed => '导出失败';
+
+  @override
+  String get work_photo_camera_permission_title => '需要相机权限';
+
+  @override
+  String get work_photo_camera_permission_content => '请允许相机权限后再进行现场拍摄。';
+
+  @override
+  String work_photo_camera_error(String error) {
+    return '相机不可用：$error';
+  }
+
+  @override
+  String get work_photo_capture_failed => '拍摄失败';
+
+  @override
+  String get work_photo_switch_camera => '切换镜头';
+
+  @override
+  String get work_photo_toggle_flash => '闪光灯';
+
+  @override
+  String get work_photo_last_photo => '最近一张';
+
+  @override
+  String get work_photo_delete_photo_title => '删除照片？';
+
+  @override
+  String get work_photo_delete_photo_content => '删除后会同时移除本地图片文件和项目关联记录。';
+
+  @override
+  String get work_photo_delete_project_title => '删除项目？';
+
+  @override
+  String get work_photo_delete_project_content =>
+      '删除后项目记录不可恢复，已保存的图片文件需在导出前谨慎处理。';
+
+  @override
+  String get work_photo_config_saved => '配置已更新';
+
+  @override
+  String get work_photo_config_actions => '配置操作';
+
+  @override
+  String get work_photo_archive => '归档';
+
+  @override
+  String get work_photo_move_up => '上移';
+
+  @override
+  String get work_photo_move_down => '下移';
+
+  @override
+  String get work_photo_edit_counts => '编辑张数';
+
+  @override
+  String get work_photo_count_input_placeholder => '留空表示不限制最多张数，如：1/5';
+
+  @override
+  String get work_photo_invalid_count => '张数格式不正确，请输入“最少/最多”，如 1/5。';
+
+  @override
+  String get work_photo_no_capture_items_warning => '请先在外拍配置中新增拍摄项，再创建项目。';
+
+  @override
+  String get work_photo_export_saved_and_shared => 'ZIP 已保存并调起分享。';
 }

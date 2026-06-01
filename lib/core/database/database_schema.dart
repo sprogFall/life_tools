@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 19;
+  static const int version = 20;
   static const int _maxOperationLogRecords = 10;
 
   static Future<void> onConfigure(Database db) async {
@@ -31,6 +31,7 @@ class DatabaseSchema {
     await _createOvercookedTablesV15(db);
     await _createOvercookedRatingTable(db);
     await _createXiaoMiTables(db);
+    await _createWorkPhotoTables(db);
   }
 
   static Future<void> onUpgrade(
@@ -91,6 +92,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 19) {
       await _upgradeToVersion19(db);
+    }
+    if (oldVersion < 20) {
+      await _upgradeToVersion20(db);
     }
   }
 
@@ -980,6 +984,11 @@ WHERE tool_id = ? AND category_id = ?
     await _createXiaoMiTables(db);
   }
 
+  static Future<void> _upgradeToVersion20(Database db) async {
+    // v20: 新增“外拍助手”工具表。
+    await _createWorkPhotoTables(db);
+  }
+
   static Future<void> _createXiaoMiTables(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS xiao_mi_conversations (
@@ -1004,6 +1013,147 @@ WHERE tool_id = ? AND category_id = ?
 
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_xiao_mi_messages_conversation_id_created_at ON xiao_mi_messages(conversation_id, created_at ASC, id ASC)',
+    );
+  }
+
+  static Future<void> _createWorkPhotoTables(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_hierarchy_levels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sort_index INTEGER NOT NULL DEFAULT 0,
+        is_required INTEGER NOT NULL DEFAULT 1,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_hierarchy_options (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        level_id INTEGER NOT NULL,
+        parent_option_id INTEGER,
+        name TEXT NOT NULL,
+        sort_index INTEGER NOT NULL DEFAULT 0,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (level_id) REFERENCES work_photo_hierarchy_levels(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_option_id) REFERENCES work_photo_hierarchy_options(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_capture_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sort_index INTEGER NOT NULL DEFAULT 0,
+        min_count INTEGER NOT NULL DEFAULT 1,
+        max_count INTEGER,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_export_profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        folder_template TEXT NOT NULL DEFAULT '',
+        file_template TEXT NOT NULL DEFAULT '',
+        is_default INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        status INTEGER NOT NULL DEFAULT 0,
+        note TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_project_hierarchy_values (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        level_id INTEGER,
+        option_id INTEGER,
+        level_name_snapshot TEXT NOT NULL,
+        option_name_snapshot TEXT NOT NULL,
+        sort_index INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (project_id) REFERENCES work_photo_projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (level_id) REFERENCES work_photo_hierarchy_levels(id) ON DELETE SET NULL,
+        FOREIGN KEY (option_id) REFERENCES work_photo_hierarchy_options(id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_project_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        source_item_id INTEGER,
+        name_snapshot TEXT NOT NULL,
+        sort_index INTEGER NOT NULL DEFAULT 0,
+        min_count INTEGER NOT NULL DEFAULT 1,
+        max_count INTEGER,
+        FOREIGN KEY (project_id) REFERENCES work_photo_projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_item_id) REFERENCES work_photo_capture_items(id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS work_photo_assets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        project_item_id INTEGER NOT NULL,
+        relative_path TEXT NOT NULL,
+        original_filename TEXT NOT NULL DEFAULT '',
+        mime_type TEXT NOT NULL DEFAULT 'image/jpeg',
+        file_size INTEGER NOT NULL DEFAULT 0,
+        width INTEGER,
+        height INTEGER,
+        taken_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES work_photo_projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (project_item_id) REFERENCES work_photo_project_items(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_levels_sort ON work_photo_hierarchy_levels(sort_index ASC, id ASC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_options_level_parent_sort ON work_photo_hierarchy_options(level_id, parent_option_id, sort_index ASC, id ASC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_capture_items_sort ON work_photo_capture_items(sort_index ASC, id ASC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_projects_updated_at ON work_photo_projects(updated_at DESC, id DESC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_project_hierarchy_values_project_id ON work_photo_project_hierarchy_values(project_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_project_items_project_id ON work_photo_project_items(project_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_assets_project_id ON work_photo_assets(project_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_assets_project_item_id ON work_photo_assets(project_item_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_assets_taken_at ON work_photo_assets(taken_at DESC, id DESC)',
     );
   }
 

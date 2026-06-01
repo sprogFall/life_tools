@@ -1117,6 +1117,240 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messages_unread_label => 'Unread';
+
+  @override
+  String get tool_work_photo_name => 'Field Photo';
+
+  @override
+  String get tool_work_photo_description =>
+      'On-site capture and project export';
+
+  @override
+  String get work_photo_config_title => 'Field Photo Config';
+
+  @override
+  String get work_photo_export_title => 'Field Photo Export';
+
+  @override
+  String get work_photo_project_new_title => 'New Field Project';
+
+  @override
+  String get work_photo_project_detail_title => 'Project Detail';
+
+  @override
+  String get work_photo_camera_title => 'On-site Capture';
+
+  @override
+  String get work_photo_create_project => 'New Project';
+
+  @override
+  String get work_photo_config_entry => 'Config';
+
+  @override
+  String get work_photo_export_entry => 'Export';
+
+  @override
+  String get work_photo_empty_projects =>
+      'No field projects yet. Create one to start capturing.';
+
+  @override
+  String work_photo_project_progress(int completed, int total, int assets) {
+    return '$completed/$total items done · $assets photos';
+  }
+
+  @override
+  String get work_photo_project_name_label => 'Project name';
+
+  @override
+  String get work_photo_project_name_placeholder => 'e.g. Store capture 0601';
+
+  @override
+  String get work_photo_note_label => 'Note';
+
+  @override
+  String get work_photo_note_placeholder => 'Optional';
+
+  @override
+  String get work_photo_hierarchy_section => 'Hierarchy';
+
+  @override
+  String get work_photo_capture_items_section => 'Capture items';
+
+  @override
+  String get work_photo_levels_section => 'Hierarchy levels';
+
+  @override
+  String get work_photo_options_section => 'Options';
+
+  @override
+  String get work_photo_add_level => 'Add level';
+
+  @override
+  String get work_photo_add_option => 'Add option';
+
+  @override
+  String get work_photo_add_capture_item => 'Add capture item';
+
+  @override
+  String get work_photo_level_name_title => 'Level name';
+
+  @override
+  String get work_photo_level_name_placeholder => 'e.g. Region, store';
+
+  @override
+  String get work_photo_option_name_title => 'Option name';
+
+  @override
+  String get work_photo_option_name_placeholder => 'e.g. Region A';
+
+  @override
+  String get work_photo_capture_item_name_title => 'Capture item name';
+
+  @override
+  String get work_photo_capture_item_name_placeholder =>
+      'e.g. Sign, desk, person';
+
+  @override
+  String get work_photo_min_count_title => 'Minimum photos';
+
+  @override
+  String get work_photo_max_count_title => 'Maximum photos';
+
+  @override
+  String get work_photo_no_hierarchy =>
+      'No levels yet. Add as many business levels as needed.';
+
+  @override
+  String get work_photo_no_capture_items =>
+      'No capture items yet. Add the photo types you need.';
+
+  @override
+  String get work_photo_select_option => 'Select option';
+
+  @override
+  String get work_photo_not_selected => 'Not selected';
+
+  @override
+  String get work_photo_start_capture => 'Start Capture';
+
+  @override
+  String get work_photo_continue_capture => 'Continue Capture';
+
+  @override
+  String get work_photo_export_project => 'Export Project';
+
+  @override
+  String get work_photo_no_assets => 'No photos';
+
+  @override
+  String get work_photo_missing_item => 'Missing';
+
+  @override
+  String get work_photo_done_item => 'Done';
+
+  @override
+  String work_photo_photo_count(int count) {
+    return '$count photos';
+  }
+
+  @override
+  String work_photo_selected_count(int count) {
+    return '$count projects selected';
+  }
+
+  @override
+  String get work_photo_build_zip => 'Build ZIP';
+
+  @override
+  String get work_photo_save_zip => 'Save ZIP';
+
+  @override
+  String get work_photo_share_zip => 'Share ZIP';
+
+  @override
+  String work_photo_export_saved(String path) {
+    return 'Saved: $path';
+  }
+
+  @override
+  String work_photo_export_missing(int count) {
+    return '$count image files were missing and listed in the export report.';
+  }
+
+  @override
+  String get work_photo_export_failed => 'Export failed';
+
+  @override
+  String get work_photo_camera_permission_title => 'Camera permission required';
+
+  @override
+  String get work_photo_camera_permission_content =>
+      'Allow camera permission before on-site capture.';
+
+  @override
+  String work_photo_camera_error(String error) {
+    return 'Camera unavailable: $error';
+  }
+
+  @override
+  String get work_photo_capture_failed => 'Capture failed';
+
+  @override
+  String get work_photo_switch_camera => 'Switch camera';
+
+  @override
+  String get work_photo_toggle_flash => 'Flash';
+
+  @override
+  String get work_photo_last_photo => 'Latest photo';
+
+  @override
+  String get work_photo_delete_photo_title => 'Delete photo?';
+
+  @override
+  String get work_photo_delete_photo_content =>
+      'This removes both the local image file and its project link.';
+
+  @override
+  String get work_photo_delete_project_title => 'Delete project?';
+
+  @override
+  String get work_photo_delete_project_content =>
+      'Project records cannot be restored after deletion. Handle saved image files carefully before export.';
+
+  @override
+  String get work_photo_config_saved => 'Config updated';
+
+  @override
+  String get work_photo_config_actions => 'Config actions';
+
+  @override
+  String get work_photo_archive => 'Archive';
+
+  @override
+  String get work_photo_move_up => 'Move up';
+
+  @override
+  String get work_photo_move_down => 'Move down';
+
+  @override
+  String get work_photo_edit_counts => 'Edit counts';
+
+  @override
+  String get work_photo_count_input_placeholder =>
+      'Leave max blank for unlimited, e.g. 1/5';
+
+  @override
+  String get work_photo_invalid_count =>
+      'Invalid count format. Enter min/max, e.g. 1/5.';
+
+  @override
+  String get work_photo_no_capture_items_warning =>
+      'Add capture items in Field Photo Config before creating a project.';
+
+  @override
+  String get work_photo_export_saved_and_shared =>
+      'ZIP saved and share sheet opened.';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -2232,4 +2466,238 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
 
   @override
   String get messages_unread_label => 'Unread';
+
+  @override
+  String get tool_work_photo_name => 'Field Photo';
+
+  @override
+  String get tool_work_photo_description =>
+      'On-site capture and project export';
+
+  @override
+  String get work_photo_config_title => 'Field Photo Config';
+
+  @override
+  String get work_photo_export_title => 'Field Photo Export';
+
+  @override
+  String get work_photo_project_new_title => 'New Field Project';
+
+  @override
+  String get work_photo_project_detail_title => 'Project Detail';
+
+  @override
+  String get work_photo_camera_title => 'On-site Capture';
+
+  @override
+  String get work_photo_create_project => 'New Project';
+
+  @override
+  String get work_photo_config_entry => 'Config';
+
+  @override
+  String get work_photo_export_entry => 'Export';
+
+  @override
+  String get work_photo_empty_projects =>
+      'No field projects yet. Create one to start capturing.';
+
+  @override
+  String work_photo_project_progress(int completed, int total, int assets) {
+    return '$completed/$total items done · $assets photos';
+  }
+
+  @override
+  String get work_photo_project_name_label => 'Project name';
+
+  @override
+  String get work_photo_project_name_placeholder => 'e.g. Store capture 0601';
+
+  @override
+  String get work_photo_note_label => 'Note';
+
+  @override
+  String get work_photo_note_placeholder => 'Optional';
+
+  @override
+  String get work_photo_hierarchy_section => 'Hierarchy';
+
+  @override
+  String get work_photo_capture_items_section => 'Capture items';
+
+  @override
+  String get work_photo_levels_section => 'Hierarchy levels';
+
+  @override
+  String get work_photo_options_section => 'Options';
+
+  @override
+  String get work_photo_add_level => 'Add level';
+
+  @override
+  String get work_photo_add_option => 'Add option';
+
+  @override
+  String get work_photo_add_capture_item => 'Add capture item';
+
+  @override
+  String get work_photo_level_name_title => 'Level name';
+
+  @override
+  String get work_photo_level_name_placeholder => 'e.g. Region, store';
+
+  @override
+  String get work_photo_option_name_title => 'Option name';
+
+  @override
+  String get work_photo_option_name_placeholder => 'e.g. Region A';
+
+  @override
+  String get work_photo_capture_item_name_title => 'Capture item name';
+
+  @override
+  String get work_photo_capture_item_name_placeholder =>
+      'e.g. Sign, desk, person';
+
+  @override
+  String get work_photo_min_count_title => 'Minimum photos';
+
+  @override
+  String get work_photo_max_count_title => 'Maximum photos';
+
+  @override
+  String get work_photo_no_hierarchy =>
+      'No levels yet. Add as many business levels as needed.';
+
+  @override
+  String get work_photo_no_capture_items =>
+      'No capture items yet. Add the photo types you need.';
+
+  @override
+  String get work_photo_select_option => 'Select option';
+
+  @override
+  String get work_photo_not_selected => 'Not selected';
+
+  @override
+  String get work_photo_start_capture => 'Start Capture';
+
+  @override
+  String get work_photo_continue_capture => 'Continue Capture';
+
+  @override
+  String get work_photo_export_project => 'Export Project';
+
+  @override
+  String get work_photo_no_assets => 'No photos';
+
+  @override
+  String get work_photo_missing_item => 'Missing';
+
+  @override
+  String get work_photo_done_item => 'Done';
+
+  @override
+  String work_photo_photo_count(int count) {
+    return '$count photos';
+  }
+
+  @override
+  String work_photo_selected_count(int count) {
+    return '$count projects selected';
+  }
+
+  @override
+  String get work_photo_build_zip => 'Build ZIP';
+
+  @override
+  String get work_photo_save_zip => 'Save ZIP';
+
+  @override
+  String get work_photo_share_zip => 'Share ZIP';
+
+  @override
+  String work_photo_export_saved(String path) {
+    return 'Saved: $path';
+  }
+
+  @override
+  String work_photo_export_missing(int count) {
+    return '$count image files were missing and listed in the export report.';
+  }
+
+  @override
+  String get work_photo_export_failed => 'Export failed';
+
+  @override
+  String get work_photo_camera_permission_title => 'Camera permission required';
+
+  @override
+  String get work_photo_camera_permission_content =>
+      'Allow camera permission before on-site capture.';
+
+  @override
+  String work_photo_camera_error(String error) {
+    return 'Camera unavailable: $error';
+  }
+
+  @override
+  String get work_photo_capture_failed => 'Capture failed';
+
+  @override
+  String get work_photo_switch_camera => 'Switch camera';
+
+  @override
+  String get work_photo_toggle_flash => 'Flash';
+
+  @override
+  String get work_photo_last_photo => 'Latest photo';
+
+  @override
+  String get work_photo_delete_photo_title => 'Delete photo?';
+
+  @override
+  String get work_photo_delete_photo_content =>
+      'This removes both the local image file and its project link.';
+
+  @override
+  String get work_photo_delete_project_title => 'Delete project?';
+
+  @override
+  String get work_photo_delete_project_content =>
+      'Project records cannot be restored after deletion. Handle saved image files carefully before export.';
+
+  @override
+  String get work_photo_config_saved => 'Config updated';
+
+  @override
+  String get work_photo_config_actions => 'Config actions';
+
+  @override
+  String get work_photo_archive => 'Archive';
+
+  @override
+  String get work_photo_move_up => 'Move up';
+
+  @override
+  String get work_photo_move_down => 'Move down';
+
+  @override
+  String get work_photo_edit_counts => 'Edit counts';
+
+  @override
+  String get work_photo_count_input_placeholder =>
+      'Leave max blank for unlimited, e.g. 1/5';
+
+  @override
+  String get work_photo_invalid_count =>
+      'Invalid count format. Enter min/max, e.g. 1/5.';
+
+  @override
+  String get work_photo_no_capture_items_warning =>
+      'Add capture items in Field Photo Config before creating a project.';
+
+  @override
+  String get work_photo_export_saved_and_shared =>
+      'ZIP saved and share sheet opened.';
 }

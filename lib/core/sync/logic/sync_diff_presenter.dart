@@ -20,6 +20,7 @@ class SyncDiffPresenter {
     'work_log': '工作记录',
     'stockpile_assistant': '囤货助手',
     'overcooked_kitchen': '胡闹厨房',
+    'work_photo': '外拍助手',
     'tag_manager': '标签管理',
     'app_config': '应用配置',
   };
