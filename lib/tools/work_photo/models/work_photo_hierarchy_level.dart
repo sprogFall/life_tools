@@ -1,6 +1,7 @@
 class WorkPhotoHierarchyLevel {
   final int? id;
   final int? templateId;
+  final int? parentLevelId;
   final String name;
   final int sortIndex;
   final bool isRequired;
@@ -11,6 +12,7 @@ class WorkPhotoHierarchyLevel {
   const WorkPhotoHierarchyLevel({
     required this.id,
     required this.templateId,
+    required this.parentLevelId,
     required this.name,
     required this.sortIndex,
     required this.isRequired,
@@ -21,6 +23,7 @@ class WorkPhotoHierarchyLevel {
 
   factory WorkPhotoHierarchyLevel.create({
     int? templateId,
+    int? parentLevelId,
     required String name,
     required int sortIndex,
     bool isRequired = true,
@@ -34,6 +37,7 @@ class WorkPhotoHierarchyLevel {
     return WorkPhotoHierarchyLevel(
       id: null,
       templateId: templateId,
+      parentLevelId: parentLevelId,
       name: trimmed,
       sortIndex: sortIndex,
       isRequired: isRequired,
@@ -46,6 +50,8 @@ class WorkPhotoHierarchyLevel {
   WorkPhotoHierarchyLevel copyWith({
     int? id,
     int? templateId,
+    int? parentLevelId,
+    bool clearParentLevelId = false,
     String? name,
     int? sortIndex,
     bool? isRequired,
@@ -56,6 +62,9 @@ class WorkPhotoHierarchyLevel {
     return WorkPhotoHierarchyLevel(
       id: id ?? this.id,
       templateId: templateId ?? this.templateId,
+      parentLevelId: clearParentLevelId
+          ? null
+          : (parentLevelId ?? this.parentLevelId),
       name: name ?? this.name,
       sortIndex: sortIndex ?? this.sortIndex,
       isRequired: isRequired ?? this.isRequired,
@@ -69,6 +78,7 @@ class WorkPhotoHierarchyLevel {
     return {
       if (includeId) 'id': id,
       'template_id': templateId,
+      'parent_level_id': parentLevelId,
       'name': name.trim(),
       'sort_index': sortIndex,
       'is_required': isRequired ? 1 : 0,
@@ -82,6 +92,7 @@ class WorkPhotoHierarchyLevel {
     return WorkPhotoHierarchyLevel(
       id: map['id'] as int?,
       templateId: (map['template_id'] as num?)?.toInt(),
+      parentLevelId: (map['parent_level_id'] as num?)?.toInt(),
       name: map['name'] as String? ?? '',
       sortIndex: (map['sort_index'] as num?)?.toInt() ?? 0,
       isRequired: ((map['is_required'] as num?)?.toInt() ?? 1) == 1,

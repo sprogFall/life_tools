@@ -93,7 +93,7 @@ class _WorkPhotoProjectEditPageState extends State<WorkPhotoProjectEditPage> {
       levels[id] = (await _repository.listHierarchyLevels(
         templateId: id,
       )).length;
-      items[id] = (await _repository.listCaptureItems(templateId: id)).length;
+      items[id] = (await _repository.listCaptureItemsInTemplateTree(id)).length;
     }
     return _TemplateCounts(levels: levels, items: items);
   }
@@ -108,7 +108,7 @@ class _WorkPhotoProjectEditPageState extends State<WorkPhotoProjectEditPage> {
       if (id == null) continue;
       options.addAll(await _repository.listHierarchyOptions(levelId: id));
     }
-    final items = await _repository.listCaptureItems(templateId: templateId);
+    final items = await _repository.listCaptureItemsInTemplateTree(templateId);
     return _TemplateConfig(levels: levels, options: options, items: items);
   }
 
@@ -252,6 +252,7 @@ class _WorkPhotoProjectEditPageState extends State<WorkPhotoProjectEditPage> {
   Widget _buildTemplateConfig(AppLocalizations l10n) {
     final levels = _selectedLevels;
     final items = _selectedItems;
+    final hasSelectableHierarchy = _options.isNotEmpty;
     return Column(
       children: [
         _buildSection(
@@ -265,15 +266,20 @@ class _WorkPhotoProjectEditPageState extends State<WorkPhotoProjectEditPage> {
                   ],
                 ),
         ),
-        const SizedBox(height: IOS26Theme.spacingMd),
-        _buildSection(
-          title: l10n.work_photo_hierarchy_section,
-          child: levels.isEmpty
-              ? Text(l10n.work_photo_no_hierarchy, style: IOS26Theme.bodyMedium)
-              : Column(
-                  children: [for (final level in levels) _levelField(level)],
-                ),
-        ),
+        if (hasSelectableHierarchy) ...[
+          const SizedBox(height: IOS26Theme.spacingMd),
+          _buildSection(
+            title: l10n.work_photo_hierarchy_section,
+            child: levels.isEmpty
+                ? Text(
+                    l10n.work_photo_no_hierarchy,
+                    style: IOS26Theme.bodyMedium,
+                  )
+                : Column(
+                    children: [for (final level in levels) _levelField(level)],
+                  ),
+          ),
+        ],
         const SizedBox(height: IOS26Theme.spacingMd),
         _buildSection(
           title: l10n.work_photo_capture_items_section,
@@ -634,7 +640,9 @@ class _WorkPhotoProjectEditPageState extends State<WorkPhotoProjectEditPage> {
         );
         return;
       }
+      final optionLevelIds = _options.map((e) => e.levelId).toSet();
       final selectedLevelIds = _selectedLevels
+          .where((e) => optionLevelIds.contains(e.id))
           .map((e) => e.id)
           .whereType<int>()
           .toSet();

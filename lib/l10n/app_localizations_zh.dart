@@ -1323,6 +1323,49 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get work_photo_template_list_back => '模板列表';
+
+  @override
+  String get work_photo_root_directory => '模板根目录';
+
+  @override
+  String get work_photo_template_tree_empty =>
+      '暂无层级或拍摄项。可直接在模板根目录新增拍摄项，也可以先新增多级层级。';
+
+  @override
+  String get work_photo_add_child_level => '新增子层级';
+
+  @override
+  String get work_photo_add_child_capture_item => '新增子拍摄项';
+
+  @override
+  String get work_photo_delete_template_title => '删除模板？';
+
+  @override
+  String get work_photo_delete_template_content => '删除后该模板不再用于新建项目，已创建项目不受影响。';
+
+  @override
+  String get work_photo_delete_level_title => '删除层级？';
+
+  @override
+  String get work_photo_delete_level_content => '会同时删除该层级下的子层级和拍摄项，仅影响模板配置。';
+
+  @override
+  String get work_photo_delete_capture_item_title => '删除拍摄项？';
+
+  @override
+  String get work_photo_delete_capture_item_content =>
+      '删除后该拍摄项不再用于新建项目，已创建项目不受影响。';
+
+  @override
+  String get work_photo_custom_projects_group => '自定义项目';
+
+  @override
+  String work_photo_project_group_count(int count) {
+    return '$count 个项目';
+  }
+
+  @override
   String get work_photo_project_mode_title => '创建方式';
 
   @override
@@ -2686,6 +2729,49 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   @override
   String work_photo_templates_summary(int levels, int items) {
     return '$levels 个层级 · $items 个拍摄项';
+  }
+
+  @override
+  String get work_photo_template_list_back => '模板列表';
+
+  @override
+  String get work_photo_root_directory => '模板根目录';
+
+  @override
+  String get work_photo_template_tree_empty =>
+      '暂无层级或拍摄项。可直接在模板根目录新增拍摄项，也可以先新增多级层级。';
+
+  @override
+  String get work_photo_add_child_level => '新增子层级';
+
+  @override
+  String get work_photo_add_child_capture_item => '新增子拍摄项';
+
+  @override
+  String get work_photo_delete_template_title => '删除模板？';
+
+  @override
+  String get work_photo_delete_template_content => '删除后该模板不再用于新建项目，已创建项目不受影响。';
+
+  @override
+  String get work_photo_delete_level_title => '删除层级？';
+
+  @override
+  String get work_photo_delete_level_content => '会同时删除该层级下的子层级和拍摄项，仅影响模板配置。';
+
+  @override
+  String get work_photo_delete_capture_item_title => '删除拍摄项？';
+
+  @override
+  String get work_photo_delete_capture_item_content =>
+      '删除后该拍摄项不再用于新建项目，已创建项目不受影响。';
+
+  @override
+  String get work_photo_custom_projects_group => '自定义项目';
+
+  @override
+  String work_photo_project_group_count(int count) {
+    return '$count 个项目';
   }
 
   @override

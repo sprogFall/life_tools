@@ -692,6 +692,24 @@
       "items": { "type": "int" }
     }
   },
+  "work_photo_template_list_back": "Template list",
+  "work_photo_root_directory": "Template root",
+  "work_photo_template_tree_empty": "No levels or capture items yet. Add capture items at the template root, or create nested levels first.",
+  "work_photo_add_child_level": "Add child level",
+  "work_photo_add_child_capture_item": "Add child capture item",
+  "work_photo_delete_template_title": "Delete template?",
+  "work_photo_delete_template_content": "The template will no longer be available for new projects. Existing projects are not changed.",
+  "work_photo_delete_level_title": "Delete level?",
+  "work_photo_delete_level_content": "This will also delete child levels and capture items under this level from the template.",
+  "work_photo_delete_capture_item_title": "Delete capture item?",
+  "work_photo_delete_capture_item_content": "The capture item will no longer be available in new projects. Existing projects are not changed.",
+  "work_photo_custom_projects_group": "Custom projects",
+  "work_photo_project_group_count": "{count} projects",
+  "@work_photo_project_group_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "work_photo_project_mode_title": "Creation mode",
   "work_photo_project_mode_template": "From template",
   "work_photo_project_mode_custom": "Custom",

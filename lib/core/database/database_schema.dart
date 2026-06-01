@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 21;
+  static const int version = 22;
   static const int _maxOperationLogRecords = 10;
 
   static Future<void> onConfigure(Database db) async {
@@ -98,6 +98,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 21) {
       await _upgradeToVersion21(db);
+    }
+    if (oldVersion < 22) {
+      await _upgradeToVersion22(db);
     }
   }
 
@@ -996,8 +999,15 @@ WHERE tool_id = ? AND category_id = ?
     // v21: 外拍配置改为模板化，旧的全局层级/拍摄项迁到默认模板。
     await _createWorkPhotoTemplateTable(db);
     await _ensureWorkPhotoTemplateColumns(db);
+    await _ensureWorkPhotoTreeColumns(db);
     await _ensureWorkPhotoIndexes(db);
     await _migrateWorkPhotoGlobalConfigToDefaultTemplate(db);
+  }
+
+  static Future<void> _upgradeToVersion22(Database db) async {
+    // v22: 外拍模板配置支持层级树，拍摄项可挂在模板根节点或任意层级下。
+    await _ensureWorkPhotoTreeColumns(db);
+    await _ensureWorkPhotoIndexes(db);
   }
 
   static Future<void> _createXiaoMiTables(Database db) async {
@@ -1034,13 +1044,15 @@ WHERE tool_id = ? AND category_id = ?
       CREATE TABLE IF NOT EXISTS work_photo_hierarchy_levels (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         template_id INTEGER,
+        parent_level_id INTEGER,
         name TEXT NOT NULL,
         sort_index INTEGER NOT NULL DEFAULT 0,
         is_required INTEGER NOT NULL DEFAULT 1,
         is_archived INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE CASCADE
+        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_level_id) REFERENCES work_photo_hierarchy_levels(id) ON DELETE CASCADE
       )
     ''');
 
@@ -1063,6 +1075,7 @@ WHERE tool_id = ? AND category_id = ?
       CREATE TABLE IF NOT EXISTS work_photo_capture_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         template_id INTEGER,
+        parent_level_id INTEGER,
         name TEXT NOT NULL,
         sort_index INTEGER NOT NULL DEFAULT 0,
         min_count INTEGER NOT NULL DEFAULT 1,
@@ -1070,7 +1083,8 @@ WHERE tool_id = ? AND category_id = ?
         is_archived INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE CASCADE
+        FOREIGN KEY (template_id) REFERENCES work_photo_templates(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_level_id) REFERENCES work_photo_hierarchy_levels(id) ON DELETE CASCADE
       )
     ''');
 
@@ -1172,10 +1186,16 @@ WHERE tool_id = ? AND category_id = ?
       'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_levels_template_sort ON work_photo_hierarchy_levels(template_id, sort_index ASC, id ASC)',
     );
     await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_levels_parent_sort ON work_photo_hierarchy_levels(template_id, parent_level_id, sort_index ASC, id ASC)',
+    );
+    await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_hierarchy_options_level_parent_sort ON work_photo_hierarchy_options(level_id, parent_option_id, sort_index ASC, id ASC)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_capture_items_template_sort ON work_photo_capture_items(template_id, sort_index ASC, id ASC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_work_photo_capture_items_parent_sort ON work_photo_capture_items(template_id, parent_level_id, sort_index ASC, id ASC)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_work_photo_projects_updated_at ON work_photo_projects(updated_at DESC, id DESC)',
@@ -1226,6 +1246,27 @@ WHERE tool_id = ? AND category_id = ?
     if (!projectColumns.contains('template_name_snapshot')) {
       await db.execute(
         "ALTER TABLE work_photo_projects ADD COLUMN template_name_snapshot TEXT NOT NULL DEFAULT ''",
+      );
+    }
+  }
+
+  static Future<void> _ensureWorkPhotoTreeColumns(Database db) async {
+    Future<Set<String>> columnNames(String table) async {
+      final rows = await db.rawQuery('PRAGMA table_info($table)');
+      return rows.map((e) => e['name']).whereType<String>().toSet();
+    }
+
+    final levelColumns = await columnNames('work_photo_hierarchy_levels');
+    if (!levelColumns.contains('parent_level_id')) {
+      await db.execute(
+        'ALTER TABLE work_photo_hierarchy_levels ADD COLUMN parent_level_id INTEGER',
+      );
+    }
+
+    final itemColumns = await columnNames('work_photo_capture_items');
+    if (!itemColumns.contains('parent_level_id')) {
+      await db.execute(
+        'ALTER TABLE work_photo_capture_items ADD COLUMN parent_level_id INTEGER',
       );
     }
   }

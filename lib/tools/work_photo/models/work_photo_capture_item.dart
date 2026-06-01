@@ -1,6 +1,7 @@
 class WorkPhotoCaptureItem {
   final int? id;
   final int? templateId;
+  final int? parentLevelId;
   final String name;
   final int sortIndex;
   final int minCount;
@@ -12,6 +13,7 @@ class WorkPhotoCaptureItem {
   const WorkPhotoCaptureItem({
     required this.id,
     required this.templateId,
+    required this.parentLevelId,
     required this.name,
     required this.sortIndex,
     required this.minCount,
@@ -23,6 +25,7 @@ class WorkPhotoCaptureItem {
 
   factory WorkPhotoCaptureItem.create({
     int? templateId,
+    int? parentLevelId,
     required String name,
     required int sortIndex,
     int minCount = 1,
@@ -43,6 +46,7 @@ class WorkPhotoCaptureItem {
     return WorkPhotoCaptureItem(
       id: null,
       templateId: templateId,
+      parentLevelId: parentLevelId,
       name: trimmed,
       sortIndex: sortIndex,
       minCount: minCount,
@@ -56,6 +60,8 @@ class WorkPhotoCaptureItem {
   WorkPhotoCaptureItem copyWith({
     int? id,
     int? templateId,
+    int? parentLevelId,
+    bool clearParentLevelId = false,
     String? name,
     int? sortIndex,
     int? minCount,
@@ -68,6 +74,9 @@ class WorkPhotoCaptureItem {
     return WorkPhotoCaptureItem(
       id: id ?? this.id,
       templateId: templateId ?? this.templateId,
+      parentLevelId: clearParentLevelId
+          ? null
+          : (parentLevelId ?? this.parentLevelId),
       name: name ?? this.name,
       sortIndex: sortIndex ?? this.sortIndex,
       minCount: minCount ?? this.minCount,
@@ -82,6 +91,7 @@ class WorkPhotoCaptureItem {
     return {
       if (includeId) 'id': id,
       'template_id': templateId,
+      'parent_level_id': parentLevelId,
       'name': name.trim(),
       'sort_index': sortIndex,
       'min_count': minCount,
@@ -96,6 +106,7 @@ class WorkPhotoCaptureItem {
     return WorkPhotoCaptureItem(
       id: map['id'] as int?,
       templateId: (map['template_id'] as num?)?.toInt(),
+      parentLevelId: (map['parent_level_id'] as num?)?.toInt(),
       name: map['name'] as String? ?? '',
       sortIndex: (map['sort_index'] as num?)?.toInt() ?? 0,
       minCount: (map['min_count'] as num?)?.toInt() ?? 1,

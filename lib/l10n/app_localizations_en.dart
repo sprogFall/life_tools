@@ -1377,6 +1377,51 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get work_photo_template_list_back => 'Template list';
+
+  @override
+  String get work_photo_root_directory => 'Template root';
+
+  @override
+  String get work_photo_template_tree_empty =>
+      'No levels or capture items yet. Add capture items at the template root, or create nested levels first.';
+
+  @override
+  String get work_photo_add_child_level => 'Add child level';
+
+  @override
+  String get work_photo_add_child_capture_item => 'Add child capture item';
+
+  @override
+  String get work_photo_delete_template_title => 'Delete template?';
+
+  @override
+  String get work_photo_delete_template_content =>
+      'The template will no longer be available for new projects. Existing projects are not changed.';
+
+  @override
+  String get work_photo_delete_level_title => 'Delete level?';
+
+  @override
+  String get work_photo_delete_level_content =>
+      'This will also delete child levels and capture items under this level from the template.';
+
+  @override
+  String get work_photo_delete_capture_item_title => 'Delete capture item?';
+
+  @override
+  String get work_photo_delete_capture_item_content =>
+      'The capture item will no longer be available in new projects. Existing projects are not changed.';
+
+  @override
+  String get work_photo_custom_projects_group => 'Custom projects';
+
+  @override
+  String work_photo_project_group_count(int count) {
+    return '$count projects';
+  }
+
+  @override
   String get work_photo_project_mode_title => 'Creation mode';
 
   @override
@@ -2801,6 +2846,51 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   @override
   String work_photo_templates_summary(int levels, int items) {
     return '$levels levels · $items items';
+  }
+
+  @override
+  String get work_photo_template_list_back => 'Template list';
+
+  @override
+  String get work_photo_root_directory => 'Template root';
+
+  @override
+  String get work_photo_template_tree_empty =>
+      'No levels or capture items yet. Add capture items at the template root, or create nested levels first.';
+
+  @override
+  String get work_photo_add_child_level => 'Add child level';
+
+  @override
+  String get work_photo_add_child_capture_item => 'Add child capture item';
+
+  @override
+  String get work_photo_delete_template_title => 'Delete template?';
+
+  @override
+  String get work_photo_delete_template_content =>
+      'The template will no longer be available for new projects. Existing projects are not changed.';
+
+  @override
+  String get work_photo_delete_level_title => 'Delete level?';
+
+  @override
+  String get work_photo_delete_level_content =>
+      'This will also delete child levels and capture items under this level from the template.';
+
+  @override
+  String get work_photo_delete_capture_item_title => 'Delete capture item?';
+
+  @override
+  String get work_photo_delete_capture_item_content =>
+      'The capture item will no longer be available in new projects. Existing projects are not changed.';
+
+  @override
+  String get work_photo_custom_projects_group => 'Custom projects';
+
+  @override
+  String work_photo_project_group_count(int count) {
+    return '$count projects';
   }
 
   @override

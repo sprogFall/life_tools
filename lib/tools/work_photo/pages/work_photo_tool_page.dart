@@ -15,32 +15,45 @@ import 'work_photo_project_detail_page.dart';
 import 'work_photo_project_edit_page.dart';
 
 class WorkPhotoToolPage extends StatefulWidget {
-  final WorkPhotoRepository? repository;
+  final WorkPhotoProjectListRepository? repository;
+  final WorkPhotoRepository? workPhotoRepository;
   final WorkPhotoMediaStore? mediaStore;
 
-  const WorkPhotoToolPage({super.key, this.repository, this.mediaStore});
+  const WorkPhotoToolPage({
+    super.key,
+    this.repository,
+    this.workPhotoRepository,
+    this.mediaStore,
+  });
 
   @override
   State<WorkPhotoToolPage> createState() => _WorkPhotoToolPageState();
 }
 
 class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
-  late final WorkPhotoRepository _repository;
+  WorkPhotoRepository? _workPhotoRepository;
+  late final WorkPhotoProjectListRepository _projectListRepository;
   late final WorkPhotoMediaStore _mediaStore;
   bool _loading = true;
   List<WorkPhotoProjectSummary> _projects = const [];
+  final Set<String> _collapsedTemplateGroups = {};
 
   @override
   void initState() {
     super.initState();
-    _repository = widget.repository ?? WorkPhotoRepository();
+    _workPhotoRepository = widget.workPhotoRepository;
+    _projectListRepository = widget.repository ?? _fullRepository;
     _mediaStore = widget.mediaStore ?? WorkPhotoMediaStore();
     _reload();
   }
 
+  WorkPhotoRepository get _fullRepository {
+    return _workPhotoRepository ??= WorkPhotoRepository();
+  }
+
   Future<void> _reload() async {
     setState(() => _loading = true);
-    final projects = await _repository.listProjectSummaries();
+    final projects = await _projectListRepository.listProjectSummaries();
     if (!mounted) return;
     setState(() {
       _projects = projects;
@@ -113,16 +126,89 @@ class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
       );
     }
 
-    return ListView.separated(
+    final groups = _groupProjects(l10n);
+    return ListView(
       padding: const EdgeInsets.fromLTRB(
         IOS26Theme.spacingLg,
         IOS26Theme.spacingMd,
         IOS26Theme.spacingLg,
         IOS26Theme.spacingXxl,
       ),
-      itemCount: _projects.length,
-      separatorBuilder: (_, _) => const SizedBox(height: IOS26Theme.spacingMd),
-      itemBuilder: (context, index) => _buildProjectRow(_projects[index], l10n),
+      children: [
+        for (final group in groups) ...[
+          _buildTemplateGroup(group, l10n),
+          const SizedBox(height: IOS26Theme.spacingMd),
+        ],
+      ],
+    );
+  }
+
+  List<_TemplateProjectGroup> _groupProjects(AppLocalizations l10n) {
+    final groups = <String, _TemplateProjectGroup>{};
+    for (final summary in _projects) {
+      final rawTemplateName = summary.project.templateNameSnapshot.trim();
+      final templateName = rawTemplateName.isEmpty
+          ? l10n.work_photo_custom_projects_group
+          : rawTemplateName;
+      final key = summary.project.templateId == null
+          ? 'custom:$templateName'
+          : 'template:${summary.project.templateId}:$templateName';
+      groups.putIfAbsent(
+        key,
+        () => _TemplateProjectGroup(
+          key: key,
+          title: templateName,
+          projects: <WorkPhotoProjectSummary>[],
+        ),
+      );
+      groups[key]!.projects.add(summary);
+    }
+    return groups.values.toList();
+  }
+
+  Widget _buildTemplateGroup(
+    _TemplateProjectGroup group,
+    AppLocalizations l10n,
+  ) {
+    final collapsed = _collapsedTemplateGroups.contains(group.key);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GlassContainer(
+          borderRadius: IOS26Theme.radiusLg,
+          padding: EdgeInsets.zero,
+          child: IOS26Button.plain(
+            padding: const EdgeInsets.all(IOS26Theme.spacingLg),
+            onPressed: () => _toggleTemplateGroup(group.key),
+            child: Row(
+              children: [
+                IOS26Icon(
+                  collapsed
+                      ? CupertinoIcons.chevron_right
+                      : CupertinoIcons.chevron_down,
+                  tone: IOS26IconTone.secondary,
+                  size: 18,
+                ),
+                const SizedBox(width: IOS26Theme.spacingMd),
+                Expanded(
+                  child: Text(group.title, style: IOS26Theme.titleMedium),
+                ),
+                Text(
+                  l10n.work_photo_project_group_count(group.projects.length),
+                  style: IOS26Theme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!collapsed) ...[
+          const SizedBox(height: IOS26Theme.spacingSm),
+          for (final project in group.projects) ...[
+            _buildProjectRow(project, l10n),
+            const SizedBox(height: IOS26Theme.spacingSm),
+          ],
+        ],
+      ],
     );
   }
 
@@ -192,7 +278,7 @@ class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
   Future<void> _openConfig() async {
     await AppNavigator.push(
       context,
-      WorkPhotoConfigPage(repository: _repository),
+      WorkPhotoConfigPage(repository: _fullRepository),
     );
     if (!mounted) return;
     await _reload();
@@ -201,7 +287,7 @@ class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
   Future<void> _openExport() async {
     await AppNavigator.push(
       context,
-      WorkPhotoExportPage(repository: _repository, mediaStore: _mediaStore),
+      WorkPhotoExportPage(repository: _fullRepository, mediaStore: _mediaStore),
     );
     if (!mounted) return;
     await _reload();
@@ -210,7 +296,7 @@ class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
   Future<void> _openCreateProject() async {
     final created = await AppNavigator.push<bool>(
       context,
-      WorkPhotoProjectEditPage(repository: _repository),
+      WorkPhotoProjectEditPage(repository: _fullRepository),
     );
     if (!mounted) return;
     if (created == true) await _reload();
@@ -221,11 +307,31 @@ class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
       context,
       WorkPhotoProjectDetailPage(
         projectId: projectId,
-        repository: _repository,
+        repository: _fullRepository,
         mediaStore: _mediaStore,
       ),
     );
     if (!mounted) return;
     await _reload();
   }
+
+  void _toggleTemplateGroup(String key) {
+    setState(() {
+      if (!_collapsedTemplateGroups.add(key)) {
+        _collapsedTemplateGroups.remove(key);
+      }
+    });
+  }
+}
+
+class _TemplateProjectGroup {
+  final String key;
+  final String title;
+  final List<WorkPhotoProjectSummary> projects;
+
+  const _TemplateProjectGroup({
+    required this.key,
+    required this.title,
+    required this.projects,
+  });
 }

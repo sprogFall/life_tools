@@ -159,6 +159,82 @@ void main() {
       expect(detail.items.last.maxCount, 3);
     });
 
+    test('模板树支持层级嵌套，创建项目时拍摄项仍打平保存', () async {
+      final now = DateTime(2026, 6, 1, 9);
+      final templateId = await repository.createTemplate(
+        WorkPhotoTemplate.create(name: '树形模板', sortIndex: 0, now: now),
+      );
+      final storeLevelId = await repository.createHierarchyLevel(
+        WorkPhotoHierarchyLevel.create(
+          templateId: templateId,
+          parentLevelId: null,
+          name: '门店',
+          sortIndex: 0,
+          now: now,
+        ),
+      );
+      final entranceLevelId = await repository.createHierarchyLevel(
+        WorkPhotoHierarchyLevel.create(
+          templateId: templateId,
+          parentLevelId: storeLevelId,
+          name: '入口',
+          sortIndex: 0,
+          now: now,
+        ),
+      );
+      await repository.createCaptureItem(
+        WorkPhotoCaptureItem.create(
+          templateId: templateId,
+          parentLevelId: entranceLevelId,
+          name: '门头',
+          sortIndex: 0,
+          minCount: 1,
+          now: now,
+        ),
+      );
+      await repository.createCaptureItem(
+        WorkPhotoCaptureItem.create(
+          templateId: templateId,
+          parentLevelId: storeLevelId,
+          name: '收银台',
+          sortIndex: 1,
+          minCount: 2,
+          maxCount: 3,
+          now: now,
+        ),
+      );
+      await repository.createCaptureItem(
+        WorkPhotoCaptureItem.create(
+          templateId: templateId,
+          parentLevelId: null,
+          name: '总览',
+          sortIndex: 1,
+          minCount: 1,
+          now: now,
+        ),
+      );
+
+      final orderedItems = await repository.listCaptureItemsInTemplateTree(
+        templateId,
+      );
+      expect(orderedItems.map((e) => e.name), ['门头', '收银台', '总览']);
+
+      final projectId = await repository.createProjectFromTemplate(
+        name: '项目树',
+        note: '',
+        templateId: templateId,
+        hierarchySelections: const [],
+        now: now,
+      );
+
+      final detail = await repository.getProjectDetail(projectId);
+      expect(detail, isNotNull);
+      expect(detail!.hierarchyValues, isEmpty);
+      expect(detail.items.map((e) => e.nameSnapshot), ['门头', '收银台', '总览']);
+      expect(detail.items.map((e) => e.minCount), [1, 2, 1]);
+      expect(detail.items[1].maxCount, 3);
+    });
+
     test('照片记录参与完成度统计，删除项目会级联删除关联记录', () async {
       final now = DateTime(2026, 6, 1, 9);
       final templateId = await repository.createTemplate(

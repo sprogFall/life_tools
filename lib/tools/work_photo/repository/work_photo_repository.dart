@@ -46,7 +46,38 @@ class WorkPhotoCustomCaptureItem {
   });
 }
 
-class WorkPhotoRepository {
+abstract class WorkPhotoConfigRepository {
+  Future<int> createTemplate(WorkPhotoTemplate template);
+
+  Future<List<WorkPhotoTemplate>> listTemplates({bool includeArchived = false});
+
+  Future<void> updateTemplate(WorkPhotoTemplate template);
+
+  Future<int> createHierarchyLevel(WorkPhotoHierarchyLevel level);
+
+  Future<List<WorkPhotoHierarchyLevel>> listHierarchyLevels({
+    int? templateId,
+    bool includeArchived = false,
+  });
+
+  Future<void> updateHierarchyLevel(WorkPhotoHierarchyLevel level);
+
+  Future<int> createCaptureItem(WorkPhotoCaptureItem item);
+
+  Future<List<WorkPhotoCaptureItem>> listCaptureItems({
+    int? templateId,
+    bool includeArchived = false,
+  });
+
+  Future<void> updateCaptureItem(WorkPhotoCaptureItem item);
+}
+
+abstract class WorkPhotoProjectListRepository {
+  Future<List<WorkPhotoProjectSummary>> listProjectSummaries();
+}
+
+class WorkPhotoRepository
+    implements WorkPhotoConfigRepository, WorkPhotoProjectListRepository {
   final Future<Database> _database;
 
   WorkPhotoRepository({DatabaseHelper? dbHelper})
@@ -55,6 +86,7 @@ class WorkPhotoRepository {
   WorkPhotoRepository.withDatabase(Database database)
     : _database = Future.value(database);
 
+  @override
   Future<int> createTemplate(WorkPhotoTemplate template) async {
     final db = await _database;
     return db.insert('work_photo_templates', template.toMap(includeId: false));
@@ -72,6 +104,7 @@ class WorkPhotoRepository {
     return WorkPhotoTemplate.fromMap(rows.single);
   }
 
+  @override
   Future<List<WorkPhotoTemplate>> listTemplates({
     bool includeArchived = false,
   }) async {
@@ -84,6 +117,7 @@ class WorkPhotoRepository {
     return rows.map(WorkPhotoTemplate.fromMap).toList();
   }
 
+  @override
   Future<void> updateTemplate(WorkPhotoTemplate template) async {
     final id = template.id;
     if (id == null) throw ArgumentError('updateTemplate 需要 id');
@@ -96,6 +130,7 @@ class WorkPhotoRepository {
     );
   }
 
+  @override
   Future<int> createHierarchyLevel(WorkPhotoHierarchyLevel level) async {
     final db = await _database;
     return db.insert(
@@ -116,6 +151,7 @@ class WorkPhotoRepository {
     return WorkPhotoHierarchyLevel.fromMap(rows.single);
   }
 
+  @override
   Future<List<WorkPhotoHierarchyLevel>> listHierarchyLevels({
     int? templateId,
     bool includeArchived = false,
@@ -139,6 +175,7 @@ class WorkPhotoRepository {
     return rows.map(WorkPhotoHierarchyLevel.fromMap).toList();
   }
 
+  @override
   Future<void> updateHierarchyLevel(WorkPhotoHierarchyLevel level) async {
     final id = level.id;
     if (id == null) throw ArgumentError('updateHierarchyLevel 需要 id');
@@ -206,6 +243,7 @@ class WorkPhotoRepository {
     );
   }
 
+  @override
   Future<int> createCaptureItem(WorkPhotoCaptureItem item) async {
     final db = await _database;
     return db.insert('work_photo_capture_items', item.toMap(includeId: false));
@@ -223,6 +261,7 @@ class WorkPhotoRepository {
     return WorkPhotoCaptureItem.fromMap(rows.single);
   }
 
+  @override
   Future<List<WorkPhotoCaptureItem>> listCaptureItems({
     int? templateId,
     bool includeArchived = false,
@@ -246,6 +285,22 @@ class WorkPhotoRepository {
     return rows.map(WorkPhotoCaptureItem.fromMap).toList();
   }
 
+  Future<List<WorkPhotoCaptureItem>> listCaptureItemsInTemplateTree(
+    int templateId, {
+    bool includeArchived = false,
+  }) async {
+    final levels = await listHierarchyLevels(
+      templateId: templateId,
+      includeArchived: includeArchived,
+    );
+    final items = await listCaptureItems(
+      templateId: templateId,
+      includeArchived: includeArchived,
+    );
+    return _sortCaptureItemsInTemplateTree(levels: levels, items: items);
+  }
+
+  @override
   Future<void> updateCaptureItem(WorkPhotoCaptureItem item) async {
     final id = item.id;
     if (id == null) throw ArgumentError('updateCaptureItem 需要 id');
@@ -377,13 +432,19 @@ class WorkPhotoRepository {
         whereArgs: [templateId],
         orderBy: 'sort_index ASC, id ASC',
       );
-      for (final itemRow in itemRows) {
-        final item = WorkPhotoCaptureItem.fromMap(itemRow);
+      final itemLevels = levels.map(WorkPhotoHierarchyLevel.fromMap).toList();
+      final templateItems = itemRows.map(WorkPhotoCaptureItem.fromMap).toList();
+      final orderedItems = _sortCaptureItemsInTemplateTree(
+        levels: itemLevels,
+        items: templateItems,
+      );
+      for (final entry in orderedItems.indexed) {
+        final item = entry.$2;
         await txn.insert('work_photo_project_items', {
           'project_id': projectId,
           'source_item_id': item.id,
           'name_snapshot': item.name,
-          'sort_index': item.sortIndex,
+          'sort_index': entry.$1,
           'min_count': item.minCount,
           'max_count': item.maxCount,
         });
@@ -519,6 +580,7 @@ class WorkPhotoRepository {
     );
   }
 
+  @override
   Future<List<WorkPhotoProjectSummary>> listProjectSummaries() async {
     final db = await _database;
     final projectRows = await db.query(
@@ -731,5 +793,114 @@ class WorkPhotoRepository {
     for (final row in rows) {
       await txn.insert(table, Map<String, Object?>.from(row));
     }
+  }
+
+  static List<WorkPhotoCaptureItem> _sortCaptureItemsInTemplateTree({
+    required List<WorkPhotoHierarchyLevel> levels,
+    required List<WorkPhotoCaptureItem> items,
+  }) {
+    final levelsByParentId = <int?, List<WorkPhotoHierarchyLevel>>{};
+    for (final level in levels) {
+      levelsByParentId.putIfAbsent(level.parentLevelId, () => []).add(level);
+    }
+    final itemsByParentId = <int?, List<WorkPhotoCaptureItem>>{};
+    for (final item in items) {
+      itemsByParentId.putIfAbsent(item.parentLevelId, () => []).add(item);
+    }
+    for (final siblings in levelsByParentId.values) {
+      siblings.sort(
+        (a, b) => _compareSort(a.sortIndex, a.id, b.sortIndex, b.id),
+      );
+    }
+    for (final siblings in itemsByParentId.values) {
+      siblings.sort(
+        (a, b) => _compareSort(a.sortIndex, a.id, b.sortIndex, b.id),
+      );
+    }
+
+    final result = <WorkPhotoCaptureItem>[];
+    final visitedLevelIds = <int>{};
+
+    void visit(int? parentLevelId) {
+      final entries = <_TemplateTreeEntry>[
+        for (final level in levelsByParentId[parentLevelId] ?? const [])
+          _TemplateTreeEntry.level(level),
+        for (final item in itemsByParentId[parentLevelId] ?? const [])
+          _TemplateTreeEntry.item(item),
+      ]..sort(_TemplateTreeEntry.compare);
+
+      for (final entry in entries) {
+        final level = entry.level;
+        if (level != null) {
+          final id = level.id;
+          if (id == null || !visitedLevelIds.add(id)) continue;
+          visit(id);
+        } else {
+          result.add(entry.item!);
+        }
+      }
+    }
+
+    visit(null);
+
+    final includedItemIds = result.map((e) => e.id).whereType<int>().toSet();
+    final orphanItems =
+        items.where((item) {
+            final id = item.id;
+            return id == null || !includedItemIds.contains(id);
+          }).toList()
+          ..sort((a, b) => _compareSort(a.sortIndex, a.id, b.sortIndex, b.id));
+    result.addAll(orphanItems);
+    return result;
+  }
+
+  static int _compareSort(int aSort, int? aId, int bSort, int? bId) {
+    final sortCompared = aSort.compareTo(bSort);
+    if (sortCompared != 0) return sortCompared;
+    return (aId ?? 0).compareTo(bId ?? 0);
+  }
+}
+
+class _TemplateTreeEntry {
+  final WorkPhotoHierarchyLevel? level;
+  final WorkPhotoCaptureItem? item;
+  final int sortIndex;
+  final int id;
+  final int typeOrder;
+
+  const _TemplateTreeEntry._({
+    required this.level,
+    required this.item,
+    required this.sortIndex,
+    required this.id,
+    required this.typeOrder,
+  });
+
+  factory _TemplateTreeEntry.level(WorkPhotoHierarchyLevel level) {
+    return _TemplateTreeEntry._(
+      level: level,
+      item: null,
+      sortIndex: level.sortIndex,
+      id: level.id ?? 0,
+      typeOrder: 0,
+    );
+  }
+
+  factory _TemplateTreeEntry.item(WorkPhotoCaptureItem item) {
+    return _TemplateTreeEntry._(
+      level: null,
+      item: item,
+      sortIndex: item.sortIndex,
+      id: item.id ?? 0,
+      typeOrder: 1,
+    );
+  }
+
+  static int compare(_TemplateTreeEntry a, _TemplateTreeEntry b) {
+    final sortCompared = a.sortIndex.compareTo(b.sortIndex);
+    if (sortCompared != 0) return sortCompared;
+    final typeCompared = a.typeOrder.compareTo(b.typeOrder);
+    if (typeCompared != 0) return typeCompared;
+    return a.id.compareTo(b.id);
   }
 }

@@ -2479,6 +2479,84 @@ abstract class AppLocalizations {
   /// **'{levels} levels · {items} items'**
   String work_photo_templates_summary(int levels, int items);
 
+  /// No description provided for @work_photo_template_list_back.
+  ///
+  /// In en, this message translates to:
+  /// **'Template list'**
+  String get work_photo_template_list_back;
+
+  /// No description provided for @work_photo_root_directory.
+  ///
+  /// In en, this message translates to:
+  /// **'Template root'**
+  String get work_photo_root_directory;
+
+  /// No description provided for @work_photo_template_tree_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No levels or capture items yet. Add capture items at the template root, or create nested levels first.'**
+  String get work_photo_template_tree_empty;
+
+  /// No description provided for @work_photo_add_child_level.
+  ///
+  /// In en, this message translates to:
+  /// **'Add child level'**
+  String get work_photo_add_child_level;
+
+  /// No description provided for @work_photo_add_child_capture_item.
+  ///
+  /// In en, this message translates to:
+  /// **'Add child capture item'**
+  String get work_photo_add_child_capture_item;
+
+  /// No description provided for @work_photo_delete_template_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template?'**
+  String get work_photo_delete_template_title;
+
+  /// No description provided for @work_photo_delete_template_content.
+  ///
+  /// In en, this message translates to:
+  /// **'The template will no longer be available for new projects. Existing projects are not changed.'**
+  String get work_photo_delete_template_content;
+
+  /// No description provided for @work_photo_delete_level_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete level?'**
+  String get work_photo_delete_level_title;
+
+  /// No description provided for @work_photo_delete_level_content.
+  ///
+  /// In en, this message translates to:
+  /// **'This will also delete child levels and capture items under this level from the template.'**
+  String get work_photo_delete_level_content;
+
+  /// No description provided for @work_photo_delete_capture_item_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete capture item?'**
+  String get work_photo_delete_capture_item_title;
+
+  /// No description provided for @work_photo_delete_capture_item_content.
+  ///
+  /// In en, this message translates to:
+  /// **'The capture item will no longer be available in new projects. Existing projects are not changed.'**
+  String get work_photo_delete_capture_item_content;
+
+  /// No description provided for @work_photo_custom_projects_group.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom projects'**
+  String get work_photo_custom_projects_group;
+
+  /// No description provided for @work_photo_project_group_count.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} projects'**
+  String work_photo_project_group_count(int count);
+
   /// No description provided for @work_photo_project_mode_title.
   ///
   /// In en, this message translates to:
