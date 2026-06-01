@@ -231,6 +231,11 @@ void main() {
       expect(detail, isNotNull);
       expect(detail!.hierarchyValues, isEmpty);
       expect(detail.items.map((e) => e.nameSnapshot), ['门头', '收银台', '总览']);
+      expect(detail.items.map((e) => e.hierarchyPathSnapshot), [
+        ['门店', '入口'],
+        ['门店'],
+        <String>[],
+      ]);
       expect(detail.items.map((e) => e.minCount), [1, 2, 1]);
       expect(detail.items[1].maxCount, 3);
     });

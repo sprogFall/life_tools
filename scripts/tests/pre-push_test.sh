@@ -202,6 +202,31 @@ test_changed_priority_with_guaranteed_coverage() {
   assert_not_contains_exact_line "$log_file" "test"
 }
 
+test_flutter_test_module_runs_requested_tool_module_only() {
+  local tmp_repo
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  local fake_flutter="${tmp_repo}/fake_flutter.sh"
+  local log_file="${tmp_repo}/flutter.log"
+  create_fake_flutter "$fake_flutter"
+  : > "$log_file"
+
+  mkdir -p "${tmp_repo}/test/tools/work_log"
+  cat > "${tmp_repo}/test/tools/work_log/work_log_repository_test.dart" <<'EOT'
+void main() {}
+EOT
+
+  mkdir -p "${tmp_repo}/android/app"
+  cat > "${tmp_repo}/android/app/build.gradle" <<'EOT'
+// touched
+EOT
+
+  run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-analyze --test-module work_log
+  assert_contains "$log_file" "test test/tools/work_log"
+  assert_not_contains_exact_line "$log_file" "test"
+}
+
 test_dashboard_only_change_runs_dashboard_checks_in_auto_scope() {
   local tmp_repo
   tmp_repo="$(mktemp -d)"
@@ -377,6 +402,7 @@ test_record_failure_when_flutter_check_failed() {
 
 main() {
   test_changed_priority_with_guaranteed_coverage
+  test_flutter_test_module_runs_requested_tool_module_only
   test_dashboard_only_change_runs_dashboard_checks_in_auto_scope
   test_fallback_full_test_for_unmappable_flutter_change
   test_pub_get_hash_short_circuit

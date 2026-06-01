@@ -24,6 +24,12 @@
 - Flutter 改动：`flutter pub get`、`flutter analyze`、`flutter test`
 - 仅后端改动：执行后端测试（默认 `backend/sync_server`）
 - 仅文档改动：跳过测试
+- 低性能机器或单一 Flutter 模块改动时，可用 `--test-module` 收窄 `flutter test` 范围，例如：
+- `bash scripts/pre-push.sh --scope flutter --test-module work_log`
+- `bash scripts/pre-push.sh --scope flutter --test-module core`
+- `bash scripts/pre-push.sh --scope flutter --test-module test/tools/work_log`
+- `--test-module` 可重复传入多个模块；支持工具模块名（如 `work_log`、`stockpile_assistant`、`overcooked_kitchen`、`work_photo`、`xiao_mi`、`tag_manager`）、顶层测试目录（如 `core`、`design`）或 `test/` 下的具体文件/目录。
+- 使用 `--test-module` 只收窄 Flutter 测试，不跳过 `flutter pub get` 与 `flutter analyze`；跨模块、公共基础设施、注册表、同步协议或构建配置改动仍应执行默认全量校验。
 
 2. `bash scripts/exec-push.sh --stage-all --push --summary "你的改动摘要"`
 - 汇总改动、生成规范化 commit message、执行 commit 与 push。
@@ -42,6 +48,7 @@
 ## 兼容补充规则（对齐原版）
 1. 校验分流与原版一致：
 - 涉及 Flutter 侧改动时，必须通过 `flutter analyze` 与 `flutter test`（由 `pre-push.sh` 执行）。
+- 单一 Flutter 模块改动可用 `bash scripts/pre-push.sh --scope flutter --test-module <模块名或test路径>` 执行模块测试；该方式仍会执行 `flutter analyze`，但只运行指定模块的 `flutter test`。
 - 仅后端改动时，不跑 Flutter 校验，只跑后端测试。
 - 仅文档改动时，可不执行 Flutter/后端测试。
 2. 提交信息以 `doc:` / `docs:` 开头时，远端构建默认跳过（除非显式强制监控）。

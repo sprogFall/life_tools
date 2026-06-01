@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseSchema {
   DatabaseSchema._();
 
-  static const int version = 22;
+  static const int version = 23;
   static const int _maxOperationLogRecords = 10;
 
   static Future<void> onConfigure(Database db) async {
@@ -101,6 +101,9 @@ class DatabaseSchema {
     }
     if (oldVersion < 22) {
       await _upgradeToVersion22(db);
+    }
+    if (oldVersion < 23) {
+      await _upgradeToVersion23(db);
     }
   }
 
@@ -1010,6 +1013,11 @@ WHERE tool_id = ? AND category_id = ?
     await _ensureWorkPhotoIndexes(db);
   }
 
+  static Future<void> _upgradeToVersion23(Database db) async {
+    // v23: 项目拍摄项保存模板树层级路径快照，用于导出时还原文件夹层级。
+    await _ensureWorkPhotoProjectItemTreeColumns(db);
+  }
+
   static Future<void> _createXiaoMiTables(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS xiao_mi_conversations (
@@ -1135,6 +1143,7 @@ WHERE tool_id = ? AND category_id = ?
         project_id INTEGER NOT NULL,
         source_item_id INTEGER,
         name_snapshot TEXT NOT NULL,
+        hierarchy_path_snapshot TEXT NOT NULL DEFAULT '[]',
         sort_index INTEGER NOT NULL DEFAULT 0,
         min_count INTEGER NOT NULL DEFAULT 1,
         max_count INTEGER,
@@ -1267,6 +1276,16 @@ WHERE tool_id = ? AND category_id = ?
     if (!itemColumns.contains('parent_level_id')) {
       await db.execute(
         'ALTER TABLE work_photo_capture_items ADD COLUMN parent_level_id INTEGER',
+      );
+    }
+  }
+
+  static Future<void> _ensureWorkPhotoProjectItemTreeColumns(Database db) async {
+    final rows = await db.rawQuery('PRAGMA table_info(work_photo_project_items)');
+    final names = rows.map((e) => e['name']).whereType<String>().toSet();
+    if (!names.contains('hierarchy_path_snapshot')) {
+      await db.execute(
+        "ALTER TABLE work_photo_project_items ADD COLUMN hierarchy_path_snapshot TEXT NOT NULL DEFAULT '[]'",
       );
     }
   }

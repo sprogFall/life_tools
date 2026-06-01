@@ -21,6 +21,8 @@ FLUTTER_PUBGET_HASH_STATE_FILE=""
 TARGETED_TEST_GUARANTEED="false"
 TARGETED_TEST_REASON=""
 TARGET_TEST_FILES=()
+TEST_MODULES=()
+REQUESTED_TEST_TARGETS=()
 CURRENT_FLUTTER_PUBGET_HASH=""
 AUTO_SCOPE_HAS_UNKNOWN="false"
 RUN_BACKEND_CHECKS="false"
@@ -197,6 +199,7 @@ usage() {
   --skip-test
   --skip-backend-test
   --backend-test-cmd <cmd>
+  --test-module <name|test/path>
   --flutter-bin <path>
 
   --dry-run
@@ -206,6 +209,8 @@ usage() {
   bash scripts/pre-push.sh
   bash scripts/pre-push.sh --scope backend
   bash scripts/pre-push.sh --change-source head --scope flutter
+  bash scripts/pre-push.sh --scope flutter --test-module work_log
+  bash scripts/pre-push.sh --scope flutter --test-module test/tools/work_log
 USAGE
 }
 
@@ -240,6 +245,11 @@ parse_args() {
       --backend-test-cmd)
         [[ $# -ge 2 ]] || die "--backend-test-cmd 需要参数"
         BACKEND_TEST_CMD="$2"
+        shift
+        ;;
+      --test-module)
+        [[ $# -ge 2 ]] || die "--test-module 需要参数"
+        TEST_MODULES+=("$2")
         shift
         ;;
       --flutter-bin)
@@ -735,6 +745,106 @@ add_target_test_file() {
   TARGET_TEST_FILES+=("$candidate")
 }
 
+add_requested_test_target() {
+  local candidate="$1"
+  [[ -n "$candidate" ]] || return 0
+
+  local existing
+  for existing in "${REQUESTED_TEST_TARGETS[@]:-}"; do
+    if [[ "$existing" == "$candidate" ]]; then
+      return 0
+    fi
+  done
+
+  REQUESTED_TEST_TARGETS+=("$candidate")
+}
+
+validate_test_target_path() {
+  local candidate="$1"
+
+  [[ -n "$candidate" ]] || die "--test-module 不允许为空"
+
+  if [[ "$candidate" == /* ]]; then
+    die "--test-module 仅支持仓库内相对路径: $candidate"
+  fi
+
+  case "$candidate" in
+    *..*)
+      die "--test-module 不允许包含 '..': $candidate"
+      ;;
+    test/*)
+      ;;
+    *)
+      die "--test-module 路径必须位于 test/ 下: $candidate"
+      ;;
+  esac
+
+  [[ -e "$candidate" ]] || die "--test-module 指定的测试路径不存在: $candidate"
+}
+
+resolve_test_module_path() {
+  local module="$1"
+
+  [[ -n "$module" ]] || die "--test-module 不允许为空"
+
+  if [[ "$module" == test/* ]]; then
+    validate_test_target_path "$module"
+    echo "$module"
+    return
+  fi
+
+  case "$module" in
+    *[!a-zA-Z0-9_-]*)
+      die "--test-module 模块名仅支持字母、数字、下划线和中划线: $module"
+      ;;
+    core|design|pages|test_helpers|tools)
+      if [[ -e "test/$module" ]]; then
+        echo "test/$module"
+        return
+      fi
+      ;;
+    widget|widget_test)
+      if [[ -f "test/widget_test.dart" ]]; then
+        echo "test/widget_test.dart"
+        return
+      fi
+      ;;
+    *)
+      ;;
+  esac
+
+  if [[ -e "test/tools/$module" ]]; then
+    echo "test/tools/$module"
+    return
+  fi
+
+  if [[ -e "test/$module" ]]; then
+    echo "test/$module"
+    return
+  fi
+
+  if [[ -f "test/${module}_test.dart" ]]; then
+    echo "test/${module}_test.dart"
+    return
+  fi
+
+  die "未知 Flutter 测试模块: $module。可传模块名（如 work_log/core/design）或 test/ 下的文件/目录。"
+}
+
+resolve_requested_test_targets() {
+  REQUESTED_TEST_TARGETS=()
+
+  local module target
+  for module in "${TEST_MODULES[@]:-}"; do
+    target="$(resolve_test_module_path "$module")"
+    add_requested_test_target "$target"
+  done
+
+  if [[ ${#REQUESTED_TEST_TARGETS[@]} -eq 0 ]]; then
+    die "--test-module 未生成可执行的测试目标"
+  fi
+}
+
 collect_tests_for_lib_file() {
   local lib_file="$1"
   local rel_path direct_test base_name found_match="false"
@@ -827,6 +937,17 @@ run_flutter_tests() {
   else
     test_cmd=("$flutter" test)
   fi
+
+  if [[ ${#TEST_MODULES[@]} -gt 0 ]]; then
+    resolve_requested_test_targets
+    log "使用指定 Flutter 测试模块，目标数量: ${#REQUESTED_TEST_TARGETS[@]}"
+    local requested_target
+    for requested_target in "${REQUESTED_TEST_TARGETS[@]}"; do
+      run_cmd "${test_cmd[@]}" "$requested_target"
+    done
+    return
+  fi
+
   plan_targeted_flutter_tests
 
   if [[ "$TARGETED_TEST_GUARANTEED" != "true" ]]; then
