@@ -108,12 +108,11 @@ class _WorkPhotoItemChip extends StatelessWidget {
               const Spacer(),
               Row(
                 children: [
-                  Icon(
+                  IOS26ButtonIcon(
                     done
                         ? CupertinoIcons.check_mark_circled_solid
                         : CupertinoIcons.circle,
                     size: 15,
-                    color: colors.foreground,
                   ),
                   const SizedBox(width: IOS26Theme.spacingXs),
                   Expanded(

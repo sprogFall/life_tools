@@ -183,7 +183,7 @@ class MainActivity : FlutterActivity() {
         }
         val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         val uri = contentResolver.insert(collection, values) ?: return null
-        try {
+        return try {
             val outputStream = contentResolver.openOutputStream(uri)
             if (outputStream == null) {
                 contentResolver.delete(uri, null, null)
