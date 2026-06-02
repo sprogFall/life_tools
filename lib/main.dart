@@ -29,6 +29,7 @@ import 'core/sync/services/wifi_service.dart';
 import 'core/tags/built_in_tag_categories.dart';
 import 'core/tags/tag_service.dart';
 import 'core/theme/ios26_theme.dart';
+import 'core/update/app_update.dart';
 import 'core/widgets/ios26_toast.dart';
 import 'core/widgets/startup_wrapper.dart';
 import 'pages/home_page.dart';
@@ -260,6 +261,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
         ChangeNotifierProvider<ToastService>(create: (_) => ToastService()),
+        Provider<AppUpdateService>(
+          create: (_) => AppUpdateService(),
+          dispose: (_, service) => service.close(),
+        ),
         Provider<WifiService>(create: (_) => WifiService()),
         ChangeNotifierProvider<TagService>(
           create: (_) {

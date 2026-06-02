@@ -1,13 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 import '../core/app_build_info.dart';
 import '../core/theme/ios26_theme.dart';
 import '../core/ui/app_scaffold.dart';
+import '../core/update/app_update.dart';
+import '../core/utils/dev_log.dart';
+import '../core/widgets/ios26_toast.dart';
 
 class AboutPage extends StatefulWidget {
-  const AboutPage({super.key});
+  final AppUpdateService? updateService;
+
+  const AboutPage({super.key, this.updateService});
 
   @override
   State<AboutPage> createState() => _AboutPageState();
@@ -18,6 +24,25 @@ class _AboutPageState extends State<AboutPage> {
 
   Timer? _dismissTimer;
   bool _showCommitMessage = false;
+  bool _checkingUpdate = false;
+  bool _downloadingUpdate = false;
+  double? _downloadProgress;
+
+  AppUpdateService? _ownedUpdateService;
+
+  AppUpdateService get _updateService {
+    if (widget.updateService != null) return widget.updateService!;
+    try {
+      return context.read<AppUpdateService>();
+    } catch (error, stackTrace) {
+      devLog(
+        'AppUpdateService 未注入，使用页面内服务',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return _ownedUpdateService ??= AppUpdateService();
+    }
+  }
 
   static const List<_FeatureItem> _featureItems = [
     _FeatureItem(
@@ -61,6 +86,7 @@ class _AboutPageState extends State<AboutPage> {
   @override
   void dispose() {
     _dismissTimer?.cancel();
+    _ownedUpdateService?.close();
     super.dispose();
   }
 
@@ -81,6 +107,8 @@ class _AboutPageState extends State<AboutPage> {
                     children: [
                       _buildIntroCard(),
                       const SizedBox(height: 14),
+                      _buildUpdateCard(),
+                      const SizedBox(height: 14),
                       _buildFeatureCard(),
                     ],
                   ),
@@ -89,6 +117,77 @@ class _AboutPageState extends State<AboutPage> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdateCard() {
+    final busy = _checkingUpdate || _downloadingUpdate;
+    return GlassContainer(
+      borderRadius: 22,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('版本更新', style: IOS26Theme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      '当前版本 ${AppBuildInfo.version}',
+                      style: IOS26Theme.bodySmall.copyWith(
+                        color: IOS26Theme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IOS26Button(
+                key: const ValueKey('about_check_update_button'),
+                onPressed: busy ? null : _checkUpdateManually,
+                variant: IOS26ButtonVariant.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                child: _checkingUpdate
+                    ? const IOS26ButtonLoadingIndicator(radius: 8)
+                    : const IOS26ButtonLabel('检查更新'),
+              ),
+            ],
+          ),
+          if (_downloadingUpdate) ...[
+            const SizedBox(height: 12),
+            Container(
+              height: 5,
+              decoration: BoxDecoration(
+                color: IOS26Theme.surfaceColor.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(IOS26Theme.radiusFull),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: (_downloadProgress ?? 0).clamp(0.04, 1.0),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: IOS26Theme.primaryColor),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _downloadProgress == null
+                  ? '正在下载安装包...'
+                  : '正在下载 ${(_downloadProgress! * 100).clamp(0, 100).toStringAsFixed(0)}%',
+              style: IOS26Theme.bodySmall.copyWith(
+                color: IOS26Theme.textSecondary,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -264,7 +363,106 @@ class _AboutPageState extends State<AboutPage> {
       setState(() => _showCommitMessage = false);
     });
   }
+
+  Future<void> _checkUpdateManually() async {
+    setState(() => _checkingUpdate = true);
+    final result = await _updateService.checkForUpdate(includeIgnored: true);
+    if (!mounted) return;
+    setState(() => _checkingUpdate = false);
+
+    switch (result.availability) {
+      case AppUpdateAvailability.updateAvailable:
+      case AppUpdateAvailability.ignored:
+        final release = result.release;
+        if (release != null) await _showUpdateDialog(release);
+      case AppUpdateAvailability.upToDate:
+        _showToast('当前已是最新版本');
+      case AppUpdateAvailability.unavailable:
+        _showToast(result.message ?? '检查更新失败，请稍后再试', error: true);
+    }
+  }
+
+  Future<void> _showUpdateDialog(AppReleaseInfo release) async {
+    final action = await showCupertinoDialog<_UpdateDialogAction>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text('发现新版本 ${release.version}'),
+        content: Text(release.body.isEmpty ? '是否立即下载并安装最新安装包？' : release.body),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.later),
+            child: const Text('稍后'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.ignore),
+            child: const Text('忽略此版本'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.install),
+            child: const Text('立即更新'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    switch (action) {
+      case _UpdateDialogAction.install:
+        await _downloadAndInstall(release);
+      case _UpdateDialogAction.ignore:
+        await _updateService.ignoreVersion(release.version);
+        _showToast('已忽略 ${release.version}');
+      case _UpdateDialogAction.later:
+      case null:
+        break;
+    }
+  }
+
+  Future<void> _downloadAndInstall(AppReleaseInfo release) async {
+    setState(() {
+      _downloadingUpdate = true;
+      _downloadProgress = null;
+    });
+
+    try {
+      final apk = await _updateService.downloadApk(
+        release,
+        onProgress: (received, total) {
+          if (!mounted || total == null || total <= 0) return;
+          setState(() => _downloadProgress = received / total);
+        },
+      );
+      if (!mounted) return;
+      await _updateService.installApk(apk);
+    } catch (error, stackTrace) {
+      devLog('下载或安装更新失败', error: error, stackTrace: stackTrace);
+      if (mounted) _showToast('下载或安装失败，请稍后再试', error: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _downloadingUpdate = false;
+          _downloadProgress = null;
+        });
+      }
+    }
+  }
+
+  void _showToast(String message, {bool error = false}) {
+    try {
+      final toast = context.read<ToastService>();
+      if (error) {
+        toast.showError(message);
+      } else {
+        toast.show(message);
+      }
+    } catch (error, stackTrace) {
+      devLog('ToastService 不可用，更新提示已降级', error: error, stackTrace: stackTrace);
+      // AboutPage 的旧测试未挂 ToastService，缺失时静默降级。
+    }
+  }
 }
+
+enum _UpdateDialogAction { install, later, ignore }
 
 class _FeatureItem {
   final IconData icon;

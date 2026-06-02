@@ -15,6 +15,15 @@ class AppBuildInfo {
     'APP_COMMIT_MESSAGE_BASE64',
     defaultValue: '',
   );
+  static const String _versionEnv = String.fromEnvironment(
+    'APP_VERSION',
+    defaultValue: '1.0.0',
+  );
+
+  static String get version {
+    final value = _versionEnv.trim();
+    return value.isEmpty ? '1.0.0' : value;
+  }
 
   static String get commitSha {
     final value = _commitShaEnv.trim();

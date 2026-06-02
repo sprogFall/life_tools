@@ -2,9 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
-      - dev
+    tags:
+      - 'v*'
     paths:
       - 'lib/**'
       - 'test/**'
@@ -31,6 +30,8 @@ jobs:
     outputs:
       should_build: ${{ steps.parse-build-type.outputs.should_build }}
       build_type: ${{ steps.parse-build-type.outputs.build_type }}
+      app_version: ${{ steps.parse-build-type.outputs.app_version }}
+      release_tag: ${{ steps.parse-build-type.outputs.release_tag }}
 
     steps:
       - name: Checkout code
@@ -41,38 +42,37 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           BRANCH_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           MESSAGE="$COMMIT_MESSAGE"
           LOWER_MESSAGE=$(echo "$MESSAGE" | tr '[:upper:]' '[:lower:]')
           DOC_PREFIX_REGEX='^docs?($|[:( ].*)'
           BRANCH="$BRANCH_NAME"
+          REF_KIND="$REF_TYPE"
+          VERSION_REGEX='^v[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$'
           echo "Commit message: $MESSAGE"
-          echo "Branch: $BRANCH"
+          echo "Ref type: $REF_KIND"
+          echo "Ref name: $BRANCH"
 
-          # 文档类提交（doc:/docs:/doc(...）直接跳过构建
-          if [[ "$LOWER_MESSAGE" =~ $DOC_PREFIX_REGEX ]]; then
-            echo "Commit message starts with doc/docs, skipping build"
-            echo "should_build=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # 如果是 dev 分支，自动构建 debug 包
-          if [[ "$BRANCH" == "dev" ]]; then
-            echo "build_type=debug" >> $GITHUB_OUTPUT
-            echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "Building DEBUG APK (dev branch auto-build)"
-            exit 0
-          fi
-          
-          # 如果是 main 分支，自动构建 release 包
-          if [[ "$BRANCH" == "main" ]]; then
+          if [[ "$REF_KIND" == "tag" ]]; then
+            if [[ ! "$BRANCH" =~ $VERSION_REGEX ]]; then
+              echo "Tag does not match vMAJOR.MINOR.PATCH, skipping build"
+              echo "should_build=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            APP_VERSION="${BRANCH#v}"
+            BUILD_NUMBER="${RUN_NUMBER}"
             echo "build_type=release" >> $GITHUB_OUTPUT
+            echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+            echo "release_tag=${BRANCH}" >> $GITHUB_OUTPUT
             echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "Building RELEASE APK (main branch auto-build)"
+            echo "Building RELEASE APK for version tag ${BRANCH}"
             exit 0
           fi
           
-          echo "Unsupported branch for this workflow, skipping build"
+          echo "Only vMAJOR.MINOR.PATCH tags publish APK releases, skipping build"
           echo "should_build=false" >> $GITHUB_OUTPUT
 
   flutter-analyze:
@@ -215,14 +215,22 @@ jobs:
       - name: Build APK
         run: |
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
+          APP_VERSION="${{ needs.prepare.outputs.app_version }}"
+          BUILD_NUMBER="${{ github.run_number }}"
           COMMIT_SHA="$(git rev-parse HEAD)"
           COMMIT_MESSAGE_BASE64="$(git log -1 --pretty=%B | base64 | tr -d '\n')"
           if [ "$BUILD_TYPE" = "release" ]; then
             flutter build apk --release \
+              --build-name="$APP_VERSION" \
+              --build-number="$BUILD_NUMBER" \
+              --dart-define=APP_VERSION="$APP_VERSION" \
               --dart-define=APP_COMMIT_SHA="$COMMIT_SHA" \
               --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64"
           else
             flutter build apk --debug \
+              --build-name="$APP_VERSION" \
+              --build-number="$BUILD_NUMBER" \
+              --dart-define=APP_VERSION="$APP_VERSION" \
               --dart-define=APP_COMMIT_SHA="$COMMIT_SHA" \
               --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64"
           fi
@@ -231,12 +239,18 @@ jobs:
         id: apk-info
         run: |
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
+          VERSION_TAG="${{ needs.prepare.outputs.release_tag }}"
+          SHORT_SHA="${GITHUB_SHA::12}"
           if [ "$BUILD_TYPE" = "release" ]; then
             APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
-            APK_NAME="life_tools-release-${{ github.sha }}.apk"
+            if [ -n "$VERSION_TAG" ]; then
+              APK_NAME="life_tools-release-${VERSION_TAG}.apk"
+            else
+              APK_NAME="life_tools-release-${SHORT_SHA}.apk"
+            fi
           else
             APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
-            APK_NAME="life_tools-debug-${{ github.sha }}.apk"
+            APK_NAME="life_tools-debug-${SHORT_SHA}.apk"
           fi
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
@@ -264,12 +278,24 @@ jobs:
           APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
           BRANCH="${{ github.ref_name }}"
           SHORT_SHA="${GITHUB_SHA::12}"
-          TAG_NAME="apk-${BRANCH}-${SHORT_SHA}"
-          RELEASE_TITLE="APK ${BUILD_TYPE} ${BRANCH} ${SHORT_SHA}"
+          VERSION_TAG="${{ needs.prepare.outputs.release_tag }}"
+          APP_VERSION="${{ needs.prepare.outputs.app_version }}"
+          if [ -n "$VERSION_TAG" ]; then
+            TAG_NAME="$VERSION_TAG"
+            RELEASE_TITLE="小蜜 ${APP_VERSION}"
+            PRERELEASE_FLAG=""
+          else
+            TAG_NAME="apk-${BRANCH}-${SHORT_SHA}"
+            RELEASE_TITLE="APK ${BUILD_TYPE} ${BRANCH} ${SHORT_SHA}"
+            PRERELEASE_FLAG="--prerelease"
+          fi
           RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}"
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/${APK_NAME}"
           RELEASE_NOTES=$(cat <<EOF
-          Automated ${BUILD_TYPE} APK build for branch ${BRANCH}.
+          Automated ${BUILD_TYPE} APK build.
+
+          Version: ${APP_VERSION}
+          Ref: ${BRANCH}
 
           Commit: ${GITHUB_SHA}
           Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -287,7 +313,7 @@ jobs:
               --target "${GITHUB_SHA}" \
               --title "$RELEASE_TITLE" \
               --notes "$RELEASE_NOTES" \
-              --prerelease
+              $PRERELEASE_FLAG
           fi
 
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
@@ -297,6 +323,7 @@ jobs:
       - name: Create release summary
         run: |
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
+          APP_VERSION="${{ needs.prepare.outputs.app_version }}"
           APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
           APK_SIZE="${{ steps.apk-info.outputs.apk_size }}"
           COMMIT_SHA="${{ github.sha }}"
@@ -309,6 +336,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: $BRANCH" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Type**: $BUILD_TYPE" >> $GITHUB_STEP_SUMMARY
+          echo "- **App Version**: $APP_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Name**: $APK_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Size**: $APK_SIZE" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: $COMMIT_SHA" >> $GITHUB_STEP_SUMMARY

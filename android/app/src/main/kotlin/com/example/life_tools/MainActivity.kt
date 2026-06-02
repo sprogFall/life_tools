@@ -2,6 +2,7 @@ package com.example.life_tools
 
 import android.content.ContentUris
 import android.content.ContentValues
+import android.content.Intent
 import android.net.Uri
 import android.media.MediaScannerConnection
 import android.os.Build
@@ -9,6 +10,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.view.Display
 import androidx.annotation.NonNull
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -18,6 +20,7 @@ import java.io.FileInputStream
 class MainActivity : FlutterActivity() {
     private val displayChannelName = "life_tools/display"
     private val mediaStoreChannelName = "life_tools/media_store"
+    private val updateChannelName = "life_tools/app_update"
     private val minModeApi = 23
     private val scannedMediaUris = mutableMapOf<String, String>()
 
@@ -70,6 +73,50 @@ class MainActivity : FlutterActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, updateChannelName).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "installApk" -> {
+                    val path = call.argument<String>("path")
+                    if (path.isNullOrBlank()) {
+                        result.error("invalid_path", "安装包路径为空", null)
+                    } else {
+                        installApk(path, result)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun installApk(path: String, result: MethodChannel.Result) {
+        try {
+            val apkFile = File(path).canonicalFile
+            val updateDir = File(cacheDir, "updates").canonicalFile
+            if (!apkFile.path.startsWith(updateDir.path + File.separator) || apkFile.extension.lowercase() != "apk") {
+                result.error("invalid_path", "安装包路径不在允许目录内", null)
+                return
+            }
+            if (!apkFile.isFile) {
+                result.error("file_not_found", "安装包不存在", null)
+                return
+            }
+
+            val uri = FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.update_file_provider",
+                apkFile,
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(intent)
+            result.success(true)
+        } catch (e: Exception) {
+            result.error("install_failed", "无法打开系统安装器", null)
         }
     }
 

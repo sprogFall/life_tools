@@ -329,14 +329,21 @@ EOT
 set -euo pipefail
 echo "post-push-self-test-ran" >> self_test.log
 EOT
+  cat > "${tmp_repo}/scripts/tests/build-apk_workflow_test.sh" <<'EOT'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "build-apk-workflow-self-test-ran" >> self_test.log
+EOT
   chmod +x "${tmp_repo}/scripts/tests/pre-push_test.sh"
   chmod +x "${tmp_repo}/scripts/tests/exec-push_test.sh"
   chmod +x "${tmp_repo}/scripts/tests/post-push_test.sh"
+  chmod +x "${tmp_repo}/scripts/tests/build-apk_workflow_test.sh"
 
   run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-analyze --skip-test
   assert_contains "${tmp_repo}/self_test.log" "pre-push-self-test-ran"
   assert_contains "${tmp_repo}/self_test.log" "exec-push-self-test-ran"
   assert_contains "${tmp_repo}/self_test.log" "post-push-self-test-ran"
+  assert_contains "${tmp_repo}/self_test.log" "build-apk-workflow-self-test-ran"
 }
 
 test_fail_when_pre_push_self_test_failed() {
