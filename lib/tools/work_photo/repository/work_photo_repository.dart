@@ -709,6 +709,26 @@ class WorkPhotoRepository
     return rows.map((e) => Map<String, Object?>.from(e)).toList();
   }
 
+  Future<void> importTemplateConfigFromServer({
+    required List<Map<String, dynamic>> templates,
+    required List<Map<String, dynamic>> hierarchyLevels,
+    required List<Map<String, dynamic>> hierarchyOptions,
+    required List<Map<String, dynamic>> captureItems,
+  }) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      await txn.delete('work_photo_capture_items');
+      await txn.delete('work_photo_hierarchy_options');
+      await txn.delete('work_photo_hierarchy_levels');
+      await txn.delete('work_photo_templates');
+
+      await _insertRows(txn, 'work_photo_templates', templates);
+      await _insertRows(txn, 'work_photo_hierarchy_levels', hierarchyLevels);
+      await _insertRows(txn, 'work_photo_hierarchy_options', hierarchyOptions);
+      await _insertRows(txn, 'work_photo_capture_items', captureItems);
+    });
+  }
+
   Future<void> importFromServer({
     required List<Map<String, dynamic>> templates,
     required List<Map<String, dynamic>> hierarchyLevels,

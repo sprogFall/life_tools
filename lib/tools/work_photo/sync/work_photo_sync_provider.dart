@@ -22,12 +22,6 @@ class WorkPhotoSyncProvider implements ToolSyncProvider {
         'hierarchy_levels': await _repository.exportHierarchyLevels(),
         'hierarchy_options': await _repository.exportHierarchyOptions(),
         'capture_items': await _repository.exportCaptureItems(),
-        'export_profiles': await _repository.exportExportProfiles(),
-        'projects': await _repository.exportProjects(),
-        'project_hierarchy_values': await _repository
-            .exportProjectHierarchyValues(),
-        'project_items': await _repository.exportProjectItems(),
-        'assets': await _repository.exportAssets(),
       },
     };
   }
@@ -49,16 +43,11 @@ class WorkPhotoSyncProvider implements ToolSyncProvider {
       return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
 
-    await _repository.importFromServer(
+    await _repository.importTemplateConfigFromServer(
       templates: readList('templates'),
       hierarchyLevels: readList('hierarchy_levels'),
       hierarchyOptions: readList('hierarchy_options'),
       captureItems: readList('capture_items'),
-      exportProfiles: readList('export_profiles'),
-      projects: readList('projects'),
-      projectHierarchyValues: readList('project_hierarchy_values'),
-      projectItems: readList('project_items'),
-      assets: readList('assets'),
     );
   }
 }
