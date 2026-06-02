@@ -2,6 +2,9 @@ name: Build Android APK
 
 on:
   push:
+    branches:
+      - main
+      - dev
     tags:
       - 'v*'
     paths:
@@ -71,8 +74,35 @@ jobs:
             echo "Building RELEASE APK for version tag ${BRANCH}"
             exit 0
           fi
+
+          # 文档类提交（doc:/docs:/doc(...）直接跳过构建
+          if [[ "$LOWER_MESSAGE" =~ $DOC_PREFIX_REGEX ]]; then
+            echo "Commit message starts with doc/docs, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # dev 分支自动构建 debug 自测包，发布为 prerelease，不会被客户端 latest 正式更新识别。
+          if [[ "$BRANCH" == "dev" ]]; then
+            echo "build_type=debug" >> $GITHUB_OUTPUT
+            echo "app_version=1.0.0" >> $GITHUB_OUTPUT
+            echo "release_tag=" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "Building DEBUG APK (dev branch auto-build)"
+            exit 0
+          fi
+
+          # main 分支自动构建 release 自测包，发布为 prerelease，不会被客户端 latest 正式更新识别。
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "build_type=release" >> $GITHUB_OUTPUT
+            echo "app_version=1.0.0" >> $GITHUB_OUTPUT
+            echo "release_tag=" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "Building RELEASE APK (main branch auto-build)"
+            exit 0
+          fi
           
-          echo "Only vMAJOR.MINOR.PATCH tags publish APK releases, skipping build"
+          echo "Unsupported branch/tag for this workflow, skipping build"
           echo "should_build=false" >> $GITHUB_OUTPUT
 
   flutter-analyze:
