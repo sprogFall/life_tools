@@ -25,7 +25,7 @@ class MainActivity : FlutterActivity() {
     private val scannedMediaUris = mutableMapOf<String, String>()
 
     companion object {
-        private const val APP_ALBUM_ROOT = "外拍助手"  // App 专属相册根目录
+        private const val APP_ALBUM_ROOT = "life_tools_work_photo"  // App 专属相册根目录
     }
 
     override fun onResume() {
@@ -334,7 +334,7 @@ class MainActivity : FlutterActivity() {
 
     /**
      * 检查绝对路径是否在 app 目录内
-     * 仅允许访问 /Pictures/外拍助手/ 下的文件
+     * 仅允许访问 /Pictures/life_tools_work_photo/ 下的文件
      */
     private fun isPathInAppDirectory(path: String): Boolean {
         val file = File(path).canonicalFile
@@ -347,7 +347,7 @@ class MainActivity : FlutterActivity() {
 
     /**
      * 检查相册相对路径是否在 app 目录内
-     * 例如："外拍助手/photos/123" -> true, "../../etc/passwd" -> false
+     * 例如："life_tools_work_photo/photos/123" -> true, "../../etc/passwd" -> false
      */
     private fun isAlbumPathInAppDirectory(albumRelativePath: String): Boolean {
         val normalized = albumRelativePath.trim('/')

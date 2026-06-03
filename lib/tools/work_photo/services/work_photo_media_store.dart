@@ -21,15 +21,21 @@ class WorkPhotoMediaStore {
   final Directory? _baseDirectory;
   final Future<Directory> Function()? _visibleGalleryRootDirectoryProvider;
   final WorkPhotoMediaIndexer _mediaIndexer;
+  final int _sourceReadMaxAttempts;
+  final Duration _sourceReadRetryDelay;
 
   WorkPhotoMediaStore({
     Directory? baseDirectory,
     Future<Directory> Function()? visibleGalleryRootDirectoryProvider,
     WorkPhotoMediaIndexer? mediaIndexer,
+    int sourceReadMaxAttempts = 8,
+    Duration sourceReadRetryDelay = const Duration(milliseconds: 120),
   }) : _baseDirectory = baseDirectory,
        _visibleGalleryRootDirectoryProvider =
            visibleGalleryRootDirectoryProvider,
-       _mediaIndexer = mediaIndexer ?? const WorkPhotoMediaChannelIndexer();
+       _mediaIndexer = mediaIndexer ?? const WorkPhotoMediaChannelIndexer(),
+       _sourceReadMaxAttempts = sourceReadMaxAttempts,
+       _sourceReadRetryDelay = sourceReadRetryDelay;
 
   Future<Directory> get rootDirectory async {
     final injected = _baseDirectory;
@@ -64,6 +70,7 @@ class WorkPhotoMediaStore {
     required File sourceFile,
     DateTime? now,
   }) async {
+    final readableSource = await _waitForReadableSourceFile(sourceFile);
     final root = await rootDirectory;
     final time = now ?? DateTime.now();
     final usePlatformGallery = _baseDirectory == null && Platform.isAndroid;
@@ -74,9 +81,9 @@ class WorkPhotoMediaStore {
       await photosDir.create(recursive: true);
     }
 
-    final originalName = sourceFile.uri.pathSegments.isEmpty
+    final originalName = readableSource.uri.pathSegments.isEmpty
         ? 'photo'
-        : p.basenameWithoutExtension(sourceFile.path);
+        : p.basenameWithoutExtension(readableSource.path);
     final safeName = _sanitizeFileNameStem(originalName);
     final fileName = '${time.microsecondsSinceEpoch}_$safeName.jpg';
     final relativePath = p
@@ -86,7 +93,7 @@ class WorkPhotoMediaStore {
 
     final platformPath = usePlatformGallery
         ? await _mediaIndexer.saveImage(
-            sourcePath: sourceFile.path,
+            sourcePath: readableSource.path,
             albumRelativePath: p
                 .join(
                   WorkPhotoConstants.mediaRootFolder,
@@ -99,13 +106,30 @@ class WorkPhotoMediaStore {
         : null;
     final storedFile = platformPath == null ? target : File(platformPath);
     if (platformPath == null) {
-      await sourceFile.copy(target.path);
+      await readableSource.copy(target.path);
       await _mediaIndexer.scanFile(target.path);
     }
     final size = await storedFile.exists()
         ? await storedFile.length()
-        : await sourceFile.length();
+        : await readableSource.length();
     return WorkPhotoStoredFile(relativePath: relativePath, fileSize: size);
+  }
+
+  Future<File> _waitForReadableSourceFile(File sourceFile) async {
+    final attempts = _sourceReadMaxAttempts < 1 ? 1 : _sourceReadMaxAttempts;
+    for (var attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        if (await sourceFile.exists() && await sourceFile.length() > 0) {
+          return sourceFile;
+        }
+      } on FileSystemException {
+        // 部分 Android 机型拍照返回后临时文件短时间内不可读，稍后重试。
+      }
+      if (attempt < attempts - 1) {
+        await Future<void>.delayed(_sourceReadRetryDelay);
+      }
+    }
+    throw WorkPhotoSourcePhotoUnavailableException();
   }
 
   Future<void> deleteStoredFile(String relativePath) async {
@@ -159,6 +183,11 @@ class WorkPhotoMediaStore {
     }
     return value.isEmpty ? 'photo' : value;
   }
+}
+
+class WorkPhotoSourcePhotoUnavailableException implements Exception {
+  @override
+  String toString() => '相机临时照片不可读取，请重新拍摄。';
 }
 
 abstract class WorkPhotoMediaIndexer {

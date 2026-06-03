@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/tools/work_photo/work_photo_constants.dart';
 import 'package:life_tools/tools/work_photo/services/work_photo_media_store.dart';
 
 void main() {
@@ -39,6 +40,49 @@ void main() {
         3,
         4,
       ]);
+    });
+
+    test('相机临时文件延迟可读时等待后再保存', () async {
+      final source = File('${tempDir.path}/late_camera.jpg');
+      final store = WorkPhotoMediaStore(
+        baseDirectory: tempDir,
+        sourceReadMaxAttempts: 10,
+        sourceReadRetryDelay: const Duration(milliseconds: 10),
+      );
+      Future<void>.delayed(const Duration(milliseconds: 25), () async {
+        await source.writeAsBytes([5, 6, 7], flush: true);
+      });
+
+      final stored = await store.savePhoto(
+        projectId: 8,
+        sourceFile: source,
+        now: DateTime(2026, 6, 1, 10, 31),
+      );
+
+      expect(await store.resolveFile(stored.relativePath).readAsBytes(), [
+        5,
+        6,
+        7,
+      ]);
+    });
+
+    test('相机临时文件最终不可读时返回业务异常', () async {
+      final missing = File('${tempDir.path}/missing_camera.jpg');
+      final store = WorkPhotoMediaStore(
+        baseDirectory: tempDir,
+        sourceReadMaxAttempts: 2,
+        sourceReadRetryDelay: Duration.zero,
+      );
+
+      await expectLater(
+        store.savePhoto(
+          projectId: 8,
+          sourceFile: missing,
+          now: DateTime(2026, 6, 1, 10, 31),
+        ),
+        throwsA(isA<WorkPhotoSourcePhotoUnavailableException>()),
+      );
+      expect(Directory('${tempDir.path}/photos/8').existsSync(), isFalse);
     });
 
     test('默认根目录使用相册可见目录并联动媒体扫描', () async {
@@ -95,6 +139,18 @@ void main() {
 
       await store.deleteStoredFile(stored.relativePath);
       expect(file.existsSync(), isFalse);
+    });
+
+    test('Android 原生媒体通道相册根目录与 Dart 保存目录一致', () {
+      final activity = File(
+        'android/app/src/main/kotlin/com/example/life_tools/MainActivity.kt',
+      ).readAsStringSync();
+      final match = RegExp(
+        r'APP_ALBUM_ROOT\s*=\s*"([^"]+)"',
+      ).firstMatch(activity);
+
+      expect(match, isNotNull);
+      expect(match!.group(1), WorkPhotoConstants.mediaRootFolder);
     });
   });
 }
