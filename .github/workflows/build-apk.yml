@@ -39,6 +39,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # 获取完整 git 历史以便查询 tag
 
       - name: Parse build type from commit message
         id: parse-build-type
@@ -57,6 +59,25 @@ jobs:
           echo "Commit message: $MESSAGE"
           echo "Ref type: $REF_KIND"
           echo "Ref name: $BRANCH"
+
+          # 从 VERSION 文件读取最新版本号（用于测试包）
+          get_version_from_file() {
+            if [ -f VERSION ]; then
+              VERSION_FROM_FILE=$(cat VERSION | tr -d '\r\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+              if [ -n "$VERSION_FROM_FILE" ]; then
+                echo "$VERSION_FROM_FILE"
+                return
+              fi
+            fi
+            # 降级：尝试从最新 git tag 获取
+            LATEST_TAG=$(git describe --tags --abbrev=0 --match "v[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "")
+            if [ -n "$LATEST_TAG" ]; then
+              echo "${LATEST_TAG#v}"
+              return
+            fi
+            # 最后降级到默认值
+            echo "1.0.0"
+          }
 
           if [[ "$REF_KIND" == "tag" ]]; then
             if [[ ! "$BRANCH" =~ $VERSION_REGEX ]]; then
@@ -82,26 +103,28 @@ jobs:
             exit 0
           fi
 
-          # dev 分支自动构建 debug 自测包，发布为 prerelease，不会被客户端 latest 正式更新识别。
+          # dev 分支自动构建 debug 自测包，使用 VERSION 文件版本号
           if [[ "$BRANCH" == "dev" ]]; then
+            APP_VERSION=$(get_version_from_file)
             echo "build_type=debug" >> $GITHUB_OUTPUT
-            echo "app_version=1.0.0" >> $GITHUB_OUTPUT
+            echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
             echo "release_tag=" >> $GITHUB_OUTPUT
             echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "Building DEBUG APK (dev branch auto-build)"
+            echo "Building DEBUG APK (dev branch auto-build) with version ${APP_VERSION}"
             exit 0
           fi
 
-          # main 分支自动构建 release 自测包，发布为 prerelease，不会被客户端 latest 正式更新识别。
+          # main 分支自动构建 release 自测包，使用 VERSION 文件版本号
           if [[ "$BRANCH" == "main" ]]; then
+            APP_VERSION=$(get_version_from_file)
             echo "build_type=release" >> $GITHUB_OUTPUT
-            echo "app_version=1.0.0" >> $GITHUB_OUTPUT
+            echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
             echo "release_tag=" >> $GITHUB_OUTPUT
             echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "Building RELEASE APK (main branch auto-build)"
+            echo "Building RELEASE APK (main branch auto-build) with version ${APP_VERSION}"
             exit 0
           fi
-          
+
           echo "Unsupported branch/tag for this workflow, skipping build"
           echo "should_build=false" >> $GITHUB_OUTPUT
 
