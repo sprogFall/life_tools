@@ -24,6 +24,10 @@ class MainActivity : FlutterActivity() {
     private val minModeApi = 23
     private val scannedMediaUris = mutableMapOf<String, String>()
 
+    companion object {
+        private const val APP_ALBUM_ROOT = "外拍助手"  // App 专属相册根目录
+    }
+
     override fun onResume() {
         super.onResume()
         // 某些机型在切后台/锁屏后会重置刷新率偏好；恢复时尽量再次请求高刷。
@@ -169,6 +173,12 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun deleteMediaFileRecord(path: String, callback: (Boolean) -> Unit) {
+        // 安全检查：仅允许删除 app 目录内的图片
+        if (!isPathInAppDirectory(path)) {
+            callback(false)
+            return
+        }
+
         val uriValue = scannedMediaUris.remove(path)
         if (uriValue != null) {
             try {
@@ -202,6 +212,11 @@ class MainActivity : FlutterActivity() {
         albumRelativePath: String,
         displayName: String,
     ): String? {
+        // 安全检查：仅允许保存到 app 目录内
+        if (!isAlbumPathInAppDirectory(albumRelativePath)) {
+            return null
+        }
+
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 saveImageToMediaStore(sourcePath, albumRelativePath, displayName)
@@ -315,5 +330,34 @@ class MainActivity : FlutterActivity() {
             }
         }
         return null
+    }
+
+    /**
+     * 检查绝对路径是否在 app 目录内
+     * 仅允许访问 /Pictures/外拍助手/ 下的文件
+     */
+    private fun isPathInAppDirectory(path: String): Boolean {
+        val file = File(path).canonicalFile
+        val appRoot = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            APP_ALBUM_ROOT,
+        ).canonicalFile
+        return file.path.startsWith(appRoot.path + File.separator)
+    }
+
+    /**
+     * 检查相册相对路径是否在 app 目录内
+     * 例如："外拍助手/photos/123" -> true, "../../etc/passwd" -> false
+     */
+    private fun isAlbumPathInAppDirectory(albumRelativePath: String): Boolean {
+        val normalized = albumRelativePath.trim('/')
+        if (normalized.isEmpty()) return false
+
+        // 禁止路径穿越
+        if (normalized.contains("..")) return false
+
+        // 必须以 APP_ALBUM_ROOT 开头
+        val segments = normalized.split('/').filter { it.isNotEmpty() }
+        return segments.isNotEmpty() && segments[0] == APP_ALBUM_ROOT
     }
 }

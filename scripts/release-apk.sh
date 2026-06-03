@@ -197,7 +197,7 @@ has_release_changes() {
   has_working_tree_changes
 }
 
-update_version_file() {
+check_version_file_update_needed() {
   local current_version=""
   if [[ -f "$VERSION_FILE" ]]; then
     current_version="$(tr -d '\r\n' < "$VERSION_FILE")"
@@ -206,12 +206,19 @@ update_version_file() {
   if [[ "$current_version" == "$APP_VERSION" ]]; then
     VERSION_FILE_NEEDS_UPDATE="false"
     log "版本文件无需更新：${VERSION_FILE}=${APP_VERSION}"
+  else
+    VERSION_FILE_NEEDS_UPDATE="true"
+    log "版本文件需要更新：${VERSION_FILE}: ${current_version:-<空>} -> ${APP_VERSION}"
+  fi
+}
+
+update_version_file() {
+  if [[ "$VERSION_FILE_NEEDS_UPDATE" != "true" ]]; then
     return
   fi
 
-  VERSION_FILE_NEEDS_UPDATE="true"
   if [[ "$DRY_RUN" == "true" ]]; then
-    log "[dry-run] 更新版本文件 ${VERSION_FILE}: ${current_version:-<空>} -> ${APP_VERSION}"
+    log "[dry-run] 更新版本文件完成"
     return
   fi
 
@@ -332,8 +339,9 @@ main() {
   log "远端：${REMOTE_NAME}"
 
   ensure_tag_available
-  update_version_file
-  run_pre_push_if_needed
+  check_version_file_update_needed  # 先检测是否需要更新（不实际写文件）
+  run_pre_push_if_needed            # 执行校验（此时可正确判断 has_release_changes）
+  update_version_file               # 校验通过后再实际写文件
   commit_and_push_code
   create_and_push_tag
   monitor_build_result

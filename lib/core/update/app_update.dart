@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -41,6 +42,7 @@ class AppReleaseInfo {
   final Uri apkDownloadUrl;
   final int? apkSize;
   final DateTime? publishedAt;
+  final String? sha256; // APK SHA-256 校验和（可选）
 
   const AppReleaseInfo({
     required this.tagName,
@@ -51,12 +53,14 @@ class AppReleaseInfo {
     required this.apkDownloadUrl,
     this.apkSize,
     this.publishedAt,
+    this.sha256,
   });
 }
 
 class AppUpdateService {
   static const String defaultRepository = 'sprogFall/life_tools';
   static const String _ignoredVersionKey = 'app_update_ignored_version';
+  static const Duration _defaultTimeout = Duration(seconds: 30);
   static const MethodChannel _installerChannel = MethodChannel(
     'life_tools/app_update',
   );
@@ -105,13 +109,15 @@ class AppUpdateService {
       'api.github.com',
       '/repos/$repository/releases/latest',
     );
-    final response = await _client.get(
-      uri,
-      headers: const {
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-    );
+    final response = await _client
+        .get(
+          uri,
+          headers: const {
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        )
+        .timeout(_defaultTimeout);
 
     if (response.statusCode == 404) return null;
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -130,7 +136,7 @@ class AppUpdateService {
     void Function(int received, int? total)? onProgress,
   }) async {
     final request = http.Request('GET', release.apkDownloadUrl);
-    final response = await _client.send(request);
+    final response = await _client.send(request).timeout(_defaultTimeout);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HttpException('安装包下载失败: ${response.statusCode}');
     }
@@ -146,18 +152,48 @@ class AppUpdateService {
     final sink = file.openWrite();
     var received = 0;
     final total = response.contentLength;
+    var lastCallTime = DateTime.now();
+    const throttle = Duration(milliseconds: 100);
 
     try {
       await for (final chunk in response.stream) {
         received += chunk.length;
         sink.add(chunk);
-        onProgress?.call(received, total);
+
+        // 限流：避免过多 UI 更新
+        final now = DateTime.now();
+        if (now.difference(lastCallTime) > throttle || received == total) {
+          onProgress?.call(received, total);
+          lastCallTime = now;
+        }
       }
     } finally {
       await sink.close();
     }
 
+    // 确保最终进度回调
+    if (received > 0) {
+      onProgress?.call(received, total);
+    }
+
+    // 验证文件完整性
+    if (release.sha256 != null) {
+      final actualHash = await _computeSha256(file);
+      final expectedHash = release.sha256!.toLowerCase();
+      if (actualHash != expectedHash) {
+        await file.delete();
+        throw StateError('安装包校验失败，文件可能已损坏');
+      }
+    }
+
     return file;
+  }
+
+  /// 计算文件的 SHA-256 哈希值
+  Future<String> _computeSha256(File file) async {
+    final bytes = await file.readAsBytes();
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   Future<void> installApk(File apkFile) async {
@@ -201,12 +237,16 @@ class AppReleaseParser {
     if (assets is! List) return null;
 
     Map<String, dynamic>? apkAsset;
+    String? sha256Hash;
     for (final asset in assets) {
       if (asset is! Map<String, dynamic>) continue;
       final name = (asset['name'] as String? ?? '').toLowerCase();
       if (name.endsWith('.apk')) {
         apkAsset = asset;
-        break;
+      } else if (name.endsWith('.apk.sha256')) {
+        // 尝试提取 SHA-256（如果 Release 包含 .sha256 文件）
+        // 注意：此处仅记录 URL，实际校验需要下载该文件
+        // 暂不实现自动下载 .sha256 文件，留作后续优化
       }
     }
     if (apkAsset == null) return null;
@@ -224,6 +264,7 @@ class AppReleaseParser {
       apkDownloadUrl: Uri.parse(downloadUrl),
       apkSize: (apkAsset['size'] as num?)?.toInt(),
       publishedAt: DateTime.tryParse(json['published_at'] as String? ?? ''),
+      sha256: sha256Hash, // 当前为 null，未来可从 .sha256 文件读取
     );
   }
 }

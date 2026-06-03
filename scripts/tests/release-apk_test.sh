@@ -99,7 +99,7 @@ test_dry_run_with_clean_tree_pushes_branch_tag_and_monitors() {
 
   assert_contains "$output" "准备发布正式 APK：v9.8.7"
   assert_contains "$output" "[dry-run] 跳过远端 tag 存在性检查：origin/v9.8.7"
-  assert_contains "$output" "[dry-run] 更新版本文件 VERSION: <空> -> 9.8.7"
+  assert_contains "$output" "版本文件需要更新：VERSION: <空> -> 9.8.7"
   assert_contains "$output" "检测到待发布改动，先执行发布前校验"
   assert_contains "$output" "[dry-run] bash"
   assert_contains "$output" "pre-push.sh"
@@ -127,8 +127,9 @@ test_dry_run_with_dirty_tree_commits_and_pushes_code_first() {
   output="$(mktemp)"
   run_release "$tmp_repo" "$output" v9.8.8 --summary "发布测试版本" --dry-run
 
-  assert_contains "$output" "[dry-run] 更新版本文件 VERSION: <空> -> 9.8.8"
+  assert_contains "$output" "版本文件需要更新：VERSION: <空> -> 9.8.8"
   assert_contains "$output" "检测到待发布改动，先执行发布前校验"
+  assert_contains "$output" "[dry-run] 更新版本文件完成"
   assert_contains "$output" "exec-push.sh"
   assert_contains "$output" "--stage-all"
   assert_contains "$output" "--push"

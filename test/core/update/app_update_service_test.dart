@@ -146,6 +146,7 @@ void main() {
           body: '',
           pageUrl: Uri.parse('https://example.com/release'),
           apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
+          sha256: null, // 无校验和，跳过校验
         ),
         onProgress: (received, _) => progress.add(received),
       );
@@ -153,6 +154,57 @@ void main() {
       expect(await file.readAsBytes(), [1, 2, 3, 4]);
       expect(file.path, contains('life_tools-9.9.9.apk'));
       expect(progress.last, 4);
+      await tempDir.delete(recursive: true);
+    });
+
+    test('下载 APK 时应验证 SHA-256 校验和', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'life_tools_update_test_',
+      );
+      final testData = [1, 2, 3, 4];
+      // SHA-256 of [1, 2, 3, 4]
+      const validSha256 =
+          '9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a';
+      const invalidSha256 = 'deadbeef';
+
+      final service = AppUpdateService(
+        client: MockClient((request) async {
+          return http.Response.bytes(testData, 200);
+        }),
+        cacheDirProvider: () async => tempDir,
+      );
+
+      // 正确的校验和应该成功
+      final validFile = await service.downloadApk(
+        AppReleaseInfo(
+          tagName: 'v9.9.9',
+          version: '9.9.9',
+          name: 'v9.9.9',
+          body: '',
+          pageUrl: Uri.parse('https://example.com/release'),
+          apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
+          sha256: validSha256,
+        ),
+      );
+      expect(await validFile.exists(), isTrue);
+      await validFile.delete();
+
+      // 错误的校验和应该抛出异常并删除文件
+      expect(
+        () => service.downloadApk(
+          AppReleaseInfo(
+            tagName: 'v9.9.9',
+            version: '9.9.9',
+            name: 'v9.9.9',
+            body: '',
+            pageUrl: Uri.parse('https://example.com/release'),
+            apkDownloadUrl: Uri.parse('https://example.com/app2.apk'),
+            sha256: invalidSha256,
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+
       await tempDir.delete(recursive: true);
     });
   });

@@ -14,6 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 代码规范：`examples/code_standards.md`
 - UI 规范：`examples/ui.md`
 - AI/对象存储/标签/消息：`examples/ai.md`、`examples/objStore.md`、`examples/tags.md`、`examples/message.md`
+- 小蜜 AI（预置提示词/特殊调用/预选路由/调用方式）：`examples/xiaomi_ai.md`
+- 小蜜 AI 对外能力说明（触发提示词 / special_call / 参数协议）：`docs/xiao_mi_pre_route_special_calls.md`
 - 失败记录：`failure-records/<module>/`
 
 ## 提交与发布流程（三段式）
@@ -24,8 +26,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Flutter 改动：`flutter pub get`、`flutter analyze`、`flutter test`
 - 仅后端改动：执行后端测试（默认 `backend/sync_server`）
 - 仅文档改动：跳过测试
+- 低性能机器或单一 Flutter 模块改动时，可用 `--test-module` 收窄 `flutter test` 范围，例如：
+- `bash scripts/pre-push.sh --scope flutter --test-module work_log`
+- `bash scripts/pre-push.sh --scope flutter --test-module core`
+- `bash scripts/pre-push.sh --scope flutter --test-module test/tools/work_log`
+- `--test-module` 可重复传入多个模块；支持工具模块名（如 `work_log`、`stockpile_assistant`、`overcooked_kitchen`、`work_photo`、`xiao_mi`、`tag_manager`）、顶层测试目录（如 `core`、`design`）或 `test/` 下的具体文件/目录。
+- 使用 `--test-module` 只收窄 Flutter 测试，不跳过 `flutter pub get` 与 `flutter analyze`；跨模块、公共基础设施、注册表、同步协议或构建配置改动仍应执行默认全量校验。
 
-2. `bash scripts/exec-push.sh --stage-all --push --summary "你的改动摘要"`
+2. `bash scripts/exec-push.sh --stage-all --push --summary “你的改动摘要”`
 - 汇总改动、生成规范化 commit message、执行 commit 与 push。
 
 3. `bash scripts/post-push.sh`
@@ -42,15 +50,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 兼容补充规则（对齐原版）
 1. 校验分流与原版一致：
 - 涉及 Flutter 侧改动时，必须通过 `flutter analyze` 与 `flutter test`（由 `pre-push.sh` 执行）。
+- 单一 Flutter 模块改动可用 `bash scripts/pre-push.sh --scope flutter --test-module <模块名或test路径>` 执行模块测试；该方式仍会执行 `flutter analyze`，但只运行指定模块的 `flutter test`。
 - 仅后端改动时，不跑 Flutter 校验，只跑后端测试。
 - 仅文档改动时，可不执行 Flutter/后端测试。
 2. 提交信息以 `doc:` / `docs:` 开头时，远端构建默认跳过（除非显式强制监控）。
-3. `post-push.sh` 默认会对“仅 backend/dashboard/docs 改动、doc 前缀提交、或不命中目标 workflow 的 branches/paths 条件”跳过轮询；需要时用 `--force-monitor` 覆盖。
+3. `post-push.sh` 默认会对”仅 backend/dashboard/docs 改动、doc 前缀提交、或不命中目标 workflow 的 branches/paths 条件”跳过轮询；需要时用 `--force-monitor` 覆盖。
 4. Linux 下若 `flutter test` 报 `libsqlite3.so` 缺失，可先执行：
 - `ln -sf /usr/lib/x86_64-linux-gnu/libsqlite3.so.0 /tmp/libsqlite3.so`
 - `LD_LIBRARY_PATH=/tmp flutter test`
-5. 任务若明确要求"排除国际化内容"，不主动改动 i18n 文案语义与键值。
-6. 若本次开发或排错产生了新的失败记录，应同步补充对应模块的 `failure-records/<module>/` 文档归纳。
+5. 任务若明确要求”排除国际化内容”，不主动改动 i18n 文案语义与键值。
+6. 若对小蜜 AI 的提示词、预选路由协议、special_call 参数或触发文案做了优化修改，要酌情同步更新 `docs/xiao_mi_pre_route_special_calls.md`。
+7. 若本次开发或排错产生了新的失败记录，应同步补充对应模块的 `failure-records/<module>/` 文档归纳。
 
 ## Git 提交规范
 1. 推荐格式：`type(scope): 简要说明`
@@ -62,11 +72,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 1. 禁止在日志/异常中输出密钥与 Token。
 2. 本地路径拼接必须防止 `../` 穿越（确保最终路径在 `baseDir` 内）。
 3. 外部服务默认 `https`；如使用 `http` 必须明确提示风险。
+4. **MediaStore 操作限制**：图片的新增/删除操作必须限制在 app 专属目录（`/Pictures/外拍助手/`）内，禁止操作其他目录文件。
 
 ## Windows 兼容
 1. 推荐在 Git Bash 或 WSL 执行 `*.sh`。
 2. PowerShell 可直接调用：`bash scripts/pre-push.sh` 等。
-3. 若 `bash` 不在 PATH，可用：`"C:\Program Files\Git\bin\bash.exe" scripts/pre-push.sh`。
+3. 若 `bash` 不在 PATH，可用：`”C:\Program Files\Git\bin\bash.exe” scripts/pre-push.sh`。
 
 ## 格式检查
 1. 先检查：`dart format --output=none --set-exit-if-changed .`
