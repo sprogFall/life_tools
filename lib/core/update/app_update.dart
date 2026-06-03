@@ -102,9 +102,9 @@ class AppUpdateService {
       final shouldOfferPrereleaseToRelease =
           effectiveCurrentIsPrerelease && !release.isPrerelease;
       if (!shouldOfferPrereleaseToRelease &&
-          !AppVersion.parse(release.version).isNewerThan(
-            effectiveCurrentVersion,
-          )) {
+          !AppVersion.parse(
+            release.version,
+          ).isNewerThan(effectiveCurrentVersion)) {
         return const AppUpdateCheckResult.upToDate();
       }
 
@@ -400,12 +400,26 @@ class AppReleaseParser {
 
 class AppVersion implements Comparable<AppVersion> {
   final List<int> parts;
+  final List<String> prereleaseParts;
 
-  AppVersion(this.parts);
+  AppVersion(this.parts, {this.prereleaseParts = const []});
 
   factory AppVersion.parse(String raw) {
     final normalized = normalizeTag(raw) ?? '0.0.0';
-    final core = normalized.split(RegExp(r'[-+]')).first;
+    final withoutBuildMetadata = normalized.split('+').first;
+    final prereleaseSeparator = withoutBuildMetadata.indexOf('-');
+    final core = prereleaseSeparator >= 0
+        ? withoutBuildMetadata.substring(0, prereleaseSeparator)
+        : withoutBuildMetadata;
+    final prerelease = prereleaseSeparator >= 0
+        ? withoutBuildMetadata.substring(prereleaseSeparator + 1)
+        : '';
+    final prereleaseParts = prerelease.isNotEmpty
+        ? prerelease
+              .split('.')
+              .where((part) => part.isNotEmpty)
+              .toList(growable: false)
+        : const <String>[];
     final parts = core
         .split('.')
         .map((part) => int.tryParse(part) ?? 0)
@@ -413,7 +427,7 @@ class AppVersion implements Comparable<AppVersion> {
     while (parts.length < 3) {
       parts.add(0);
     }
-    return AppVersion(parts.take(3).toList());
+    return AppVersion(parts.take(3).toList(), prereleaseParts: prereleaseParts);
   }
 
   static String? normalizeTag(String raw) {
@@ -463,6 +477,33 @@ class AppVersion implements Comparable<AppVersion> {
       final diff = parts[i].compareTo(other.parts[i]);
       if (diff != 0) return diff;
     }
+    if (prereleaseParts.isEmpty && other.prereleaseParts.isEmpty) return 0;
+    if (prereleaseParts.isEmpty) return 1;
+    if (other.prereleaseParts.isEmpty) return -1;
+
+    final maxLength = prereleaseParts.length > other.prereleaseParts.length
+        ? prereleaseParts.length
+        : other.prereleaseParts.length;
+    for (var i = 0; i < maxLength; i++) {
+      if (i >= prereleaseParts.length) return -1;
+      if (i >= other.prereleaseParts.length) return 1;
+      final diff = _comparePrereleaseIdentifier(
+        prereleaseParts[i],
+        other.prereleaseParts[i],
+      );
+      if (diff != 0) return diff;
+    }
     return 0;
+  }
+
+  static int _comparePrereleaseIdentifier(String first, String second) {
+    final firstNumber = int.tryParse(first);
+    final secondNumber = int.tryParse(second);
+    if (firstNumber != null && secondNumber != null) {
+      return firstNumber.compareTo(secondNumber);
+    }
+    if (firstNumber != null) return -1;
+    if (secondNumber != null) return 1;
+    return first.compareTo(second);
   }
 }

@@ -19,6 +19,15 @@ void main() {
       expect(AppVersion.parse('v1.2.4').isNewerThan('1.2.3'), isTrue);
       expect(AppVersion.parse('v1.2.3').isNewerThan('1.2.3'), isFalse);
       expect(AppVersion.parse('v1.2.2').isNewerThan('1.2.3'), isFalse);
+      expect(
+        AppVersion.parse('1.2.3-beta.259').isNewerThan('1.2.3-beta.258'),
+        isTrue,
+      );
+      expect(
+        AppVersion.parse('1.2.3-beta.258').isNewerThan('1.2.3-beta.259'),
+        isFalse,
+      );
+      expect(AppVersion.parse('1.2.3').isNewerThan('1.2.3-beta.259'), isTrue);
     });
 
     test('非版本 tag 不应被识别为客户端更新', () {

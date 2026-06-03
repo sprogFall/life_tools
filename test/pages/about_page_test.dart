@@ -97,8 +97,8 @@ void main() {
         result: AppUpdateCheckResult.upToDate(),
         latestPrerelease: AppReleaseInfo(
           tagName: 'apk-main-abc123',
-          version: AppBuildInfo.version, // 相同版本
-          name: '体验版 ${AppBuildInfo.version}',
+          version: '1.0.0-beta.259',
+          name: '体验版 1.0.0-beta.259',
           body: '',
           pageUrl: Uri.parse('https://example.com'),
           apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
@@ -106,7 +106,13 @@ void main() {
         ),
       );
       await tester.pumpWidget(
-        MaterialApp(home: AboutPage(updateService: service)),
+        MaterialApp(
+          home: AboutPage(
+            updateService: service,
+            currentVersionOverride: '1.0.0-beta.259',
+            currentIsPrereleaseOverride: true,
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -114,6 +120,38 @@ void main() {
       await tester.pumpAndSettle();
 
       // 应该不显示更新对话框，而是直接提示
+      expect(find.text('立即更新'), findsNothing);
+      expect(service.fetchPrereleaseCount, 1);
+    });
+
+    testWidgets('体验版检查更新时旧 beta 版本应提示已是最新版本', (tester) async {
+      final service = _FakeUpdateService(
+        result: AppUpdateCheckResult.upToDate(),
+        latestPrerelease: AppReleaseInfo(
+          tagName: 'apk-main-beta258',
+          version: '1.0.0-beta.258',
+          name: '体验版 1.0.0-beta.258',
+          body: '',
+          pageUrl: Uri.parse('https://example.com'),
+          apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
+          isPrerelease: true,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AboutPage(
+            updateService: service,
+            currentVersionOverride: '1.0.0-beta.259',
+            currentIsPrereleaseOverride: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('about_check_beta_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('体验版 1.0.0-beta.258'), findsNothing);
       expect(find.text('立即更新'), findsNothing);
       expect(service.fetchPrereleaseCount, 1);
     });

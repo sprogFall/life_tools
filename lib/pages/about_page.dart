@@ -12,8 +12,15 @@ import '../core/widgets/ios26_toast.dart';
 
 class AboutPage extends StatefulWidget {
   final AppUpdateService? updateService;
+  final String? currentVersionOverride;
+  final bool? currentIsPrereleaseOverride;
 
-  const AboutPage({super.key, this.updateService});
+  const AboutPage({
+    super.key,
+    this.updateService,
+    this.currentVersionOverride,
+    this.currentIsPrereleaseOverride,
+  });
 
   @override
   State<AboutPage> createState() => _AboutPageState();
@@ -29,6 +36,12 @@ class _AboutPageState extends State<AboutPage> {
   double? _downloadProgress;
 
   AppUpdateService? _ownedUpdateService;
+
+  String get _currentVersion =>
+      widget.currentVersionOverride ?? AppBuildInfo.version;
+
+  bool get _currentIsPrerelease =>
+      widget.currentIsPrereleaseOverride ?? AppBuildInfo.isPreRelease;
 
   AppUpdateService get _updateService {
     if (widget.updateService != null) return widget.updateService!;
@@ -139,7 +152,7 @@ class _AboutPageState extends State<AboutPage> {
                     Text('版本更新', style: IOS26Theme.titleLarge),
                     const SizedBox(height: 4),
                     Text(
-                      '当前版本 ${AppBuildInfo.version}',
+                      '当前版本 $_currentVersion',
                       style: IOS26Theme.bodySmall.copyWith(
                         color: IOS26Theme.textSecondary,
                       ),
@@ -384,8 +397,8 @@ class _AboutPageState extends State<AboutPage> {
     setState(() => _checkingUpdate = true);
     final result = await _updateService.checkForUpdate(
       includeIgnored: true,
-      currentVersion: AppBuildInfo.version,
-      currentIsPrerelease: AppBuildInfo.isPreRelease,
+      currentVersion: _currentVersion,
+      currentIsPrerelease: _currentIsPrerelease,
     );
     if (!mounted) return;
     setState(() => _checkingUpdate = false);
@@ -397,7 +410,7 @@ class _AboutPageState extends State<AboutPage> {
         if (release != null) {
           await _showUpdateDialog(
             release,
-            forceUpdate: AppBuildInfo.isPreRelease && !release.isPrerelease,
+            forceUpdate: _currentIsPrerelease && !release.isPrerelease,
           );
         }
       case AppUpdateAvailability.upToDate:
@@ -419,7 +432,7 @@ class _AboutPageState extends State<AboutPage> {
         return;
       }
 
-      if (AppVersion.isSame(release.version, AppBuildInfo.version)) {
+      if (!_shouldOfferBetaUpdate(release)) {
         _showToast('当前已是最新版本');
         return;
       }
@@ -431,6 +444,16 @@ class _AboutPageState extends State<AboutPage> {
       setState(() => _checkingUpdate = false);
       _showToast('获取体验版失败，请稍后再试', error: true);
     }
+  }
+
+  bool _shouldOfferBetaUpdate(AppReleaseInfo release) {
+    final currentVersion = _currentVersion;
+    if (AppVersion.parse(release.version).isNewerThan(currentVersion)) {
+      return true;
+    }
+    return !_currentIsPrerelease &&
+        release.isPrerelease &&
+        AppVersion.isSameCore(release.version, currentVersion);
   }
 
   Future<void> _showUpdateDialog(
@@ -451,8 +474,8 @@ class _AboutPageState extends State<AboutPage> {
           forceUpdate
               ? '建议更新至正式版 ${release.version}'
               : isBeta
-                  ? '体验版 ${release.version}'
-                  : '发现新版本 ${release.version}',
+              ? '体验版 ${release.version}'
+              : '发现新版本 ${release.version}',
         ),
         content: content,
         actions: [
