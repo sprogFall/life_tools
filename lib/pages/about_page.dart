@@ -147,17 +147,33 @@ class _AboutPageState extends State<AboutPage> {
                   ],
                 ),
               ),
-              IOS26Button(
-                key: const ValueKey('about_check_update_button'),
-                onPressed: busy ? null : _checkUpdateManually,
-                variant: IOS26ButtonVariant.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 9,
-                ),
-                child: _checkingUpdate
-                    ? const IOS26ButtonLoadingIndicator(radius: 8)
-                    : const IOS26ButtonLabel('检查更新'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IOS26Button(
+                    key: const ValueKey('about_check_beta_button'),
+                    onPressed: busy ? null : _checkBetaUpdate,
+                    variant: IOS26ButtonVariant.secondary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    child: const IOS26ButtonLabel('体验版'),
+                  ),
+                  const SizedBox(width: 8),
+                  IOS26Button(
+                    key: const ValueKey('about_check_update_button'),
+                    onPressed: busy ? null : _checkUpdateManually,
+                    variant: IOS26ButtonVariant.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    child: _checkingUpdate
+                        ? const IOS26ButtonLoadingIndicator(radius: 8)
+                        : const IOS26ButtonLabel('检查更新'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -382,23 +398,52 @@ class _AboutPageState extends State<AboutPage> {
     }
   }
 
-  Future<void> _showUpdateDialog(AppReleaseInfo release) async {
+  Future<void> _checkBetaUpdate() async {
+    setState(() => _checkingUpdate = true);
+    try {
+      final release = await _updateService.fetchLatestPrerelease();
+      if (!mounted) return;
+      setState(() => _checkingUpdate = false);
+
+      if (release == null) {
+        _showToast('暂无可用的体验版本');
+      } else {
+        await _showUpdateDialog(release, isBeta: true);
+      }
+    } catch (error, stackTrace) {
+      devLog('获取体验版失败', error: error, stackTrace: stackTrace);
+      if (!mounted) return;
+      setState(() => _checkingUpdate = false);
+      _showToast('获取体验版失败，请稍后再试', error: true);
+    }
+  }
+
+  Future<void> _showUpdateDialog(
+    AppReleaseInfo release, {
+    bool isBeta = false,
+  }) async {
+    final content = _buildUpdateDialogContent(release, isBeta: isBeta);
+
     final action = await showCupertinoDialog<_UpdateDialogAction>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: Text('发现新版本 ${release.version}'),
-        content: Text(release.body.isEmpty ? '是否立即下载并安装最新安装包？' : release.body),
+        title: Text(
+          isBeta ? '体验版 ${release.version}' : '发现新版本 ${release.version}',
+        ),
+        content: content,
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.later),
             child: const Text('稍后'),
           ),
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.ignore),
-            child: const Text('忽略此版本'),
-          ),
+          if (!isBeta)
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.ignore),
+              child: const Text('忽略此版本'),
+            ),
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.install),
+            isDefaultAction: true,
             child: const Text('立即更新'),
           ),
         ],
@@ -410,12 +455,70 @@ class _AboutPageState extends State<AboutPage> {
       case _UpdateDialogAction.install:
         await _downloadAndInstall(release);
       case _UpdateDialogAction.ignore:
-        await _updateService.ignoreVersion(release.version);
-        _showToast('已忽略 ${release.version}');
+        if (!isBeta) {
+          await _updateService.ignoreVersion(release.version);
+          _showToast('已忽略此版本');
+        }
       case _UpdateDialogAction.later:
       case null:
         break;
     }
+  }
+
+  Widget _buildUpdateDialogContent(
+    AppReleaseInfo release, {
+    required bool isBeta,
+  }) {
+    final parts = <String>[];
+
+    // 提交信息
+    if (release.commitMessage != null && release.commitMessage!.isNotEmpty) {
+      parts.add('📝 ${release.commitMessage}');
+    }
+
+    // 提交 SHA
+    if (release.commitSha != null && release.commitSha!.isNotEmpty) {
+      parts.add('🔖 commit ${release.commitSha!.substring(0, 7)}');
+    }
+
+    // 发布时间
+    if (release.publishedAt != null) {
+      final now = DateTime.now();
+      final diff = now.difference(release.publishedAt!);
+      String timeAgo;
+      if (diff.inDays > 0) {
+        timeAgo = '${diff.inDays} 天前';
+      } else if (diff.inHours > 0) {
+        timeAgo = '${diff.inHours} 小时前';
+      } else if (diff.inMinutes > 0) {
+        timeAgo = '${diff.inMinutes} 分钟前';
+      } else {
+        timeAgo = '刚刚';
+      }
+      parts.add('🕒 $timeAgo');
+    }
+
+    // 安装包大小
+    if (release.apkSize != null) {
+      final sizeMb = (release.apkSize! / (1024 * 1024)).toStringAsFixed(1);
+      parts.add('📦 $sizeMb MB');
+    }
+
+    // 体验版提示
+    if (isBeta) {
+      parts.add('\n⚠️ 体验版可能包含未充分测试的功能');
+    }
+
+    // Release body（如果有且不重复）
+    if (release.body.isNotEmpty && release.body != release.commitMessage) {
+      parts.add('\n${release.body}');
+    }
+
+    if (parts.isEmpty) {
+      return const Text('是否立即下载并安装最新安装包？');
+    }
+
+    return Text(parts.join('\n'));
   }
 
   Future<void> _downloadAndInstall(AppReleaseInfo release) async {

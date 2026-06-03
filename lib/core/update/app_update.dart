@@ -43,6 +43,9 @@ class AppReleaseInfo {
   final int? apkSize;
   final DateTime? publishedAt;
   final String? sha256; // APK SHA-256 校验和（可选）
+  final bool isPrerelease; // 是否为预发布版本（体验版）
+  final String? commitMessage; // 提交信息
+  final String? commitSha; // 提交 SHA
 
   const AppReleaseInfo({
     required this.tagName,
@@ -54,6 +57,9 @@ class AppReleaseInfo {
     this.apkSize,
     this.publishedAt,
     this.sha256,
+    this.isPrerelease = false,
+    this.commitMessage,
+    this.commitSha,
   });
 }
 
@@ -129,6 +135,47 @@ class AppUpdateService {
       throw const FormatException('GitHub Release 响应格式错误');
     }
     return AppReleaseParser.parse(decoded);
+  }
+
+  /// 获取最新的预发布版本（体验版）
+  /// 包含所有成功构建的 APK，不限制是否为正式 tag
+  Future<AppReleaseInfo?> fetchLatestPrerelease() async {
+    final uri = Uri.https(
+      'api.github.com',
+      '/repos/$repository/releases',
+      {'per_page': '10'}, // 获取最近 10 个 release
+    );
+    final response = await _client
+        .get(
+          uri,
+          headers: const {
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        )
+        .timeout(_defaultTimeout);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HttpException('GitHub Release 请求失败: ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw const FormatException('GitHub Release 响应格式错误');
+    }
+
+    // 查找最新的包含 APK 的预发布版本
+    for (final item in decoded) {
+      if (item is! Map<String, dynamic>) continue;
+
+      // 跳过正式发布版本，只要预发布
+      if (item['prerelease'] != true) continue;
+
+      final release = AppReleaseParser.parse(item);
+      if (release != null) return release;
+    }
+
+    return null;
   }
 
   Future<File> downloadApk(
@@ -227,11 +274,24 @@ class AppReleaseParser {
   AppReleaseParser._();
 
   static AppReleaseInfo? parse(Map<String, dynamic> json) {
-    if (json['draft'] == true || json['prerelease'] == true) return null;
+    // 跳过草稿，但保留预发布版本
+    if (json['draft'] == true) return null;
 
     final tagName = (json['tag_name'] as String? ?? '').trim();
-    final version = AppVersion.normalizeReleaseTag(tagName);
-    if (version == null) return null;
+    final isPrerelease = json['prerelease'] == true;
+
+    // 对于预发布版本，tag 格式可能不是 vX.Y.Z，需要特殊处理
+    String? version;
+    if (isPrerelease) {
+      // 尝试从 tag 提取版本号，如 "apk-main-abc123" 提取不出来就用 tag 本身
+      version = AppVersion.normalizeReleaseTag(tagName);
+      // 如果提取失败，使用 name 中的版本号或 tag 本身
+      version ??= _extractVersionFromName(json['name'] as String? ?? '');
+      version ??= tagName;
+    } else {
+      version = AppVersion.normalizeReleaseTag(tagName);
+      if (version == null) return null;
+    }
 
     final assets = json['assets'];
     if (assets is! List) return null;
@@ -255,17 +315,62 @@ class AppReleaseParser {
     final pageUrl = json['html_url'] as String?;
     if (downloadUrl == null || pageUrl == null) return null;
 
+    // 提取提交信息
+    final body = (json['body'] as String? ?? '').trim();
+    final commitMessage = _extractCommitMessage(body);
+    final commitSha = _extractCommitSha(tagName, body);
+
     return AppReleaseInfo(
       tagName: tagName,
       version: version,
       name: (json['name'] as String? ?? tagName).trim(),
-      body: (json['body'] as String? ?? '').trim(),
+      body: body,
       pageUrl: Uri.parse(pageUrl),
       apkDownloadUrl: Uri.parse(downloadUrl),
       apkSize: (apkAsset['size'] as num?)?.toInt(),
       publishedAt: DateTime.tryParse(json['published_at'] as String? ?? ''),
-      sha256: sha256Hash, // 当前为 null，未来可从 .sha256 文件读取
+      sha256: sha256Hash,
+      isPrerelease: isPrerelease,
+      commitMessage: commitMessage,
+      commitSha: commitSha,
     );
+  }
+
+  /// 从 release name 中提取版本号
+  static String? _extractVersionFromName(String name) {
+    final match = RegExp(r'\b(\d+\.\d+\.\d+)\b').firstMatch(name);
+    return match?.group(1);
+  }
+
+  /// 从 release body 中提取提交信息
+  static String? _extractCommitMessage(String body) {
+    if (body.isEmpty) return null;
+
+    // 提取第一行作为提交信息（通常是 commit message）
+    final firstLine = body.split('\n').first.trim();
+    if (firstLine.isEmpty) return null;
+
+    // 移除常见的前缀
+    final cleaned = firstLine.replaceFirst(
+      RegExp(
+        r'^(commit|chore|feat|fix|docs|refactor):\s*',
+        caseSensitive: false,
+      ),
+      '',
+    );
+
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
+  /// 提取 commit SHA
+  static String? _extractCommitSha(String tagName, String body) {
+    // 从 tag 中提取，如 "apk-main-abc1234"
+    final tagMatch = RegExp(r'-([0-9a-f]{7,40})$').firstMatch(tagName);
+    if (tagMatch != null) return tagMatch.group(1);
+
+    // 从 body 中提取
+    final bodyMatch = RegExp(r'\b([0-9a-f]{7,40})\b').firstMatch(body);
+    return bodyMatch?.group(1);
   }
 }
 
