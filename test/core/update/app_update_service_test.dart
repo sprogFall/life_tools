@@ -74,16 +74,7 @@ void main() {
       expect(release.apkDownloadUrl.path, contains('.apk'));
     });
 
-    test('应忽略预发布与没有 APK 的 Release', () {
-      expect(
-        AppReleaseParser.parse({
-          'tag_name': 'v1.2.3',
-          'html_url': 'https://example.com',
-          'prerelease': true,
-          'assets': const [],
-        }),
-        isNull,
-      );
+    test('应忽略没有 APK 与非法正式 tag 的 Release', () {
       expect(
         AppReleaseParser.parse({
           'tag_name': 'v1.2.3',
@@ -216,6 +207,37 @@ Commit: abcdef1234567890
       expect(result.availability, AppUpdateAvailability.upToDate);
     });
 
+    test('体验版列表顺序不稳定时应选择语义版本最新的预发布包', () async {
+      final service = AppUpdateService(
+        client: MockClient(
+          (_) async => _jsonResponse([
+            _releaseJson('v1.0.2'),
+            _prereleaseJson(
+              tag: 'apk-main-fb49e2ea8020',
+              version: '1.0.1-beta.260',
+              publishedAt: '2026-06-03T09:51:39Z',
+            ),
+            _prereleaseJson(
+              tag: 'apk-main-2b6057caafcf',
+              version: '1.0.2-beta.262',
+              publishedAt: '2026-06-03T15:06:29Z',
+            ),
+            _prereleaseJson(
+              tag: 'apk-main-170392a80144',
+              version: '1.0.1-beta.259',
+              publishedAt: '2026-06-03T08:59:51Z',
+            ),
+          ]),
+        ),
+      );
+
+      final release = await service.fetchLatestPrerelease();
+
+      expect(release, isNotNull);
+      expect(release!.tagName, 'apk-main-2b6057caafcf');
+      expect(release.version, '1.0.2-beta.262');
+    });
+
     test('下载 APK 时应保存到缓存目录并汇报进度', () async {
       final tempDir = await Directory.systemTemp.createTemp(
         'life_tools_update_test_',
@@ -316,6 +338,38 @@ Map<String, Object?> _releaseJson(String tag) {
         'size': 1024,
         'browser_download_url':
             'https://github.com/sprogFall/life_tools/releases/download/$tag/life_tools-release-$tag.apk',
+      },
+    ],
+  };
+}
+
+Map<String, Object?> _prereleaseJson({
+  required String tag,
+  required String version,
+  required String publishedAt,
+}) {
+  return {
+    'tag_name': tag,
+    'name': 'APK release main ${tag.split('-').last}',
+    'body':
+        '''
+Automated release APK build.
+
+Version: $version
+Ref: main
+
+Commit: ${tag.split('-').last}7890
+''',
+    'html_url': 'https://github.com/sprogFall/life_tools/releases/tag/$tag',
+    'draft': false,
+    'prerelease': true,
+    'published_at': publishedAt,
+    'assets': [
+      {
+        'name': 'life_tools-release-${tag.split('-').last}.apk',
+        'size': 1024,
+        'browser_download_url':
+            'https://github.com/sprogFall/life_tools/releases/download/$tag/life_tools-release-${tag.split('-').last}.apk',
       },
     ],
   };

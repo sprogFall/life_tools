@@ -20,9 +20,10 @@ git push origin main
 
 - `dev`：构建 debug APK。
 - `main`：构建 release APK。
+- 版本号：读取 `VERSION` 文件，生成 `MAJOR.MINOR.PATCH-beta.<run_number>`。
 - 发布 tag：`apk-{branch}-{short_sha}`。
 - Release 类型：prerelease。
-- 客户端更新检查会忽略 prerelease，因此不会拉到自测包。
+- 客户端“体验版”入口会扫描 prerelease，选择语义版本最新且包含 APK 的自测包。
 
 ### 正式发版包
 
@@ -40,7 +41,7 @@ bash scripts/release-apk.sh 1.2.3
 
 ## 版本号规则
 
-- 自测包使用 `APP_VERSION=1.0.0`，避免被当作正式版本。
+- 自测包使用 `APP_VERSION=<VERSION>-beta.<run_number>`，例如 `1.0.2-beta.262`。
 - 正式 tag `v1.2.3` 会生成安装包版本名 `1.2.3`。
 - `versionCode` 使用 GitHub Actions 的 `run_number`，保证后续版本可覆盖安装。
 - 正式构建参数示例：
@@ -77,6 +78,8 @@ https://api.github.com/repos/sprogFall/life_tools/releases/latest
 - Tag 必须为 `vMAJOR.MINOR.PATCH`
 - Release assets 中存在 `.apk`
 - Release 版本大于当前安装包版本
+
+应用内“关于 -> 体验版”会请求 releases 列表，扫描 prerelease，并在包含 APK 的候选中按语义版本优先、发布时间兜底选择最新体验版。
 
 ## 依赖
 

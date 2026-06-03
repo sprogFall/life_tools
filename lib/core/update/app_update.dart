@@ -152,7 +152,7 @@ class AppUpdateService {
     final uri = Uri.https(
       'api.github.com',
       '/repos/$repository/releases',
-      {'per_page': '10'}, // 获取最近 10 个 release
+      {'per_page': '50'}, // GitHub 返回顺序不保证等同于发布时间，扩大扫描范围
     );
     final response = await _client
         .get(
@@ -173,7 +173,7 @@ class AppUpdateService {
       throw const FormatException('GitHub Release 响应格式错误');
     }
 
-    // 查找最新的包含 APK 的预发布版本
+    AppReleaseInfo? latest;
     for (final item in decoded) {
       if (item is! Map<String, dynamic>) continue;
 
@@ -181,10 +181,28 @@ class AppUpdateService {
       if (item['prerelease'] != true) continue;
 
       final release = AppReleaseParser.parse(item);
-      if (release != null) return release;
+      if (release == null) continue;
+      if (latest == null || _isNewerPrerelease(release, latest)) {
+        latest = release;
+      }
     }
 
-    return null;
+    return latest;
+  }
+
+  bool _isNewerPrerelease(AppReleaseInfo candidate, AppReleaseInfo current) {
+    final versionDiff = AppVersion.parse(
+      candidate.version,
+    ).compareTo(AppVersion.parse(current.version));
+    if (versionDiff != 0) return versionDiff > 0;
+
+    final candidateTime = candidate.publishedAt;
+    final currentTime = current.publishedAt;
+    if (candidateTime != null && currentTime != null) {
+      return candidateTime.isAfter(currentTime);
+    }
+    if (candidateTime != null) return true;
+    return false;
   }
 
   Future<File> downloadApk(
