@@ -254,6 +254,29 @@ test_dashboard_only_change_runs_dashboard_checks_in_auto_scope() {
   assert_empty_file "$flutter_log"
 }
 
+test_version_only_change_skips_flutter_checks_in_auto_scope() {
+  local tmp_repo
+  tmp_repo="$(mktemp -d)"
+  setup_repo "$tmp_repo"
+
+  local fake_tools_dir
+  fake_tools_dir="$(mktemp -d)"
+  local fake_flutter="${fake_tools_dir}/fake_flutter.sh"
+  local fake_npm="${fake_tools_dir}/npm"
+  local flutter_log="${fake_tools_dir}/flutter.log"
+  local npm_log="${fake_tools_dir}/npm.log"
+  create_fake_flutter "$fake_flutter"
+  create_fake_npm "$fake_npm"
+  : > "$flutter_log"
+  : > "$npm_log"
+
+  echo "1.2.3" > "${tmp_repo}/VERSION"
+
+  run_pre_push_auto "$tmp_repo" "$fake_flutter" "$flutter_log" "$npm_log"
+  assert_empty_file "$flutter_log"
+  assert_empty_file "$npm_log"
+}
+
 test_fallback_full_test_for_unmappable_flutter_change() {
   local tmp_repo
   tmp_repo="$(mktemp -d)"
@@ -314,6 +337,9 @@ EOT
   cat > "${tmp_repo}/scripts/post-push.sh" <<'EOT'
 # changed
 EOT
+  cat > "${tmp_repo}/scripts/release-apk.sh" <<'EOT'
+# changed
+EOT
   cat > "${tmp_repo}/scripts/tests/pre-push_test.sh" <<'EOT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -329,6 +355,11 @@ EOT
 set -euo pipefail
 echo "post-push-self-test-ran" >> self_test.log
 EOT
+  cat > "${tmp_repo}/scripts/tests/release-apk_test.sh" <<'EOT'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "release-apk-self-test-ran" >> self_test.log
+EOT
   cat > "${tmp_repo}/scripts/tests/build-apk_workflow_test.sh" <<'EOT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -337,12 +368,14 @@ EOT
   chmod +x "${tmp_repo}/scripts/tests/pre-push_test.sh"
   chmod +x "${tmp_repo}/scripts/tests/exec-push_test.sh"
   chmod +x "${tmp_repo}/scripts/tests/post-push_test.sh"
+  chmod +x "${tmp_repo}/scripts/tests/release-apk_test.sh"
   chmod +x "${tmp_repo}/scripts/tests/build-apk_workflow_test.sh"
 
   run_pre_push "$tmp_repo" "$fake_flutter" "$log_file" --skip-pub-get --skip-analyze --skip-test
   assert_contains "${tmp_repo}/self_test.log" "pre-push-self-test-ran"
   assert_contains "${tmp_repo}/self_test.log" "exec-push-self-test-ran"
   assert_contains "${tmp_repo}/self_test.log" "post-push-self-test-ran"
+  assert_contains "${tmp_repo}/self_test.log" "release-apk-self-test-ran"
   assert_contains "${tmp_repo}/self_test.log" "build-apk-workflow-self-test-ran"
 }
 
@@ -411,6 +444,7 @@ main() {
   test_changed_priority_with_guaranteed_coverage
   test_flutter_test_module_runs_requested_tool_module_only
   test_dashboard_only_change_runs_dashboard_checks_in_auto_scope
+  test_version_only_change_skips_flutter_checks_in_auto_scope
   test_fallback_full_test_for_unmappable_flutter_change
   test_pub_get_hash_short_circuit
   test_run_release_script_self_tests_when_scripts_changed

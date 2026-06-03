@@ -511,7 +511,12 @@ pick_run_json() {
   local runs_json="$1"
 
   if [[ "$JSON_MODE" == "jq" ]]; then
-    echo "$runs_json" | jq -c --arg workflow "$WORKFLOW_NAME" '(.workflow_runs | map(select(.name == $workflow)) | .[0]) // .workflow_runs[0] // empty'
+    echo "$runs_json" | jq -c --arg workflow "$WORKFLOW_NAME" --arg ref "$BRANCH_NAME" '
+      (.workflow_runs | map(select(.name == $workflow and ($ref == "" or .head_branch == $ref))) | .[0])
+      // (.workflow_runs | map(select(.name == $workflow)) | .[0])
+      // .workflow_runs[0]
+      // empty
+    '
     return
   fi
 
@@ -519,21 +524,28 @@ pick_run_json() {
   tmp="$(mktemp)"
   printf '%s' "$runs_json" > "$tmp"
 
-  "${PYTHON_CMD[@]}" - "$tmp" "$WORKFLOW_NAME" <<'PY'
+  "${PYTHON_CMD[@]}" - "$tmp" "$WORKFLOW_NAME" "$BRANCH_NAME" <<'PY'
 import json
 import sys
 
 path = sys.argv[1]
 workflow = sys.argv[2]
+ref = sys.argv[3]
 with open(path, 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 runs = data.get("workflow_runs") or []
 run = None
 for item in runs:
-    if item.get("name") == workflow:
+    if item.get("name") == workflow and (not ref or item.get("head_branch") == ref):
         run = item
         break
+
+if run is None:
+    for item in runs:
+        if item.get("name") == workflow:
+            run = item
+            break
 
 if run is None and runs:
     run = runs[0]

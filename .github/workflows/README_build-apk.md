@@ -27,11 +27,12 @@ git push origin main
 ### 正式发版包
 
 ```bash
-git tag v1.2.3
-git push origin v1.2.3
+bash scripts/release-apk.sh 1.2.3
 ```
 
 - 只接受 `vMAJOR.MINOR.PATCH` 格式。
+- 一键脚本会先更新 `VERSION` 文件并 push 发版提交，再创建并 push 正式 tag。
+- 脚本会等待 GitHub Action 结束，并输出 Release 页面和 APK 下载地址。
 - 构建 release APK。
 - 发布 tag：`v1.2.3`。
 - Release 类型：正式 Release。

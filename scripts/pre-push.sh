@@ -335,7 +335,7 @@ collect_head_files() {
 is_doc_file() {
   local f="$1"
   case "$f" in
-    *.md|docs/*|examples/*)
+    VERSION|*.md|docs/*|examples/*)
       return 0
       ;;
     *)
@@ -664,6 +664,21 @@ should_run_post_push_self_test() {
   return 1
 }
 
+should_run_release_apk_self_test() {
+  local f
+  for f in "${CHANGED_FILES[@]}"; do
+    case "$f" in
+      scripts/release-apk.sh|scripts/tests/release-apk_test.sh|scripts/post-push.sh|scripts/tests/post-push_test.sh)
+        return 0
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  return 1
+}
+
 should_run_build_apk_workflow_self_test() {
   local f
   for f in "${CHANGED_FILES[@]}"; do
@@ -737,6 +752,28 @@ run_post_push_self_test_if_needed() {
   log "检测到 post-push 相关改动，执行脚本自测: scripts/tests/post-push_test.sh"
   if [[ "$DRY_RUN" == "true" ]]; then
     log "[dry-run] bash scripts/tests/post-push_test.sh"
+    return 0
+  fi
+
+  CURRENT_FAILURE_MODULE="repo"
+  run_cmd bash "$self_test_script"
+  CURRENT_FAILURE_MODULE=""
+}
+
+run_release_apk_self_test_if_needed() {
+  local self_test_script="${REPO_ROOT}/scripts/tests/release-apk_test.sh"
+
+  if ! should_run_release_apk_self_test; then
+    return 0
+  fi
+
+  if [[ ! -x "$self_test_script" ]]; then
+    die "检测到 release-apk 相关改动，但自测脚本不可执行: $self_test_script"
+  fi
+
+  log "检测到 release-apk 相关改动，执行脚本自测: scripts/tests/release-apk_test.sh"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "[dry-run] bash scripts/tests/release-apk_test.sh"
     return 0
   fi
 
@@ -1082,6 +1119,7 @@ main() {
   run_pre_push_self_test_if_needed
   run_exec_push_self_test_if_needed
   run_post_push_self_test_if_needed
+  run_release_apk_self_test_if_needed
   run_build_apk_workflow_self_test_if_needed
 
   if [[ "$SCOPE" == "auto" ]]; then

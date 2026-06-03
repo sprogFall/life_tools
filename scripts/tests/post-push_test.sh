@@ -286,6 +286,24 @@ SH
   assert_contains "$record_file" "- lib/main.dart"
 }
 
+test_pick_run_prefers_matching_ref() {
+  local output selected_id
+
+  # shellcheck source=/dev/null
+  source "$POST_PUSH_SCRIPT"
+  WORKFLOW_NAME="Build Android APK"
+  BRANCH_NAME="v1.2.3"
+  JSON_MODE="python"
+  PYTHON_CMD=("python3")
+
+  output="$(pick_run_json '{"workflow_runs":[{"id":100,"name":"Build Android APK","head_branch":"main"},{"id":200,"name":"Build Android APK","head_branch":"v1.2.3"}]}')"
+  selected_id="$(json_field "$output" "id")"
+
+  if [[ "$selected_id" != "200" ]]; then
+    fail "应优先选择 head_branch 匹配 tag 的 run，实际 id=${selected_id}"
+  fi
+}
+
 main() {
   test_skip_monitor_for_backend_and_dashboard_changes
   test_force_monitor_overrides_backend_and_dashboard_skip
@@ -295,6 +313,7 @@ main() {
   test_monitor_for_android_changes
   test_monitor_for_workflow_changes
   test_record_failure_when_max_polls_reached
+  test_pick_run_prefers_matching_ref
   echo "[post-push-test] all passed"
 }
 
