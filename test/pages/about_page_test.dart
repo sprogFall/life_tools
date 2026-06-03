@@ -91,6 +91,59 @@ void main() {
 
       expect(service.ignoredVersion, '9.9.9');
     });
+
+    testWidgets('体验版检查更新时同版本应提示已是最新版本', (tester) async {
+      final service = _FakeUpdateService(
+        result: AppUpdateCheckResult.upToDate(),
+        latestPrerelease: AppReleaseInfo(
+          tagName: 'apk-main-abc123',
+          version: AppBuildInfo.version, // 相同版本
+          name: '体验版 ${AppBuildInfo.version}',
+          body: '',
+          pageUrl: Uri.parse('https://example.com'),
+          apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
+          isPrerelease: true,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: AboutPage(updateService: service)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('about_check_beta_button')));
+      await tester.pumpAndSettle();
+
+      // 应该不显示更新对话框，而是直接提示
+      expect(find.text('立即更新'), findsNothing);
+      expect(service.fetchPrereleaseCount, 1);
+    });
+
+    testWidgets('体验版检查更新时新版本应显示更新对话框', (tester) async {
+      final service = _FakeUpdateService(
+        result: AppUpdateCheckResult.upToDate(),
+        latestPrerelease: AppReleaseInfo(
+          tagName: 'apk-main-abc123',
+          version: '9.9.9', // 不同版本
+          name: '体验版 9.9.9',
+          body: '',
+          pageUrl: Uri.parse('https://example.com'),
+          apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
+          isPrerelease: true,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: AboutPage(updateService: service)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('about_check_beta_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('体验版 9.9.9'), findsOneWidget);
+      expect(find.text('立即更新'), findsOneWidget);
+      // 体验版不显示"忽略此版本"
+      expect(find.text('忽略此版本'), findsNothing);
+    });
   });
 }
 
@@ -109,20 +162,48 @@ final _release = AppReleaseInfo(
 
 class _FakeUpdateService extends AppUpdateService {
   final AppUpdateCheckResult result;
+  final AppReleaseInfo? latestPrerelease;
+  final AppReleaseInfo? latestRelease;
   String? ignoredVersion;
+  int fetchPrereleaseCount = 0;
+  int fetchReleaseCount = 0;
 
-  _FakeUpdateService({required this.result});
+  _FakeUpdateService({
+    required this.result,
+    this.latestPrerelease,
+    // ignore: unused_element_parameter
+    this.latestRelease,
+  });
 
   @override
   Future<AppUpdateCheckResult> checkForUpdate({
     bool includeIgnored = false,
+    String? currentVersion,
+    bool? currentIsPrerelease,
   }) async {
     expect(includeIgnored, isTrue);
     return result;
   }
 
   @override
+  Future<AppReleaseInfo?> fetchLatestPrerelease() async {
+    fetchPrereleaseCount++;
+    return latestPrerelease;
+  }
+
+  @override
+  Future<AppReleaseInfo?> fetchLatestRelease() async {
+    fetchReleaseCount++;
+    return latestRelease;
+  }
+
+  @override
   Future<void> ignoreVersion(String version) async {
     ignoredVersion = version;
+  }
+
+  @override
+  void close() {
+    // 不关闭测试中的 mock client
   }
 }

@@ -87,6 +87,8 @@ class AppUpdateService {
 
   Future<AppUpdateCheckResult> checkForUpdate({
     bool includeIgnored = false,
+    String? currentVersion,
+    bool? currentIsPrerelease,
   }) async {
     try {
       final release = await fetchLatestRelease();
@@ -94,8 +96,15 @@ class AppUpdateService {
         return const AppUpdateCheckResult.unavailable('没有找到可下载的正式安装包');
       }
 
-      final currentVersion = AppBuildInfo.version;
-      if (!AppVersion.parse(release.version).isNewerThan(currentVersion)) {
+      final effectiveCurrentVersion = currentVersion ?? AppBuildInfo.version;
+      final effectiveCurrentIsPrerelease =
+          currentIsPrerelease ?? AppBuildInfo.isPreRelease;
+      final shouldOfferPrereleaseToRelease =
+          effectiveCurrentIsPrerelease && !release.isPrerelease;
+      if (!shouldOfferPrereleaseToRelease &&
+          !AppVersion.parse(release.version).isNewerThan(
+            effectiveCurrentVersion,
+          )) {
         return const AppUpdateCheckResult.upToDate();
       }
 
@@ -281,12 +290,14 @@ class AppReleaseParser {
     final isPrerelease = json['prerelease'] == true;
 
     // 对于预发布版本，tag 格式可能不是 vX.Y.Z，需要特殊处理
+    final body = (json['body'] as String? ?? '').trim();
     String? version;
     if (isPrerelease) {
       // 尝试从 tag 提取版本号，如 "apk-main-abc123" 提取不出来就用 tag 本身
       version = AppVersion.normalizeReleaseTag(tagName);
       // 如果提取失败，使用 name 中的版本号或 tag 本身
       version ??= _extractVersionFromName(json['name'] as String? ?? '');
+      version ??= _extractVersionFromBody(body);
       version ??= tagName;
     } else {
       version = AppVersion.normalizeReleaseTag(tagName);
@@ -316,7 +327,6 @@ class AppReleaseParser {
     if (downloadUrl == null || pageUrl == null) return null;
 
     // 提取提交信息
-    final body = (json['body'] as String? ?? '').trim();
     final commitMessage = _extractCommitMessage(body);
     final commitSha = _extractCommitSha(tagName, body);
 
@@ -338,8 +348,22 @@ class AppReleaseParser {
 
   /// 从 release name 中提取版本号
   static String? _extractVersionFromName(String name) {
-    final match = RegExp(r'\b(\d+\.\d+\.\d+)\b').firstMatch(name);
-    return match?.group(1);
+    final match = RegExp(
+      r'\b(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\b',
+    ).firstMatch(name);
+    final version = match?.group(1);
+    return version == null ? null : AppVersion.normalizeTag(version);
+  }
+
+  static String? _extractVersionFromBody(String body) {
+    final versionLine = RegExp(
+      r'^\s*Version:\s*([^\s]+)\s*$',
+      caseSensitive: false,
+      multiLine: true,
+    ).firstMatch(body);
+    final version = versionLine?.group(1);
+    if (version == null) return null;
+    return AppVersion.normalizeTag(version);
   }
 
   /// 从 release body 中提取提交信息
@@ -416,6 +440,22 @@ class AppVersion implements Comparable<AppVersion> {
   }
 
   bool isNewerThan(String other) => compareTo(AppVersion.parse(other)) > 0;
+
+  static bool isSame(String first, String second) {
+    final normalizedFirst = normalizeTag(first);
+    final normalizedSecond = normalizeTag(second);
+    return normalizedFirst != null &&
+        normalizedSecond != null &&
+        normalizedFirst == normalizedSecond;
+  }
+
+  static bool isSameCore(String first, String second) {
+    final normalizedFirst = normalizeTag(first);
+    final normalizedSecond = normalizeTag(second);
+    if (normalizedFirst == null || normalizedSecond == null) return false;
+    return normalizedFirst.split(RegExp(r'[-+]')).first ==
+        normalizedSecond.split(RegExp(r'[-+]')).first;
+  }
 
   @override
   int compareTo(AppVersion other) {

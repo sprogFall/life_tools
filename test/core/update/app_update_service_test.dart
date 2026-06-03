@@ -30,6 +30,12 @@ void main() {
       expect(AppVersion.normalizeReleaseTag('v1.2.3'), '1.2.3');
       expect(AppVersion.normalizeReleaseTag('1.2.3'), isNull);
     });
+
+    test('应按规范化版本判断同版本', () {
+      expect(AppVersion.isSame('v1.2.3', '1.2.3'), isTrue);
+      expect(AppVersion.isSame('1.2.3-beta.4', 'v1.2.3-beta.4'), isTrue);
+      expect(AppVersion.isSame('1.2.3-beta.4', '1.2.3'), isFalse);
+    });
   });
 
   group('AppReleaseParser', () {
@@ -91,6 +97,38 @@ void main() {
         isNull,
       );
     });
+
+    test('应从预发布 Release body 中提取完整体验版版本号', () {
+      final release = AppReleaseParser.parse({
+        'tag_name': 'apk-main-abcdef123456',
+        'name': 'APK release main abcdef123456',
+        'body': '''
+Automated release APK build.
+
+Version: 1.2.3-beta.456
+Ref: main
+
+Commit: abcdef1234567890
+''',
+        'html_url':
+            'https://github.com/sprogFall/life_tools/releases/tag/apk-main-abcdef123456',
+        'draft': false,
+        'prerelease': true,
+        'published_at': '2026-06-02T00:00:00Z',
+        'assets': [
+          {
+            'name': 'life_tools-release-abcdef123456.apk',
+            'size': 1024,
+            'browser_download_url':
+                'https://github.com/sprogFall/life_tools/releases/download/apk-main-abcdef123456/life_tools-release-abcdef123456.apk',
+          },
+        ],
+      });
+
+      expect(release, isNotNull);
+      expect(release!.version, '1.2.3-beta.456');
+      expect(release.isPrerelease, isTrue);
+    });
   });
 
   group('AppUpdateService', () {
@@ -123,6 +161,50 @@ void main() {
 
       expect(normal.availability, AppUpdateAvailability.ignored);
       expect(manual.availability, AppUpdateAvailability.updateAvailable);
+    });
+
+    test('体验版检查正式更新时相同核心版本也应返回正式包', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppUpdateService(
+        client: MockClient((_) async => _jsonResponse(_releaseJson('v1.2.3'))),
+      );
+
+      final result = await service.checkForUpdate(
+        currentVersion: '1.2.3-beta.456',
+        currentIsPrerelease: true,
+      );
+
+      expect(result.availability, AppUpdateAvailability.updateAvailable);
+      expect(result.release!.version, '1.2.3');
+    });
+
+    test('体验版核心版本高于正式版时也应返回最新正式包', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppUpdateService(
+        client: MockClient((_) async => _jsonResponse(_releaseJson('v1.2.3'))),
+      );
+
+      final result = await service.checkForUpdate(
+        currentVersion: '1.2.4-beta.456',
+        currentIsPrerelease: true,
+      );
+
+      expect(result.availability, AppUpdateAvailability.updateAvailable);
+      expect(result.release!.version, '1.2.3');
+    });
+
+    test('正式版检查正式更新时相同版本应返回已是最新', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = AppUpdateService(
+        client: MockClient((_) async => _jsonResponse(_releaseJson('v1.2.3'))),
+      );
+
+      final result = await service.checkForUpdate(
+        currentVersion: '1.2.3',
+        currentIsPrerelease: false,
+      );
+
+      expect(result.availability, AppUpdateAvailability.upToDate);
     });
 
     test('下载 APK 时应保存到缓存目录并汇报进度', () async {

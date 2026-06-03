@@ -19,10 +19,19 @@ class AppBuildInfo {
     'APP_VERSION',
     defaultValue: '1.0.0',
   );
+  static const String _isPreReleaseEnv = String.fromEnvironment(
+    'APP_IS_PRERELEASE',
+    defaultValue: 'false',
+  );
 
   static String get version {
     final value = _versionEnv.trim();
     return value.isEmpty ? '1.0.0' : value;
+  }
+
+  /// 当前构建是否为预发布版本（体验版）
+  static bool get isPreRelease {
+    return _isPreReleaseEnv.toLowerCase() == 'true';
   }
 
   static String get commitSha {

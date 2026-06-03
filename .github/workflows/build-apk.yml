@@ -274,20 +274,31 @@ jobs:
           BUILD_NUMBER="${{ github.run_number }}"
           COMMIT_SHA="$(git rev-parse HEAD)"
           COMMIT_MESSAGE_BASE64="$(git log -1 --pretty=%B | base64 | tr -d '\n')"
+          RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
+
+          # 判断是否为预发布版本（体验版）：没有 release_tag 时是预发布
+          if [ -z "$RELEASE_TAG" ]; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="false"
+          fi
+
           if [ "$BUILD_TYPE" = "release" ]; then
             flutter build apk --release \
               --build-name="$APP_VERSION" \
               --build-number="$BUILD_NUMBER" \
               --dart-define=APP_VERSION="$APP_VERSION" \
               --dart-define=APP_COMMIT_SHA="$COMMIT_SHA" \
-              --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64"
+              --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64" \
+              --dart-define=APP_IS_PRERELEASE="$IS_PRERELEASE"
           else
             flutter build apk --debug \
               --build-name="$APP_VERSION" \
               --build-number="$BUILD_NUMBER" \
               --dart-define=APP_VERSION="$APP_VERSION" \
               --dart-define=APP_COMMIT_SHA="$COMMIT_SHA" \
-              --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64"
+              --dart-define=APP_COMMIT_MESSAGE_BASE64="$COMMIT_MESSAGE_BASE64" \
+              --dart-define=APP_IS_PRERELEASE="$IS_PRERELEASE"
           fi
 
       - name: Get APK info

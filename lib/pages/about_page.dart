@@ -382,7 +382,11 @@ class _AboutPageState extends State<AboutPage> {
 
   Future<void> _checkUpdateManually() async {
     setState(() => _checkingUpdate = true);
-    final result = await _updateService.checkForUpdate(includeIgnored: true);
+    final result = await _updateService.checkForUpdate(
+      includeIgnored: true,
+      currentVersion: AppBuildInfo.version,
+      currentIsPrerelease: AppBuildInfo.isPreRelease,
+    );
     if (!mounted) return;
     setState(() => _checkingUpdate = false);
 
@@ -390,7 +394,12 @@ class _AboutPageState extends State<AboutPage> {
       case AppUpdateAvailability.updateAvailable:
       case AppUpdateAvailability.ignored:
         final release = result.release;
-        if (release != null) await _showUpdateDialog(release);
+        if (release != null) {
+          await _showUpdateDialog(
+            release,
+            forceUpdate: AppBuildInfo.isPreRelease && !release.isPrerelease,
+          );
+        }
       case AppUpdateAvailability.upToDate:
         _showToast('当前已是最新版本');
       case AppUpdateAvailability.unavailable:
@@ -407,9 +416,15 @@ class _AboutPageState extends State<AboutPage> {
 
       if (release == null) {
         _showToast('暂无可用的体验版本');
-      } else {
-        await _showUpdateDialog(release, isBeta: true);
+        return;
       }
+
+      if (AppVersion.isSame(release.version, AppBuildInfo.version)) {
+        _showToast('当前已是最新版本');
+        return;
+      }
+
+      await _showUpdateDialog(release, isBeta: true);
     } catch (error, stackTrace) {
       devLog('获取体验版失败', error: error, stackTrace: stackTrace);
       if (!mounted) return;
@@ -421,22 +436,32 @@ class _AboutPageState extends State<AboutPage> {
   Future<void> _showUpdateDialog(
     AppReleaseInfo release, {
     bool isBeta = false,
+    bool forceUpdate = false,
   }) async {
-    final content = _buildUpdateDialogContent(release, isBeta: isBeta);
+    final content = _buildUpdateDialogContent(
+      release,
+      isBeta: isBeta,
+      forceUpdate: forceUpdate,
+    );
 
     final action = await showCupertinoDialog<_UpdateDialogAction>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(
-          isBeta ? '体验版 ${release.version}' : '发现新版本 ${release.version}',
+          forceUpdate
+              ? '建议更新至正式版 ${release.version}'
+              : isBeta
+                  ? '体验版 ${release.version}'
+                  : '发现新版本 ${release.version}',
         ),
         content: content,
         actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.later),
-            child: const Text('稍后'),
-          ),
-          if (!isBeta)
+          if (!forceUpdate)
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.later),
+              child: const Text('稍后'),
+            ),
+          if (!isBeta && !forceUpdate)
             CupertinoDialogAction(
               onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.ignore),
               child: const Text('忽略此版本'),
@@ -446,6 +471,11 @@ class _AboutPageState extends State<AboutPage> {
             isDefaultAction: true,
             child: const Text('立即更新'),
           ),
+          if (forceUpdate)
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx, _UpdateDialogAction.later),
+              child: const Text('稍后'),
+            ),
         ],
       ),
     );
@@ -455,7 +485,7 @@ class _AboutPageState extends State<AboutPage> {
       case _UpdateDialogAction.install:
         await _downloadAndInstall(release);
       case _UpdateDialogAction.ignore:
-        if (!isBeta) {
+        if (!isBeta && !forceUpdate) {
           await _updateService.ignoreVersion(release.version);
           _showToast('已忽略此版本');
         }
@@ -468,8 +498,14 @@ class _AboutPageState extends State<AboutPage> {
   Widget _buildUpdateDialogContent(
     AppReleaseInfo release, {
     required bool isBeta,
+    bool forceUpdate = false,
   }) {
     final parts = <String>[];
+
+    if (forceUpdate) {
+      parts.add('⚠️ 您当前使用的是体验版，建议更新至稳定的正式版本');
+      parts.add('');
+    }
 
     // 提交信息
     if (release.commitMessage != null && release.commitMessage!.isNotEmpty) {
@@ -505,7 +541,7 @@ class _AboutPageState extends State<AboutPage> {
     }
 
     // 体验版提示
-    if (isBeta) {
+    if (isBeta && !forceUpdate) {
       parts.add('\n⚠️ 体验版可能包含未充分测试的功能');
     }
 
