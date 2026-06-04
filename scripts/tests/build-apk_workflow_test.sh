@@ -23,6 +23,7 @@ assert_not_contains() {
 }
 
 assert_contains "tags:"
+assert_contains "workflow_dispatch:"
 assert_contains "- 'v*'"
 assert_contains "branches:"
 assert_contains "- main"
