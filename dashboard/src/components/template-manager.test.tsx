@@ -14,6 +14,18 @@ vi.mock('@/lib/api', () => ({
 const fetchDashboardToolMock = vi.mocked(fetchDashboardTool);
 const updateDashboardToolMock = vi.mocked(updateDashboardTool);
 
+function createDataTransfer() {
+  const data = new Map<string, string>();
+  return {
+    effectAllowed: '',
+    dropEffect: '',
+    setData: vi.fn((type: string, value: string) => {
+      data.set(type, value);
+    }),
+    getData: vi.fn((type: string) => data.get(type) ?? ''),
+  } as unknown as DataTransfer;
+}
+
 const templateData: WorkPhotoTemplateData = {
   templates: [
     {
@@ -130,13 +142,18 @@ describe('TemplateManager', () => {
     expect(within(roomNode).getByDisplayValue('房间')).toBeInTheDocument();
     expect(within(captureNode).getByDisplayValue('门头照')).toBeInTheDocument();
     expect(captureNode).toHaveTextContent('楼栋 / 房间');
+    expect(screen.queryByLabelText('归属目录')).not.toBeInTheDocument();
   });
 
-  it('支持在指定目录下快速新增拍摄项', async () => {
+  it('支持在指定目录下快速新增拍摄项，并在点击保存后同步', async () => {
     render(<TemplateManager userId="u1" />);
 
     const roomNode = await screen.findByTestId('work-photo-level-101');
     fireEvent.click(within(roomNode).getByRole('button', { name: '在房间下添加拍摄项' }));
+
+    expect(updateDashboardToolMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
 
     await waitFor(() => {
       expect(updateDashboardToolMock).toHaveBeenCalled();
@@ -157,11 +174,20 @@ describe('TemplateManager', () => {
     );
   });
 
-  it('支持通过归属下拉把拍摄项移动到根目录', async () => {
+  it('支持拖拽拍摄项到根目录，并在点击保存后同步', async () => {
     render(<TemplateManager userId="u1" />);
 
     const captureNode = await screen.findByTestId('work-photo-item-200');
-    fireEvent.change(within(captureNode).getByLabelText('归属目录'), { target: { value: 'root' } });
+    const rootDropZone = screen.getByTestId('work-photo-root-drop-zone');
+    const dataTransfer = createDataTransfer();
+
+    fireEvent.dragStart(captureNode, { dataTransfer });
+    fireEvent.drop(rootDropZone, { dataTransfer });
+
+    expect(updateDashboardToolMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('work-photo-item-200')).toHaveTextContent('根目录');
+
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
 
     await waitFor(() => {
       expect(updateDashboardToolMock).toHaveBeenCalled();
@@ -172,6 +198,36 @@ describe('TemplateManager', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 200,
+          parent_level_id: null,
+        }),
+      ]),
+    );
+  });
+
+  it('支持拖拽目录到根目录，并在点击保存后同步', async () => {
+    render(<TemplateManager userId="u1" />);
+
+    const roomNode = await screen.findByTestId('work-photo-level-101');
+    const rootDropZone = screen.getByTestId('work-photo-root-drop-zone');
+    const dataTransfer = createDataTransfer();
+
+    fireEvent.dragStart(roomNode, { dataTransfer });
+    fireEvent.drop(rootDropZone, { dataTransfer });
+
+    expect(updateDashboardToolMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('work-photo-level-101')).toHaveTextContent('根目录');
+
+    fireEvent.click(screen.getByRole('button', { name: '保存配置' }));
+
+    await waitFor(() => {
+      expect(updateDashboardToolMock).toHaveBeenCalled();
+    });
+
+    const saved = updateDashboardToolMock.mock.calls.at(-1)?.[0].data as unknown as WorkPhotoTemplateData;
+    expect(saved.hierarchy_levels).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 101,
           parent_level_id: null,
         }),
       ]),
