@@ -1,19 +1,7 @@
 import type { Metadata } from 'next';
-import { Fira_Code, Fira_Sans } from 'next/font/google';
 
 import '@/app/globals.css';
 import { getDashboardBuildInfo } from '@/lib/build-info';
-
-const bodyFont = Fira_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-body',
-});
-const headingFont = Fira_Code({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-heading',
-});
 
 export const metadata: Metadata = {
   title: 'Life Tools Dashboard',
@@ -29,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <meta name="life-tools-dashboard-git-version" content={buildInfo.gitVersion} />
         {buildInfo.buildTime ? <meta name="life-tools-dashboard-build-time" content={buildInfo.buildTime} /> : null}
       </head>
-      <body className={`${bodyFont.variable} ${headingFont.variable} bg-mist font-sans text-ink`}>
+      <body className="dashboard-fonts bg-mist font-sans text-ink">
         <div className="min-h-screen px-4 py-6 md:px-6 xl:px-8">
           <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1600px] gap-6 xl:grid-cols-[280px_1fr]">
             <aside className="flex h-full flex-col rounded-[2rem] border border-white/60 bg-slate-950 px-6 py-8 text-white shadow-panel">

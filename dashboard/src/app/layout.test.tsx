@@ -1,10 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-
-vi.mock('next/font/google', () => ({
-  Fira_Code: () => ({ variable: 'font-heading' }),
-  Fira_Sans: () => ({ variable: 'font-body' }),
-}));
 
 import RootLayout from '@/app/layout';
 
