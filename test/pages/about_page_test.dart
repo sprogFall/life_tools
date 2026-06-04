@@ -182,6 +182,32 @@ void main() {
       // 体验版不显示"忽略此版本"
       expect(find.text('忽略此版本'), findsNothing);
     });
+
+    testWidgets('页面重建后应继续展示服务中的下载进度', (tester) async {
+      final service =
+          _FakeUpdateService(result: AppUpdateCheckResult.upToDate())
+            ..downloadStateOverride = AppUpdateDownloadState(
+              phase: AppUpdateDownloadPhase.downloading,
+              release: _release,
+              receivedBytes: 50,
+              totalBytes: 100,
+              sourceUrl: _release.apkDownloadUrl,
+            );
+
+      await tester.pumpWidget(
+        MaterialApp(home: AboutPage(updateService: service)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('正在下载 50%'), findsOneWidget);
+
+      await tester.pumpWidget(
+        MaterialApp(home: AboutPage(updateService: service)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('正在下载 50%'), findsOneWidget);
+    });
   });
 }
 
@@ -205,6 +231,7 @@ class _FakeUpdateService extends AppUpdateService {
   String? ignoredVersion;
   int fetchPrereleaseCount = 0;
   int fetchReleaseCount = 0;
+  AppUpdateDownloadState? downloadStateOverride;
 
   _FakeUpdateService({
     required this.result,
@@ -212,6 +239,10 @@ class _FakeUpdateService extends AppUpdateService {
     // ignore: unused_element_parameter
     this.latestRelease,
   });
+
+  @override
+  AppUpdateDownloadState get downloadState =>
+      downloadStateOverride ?? super.downloadState;
 
   @override
   Future<AppUpdateCheckResult> checkForUpdate({

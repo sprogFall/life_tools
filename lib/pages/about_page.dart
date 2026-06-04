@@ -32,10 +32,9 @@ class _AboutPageState extends State<AboutPage> {
   Timer? _dismissTimer;
   bool _showCommitMessage = false;
   bool _checkingUpdate = false;
-  bool _downloadingUpdate = false;
-  double? _downloadProgress;
 
   AppUpdateService? _ownedUpdateService;
+  AppUpdateService? _observedUpdateService;
 
   String get _currentVersion =>
       widget.currentVersionOverride ?? AppBuildInfo.version;
@@ -97,10 +96,37 @@ class _AboutPageState extends State<AboutPage> {
   ];
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _attachUpdateService(_updateService);
+  }
+
+  @override
+  void didUpdateWidget(covariant AboutPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.updateService != widget.updateService) {
+      _attachUpdateService(_updateService);
+    }
+  }
+
+  @override
   void dispose() {
     _dismissTimer?.cancel();
+    _observedUpdateService?.removeListener(_handleUpdateServiceChanged);
     _ownedUpdateService?.close();
     super.dispose();
+  }
+
+  void _attachUpdateService(AppUpdateService service) {
+    if (_observedUpdateService == service) return;
+    _observedUpdateService?.removeListener(_handleUpdateServiceChanged);
+    _observedUpdateService = service;
+    service.addListener(_handleUpdateServiceChanged);
+  }
+
+  void _handleUpdateServiceChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
@@ -136,7 +162,9 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Widget _buildUpdateCard() {
-    final busy = _checkingUpdate || _downloadingUpdate;
+    final downloadState = _updateService.downloadState;
+    final downloadProgress = downloadState.progress;
+    final busy = _checkingUpdate || downloadState.isBusy;
     return GlassContainer(
       borderRadius: 22,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
@@ -190,7 +218,7 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ],
           ),
-          if (_downloadingUpdate) ...[
+          if (downloadState.isBusy) ...[
             const SizedBox(height: 12),
             Container(
               height: 5,
@@ -201,7 +229,7 @@ class _AboutPageState extends State<AboutPage> {
               clipBehavior: Clip.antiAlias,
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                widthFactor: (_downloadProgress ?? 0).clamp(0.04, 1.0),
+                widthFactor: (downloadProgress ?? 0).clamp(0.04, 1.0),
                 child: DecoratedBox(
                   decoration: BoxDecoration(color: IOS26Theme.primaryColor),
                 ),
@@ -209,9 +237,9 @@ class _AboutPageState extends State<AboutPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              _downloadProgress == null
+              downloadProgress == null
                   ? '正在下载安装包...'
-                  : '正在下载 ${(_downloadProgress! * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                  : '正在下载 ${(downloadProgress * 100).clamp(0, 100).toStringAsFixed(0)}%',
               style: IOS26Theme.bodySmall.copyWith(
                 color: IOS26Theme.textSecondary,
               ),
@@ -581,31 +609,13 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Future<void> _downloadAndInstall(AppReleaseInfo release) async {
-    setState(() {
-      _downloadingUpdate = true;
-      _downloadProgress = null;
-    });
-
     try {
-      final apk = await _updateService.downloadApk(
-        release,
-        onProgress: (received, total) {
-          if (!mounted || total == null || total <= 0) return;
-          setState(() => _downloadProgress = received / total);
-        },
-      );
+      final apk = await _updateService.downloadApk(release);
       if (!mounted) return;
       await _updateService.installApk(apk);
     } catch (error, stackTrace) {
       devLog('下载或安装更新失败', error: error, stackTrace: stackTrace);
       if (mounted) _showToast('下载或安装失败，请稍后再试', error: true);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _downloadingUpdate = false;
-          _downloadProgress = null;
-        });
-      }
     }
   }
 

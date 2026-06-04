@@ -261,9 +261,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider.value(value: widget.syncService),
         ChangeNotifierProvider.value(value: widget.messageService),
         ChangeNotifierProvider<ToastService>(create: (_) => ToastService()),
-        Provider<AppUpdateService>(
+        ChangeNotifierProvider<AppUpdateService>(
           create: (_) => AppUpdateService(),
-          dispose: (_, service) => service.close(),
         ),
         Provider<WifiService>(create: (_) => WifiService()),
         ChangeNotifierProvider<TagService>(

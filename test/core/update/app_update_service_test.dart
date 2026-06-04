@@ -129,6 +129,44 @@ Commit: abcdef1234567890
       expect(release!.version, '1.2.3-beta.456');
       expect(release.isPrerelease, isTrue);
     });
+
+    test('应从 Release body 中提取 APK 镜像下载地址', () {
+      final release = AppReleaseParser.parse({
+        'tag_name': 'v1.2.3',
+        'name': 'v1.2.3',
+        'body': '''
+更新说明
+
+APK-Mirror: https://download.example.com/life_tools/v1.2.3/life_tools.apk
+APK-Mirror: invalid-relative-url.apk
+SHA256: 9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a
+''',
+        'html_url':
+            'https://github.com/sprogFall/life_tools/releases/tag/v1.2.3',
+        'draft': false,
+        'prerelease': false,
+        'published_at': '2026-06-02T00:00:00Z',
+        'assets': [
+          {
+            'name': 'life_tools-release-v1.2.3.apk',
+            'size': 1024,
+            'browser_download_url':
+                'https://github.com/sprogFall/life_tools/releases/download/v1.2.3/life_tools-release-v1.2.3.apk',
+          },
+        ],
+      });
+
+      expect(release, isNotNull);
+      expect(release!.apkDownloadMirrors, [
+        Uri.parse(
+          'https://download.example.com/life_tools/v1.2.3/life_tools.apk',
+        ),
+      ]);
+      expect(
+        release.sha256,
+        '9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a',
+      );
+    });
   });
 
   group('AppUpdateService', () {
@@ -267,6 +305,120 @@ Commit: abcdef1234567890
       expect(await file.readAsBytes(), [1, 2, 3, 4]);
       expect(file.path, contains('life_tools-9.9.9.apk'));
       expect(progress.last, 4);
+      await tempDir.delete(recursive: true);
+    });
+
+    test('下载 APK 时应优先尝试镜像地址并在失败后回退 GitHub 直链', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'life_tools_update_test_',
+      );
+      final requestedUrls = <Uri>[];
+      final service = AppUpdateService(
+        client: MockClient((request) async {
+          requestedUrls.add(request.url);
+          if (request.url.host == 'download.example.com' ||
+              request.url.host == 'gh-proxy.com') {
+            return http.Response('mirror unavailable', 503);
+          }
+          return http.Response.bytes([1, 2, 3, 4], 200);
+        }),
+        cacheDirProvider: () async => tempDir,
+      );
+
+      final file = await service.downloadApk(
+        AppReleaseInfo(
+          tagName: 'v9.9.9',
+          version: '9.9.9',
+          name: 'v9.9.9',
+          body: '',
+          pageUrl: Uri.parse('https://example.com/release'),
+          apkDownloadUrl: Uri.parse(
+            'https://github.com/example/demo/releases/download/v9.9.9/app.apk',
+          ),
+          apkDownloadMirrors: [
+            Uri.parse('https://download.example.com/app.apk'),
+          ],
+        ),
+      );
+
+      expect(await file.readAsBytes(), [1, 2, 3, 4]);
+      expect(requestedUrls, [
+        Uri.parse('https://download.example.com/app.apk'),
+        Uri.parse(
+          'https://gh-proxy.com/https://github.com/example/demo/releases/download/v9.9.9/app.apk',
+        ),
+        Uri.parse(
+          'https://github.com/example/demo/releases/download/v9.9.9/app.apk',
+        ),
+      ]);
+      await tempDir.delete(recursive: true);
+    });
+
+    test('GitHub Release 下载应自动补充国内代理候选地址', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'life_tools_update_test_',
+      );
+      final requestedUrls = <Uri>[];
+      final service = AppUpdateService(
+        client: MockClient((request) async {
+          requestedUrls.add(request.url);
+          return http.Response.bytes([1, 2, 3, 4], 200);
+        }),
+        cacheDirProvider: () async => tempDir,
+      );
+
+      await service.downloadApk(
+        AppReleaseInfo(
+          tagName: 'v9.9.9',
+          version: '9.9.9',
+          name: 'v9.9.9',
+          body: '',
+          pageUrl: Uri.parse('https://example.com/release'),
+          apkDownloadUrl: Uri.parse(
+            'https://github.com/example/demo/releases/download/v9.9.9/app.apk',
+          ),
+        ),
+      );
+
+      expect(
+        requestedUrls.single,
+        Uri.parse(
+          'https://gh-proxy.com/https://github.com/example/demo/releases/download/v9.9.9/app.apk',
+        ),
+      );
+      await tempDir.delete(recursive: true);
+    });
+
+    test('下载 APK 时应广播可复用的下载状态', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'life_tools_update_test_',
+      );
+      final service = AppUpdateService(
+        client: MockClient((_) async => http.Response.bytes([1, 2, 3, 4], 200)),
+        cacheDirProvider: () async => tempDir,
+      );
+      final states = <AppUpdateDownloadPhase>[];
+      final received = <int>[];
+      service.addListener(() {
+        states.add(service.downloadState.phase);
+        received.add(service.downloadState.receivedBytes);
+      });
+
+      await service.downloadApk(
+        AppReleaseInfo(
+          tagName: 'v9.9.9',
+          version: '9.9.9',
+          name: 'v9.9.9',
+          body: '',
+          pageUrl: Uri.parse('https://example.com/release'),
+          apkDownloadUrl: Uri.parse('https://example.com/app.apk'),
+        ),
+      );
+
+      expect(states, contains(AppUpdateDownloadPhase.downloading));
+      expect(states, contains(AppUpdateDownloadPhase.completed));
+      expect(received.last, 4);
+      expect(service.downloadState.progress, 1);
       await tempDir.delete(recursive: true);
     });
 

@@ -41,5 +41,8 @@ assert_contains "Building RELEASE APK (main branch auto-build) with version"
 assert_contains "Building DEBUG APK (dev branch auto-build) with version"
 assert_contains "TAG_NAME=\"apk-\${BRANCH}-\${SHORT_SHA}\""
 assert_contains "PRERELEASE_FLAG=\"--prerelease\""
+assert_contains "MIRROR_BASE_URL=\"\${{ vars.APK_MIRROR_BASE_URL }}\""
+assert_contains "APK-Mirror: \${MIRROR_URL}"
+assert_contains "mirror_url=\$MIRROR_URL"
 
 echo "[build-apk-workflow-test] all passed"

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -40,6 +41,7 @@ class AppReleaseInfo {
   final String body;
   final Uri pageUrl;
   final Uri apkDownloadUrl;
+  final List<Uri> apkDownloadMirrors;
   final int? apkSize;
   final DateTime? publishedAt;
   final String? sha256; // APK SHA-256 校验和（可选）
@@ -54,6 +56,7 @@ class AppReleaseInfo {
     required this.body,
     required this.pageUrl,
     required this.apkDownloadUrl,
+    this.apkDownloadMirrors = const [],
     this.apkSize,
     this.publishedAt,
     this.sha256,
@@ -63,7 +66,40 @@ class AppReleaseInfo {
   });
 }
 
-class AppUpdateService {
+enum AppUpdateDownloadPhase { idle, downloading, completed, failed }
+
+class AppUpdateDownloadState {
+  final AppUpdateDownloadPhase phase;
+  final AppReleaseInfo? release;
+  final int receivedBytes;
+  final int? totalBytes;
+  final Uri? sourceUrl;
+  final File? file;
+  final Object? error;
+
+  const AppUpdateDownloadState({
+    required this.phase,
+    this.release,
+    this.receivedBytes = 0,
+    this.totalBytes,
+    this.sourceUrl,
+    this.file,
+    this.error,
+  });
+
+  const AppUpdateDownloadState.idle()
+    : this(phase: AppUpdateDownloadPhase.idle);
+
+  double? get progress {
+    final total = totalBytes;
+    if (total == null || total <= 0) return null;
+    return (receivedBytes / total).clamp(0, 1).toDouble();
+  }
+
+  bool get isBusy => phase == AppUpdateDownloadPhase.downloading;
+}
+
+class AppUpdateService extends ChangeNotifier {
   static const String defaultRepository = 'sprogFall/life_tools';
   static const String _ignoredVersionKey = 'app_update_ignored_version';
   static const Duration _defaultTimeout = Duration(seconds: 30);
@@ -75,6 +111,9 @@ class AppUpdateService {
   final String repository;
   final Future<SharedPreferences> Function() _prefsProvider;
   final Future<Directory> Function() _cacheDirProvider;
+  AppUpdateDownloadState _downloadState = const AppUpdateDownloadState.idle();
+  Future<File>? _activeDownload;
+  bool _closed = false;
 
   AppUpdateService({
     http.Client? client,
@@ -83,7 +122,11 @@ class AppUpdateService {
     Future<Directory> Function()? cacheDirProvider,
   }) : _client = client ?? http.Client(),
        _prefsProvider = prefsProvider ?? SharedPreferences.getInstance,
-       _cacheDirProvider = cacheDirProvider ?? getTemporaryDirectory;
+       _cacheDirProvider = cacheDirProvider ?? getTemporaryDirectory {
+    _registerInstallerChannelHandler();
+  }
+
+  AppUpdateDownloadState get downloadState => _downloadState;
 
   Future<AppUpdateCheckResult> checkForUpdate({
     bool includeIgnored = false,
@@ -209,10 +252,33 @@ class AppUpdateService {
     AppReleaseInfo release, {
     void Function(int received, int? total)? onProgress,
   }) async {
-    final request = http.Request('GET', release.apkDownloadUrl);
-    final response = await _client.send(request).timeout(_defaultTimeout);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw HttpException('安装包下载失败: ${response.statusCode}');
+    final activeDownload = _activeDownload;
+    if (activeDownload != null) {
+      return activeDownload;
+    }
+
+    final download = _downloadApkWithFallback(release, onProgress: onProgress);
+    _activeDownload = download;
+    try {
+      return await download;
+    } finally {
+      _activeDownload = null;
+    }
+  }
+
+  Future<File> _downloadApkWithFallback(
+    AppReleaseInfo release, {
+    void Function(int received, int? total)? onProgress,
+  }) async {
+    if (Platform.isAndroid) {
+      try {
+        return await _downloadApkWithAndroidDownloadManager(
+          release,
+          onProgress: onProgress,
+        );
+      } catch (error, stackTrace) {
+        devLog('系统下载器不可用，回退到应用内下载', error: error, stackTrace: stackTrace);
+      }
     }
 
     final cacheDir = await _cacheDirProvider();
@@ -223,11 +289,146 @@ class AppUpdateService {
     final file = File(
       p.join(updateDir.path, 'life_tools-${release.version}.apk'),
     );
+
+    Object? lastError;
+    final downloadUrls = <Uri>[..._downloadUrlsFor(release)];
+
+    for (final url in downloadUrls) {
+      try {
+        final downloadedFile = await _downloadApkFromUrl(
+          release,
+          url,
+          file,
+          onProgress: onProgress,
+        );
+        _setDownloadState(
+          AppUpdateDownloadState(
+            phase: AppUpdateDownloadPhase.completed,
+            release: release,
+            receivedBytes: downloadedFile.lengthSync(),
+            totalBytes: downloadedFile.lengthSync(),
+            sourceUrl: url,
+            file: downloadedFile,
+          ),
+        );
+        return downloadedFile;
+      } catch (error, stackTrace) {
+        lastError = error;
+        devLog('安装包下载源失败: $url', error: error, stackTrace: stackTrace);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    }
+
+    final error = lastError ?? StateError('没有可用的安装包下载地址');
+    _setDownloadState(
+      AppUpdateDownloadState(
+        phase: AppUpdateDownloadPhase.failed,
+        release: release,
+        error: error,
+      ),
+    );
+    Error.throwWithStackTrace(error, StackTrace.current);
+  }
+
+  Future<File> _downloadApkWithAndroidDownloadManager(
+    AppReleaseInfo release, {
+    void Function(int received, int? total)? onProgress,
+  }) async {
+    final downloadUrls = <Uri>[..._downloadUrlsFor(release)];
+    final firstUrl = downloadUrls.isEmpty ? null : downloadUrls.first;
+    _setDownloadState(
+      AppUpdateDownloadState(
+        phase: AppUpdateDownloadPhase.downloading,
+        release: release,
+        sourceUrl: firstUrl,
+      ),
+    );
+
+    final path = await _installerChannel.invokeMethod<String>('downloadApk', {
+      'urls': downloadUrls.map((url) => url.toString()).toList(),
+      'version': release.version,
+    });
+    if (path == null || path.isEmpty) {
+      throw StateError('系统下载器未返回安装包路径');
+    }
+
+    final file = File(path);
+    if (release.sha256 != null) {
+      final actualHash = await _computeSha256(file);
+      final expectedHash = release.sha256!.toLowerCase();
+      if (actualHash != expectedHash) {
+        await file.delete();
+        throw StateError('安装包校验失败，文件可能已损坏');
+      }
+    }
+
+    final length = await file.length();
+    onProgress?.call(length, length);
+    _setDownloadState(
+      AppUpdateDownloadState(
+        phase: AppUpdateDownloadPhase.completed,
+        release: release,
+        receivedBytes: length,
+        totalBytes: length,
+        sourceUrl: _downloadState.sourceUrl ?? firstUrl,
+        file: file,
+      ),
+    );
+    return file;
+  }
+
+  List<Uri> _downloadUrlsFor(AppReleaseInfo release) {
+    final urls = <Uri>[
+      ...release.apkDownloadMirrors,
+      ..._githubProxyUrls(release.apkDownloadUrl),
+      release.apkDownloadUrl,
+    ];
+    final seen = <String>{};
+    return urls
+        .where((url) => seen.add(url.toString()))
+        .toList(growable: false);
+  }
+
+  List<Uri> _githubProxyUrls(Uri originalUrl) {
+    if (originalUrl.scheme != 'https' || originalUrl.host != 'github.com') {
+      return const [];
+    }
+    if (!originalUrl.path.contains('/releases/download/')) {
+      return const [];
+    }
+    final encodedOriginal = originalUrl.toString();
+    return [Uri.parse('https://gh-proxy.com/$encodedOriginal')];
+  }
+
+  Future<File> _downloadApkFromUrl(
+    AppReleaseInfo release,
+    Uri url,
+    File file, {
+    void Function(int received, int? total)? onProgress,
+  }) async {
+    final request = http.Request('GET', url);
+    final response = await _client.send(request).timeout(_defaultTimeout);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HttpException('安装包下载失败: ${response.statusCode}');
+    }
+
     final sink = file.openWrite();
     var received = 0;
     final total = response.contentLength;
     var lastCallTime = DateTime.now();
     const throttle = Duration(milliseconds: 100);
+
+    _setDownloadState(
+      AppUpdateDownloadState(
+        phase: AppUpdateDownloadPhase.downloading,
+        release: release,
+        receivedBytes: received,
+        totalBytes: total,
+        sourceUrl: url,
+      ),
+    );
 
     try {
       await for (final chunk in response.stream) {
@@ -238,6 +439,15 @@ class AppUpdateService {
         final now = DateTime.now();
         if (now.difference(lastCallTime) > throttle || received == total) {
           onProgress?.call(received, total);
+          _setDownloadState(
+            AppUpdateDownloadState(
+              phase: AppUpdateDownloadPhase.downloading,
+              release: release,
+              receivedBytes: received,
+              totalBytes: total,
+              sourceUrl: url,
+            ),
+          );
           lastCallTime = now;
         }
       }
@@ -248,6 +458,15 @@ class AppUpdateService {
     // 确保最终进度回调
     if (received > 0) {
       onProgress?.call(received, total);
+      _setDownloadState(
+        AppUpdateDownloadState(
+          phase: AppUpdateDownloadPhase.downloading,
+          release: release,
+          receivedBytes: received,
+          totalBytes: total,
+          sourceUrl: url,
+        ),
+      );
     }
 
     // 验证文件完整性
@@ -261,6 +480,47 @@ class AppUpdateService {
     }
 
     return file;
+  }
+
+  void _setDownloadState(AppUpdateDownloadState state) {
+    _downloadState = state;
+    notifyListeners();
+  }
+
+  void _registerInstallerChannelHandler() {
+    try {
+      _installerChannel.setMethodCallHandler(_handleInstallerChannelCall);
+    } catch (error, stackTrace) {
+      devLog(
+        'AppUpdateService 下载进度通道未初始化',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _handleInstallerChannelCall(MethodCall call) async {
+    if (call.method != 'downloadProgress') return;
+
+    final args = call.arguments;
+    if (args is! Map) return;
+    final release = _downloadState.release;
+    if (release == null) return;
+
+    final received = (args['received'] as num?)?.toInt() ?? 0;
+    final total = (args['total'] as num?)?.toInt();
+    final rawUrl = args['url'] as String?;
+    _setDownloadState(
+      AppUpdateDownloadState(
+        phase: AppUpdateDownloadPhase.downloading,
+        release: release,
+        receivedBytes: received,
+        totalBytes: total == null || total <= 0 ? null : total,
+        sourceUrl: rawUrl == null
+            ? _downloadState.sourceUrl
+            : Uri.tryParse(rawUrl),
+      ),
+    );
   }
 
   /// 计算文件的 SHA-256 哈希值
@@ -294,7 +554,15 @@ class AppUpdateService {
     await prefs.remove(_ignoredVersionKey);
   }
 
-  void close() => _client.close();
+  @override
+  void dispose() {
+    if (_closed) return;
+    _closed = true;
+    _client.close();
+    super.dispose();
+  }
+
+  void close() => dispose();
 }
 
 class AppReleaseParser {
@@ -343,6 +611,7 @@ class AppReleaseParser {
     final downloadUrl = apkAsset['browser_download_url'] as String?;
     final pageUrl = json['html_url'] as String?;
     if (downloadUrl == null || pageUrl == null) return null;
+    final mirrorUrls = _extractApkMirrors(body);
 
     // 提取提交信息
     final commitMessage = _extractCommitMessage(body);
@@ -355,13 +624,42 @@ class AppReleaseParser {
       body: body,
       pageUrl: Uri.parse(pageUrl),
       apkDownloadUrl: Uri.parse(downloadUrl),
+      apkDownloadMirrors: mirrorUrls,
       apkSize: (apkAsset['size'] as num?)?.toInt(),
       publishedAt: DateTime.tryParse(json['published_at'] as String? ?? ''),
-      sha256: sha256Hash,
+      sha256: sha256Hash ?? _extractSha256(body),
       isPrerelease: isPrerelease,
       commitMessage: commitMessage,
       commitSha: commitSha,
     );
+  }
+
+  static List<Uri> _extractApkMirrors(String body) {
+    final mirrors = <Uri>[];
+    final lines = body.split('\n');
+    for (final line in lines) {
+      final match = RegExp(
+        r'^\s*APK-Mirror:\s*(\S+)\s*$',
+        caseSensitive: false,
+      ).firstMatch(line);
+      final rawUrl = match?.group(1);
+      if (rawUrl == null) continue;
+
+      final uri = Uri.tryParse(rawUrl);
+      if (uri == null || !uri.hasScheme || uri.host.isEmpty) continue;
+      if (uri.scheme != 'https') continue;
+      mirrors.add(uri);
+    }
+    return List.unmodifiable(mirrors);
+  }
+
+  static String? _extractSha256(String body) {
+    final match = RegExp(
+      r'^\s*SHA256:\s*([0-9a-fA-F]{64})\s*$',
+      caseSensitive: false,
+      multiLine: true,
+    ).firstMatch(body);
+    return match?.group(1)?.toLowerCase();
   }
 
   /// 从 release name 中提取版本号

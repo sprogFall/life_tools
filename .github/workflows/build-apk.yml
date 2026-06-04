@@ -324,7 +324,9 @@ jobs:
 
           if [ -f "$APK_PATH" ]; then
             APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+            APK_SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
             echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+            echo "apk_sha256=$APK_SHA256" >> $GITHUB_OUTPUT
           fi
 
       - name: Upload APK artifact
@@ -343,6 +345,7 @@ jobs:
           BUILD_TYPE="${{ needs.prepare.outputs.build_type }}"
           APK_PATH="${{ steps.apk-info.outputs.apk_path }}"
           APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
+          APK_SHA256="${{ steps.apk-info.outputs.apk_sha256 }}"
           BRANCH="${{ github.ref_name }}"
           SHORT_SHA="${GITHUB_SHA::12}"
           VERSION_TAG="${{ needs.prepare.outputs.release_tag }}"
@@ -358,25 +361,38 @@ jobs:
           fi
           RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}"
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/${APK_NAME}"
+          MIRROR_BASE_URL="${{ vars.APK_MIRROR_BASE_URL }}"
+          MIRROR_URL=""
+          if [ -n "$MIRROR_BASE_URL" ]; then
+            MIRROR_BASE_URL="${MIRROR_BASE_URL%/}"
+            MIRROR_URL="${MIRROR_BASE_URL}/${TAG_NAME}/${APK_NAME}"
+          fi
           RELEASE_NOTES=$(cat <<EOF
           Automated ${BUILD_TYPE} APK build.
 
           Version: ${APP_VERSION}
           Ref: ${BRANCH}
+          SHA256: ${APK_SHA256}
 
           Commit: ${GITHUB_SHA}
           Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           EOF
           )
+          if [ -n "$MIRROR_URL" ]; then
+            RELEASE_NOTES="${RELEASE_NOTES}"$'\n'"APK-Mirror: ${MIRROR_URL}"
+          fi
 
           # 先重命名 APK 文件为目标名称
           RENAMED_APK_PATH="$(dirname "$APK_PATH")/${APK_NAME}"
+          SHA256_PATH="${RENAMED_APK_PATH}.sha256"
           cp "$APK_PATH" "$RENAMED_APK_PATH"
+          printf '%s  %s\n' "$APK_SHA256" "$APK_NAME" > "$SHA256_PATH"
 
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release upload "$TAG_NAME" "$RENAMED_APK_PATH" --clobber
+            gh release upload "$TAG_NAME" "$RENAMED_APK_PATH" "$SHA256_PATH" --clobber
+            gh release edit "$TAG_NAME" --notes "$RELEASE_NOTES"
           else
-            gh release create "$TAG_NAME" "$RENAMED_APK_PATH" \
+            gh release create "$TAG_NAME" "$RENAMED_APK_PATH" "$SHA256_PATH" \
               --target "${GITHUB_SHA}" \
               --title "$RELEASE_TITLE" \
               --notes "$RELEASE_NOTES" \
@@ -386,6 +402,7 @@ jobs:
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "release_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
           echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
+          echo "mirror_url=$MIRROR_URL" >> "$GITHUB_OUTPUT"
 
       - name: Create release summary
         run: |
@@ -393,11 +410,13 @@ jobs:
           APP_VERSION="${{ needs.prepare.outputs.app_version }}"
           APK_NAME="${{ steps.apk-info.outputs.apk_name }}"
           APK_SIZE="${{ steps.apk-info.outputs.apk_size }}"
+          APK_SHA256="${{ steps.apk-info.outputs.apk_sha256 }}"
           COMMIT_SHA="${{ github.sha }}"
           COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
           BRANCH="${{ github.ref_name }}"
           RELEASE_URL="${{ steps.release-info.outputs.release_url }}"
           DOWNLOAD_URL="${{ steps.release-info.outputs.download_url }}"
+          MIRROR_URL="${{ steps.release-info.outputs.mirror_url }}"
           
           echo "## 📱 APK Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -406,10 +425,14 @@ jobs:
           echo "- **App Version**: $APP_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Name**: $APK_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- **APK Size**: $APK_SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "- **APK SHA256**: $APK_SHA256" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: $COMMIT_SHA" >> $GITHUB_STEP_SUMMARY
           echo "- **Author**: $COMMIT_AUTHOR" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Download" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$MIRROR_URL" ]; then
+            echo "- [Mirror APK download]($MIRROR_URL)" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "- [Direct APK download]($DOWNLOAD_URL)" >> $GITHUB_STEP_SUMMARY
           echo "- [Release page]($RELEASE_URL)" >> $GITHUB_STEP_SUMMARY
           echo "- Artifact fallback is still available on this Actions run page." >> $GITHUB_STEP_SUMMARY

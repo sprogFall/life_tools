@@ -2,6 +2,8 @@ package com.example.life_tools
 
 import android.content.ContentUris
 import android.content.ContentValues
+import android.app.DownloadManager
+import android.database.Cursor
 import android.content.Intent
 import android.net.Uri
 import android.media.MediaScannerConnection
@@ -16,6 +18,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private val displayChannelName = "life_tools/display"
@@ -23,6 +26,8 @@ class MainActivity : FlutterActivity() {
     private val updateChannelName = "life_tools/app_update"
     private val minModeApi = 23
     private val scannedMediaUris = mutableMapOf<String, String>()
+    private val updateExecutor = Executors.newSingleThreadExecutor()
+    private var updateChannel: MethodChannel? = null
 
     companion object {
         private const val APP_ALBUM_ROOT = "life_tools_work_photo"  // App 专属相册根目录
@@ -79,8 +84,18 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, updateChannelName).setMethodCallHandler { call, result ->
+        updateChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, updateChannelName)
+        updateChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
+                "downloadApk" -> {
+                    val urls = call.argument<List<String>>("urls")
+                    val version = call.argument<String>("version")
+                    if (urls.isNullOrEmpty() || version.isNullOrBlank()) {
+                        result.error("invalid_args", "下载地址或版本号为空", null)
+                    } else {
+                        downloadApk(urls, version, result)
+                    }
+                }
                 "installApk" -> {
                     val path = call.argument<String>("path")
                     if (path.isNullOrBlank()) {
@@ -94,11 +109,132 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun downloadApk(urls: List<String>, version: String, result: MethodChannel.Result) {
+        val safeVersion = version.replace(Regex("[^0-9A-Za-z._-]"), "_")
+        val updateDir = File(externalCacheDir ?: cacheDir, "updates")
+        if (!updateDir.exists()) {
+            updateDir.mkdirs()
+        }
+        val targetFile = File(updateDir, "life_tools-${safeVersion}.apk")
+
+        updateExecutor.execute {
+            var lastError: String? = null
+            for (rawUrl in urls) {
+                val uri = try {
+                    Uri.parse(rawUrl)
+                } catch (_: Exception) {
+                    lastError = "下载地址无效"
+                    continue
+                }
+                if (uri.scheme != "https" || uri.host.isNullOrBlank()) {
+                    lastError = "仅支持 https 下载地址"
+                    continue
+                }
+
+                try {
+                    if (targetFile.exists()) {
+                        targetFile.delete()
+                    }
+                    val path = enqueueAndWaitApkDownload(uri, targetFile)
+                    runOnUiThread { result.success(path) }
+                    return@execute
+                } catch (e: Exception) {
+                    lastError = e.message ?: "下载失败"
+                    if (targetFile.exists()) {
+                        targetFile.delete()
+                    }
+                }
+            }
+
+            runOnUiThread {
+                result.error("download_failed", lastError ?: "安装包下载失败", null)
+            }
+        }
+    }
+
+    private fun enqueueAndWaitApkDownload(uri: Uri, targetFile: File): String {
+        val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        val request = DownloadManager.Request(uri).apply {
+            setTitle("小蜜安装包")
+            setDescription("正在下载版本更新")
+            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+            setAllowedOverMetered(true)
+            setAllowedOverRoaming(true)
+            setDestinationUri(Uri.fromFile(targetFile))
+        }
+        val downloadId = downloadManager.enqueue(request)
+        var completed = false
+        try {
+            while (true) {
+                Thread.sleep(400)
+                queryDownload(downloadManager, downloadId) { status, reason, received, total ->
+                    when (status) {
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            sendDownloadProgress(uri.toString(), received, total)
+                            completed = true
+                            return targetFile.canonicalPath
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            throw IllegalStateException("系统下载失败: $reason")
+                        }
+                        DownloadManager.STATUS_RUNNING,
+                        DownloadManager.STATUS_PAUSED,
+                        DownloadManager.STATUS_PENDING -> {
+                            sendDownloadProgress(uri.toString(), received, total)
+                        }
+                    }
+                }
+            }
+        } finally {
+            if (!completed) {
+                downloadManager.remove(downloadId)
+            }
+        }
+    }
+
+    private inline fun queryDownload(
+        downloadManager: DownloadManager,
+        downloadId: Long,
+        block: (Int, Int, Long, Long) -> Unit,
+    ) {
+        val query = DownloadManager.Query().setFilterById(downloadId)
+        var cursor: Cursor? = null
+        try {
+            cursor = downloadManager.query(query)
+            if (cursor == null || !cursor.moveToFirst()) {
+                throw IllegalStateException("下载任务不存在")
+            }
+            val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+            val reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+            val received = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+            val total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+            block(status, reason, received, total)
+        } finally {
+            cursor?.close()
+        }
+    }
+
+    private fun sendDownloadProgress(url: String, received: Long, total: Long) {
+        runOnUiThread {
+            updateChannel?.invokeMethod(
+                "downloadProgress",
+                mapOf(
+                    "url" to url,
+                    "received" to received,
+                    "total" to total,
+                ),
+            )
+        }
+    }
+
     private fun installApk(path: String, result: MethodChannel.Result) {
         try {
             val apkFile = File(path).canonicalFile
             val updateDir = File(cacheDir, "updates").canonicalFile
-            if (!apkFile.path.startsWith(updateDir.path + File.separator) || apkFile.extension.lowercase() != "apk") {
+            val externalUpdateDir = File(externalCacheDir ?: cacheDir, "updates").canonicalFile
+            val inInternalUpdateDir = apkFile.path.startsWith(updateDir.path + File.separator)
+            val inExternalUpdateDir = apkFile.path.startsWith(externalUpdateDir.path + File.separator)
+            if ((!inInternalUpdateDir && !inExternalUpdateDir) || apkFile.extension.lowercase() != "apk") {
                 result.error("invalid_path", "安装包路径不在允许目录内", null)
                 return
             }
