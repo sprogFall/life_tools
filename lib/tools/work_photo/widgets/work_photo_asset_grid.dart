@@ -12,12 +12,14 @@ class WorkPhotoAssetGrid extends StatelessWidget {
   final List<WorkPhotoAsset> assets;
   final WorkPhotoMediaStore mediaStore;
   final ValueChanged<WorkPhotoAsset>? onTap;
+  final ValueChanged<WorkPhotoAsset>? onLongPress;
 
   const WorkPhotoAssetGrid({
     super.key,
     required this.assets,
     required this.mediaStore,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -43,6 +45,7 @@ class WorkPhotoAssetGrid extends StatelessWidget {
           asset: asset,
           mediaStore: mediaStore,
           onTap: onTap == null ? null : () => onTap!(asset),
+          onLongPress: onLongPress == null ? null : () => onLongPress!(asset),
         );
       },
     );
@@ -53,36 +56,45 @@ class _WorkPhotoThumb extends StatelessWidget {
   final WorkPhotoAsset asset;
   final WorkPhotoMediaStore mediaStore;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const _WorkPhotoThumb({
     required this.asset,
     required this.mediaStore,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
-      child: FutureBuilder<File>(
-        future: mediaStore.resolveStoredFile(asset.relativePath),
-        builder: (context, snapshot) {
-          final file = snapshot.data;
-          final child = file == null
-              ? Container(color: IOS26Theme.surfaceVariant)
-              : IOS26Image.file(
-                  file,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      Container(color: IOS26Theme.surfaceVariant),
-                );
-          return IOS26Button.plain(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            onPressed: onTap,
-            child: AspectRatio(aspectRatio: 1, child: child),
-          );
-        },
+    final label = asset.originalFilename.trim().isEmpty
+        ? asset.relativePath
+        : asset.originalFilename;
+    return Semantics(
+      label: label,
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(IOS26Theme.radiusMd),
+          child: FutureBuilder<File>(
+            future: mediaStore.resolveStoredFile(asset.relativePath),
+            builder: (context, snapshot) {
+              final file = snapshot.data;
+              final child = file == null
+                  ? Container(color: IOS26Theme.surfaceVariant)
+                  : IOS26Image.file(
+                      file,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          Container(color: IOS26Theme.surfaceVariant),
+                    );
+              return AspectRatio(aspectRatio: 1, child: child);
+            },
+          ),
+        ),
       ),
     );
   }
