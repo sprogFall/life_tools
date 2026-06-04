@@ -92,3 +92,61 @@ export interface CreateDashboardUserInput {
   notes: string;
   isEnabled: boolean;
 }
+
+// 外拍助手模板相关类型
+export interface WorkPhotoTemplate {
+  id: number | null;
+  name: string;
+  sort_index: number;
+  is_archived: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface WorkPhotoHierarchyLevel {
+  id: number | null;
+  template_id: number | null;
+  parent_level_id: number | null;
+  name: string;
+  sort_index: number;
+  is_required: number;
+  is_archived: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface WorkPhotoHierarchyOption {
+  id: number | null;
+  level_id: number;
+  parent_option_id: number | null;
+  name: string;
+  sort_index: number;
+  is_archived: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface WorkPhotoCaptureItem {
+  id: number | null;
+  template_id: number | null;
+  parent_level_id: number | null;
+  name: string;
+  sort_index: number;
+  min_count: number;
+  max_count: number | null;
+  is_archived: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface WorkPhotoTemplateData {
+  templates: WorkPhotoTemplate[];
+  hierarchy_levels: WorkPhotoHierarchyLevel[];
+  hierarchy_options: WorkPhotoHierarchyOption[];
+  capture_items: WorkPhotoCaptureItem[];
+}
+
+export interface WorkPhotoToolData {
+  version: number;
+  data: WorkPhotoTemplateData;
+}

@@ -45,6 +45,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   <span>同步用户</span>
                   <span className="font-mono text-xs text-white/50">02</span>
                 </a>
+                <a href="/templates" className="flex items-center justify-between rounded-2xl bg-white/8 px-4 py-3 text-sm font-medium transition hover:bg-white/12">
+                  <span>外拍助手模板</span>
+                  <span className="font-mono text-xs text-white/50">03</span>
+                </a>
               </nav>
               <section aria-label="当前前端版本" className="mt-10 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/75 xl:mt-auto">
                 <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/45">前端版本</p>
