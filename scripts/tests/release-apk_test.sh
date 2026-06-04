@@ -30,6 +30,22 @@ assert_not_contains() {
   fi
 }
 
+assert_order() {
+  local file="$1"
+  local first="$2"
+  local second="$3"
+  local first_line second_line
+
+  first_line="$(grep -Fn -- "$first" "$file" | head -n 1 | cut -d: -f1 || true)"
+  second_line="$(grep -Fn -- "$second" "$file" | head -n 1 | cut -d: -f1 || true)"
+
+  if [[ -z "$first_line" || -z "$second_line" || "$first_line" -ge "$second_line" ]]; then
+    echo "[release-apk-test] file content:" >&2
+    cat "$file" >&2 || true
+    fail "期望 '${first}' 出现在 '${second}' 之前"
+  fi
+}
+
 setup_repo() {
   local dir="$1"
   git init -q "$dir"
@@ -100,7 +116,9 @@ test_dry_run_with_clean_tree_pushes_branch_tag_and_monitors() {
   assert_contains "$output" "准备发布正式 APK：v9.8.7"
   assert_contains "$output" "[dry-run] 跳过远端 tag 存在性检查：origin/v9.8.7"
   assert_contains "$output" "版本文件需要更新：VERSION: <空> -> 9.8.7"
+  assert_contains "$output" "[dry-run] 更新版本文件完成"
   assert_contains "$output" "检测到待发布改动，先执行发布前校验"
+  assert_order "$output" "[dry-run] 更新版本文件完成" "检测到待发布改动，先执行发布前校验"
   assert_contains "$output" "[dry-run] bash"
   assert_contains "$output" "pre-push.sh"
   assert_contains "$output" "exec-push.sh"

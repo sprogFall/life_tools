@@ -339,9 +339,9 @@ main() {
   log "远端：${REMOTE_NAME}"
 
   ensure_tag_available
-  check_version_file_update_needed  # 先检测是否需要更新（不实际写文件）
-  run_pre_push_if_needed            # 执行校验（此时可正确判断 has_release_changes）
-  update_version_file               # 校验通过后再实际写文件
+  check_version_file_update_needed
+  update_version_file
+  run_pre_push_if_needed
   commit_and_push_code
   create_and_push_tag
   monitor_build_result
