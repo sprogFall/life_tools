@@ -143,6 +143,8 @@ describe('TemplateManager', () => {
     expect(within(captureNode).getByDisplayValue('门头照')).toBeInTheDocument();
     expect(captureNode).toHaveTextContent('楼栋 / 房间');
     expect(screen.queryByLabelText('归属目录')).not.toBeInTheDocument();
+    expect(screen.queryByText('目录选项')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '添加选项' })).not.toBeInTheDocument();
   });
 
   it('支持在指定目录下快速新增拍摄项，并在点击保存后同步', async () => {
@@ -160,6 +162,7 @@ describe('TemplateManager', () => {
     });
 
     const saved = updateDashboardToolMock.mock.calls.at(-1)?.[0].data as unknown as WorkPhotoTemplateData;
+    expect(saved.hierarchy_options).toEqual(templateData.hierarchy_options);
     expect(saved.capture_items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

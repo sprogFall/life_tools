@@ -8,7 +8,6 @@ import {
   FolderPlus,
   GripVertical,
   ImagePlus,
-  ListPlus,
   Plus,
   RotateCcw,
   Save,
@@ -19,7 +18,6 @@ import { fetchDashboardTool, updateDashboardTool } from '@/lib/api';
 import type {
   WorkPhotoTemplate,
   WorkPhotoHierarchyLevel,
-  WorkPhotoHierarchyOption,
   WorkPhotoCaptureItem,
   WorkPhotoTemplateData,
 } from '@/lib/types';
@@ -42,6 +40,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<WorkPhotoTemplateData | null>(null);
   const [savedData, setSavedData] = useState<WorkPhotoTemplateData | null>(null);
+  const [dirty, setDirty] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [expandedLevelIds, setExpandedLevelIds] = useState<Set<number>>(() => new Set());
 
@@ -53,6 +52,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
       const toolData = normalizeTemplateData(response.tool.data as unknown as WorkPhotoTemplateData);
       setData(toolData);
       setSavedData(cloneTemplateData(toolData));
+      setDirty(false);
       setExpandedLevelIds(
         new Set(toolData.hierarchy_levels.map((level) => level.id).filter(isNumber)),
       );
@@ -77,6 +77,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
         };
         setData(emptyData);
         setSavedData(cloneTemplateData(emptyData));
+        setDirty(false);
       }
     } finally {
       setLoading(false);
@@ -100,6 +101,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
         data: data as unknown as Record<string, unknown>,
       });
       setSavedData(cloneTemplateData(data));
+      setDirty(false);
     } catch (err) {
       setError(getActionErrorMessage(err));
       throw err;
@@ -129,11 +131,16 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
     [expandedLevelIds, levelPathById, templateItems, templateLevels],
   );
   const rootItemCount = templateItems.filter((item) => item.parent_level_id === null).length;
-  const dirty = Boolean(data && savedData && JSON.stringify(data) !== JSON.stringify(savedData));
+
+  const updateDraft = (nextData: WorkPhotoTemplateData) => {
+    setData(nextData);
+    setDirty(true);
+  };
 
   const resetDraft = () => {
     if (!savedData) return;
     setData(cloneTemplateData(savedData));
+    setDirty(false);
     setError(null);
     setExpandedLevelIds(
       new Set(savedData.hierarchy_levels.map((level) => level.id).filter(isNumber)),
@@ -152,7 +159,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
       created_at: now,
       updated_at: now,
     };
-    setData({
+    updateDraft({
       ...data,
       templates: [...data.templates, newTemplate],
     });
@@ -161,7 +168,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
 
   const updateTemplate = (id: number, updates: Partial<WorkPhotoTemplate>) => {
     if (!data) return;
-    setData({
+    updateDraft({
       ...data,
       templates: data.templates.map((template) =>
         template.id === id ? { ...template, ...updates, updated_at: Date.now() } : template,
@@ -185,7 +192,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
       hierarchy_options: data.hierarchy_options.filter((option) => !deletedLevelIds.has(option.level_id)),
       capture_items: data.capture_items.filter((item) => item.template_id !== id),
     };
-    setData(newData);
+    updateDraft(newData);
     if (selectedTemplateId === id) {
       setSelectedTemplateId(newData.templates[0]?.id || null);
     }
@@ -205,7 +212,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
       created_at: now,
       updated_at: now,
     };
-    setData({
+    updateDraft({
       ...data,
       hierarchy_levels: [...data.hierarchy_levels, newLevel],
     });
@@ -219,7 +226,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
 
   const updateHierarchyLevel = (id: number, updates: Partial<WorkPhotoHierarchyLevel>) => {
     if (!data) return;
-    setData({
+    updateDraft({
       ...data,
       hierarchy_levels: data.hierarchy_levels.map((level) =>
         level.id === id ? { ...level, ...updates, updated_at: Date.now() } : level,
@@ -231,7 +238,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
     if (!data) return;
     if (!confirm('确定要删除此目录吗？目录下的子目录、选项和拍摄项也会被删除。')) return;
     const deletedLevelIds = collectDescendantLevelIds(id, data.hierarchy_levels);
-    setData({
+    updateDraft({
       ...data,
       hierarchy_levels: data.hierarchy_levels.filter((level) => !deletedLevelIds.has(level.id || 0)),
       hierarchy_options: data.hierarchy_options.filter(
@@ -240,47 +247,6 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
       capture_items: data.capture_items.filter(
         (item) => !deletedLevelIds.has(item.parent_level_id || 0),
       ),
-    });
-  };
-
-  const addHierarchyOption = (levelId: number) => {
-    if (!data) return;
-    const now = Date.now();
-    const levelOptions = data.hierarchy_options.filter(
-      (option) => option.level_id === levelId && option.is_archived === 0,
-    );
-    const maxSortIndex = Math.max(-1, ...levelOptions.map((option) => option.sort_index));
-    const newOption: WorkPhotoHierarchyOption = {
-      id: createLocalId(),
-      level_id: levelId,
-      parent_option_id: null,
-      name: '新选项',
-      sort_index: maxSortIndex + 1,
-      is_archived: 0,
-      created_at: now,
-      updated_at: now,
-    };
-    setData({
-      ...data,
-      hierarchy_options: [...data.hierarchy_options, newOption],
-    });
-  };
-
-  const updateHierarchyOption = (id: number, updates: Partial<WorkPhotoHierarchyOption>) => {
-    if (!data) return;
-    setData({
-      ...data,
-      hierarchy_options: data.hierarchy_options.map((option) =>
-        option.id === id ? { ...option, ...updates, updated_at: Date.now() } : option,
-      ),
-    });
-  };
-
-  const deleteHierarchyOption = (id: number) => {
-    if (!data) return;
-    setData({
-      ...data,
-      hierarchy_options: data.hierarchy_options.filter((option) => option.id !== id),
     });
   };
 
@@ -299,7 +265,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
       created_at: now,
       updated_at: now,
     };
-    setData({
+    updateDraft({
       ...data,
       capture_items: [...data.capture_items, newItem],
     });
@@ -310,7 +276,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
 
   const updateCaptureItem = (id: number, updates: Partial<WorkPhotoCaptureItem>) => {
     if (!data) return;
-    setData({
+    updateDraft({
       ...data,
       capture_items: data.capture_items.map((item) =>
         item.id === id ? { ...item, ...updates, updated_at: Date.now() } : item,
@@ -320,7 +286,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
 
   const deleteCaptureItem = (id: number) => {
     if (!data) return;
-    setData({
+    updateDraft({
       ...data,
       capture_items: data.capture_items.filter((item) => item.id !== id),
     });
@@ -337,7 +303,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
     const target = siblings[targetIndex];
     const now = Date.now();
 
-    setData({
+    updateDraft({
       ...data,
       hierarchy_levels: data.hierarchy_levels.map((level) => {
         if (current.kind === 'level' && level.id === current.id) {
@@ -381,7 +347,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
             : level,
         ),
       };
-      setData(nextData);
+      updateDraft(nextData);
       if (parentLevelId !== null) {
         setExpandedLevelIds((current) => new Set(current).add(parentLevelId));
       }
@@ -390,7 +356,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
 
     const moved = data.capture_items.find((item) => item.id === dragged.id);
     if (!moved || moved.parent_level_id === parentLevelId) return;
-    setData({
+    updateDraft({
       ...data,
       capture_items: data.capture_items.map((item) =>
         item.id === dragged.id
@@ -477,7 +443,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
             <p className="text-xs font-semibold text-brand-700">外拍助手模板</p>
             <h2 className="mt-1 text-2xl font-semibold text-ink">树形配置工作区</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              先选择左侧模板，再在右侧“树形配置”中维护目录、子目录、目录选项和拍摄项。
+              先选择左侧模板，再在右侧“树形配置”中维护目录、子目录和拍摄项。
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-sm text-slate-600">
@@ -615,7 +581,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
                   className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  保存配置
+                  {saving ? '保存中...' : '保存配置'}
                 </button>
                 <button
                   type="button"
@@ -664,7 +630,6 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
                       <LevelTreeRow
                         key={`level-${entry.id}`}
                         entry={entry}
-                        options={data.hierarchy_options}
                         saving={saving}
                         expanded={expandedLevelIds.has(entry.id)}
                         hasChildren={hasTreeChildren(entry.id, templateLevels, templateItems)}
@@ -673,9 +638,6 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
                         onDeleteLevel={deleteHierarchyLevel}
                         onAddLevel={addHierarchyLevel}
                         onAddItem={addCaptureItem}
-                        onAddOption={addHierarchyOption}
-                        onUpdateOption={updateHierarchyOption}
-                        onDeleteOption={deleteHierarchyOption}
                         onMoveEntry={moveEntry}
                         onTreeDragStart={handleDragStart}
                         onTreeDragOver={handleDragOver}
@@ -710,20 +672,12 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
         )}
       </div>
 
-      {saving && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="rounded-3xl bg-white p-6 shadow-2xl">
-            <p className="text-sm text-slate-600">正在保存…</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 function LevelTreeRow({
   entry,
-  options,
   saving,
   expanded,
   hasChildren,
@@ -732,16 +686,12 @@ function LevelTreeRow({
   onDeleteLevel,
   onAddLevel,
   onAddItem,
-  onAddOption,
-  onUpdateOption,
-  onDeleteOption,
   onMoveEntry,
   onTreeDragStart,
   onTreeDragOver,
   onDropOnParent,
 }: {
   entry: Extract<TreeEntry, { kind: 'level' }>;
-  options: WorkPhotoHierarchyOption[];
   saving: boolean;
   expanded: boolean;
   hasChildren: boolean;
@@ -750,18 +700,12 @@ function LevelTreeRow({
   onDeleteLevel: (id: number) => void;
   onAddLevel: (parentLevelId: number | null) => void;
   onAddItem: (parentLevelId: number | null) => void;
-  onAddOption: (levelId: number) => void;
-  onUpdateOption: (id: number, updates: Partial<WorkPhotoHierarchyOption>) => void;
-  onDeleteOption: (id: number) => void;
   onMoveEntry: (entry: TreeEntry, direction: -1 | 1) => void;
   onTreeDragStart: (event: DragEvent, entry: TreeEntry) => void;
   onTreeDragOver: (event: DragEvent) => void;
   onDropOnParent: (event: DragEvent, parentLevelId: number | null) => void;
 }) {
   const level = entry.level;
-  const levelOptions = options
-    .filter((option) => option.level_id === level.id && option.is_archived === 0)
-    .sort(compareNodeSort);
 
   return (
     <div
@@ -852,45 +796,6 @@ function LevelTreeRow({
           >
             <Trash2 className="h-4 w-4" />
           </IconButton>
-        </div>
-      </div>
-      <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-3" style={{ paddingLeft: `${entry.depth * 28 + 76}px` }}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500">目录选项</span>
-          <button
-            type="button"
-            onClick={() => void onAddOption(entry.id)}
-            disabled={saving}
-            className="inline-flex h-7 items-center gap-1 rounded-full bg-white px-2 text-xs font-medium text-brand-700 ring-1 ring-slate-200 transition hover:bg-brand-50 disabled:opacity-50"
-          >
-            <ListPlus className="h-3.5 w-3.5" />
-            添加选项
-          </button>
-          {levelOptions.length === 0 && <span className="text-xs text-slate-400">暂无选项</span>}
-          {levelOptions.map((option) => (
-            <span
-              key={option.id}
-              className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 ring-1 ring-slate-200"
-            >
-              <input
-                type="text"
-                aria-label={`${level.name}选项`}
-                value={option.name}
-                onChange={(event) => void onUpdateOption(option.id!, { name: event.target.value })}
-                disabled={saving}
-                className="w-24 border-0 bg-transparent text-xs text-slate-800 outline-none disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={() => void onDeleteOption(option.id!)}
-                disabled={saving}
-                className="text-rose-500 transition hover:text-rose-700 disabled:opacity-50"
-                aria-label={`删除${option.name}`}
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
         </div>
       </div>
     </div>

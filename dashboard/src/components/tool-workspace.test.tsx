@@ -202,8 +202,8 @@ describe('ToolWorkspace', () => {
     expect(screen.getByText('外拍助手')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '拍摄模板 (1)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '目录层级 (1)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '目录选项 (1)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '拍摄项 (1)' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '目录选项 (1)' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'hierarchy_levels (1)' })).not.toBeInTheDocument();
   });
 

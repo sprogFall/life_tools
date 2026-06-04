@@ -41,7 +41,7 @@ export function TemplatesScreen() {
           <p className="text-xs font-semibold text-brand-700">树形配置工作台</p>
           <h1 className="mt-2 text-3xl font-semibold text-ink">外拍助手模板管理</h1>
           <p className="mt-2 text-sm text-slate-600">
-            按模板维护目录层级、目录选项和拍摄项，所有配置会同步到移动端外拍助手使用。
+            按模板维护目录层级和拍摄项，所有配置会同步到移动端外拍助手使用。
           </p>
         </div>
       </section>

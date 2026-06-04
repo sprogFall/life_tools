@@ -100,7 +100,7 @@ const toolConfigs: Record<string, ToolConfig> = {
   work_photo: {
     id: 'work_photo',
     name: '外拍助手',
-    description: '管理拍摄模板、目录树、目录选项和拍摄项。',
+    description: '管理拍摄模板、目录树和拍摄项。',
     accentClassName: 'from-sky-400/25 via-sky-300/5 to-white',
     sections: [
       {
@@ -129,22 +129,6 @@ const toolConfigs: Record<string, ToolConfig> = {
           { key: 'name', label: '目录名称', type: 'text' },
           { key: 'sort_index', label: '排序', type: 'number' },
           { key: 'is_required', label: '是否必填', type: 'boolean' },
-          { key: 'is_archived', label: '已归档', type: 'boolean' },
-          { key: 'created_at', label: '创建时间', type: 'datetime' },
-          { key: 'updated_at', label: '更新时间', type: 'datetime' },
-        ],
-      },
-      {
-        key: 'hierarchy_options',
-        label: '目录选项',
-        description: '维护每个目录层级下可选择的目录值。',
-        idKey: 'id',
-        fields: [
-          { key: 'id', label: 'ID', type: 'number' },
-          { key: 'level_id', label: '所属目录层级', type: 'number' },
-          { key: 'parent_option_id', label: '上级选项', type: 'number', defaultValue: null },
-          { key: 'name', label: '选项名称', type: 'text' },
-          { key: 'sort_index', label: '排序', type: 'number' },
           { key: 'is_archived', label: '已归档', type: 'boolean' },
           { key: 'created_at', label: '创建时间', type: 'datetime' },
           { key: 'updated_at', label: '更新时间', type: 'datetime' },
