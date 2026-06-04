@@ -38,10 +38,10 @@ export function TemplatesScreen() {
     <div className="space-y-6">
       <section className="flex flex-col gap-3 rounded-4xl border border-slate-200/80 bg-white/85 p-6 shadow-panel lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Work Photo Templates</p>
+          <p className="text-xs font-semibold text-brand-700">树形配置工作台</p>
           <h1 className="mt-2 text-3xl font-semibold text-ink">外拍助手模板管理</h1>
           <p className="mt-2 text-sm text-slate-600">
-            管理外拍助手的拍摄模板、层级结构和拍摄项。配置后将同步到移动端使用。
+            按模板维护目录层级、目录选项和拍摄项，所有配置会同步到移动端外拍助手使用。
           </p>
         </div>
       </section>

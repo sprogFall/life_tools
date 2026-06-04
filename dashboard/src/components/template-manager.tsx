@@ -386,12 +386,29 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
         </div>
       )}
 
+      <section className="rounded-4xl border border-brand-100 bg-brand-50/70 p-5 shadow-panel">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold text-brand-700">外拍助手模板</p>
+            <h2 className="mt-1 text-2xl font-semibold text-ink">树形配置工作区</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              先选择左侧模板，再在右侧“树形配置”中维护目录、子目录、目录选项和拍摄项。
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center text-sm text-slate-600">
+            <Stat label="模板" value={data.templates.filter((template) => template.is_archived === 0).length} />
+            <Stat label="目录" value={templateLevels.length} />
+            <Stat label="拍摄项" value={templateItems.length} />
+          </div>
+        </div>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <section className="rounded-4xl border border-slate-200/80 bg-white/85 p-5 shadow-panel">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-ink">模板列表</h2>
-              <p className="mt-1 text-sm text-slate-500">选择模板后在右侧维护目录树。</p>
+              <p className="mt-1 text-sm text-slate-500">选择模板后进入右侧树形配置。</p>
             </div>
             <button
               type="button"
@@ -458,7 +475,7 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
         </section>
 
         {selectedTemplate ? (
-          <section className="rounded-4xl border border-slate-200/80 bg-white/85 p-5 shadow-panel">
+          <section id="work-photo-tree-config" className="rounded-4xl border border-slate-200/80 bg-white/85 p-5 shadow-panel">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_160px]">
               <label className="block text-sm font-medium text-slate-700">
                 模板名称
@@ -490,7 +507,8 @@ export function TemplateManager({ userId }: TemplateManagerProps) {
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
               <div>
-                <h3 className="text-lg font-semibold text-ink">目录与拍摄项树</h3>
+                <p className="text-xs font-semibold text-brand-700">当前模板：{selectedTemplate.name}</p>
+                <h3 className="mt-1 text-xl font-semibold text-ink">树形配置：目录与拍摄项</h3>
                 <p className="mt-1 text-sm text-slate-600">
                   同级目录和拍摄项按排序混排，目录下可以继续添加子目录或拍摄项。
                 </p>

@@ -119,6 +119,7 @@ describe('TemplateManager', () => {
     render(<TemplateManager userId="u1" />);
 
     expect(await screen.findByText('交付拍摄模板')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: /树形配置/ }).length).toBeGreaterThan(0);
     expect(screen.getByRole('tree', { name: '模板目录和拍摄项' })).toBeInTheDocument();
 
     const buildingNode = screen.getByTestId('work-photo-level-100');

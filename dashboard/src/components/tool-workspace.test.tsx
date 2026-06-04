@@ -122,7 +122,91 @@ const tool: DashboardToolPayload = {
   data: detail.snapshot.tools_data.work_log.data,
 };
 
+const workPhotoTool: DashboardToolPayload = {
+  tool_id: 'work_photo',
+  version: 2,
+  summary: {
+    tool_id: 'work_photo',
+    version: 2,
+    total_items: 4,
+    section_counts: {
+      templates: 1,
+      hierarchy_levels: 1,
+      hierarchy_options: 1,
+      capture_items: 1,
+    },
+  },
+  data: {
+    templates: [
+      {
+        id: 1,
+        name: '交付模板',
+        sort_index: 0,
+        is_archived: 0,
+        created_at: 1731000000000,
+        updated_at: 1731000000000,
+      },
+    ],
+    hierarchy_levels: [
+      {
+        id: 10,
+        template_id: 1,
+        parent_level_id: null,
+        name: '楼栋',
+        sort_index: 0,
+        is_required: 1,
+        is_archived: 0,
+        created_at: 1731000000000,
+        updated_at: 1731000000000,
+      },
+    ],
+    hierarchy_options: [
+      {
+        id: 100,
+        level_id: 10,
+        parent_option_id: null,
+        name: 'A栋',
+        sort_index: 0,
+        is_archived: 0,
+        created_at: 1731000000000,
+        updated_at: 1731000000000,
+      },
+    ],
+    capture_items: [
+      {
+        id: 200,
+        template_id: 1,
+        parent_level_id: 10,
+        name: '门头照',
+        sort_index: 0,
+        min_count: 1,
+        max_count: null,
+        is_archived: 0,
+        created_at: 1731000000000,
+        updated_at: 1731000000000,
+      },
+    ],
+  },
+};
+
 describe('ToolWorkspace', () => {
+  it('外拍助手通用数据页使用中文区块和字段标签', () => {
+    render(
+      <ToolWorkspace
+        userId="u1"
+        tool={workPhotoTool}
+        saveToolAction={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+      />,
+    );
+
+    expect(screen.getByText('外拍助手')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '拍摄模板 (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '目录层级 (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '目录选项 (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '拍摄项 (1)' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'hierarchy_levels (1)' })).not.toBeInTheDocument();
+  });
+
   it('渲染友好关联文案，并为关联字段提供选择器', () => {
     render(
       <ToolWorkspace
@@ -135,11 +219,11 @@ describe('ToolWorkspace', () => {
 
     expect(screen.getByText('工作记录')).toBeInTheDocument();
     expect(screen.getByText('共管理 4 条记录')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'tasks (2)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'time_entries (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '任务 (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '工时记录 (2)' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '保存' }).length).toBeGreaterThan(0);
 
-    const timeEntriesTab = screen.getByRole('button', { name: 'time_entries (2)' });
+    const timeEntriesTab = screen.getByRole('button', { name: '工时记录 (2)' });
     fireEvent.click(timeEntriesTab);
 
     expect(screen.getAllByText('整理周报').length).toBeGreaterThan(0);
@@ -236,7 +320,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
 
     expect(screen.getByRole('button', { name: '打开工时归属画布' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '查看工时柱状图' })).toBeInTheDocument();
@@ -254,7 +338,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
     fireEvent.click(screen.getByRole('button', { name: '查看工时柱状图' }));
 
     const dialog = screen.getByRole('dialog', { name: '工时记录柱状图' });
@@ -274,7 +358,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
     fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
@@ -303,7 +387,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
     fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
@@ -337,7 +421,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
     fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
@@ -371,7 +455,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
     fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
 
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
@@ -410,7 +494,7 @@ describe('ToolWorkspace', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'time_entries (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: '工时记录 (2)' }));
     fireEvent.click(screen.getByRole('button', { name: '打开工时归属画布' }));
     const dialog = screen.getByRole('dialog', { name: '工时归属整理画布' });
     fireEvent.dragStart(within(dialog).getByRole('button', { name: '工时卡片 补录会议纪要' }));
@@ -536,8 +620,8 @@ describe('ToolWorkspace', () => {
     );
 
     expect(screen.getByText('应用配置')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'ai_config (1)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'sync_config (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'AI 配置 (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '同步配置 (1)' })).toBeInTheDocument();
     expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.openai.com/v1');
 
     const apiKeyField = screen.getByRole('textbox', { name: 'API Key' });
@@ -552,8 +636,8 @@ describe('ToolWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '显示 API Key' }));
     expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('sk-test');
 
-    fireEvent.click(screen.getByRole('button', { name: 'sync_config (1)' }));
-    fireEvent.click(screen.getByRole('button', { name: 'ai_config (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: '同步配置 (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'AI 配置 (1)' }));
     expect(screen.getByRole('button', { name: '显示 API Key' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'API Key' })).toHaveValue('••••••••');
   });

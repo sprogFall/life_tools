@@ -702,7 +702,7 @@ function SectionPanel({
         <div className="rounded-[1.75rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.03),rgba(34,197,94,0.06))] p-5 shadow-panel">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">Canvas Reassign</p>
+              <p className="text-xs font-semibold text-brand-700">工时归属画布</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">把工时归属整理搬到独立画布中</h3>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                 通过弹出式无边界画布查看任务全貌，支持缩放、拖动画布和拖拽工时卡片改归属；当前页面保留列表查阅与精细编辑。
@@ -1216,7 +1216,7 @@ export function ToolWorkspace({
       <div className={`rounded-4xl bg-gradient-to-br ${toolConfig.accentClassName} p-6`}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Tool Workspace</p>
+            <p className="text-xs font-semibold text-slate-500">工具数据工作台</p>
             <h2 className="mt-2 text-2xl font-semibold text-ink">{toolConfig.name}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               {toolConfig.description}
@@ -1259,11 +1259,12 @@ export function ToolWorkspace({
         {sectionKeys.map((sectionKey) => {
           const section = getSectionConfig(tool.tool_id, sectionKey);
           const count = normalizeSectionCount(tool, sectionKey);
+          const sectionLabel = section?.label ?? sectionKey;
           return (
             <button
               key={sectionKey}
               type="button"
-              aria-label={`${sectionKey} (${count})`}
+              aria-label={`${sectionLabel} (${count})`}
               onClick={() => setActiveSection(sectionKey)}
               className={cn(
                 DASHBOARD_PILL_BUTTON_TAB,
@@ -1272,7 +1273,7 @@ export function ToolWorkspace({
                   : 'border border-slate-200 bg-slate-50 text-slate-700 hover:border-brand-200 hover:bg-brand-50',
               )}
             >
-              {section?.label ?? sectionKey} ({count})
+              {sectionLabel} ({count})
             </button>
           );
         })}
