@@ -78,8 +78,33 @@ abstract class WorkPhotoProjectListRepository {
   Future<List<WorkPhotoProjectSummary>> listProjectSummaries();
 }
 
+abstract class WorkPhotoProjectCreateRepository {
+  Future<List<WorkPhotoTemplate>> listTemplates({bool includeArchived = false});
+
+  Future<List<WorkPhotoHierarchyLevel>> listHierarchyLevels({
+    int? templateId,
+    bool includeArchived = false,
+  });
+
+  Future<List<WorkPhotoCaptureItem>> listCaptureItemsInTemplateTree(
+    int templateId, {
+    bool includeArchived = false,
+  });
+
+  Future<int> createProjectFromTemplate({
+    required String name,
+    required String note,
+    required int templateId,
+    required List<WorkPhotoHierarchySelection> hierarchySelections,
+    DateTime? now,
+  });
+}
+
 class WorkPhotoRepository
-    implements WorkPhotoConfigRepository, WorkPhotoProjectListRepository {
+    implements
+        WorkPhotoConfigRepository,
+        WorkPhotoProjectListRepository,
+        WorkPhotoProjectCreateRepository {
   final Future<Database> _database;
 
   WorkPhotoRepository({DatabaseHelper? dbHelper})
@@ -287,6 +312,7 @@ class WorkPhotoRepository
     return rows.map(WorkPhotoCaptureItem.fromMap).toList();
   }
 
+  @override
   Future<List<WorkPhotoCaptureItem>> listCaptureItemsInTemplateTree(
     int templateId, {
     bool includeArchived = false,
@@ -351,6 +377,7 @@ class WorkPhotoRepository
     );
   }
 
+  @override
   Future<int> createProjectFromTemplate({
     required String name,
     required String note,

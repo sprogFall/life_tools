@@ -710,19 +710,8 @@
       "count": { "type": "int" }
     }
   },
-  "work_photo_project_mode_title": "Creation mode",
-  "work_photo_project_mode_template": "From template",
-  "work_photo_project_mode_custom": "Custom",
-  "work_photo_project_mode_template_hint": "Create a project from the template hierarchy and capture items. Later template edits will not change the project.",
-  "work_photo_project_mode_custom_hint": "Configure hierarchy and capture items only for this project without saving them to a template.",
   "work_photo_project_template_label": "Project template",
-  "work_photo_no_templates_warning": "Add a template first, or switch to custom creation.",
-  "work_photo_no_custom_hierarchy": "No custom hierarchy yet. Add one if needed.",
-  "work_photo_no_custom_capture_items": "No custom capture items yet. Add at least one.",
-  "work_photo_no_custom_capture_items_warning": "A custom project needs at least one capture item.",
-  "work_photo_custom_hierarchy_title": "Custom hierarchy",
-  "work_photo_custom_hierarchy_placeholder": "Enter \"Level/Option\", e.g. Zone/East",
-  "work_photo_custom_level_default": "Level",
-  "work_photo_custom_capture_item_placeholder": "Enter \"Item/Min/Max\", e.g. Sign/1/3",
+  "work_photo_project_structure_section": "Template structure",
+  "work_photo_no_templates_warning": "Add a template before creating a project.",
   "work_photo_export_saved_and_shared": "ZIP saved and share sheet opened."
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/theme/ios26_theme.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_project.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_project_detail.dart';
 import 'package:life_tools/tools/work_photo/pages/work_photo_tool_page.dart';
@@ -68,6 +69,20 @@ void main() {
       expect(find.text('模板 B'), findsOneWidget);
       expect(find.text('项目 A1'), findsOneWidget);
       expect(find.text('项目 B1'), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text('模板 A'),
+          matching: find.byType(GlassContainer),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('项目 A1'),
+          matching: find.byType(GlassContainer),
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('模板 A'));
       await tester.pump();

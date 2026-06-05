@@ -174,31 +174,34 @@ class _WorkPhotoToolPageState extends State<WorkPhotoToolPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GlassContainer(
-          borderRadius: IOS26Theme.radiusLg,
-          padding: EdgeInsets.zero,
-          child: IOS26Button.plain(
-            padding: const EdgeInsets.all(IOS26Theme.spacingLg),
-            onPressed: () => _toggleTemplateGroup(group.key),
-            child: Row(
-              children: [
-                IOS26Icon(
-                  collapsed
-                      ? CupertinoIcons.chevron_right
-                      : CupertinoIcons.chevron_down,
-                  tone: IOS26IconTone.secondary,
-                  size: 18,
-                ),
-                const SizedBox(width: IOS26Theme.spacingMd),
-                Expanded(
-                  child: Text(group.title, style: IOS26Theme.titleMedium),
-                ),
-                Text(
-                  l10n.work_photo_project_group_count(group.projects.length),
-                  style: IOS26Theme.bodySmall,
-                ),
-              ],
-            ),
+        IOS26Button.plain(
+          padding: const EdgeInsets.symmetric(
+            horizontal: IOS26Theme.spacingSm,
+            vertical: IOS26Theme.spacingSm,
+          ),
+          onPressed: () => _toggleTemplateGroup(group.key),
+          child: Row(
+            children: [
+              IOS26Icon(
+                collapsed
+                    ? CupertinoIcons.chevron_right
+                    : CupertinoIcons.chevron_down,
+                tone: IOS26IconTone.secondary,
+                size: 18,
+              ),
+              const SizedBox(width: IOS26Theme.spacingSm),
+              const IOS26Icon(
+                CupertinoIcons.folder,
+                tone: IOS26IconTone.secondary,
+                size: 20,
+              ),
+              const SizedBox(width: IOS26Theme.spacingMd),
+              Expanded(child: Text(group.title, style: IOS26Theme.titleMedium)),
+              Text(
+                l10n.work_photo_project_group_count(group.projects.length),
+                style: IOS26Theme.bodySmall,
+              ),
+            ],
           ),
         ),
         if (!collapsed) ...[
