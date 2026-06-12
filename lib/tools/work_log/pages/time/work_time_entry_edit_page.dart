@@ -27,6 +27,8 @@ class WorkTimeEntryEditPage extends StatefulWidget {
 class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
   final _minutesController = TextEditingController();
   final _contentController = TextEditingController();
+  final _minutesFocusNode = FocusNode();
+  final _contentFocusNode = FocusNode();
   DateTime _workDate = DateTime.now();
 
   bool get _isEditMode => widget.entry != null;
@@ -50,6 +52,8 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
   void dispose() {
     _minutesController.dispose();
     _contentController.dispose();
+    _minutesFocusNode.dispose();
+    _contentFocusNode.dispose();
     super.dispose();
   }
 
@@ -141,6 +145,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
           _buildTextField(
             key: const ValueKey('time_entry_minutes_field'),
             controller: _minutesController,
+            focusNode: _minutesFocusNode,
             placeholder: '花费时间（分钟，例如 90）',
             keyboardType: TextInputType.number,
             maxLines: 1,
@@ -149,6 +154,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
           _buildTextField(
             key: const ValueKey('time_entry_content_field'),
             controller: _contentController,
+            focusNode: _contentFocusNode,
             placeholder: '工作内容',
             keyboardType: TextInputType.text,
             maxLines: 4,
@@ -161,18 +167,28 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
   Widget _buildTextField({
     required Key key,
     required TextEditingController controller,
+    required FocusNode focusNode,
     required String placeholder,
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
-    return CupertinoTextField(
-      key: key,
-      controller: controller,
-      placeholder: placeholder,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: IOS26Theme.textFieldDecoration(),
+    return GestureDetector(
+      onTap: () {
+        focusNode.unfocus();
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) focusNode.requestFocus();
+        });
+      },
+      child: CupertinoTextField(
+        key: key,
+        controller: controller,
+        focusNode: focusNode,
+        placeholder: placeholder,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: IOS26Theme.textFieldDecoration(),
+      ),
     );
   }
 
