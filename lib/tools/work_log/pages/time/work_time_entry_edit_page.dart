@@ -172,13 +172,14 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
+    final isTextInput = keyboardType == TextInputType.text;
     return GestureDetector(
-      onTap: () {
+      onTap: isTextInput ? () {
         focusNode.unfocus();
-        Future.delayed(const Duration(milliseconds: 100), () {
+        Future.delayed(const Duration(milliseconds: 200), () {
           if (mounted) focusNode.requestFocus();
         });
-      },
+      } : null,
       child: CupertinoTextField(
         key: key,
         controller: controller,
