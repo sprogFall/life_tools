@@ -150,6 +150,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
             key: const ValueKey('time_entry_content_field'),
             controller: _contentController,
             placeholder: '工作内容',
+            keyboardType: TextInputType.text,
             maxLines: 4,
           ),
         ],

@@ -56,4 +56,22 @@ void main() {
     expect(minutesBox.border, isNotNull);
     expect(contentBox.border, isNotNull);
   });
+
+  testWidgets('内容输入框应显式使用普通文本键盘，避免数字键盘切换后保留九键英文态', (tester) async {
+    await tester.pumpWidget(
+      const TestAppWrapper(child: WorkTimeEntryEditPage(taskId: 1)),
+    );
+    await tester.pumpAndSettle();
+
+    final minutesField = tester.widget<CupertinoTextField>(
+      find.byKey(const ValueKey('time_entry_minutes_field')),
+    );
+    final contentField = tester.widget<CupertinoTextField>(
+      find.byKey(const ValueKey('time_entry_content_field')),
+    );
+
+    expect(minutesField.keyboardType, TextInputType.number);
+    expect(contentField.maxLines, 4);
+    expect(contentField.keyboardType, TextInputType.text);
+  });
 }
