@@ -73,7 +73,7 @@ void main() {
     expect(minutesField.keyboardType, TextInputType.number);
     expect(minutesField.focusNode, isNotNull);
     expect(contentField.maxLines, 4);
-    expect(contentField.keyboardType, TextInputType.text);
+    expect(contentField.keyboardType, TextInputType.multiline);
     expect(contentField.focusNode, isNotNull);
   });
 }

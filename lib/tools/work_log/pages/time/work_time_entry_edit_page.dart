@@ -156,7 +156,7 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
             controller: _contentController,
             focusNode: _contentFocusNode,
             placeholder: '工作内容',
-            keyboardType: TextInputType.text,
+            keyboardType: TextInputType.multiline,
             maxLines: 4,
           ),
         ],
@@ -172,24 +172,15 @@ class _WorkTimeEntryEditPageState extends State<WorkTimeEntryEditPage> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
-    final isTextInput = keyboardType == TextInputType.text;
-    return GestureDetector(
-      onTap: isTextInput ? () {
-        focusNode.unfocus();
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) focusNode.requestFocus();
-        });
-      } : null,
-      child: CupertinoTextField(
-        key: key,
-        controller: controller,
-        focusNode: focusNode,
-        placeholder: placeholder,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: IOS26Theme.textFieldDecoration(),
-      ),
+    return CupertinoTextField(
+      key: key,
+      controller: controller,
+      focusNode: focusNode,
+      placeholder: placeholder,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: IOS26Theme.textFieldDecoration(),
     );
   }
 
