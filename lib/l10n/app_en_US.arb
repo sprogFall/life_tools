@@ -254,7 +254,7 @@
   "@sync_server_update_skip": {
     "description": "Option to skip syncing server data"
   },
-  "sync_server_update_overwrite_server": "Skip and overwrite",
+  "sync_server_update_overwrite_server": "Overwrite server with local",
   "@sync_server_update_overwrite_server": {
     "description": "Option to skip server data and overwrite the server with local data"
   },

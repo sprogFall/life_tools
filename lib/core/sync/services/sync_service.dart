@@ -242,6 +242,7 @@ class SyncService extends ChangeNotifier {
       if (shouldPreviewServerUpdate &&
           v2Response.decision == SyncDecision.useServer &&
           v2Response.toolsData != null) {
+        final previewRevision = v2Response.serverRevision;
         final action = await onServerUpdateRequired(
           SyncServerUpdate(
             serverRevision: v2Response.serverRevision,
@@ -273,6 +274,16 @@ class SyncService extends ChangeNotifier {
 
         if (!v2Response.success) {
           _lastError = v2Response.message ?? '同步失败';
+          _lastOutcome = SyncOutcome.failed;
+          _setState(SyncState.failed);
+          return false;
+        }
+
+        // 校验版本号：确保预览到确认期间服务端数据未被其他设备修改
+        if (action == SyncServerUpdateAction.sync &&
+            v2Response.serverRevision != previewRevision) {
+          _lastError =
+              '服务端数据已变更（版本 $previewRevision → ${v2Response.serverRevision}），请重新同步';
           _lastOutcome = SyncOutcome.failed;
           _setState(SyncState.failed);
           return false;

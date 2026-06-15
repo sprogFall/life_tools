@@ -498,7 +498,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sync_server_update_skip => 'Do not sync';
 
   @override
-  String get sync_server_update_overwrite_server => 'Skip and overwrite';
+  String get sync_server_update_overwrite_server =>
+      'Overwrite server with local';
 
   @override
   String get common_refresh => 'Refresh';
@@ -1953,7 +1954,8 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String get sync_server_update_skip => 'Do not sync';
 
   @override
-  String get sync_server_update_overwrite_server => 'Skip and overwrite';
+  String get sync_server_update_overwrite_server =>
+      'Overwrite server with local';
 
   @override
   String get common_refresh => 'Refresh';

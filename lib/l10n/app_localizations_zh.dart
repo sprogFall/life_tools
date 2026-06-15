@@ -476,7 +476,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sync_server_update_skip => '不同步';
 
   @override
-  String get sync_server_update_overwrite_server => '不同步且覆盖';
+  String get sync_server_update_overwrite_server => '用本地覆盖服务端';
 
   @override
   String get common_refresh => '刷新';
@@ -1872,7 +1872,7 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get sync_server_update_skip => '不同步';
 
   @override
-  String get sync_server_update_overwrite_server => '不同步且覆盖';
+  String get sync_server_update_overwrite_server => '用本地覆盖服务端';
 
   @override
   String get common_refresh => '刷新';

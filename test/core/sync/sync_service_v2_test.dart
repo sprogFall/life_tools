@@ -738,5 +738,82 @@ void main() {
       expect(configService.config?.lastSyncTime?.millisecondsSinceEpoch, 9400);
       expect(service.lastOutcome, SyncOutcome.success);
     });
+
+    test('预览后服务端版本号变化时应拒绝同步', () async {
+      final provider = _FakeToolSyncProvider(
+        toolId: 'work_log',
+        exported: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1, 'title': 'local'},
+            ],
+          },
+        },
+      );
+
+      final api = _FakeSyncApiClient()
+        ..v2Responses.addAll([
+          SyncResponseV2(
+            success: true,
+            decision: SyncDecision.useServer,
+            message: 'server newer than client',
+            serverTime: DateTime.fromMillisecondsSinceEpoch(9500),
+            serverRevision: 20,
+            toolsData: const {
+              'work_log': {
+                'version': 1,
+                'data': {
+                  'tasks': [
+                    {'id': 9, 'title': 'server-preview'},
+                  ],
+                },
+              },
+            },
+          ),
+          SyncResponseV2(
+            success: true,
+            decision: SyncDecision.useServer,
+            message: 'forced use_server',
+            serverTime: DateTime.fromMillisecondsSinceEpoch(9600),
+            serverRevision: 21, // 版本号变化了
+            toolsData: const {
+              'work_log': {
+                'version': 1,
+                'data': {
+                  'tasks': [
+                    {'id': 10, 'title': 'server-changed'},
+                  ],
+                },
+              },
+            },
+          ),
+        ]);
+
+      final service = SyncService(
+        configService: configService,
+        localStateService: localStateService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: [provider],
+      );
+
+      final ok = await service.sync(
+        onServerUpdateRequired: (_) async => SyncServerUpdateAction.sync,
+      );
+
+      expect(ok, isFalse);
+      expect(api.requests.length, 2);
+      expect(provider.importCalls, 0);
+      expect(configService.config?.lastServerRevision, 7);
+      expect(configService.config?.lastSyncTime, isNull);
+      expect(service.state, SyncState.failed);
+      expect(service.lastError, contains('服务端数据已变更'));
+      expect(service.lastError, contains('20 → 21'));
+      expect(service.lastOutcome, SyncOutcome.failed);
+    });
   });
 }

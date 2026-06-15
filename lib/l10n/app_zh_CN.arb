@@ -254,7 +254,7 @@
   "@sync_server_update_skip": {
     "description": "服务端更新提示中选择不同步服务端数据"
   },
-  "sync_server_update_overwrite_server": "不同步且覆盖",
+  "sync_server_update_overwrite_server": "用本地覆盖服务端",
   "@sync_server_update_overwrite_server": {
     "description": "服务端更新提示中选择跳过服务端数据并用本地覆盖服务端"
   },

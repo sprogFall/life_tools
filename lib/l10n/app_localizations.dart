@@ -962,7 +962,7 @@ abstract class AppLocalizations {
   /// Option to skip server data and overwrite the server with local data
   ///
   /// In en, this message translates to:
-  /// **'Skip and overwrite'**
+  /// **'Overwrite server with local'**
   String get sync_server_update_overwrite_server;
 
   /// No description provided for @common_refresh.
