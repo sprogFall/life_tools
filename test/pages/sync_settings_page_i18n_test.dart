@@ -150,9 +150,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('服务端数据更新'), findsOneWidget);
-    expect(find.text('不同步且覆盖'), findsOneWidget);
+    expect(find.text('用本地覆盖服务端'), findsOneWidget);
 
-    await tester.tap(find.text('不同步且覆盖'));
+    await tester.tap(find.text('用本地覆盖服务端'));
     await tester.pumpAndSettle();
 
     expect(
