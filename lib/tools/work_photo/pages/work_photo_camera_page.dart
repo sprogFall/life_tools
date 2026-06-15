@@ -44,6 +44,8 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
   int? _selectedItemId;
   final Map<int, GlobalKey> _itemKeys = {};
   final ScrollController _itemScrollController = ScrollController();
+  double _baseZoom = 1.0;
+  double _currentZoom = 1.0;
 
   @override
   void initState() {
@@ -91,15 +93,15 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
         _detail = detail;
         _selectedItemId = _pickInitialItem(detail);
         _loading = false;
+        _baseZoom = _cameraService.currentZoom;
+        _currentZoom = _cameraService.currentZoom;
       });
       _scrollSelectedItemIntoView();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = AppLocalizations.of(
-          context,
-        )!.work_photo_camera_error(e.toString());
+        _error = e.toString();
       });
     }
   }
@@ -164,10 +166,25 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
             color: IOS26Theme.textPrimary,
             child: Center(
               child: AspectRatio(
-                aspectRatio: 3 / 4,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-                  child: _cameraService.buildPreview(),
+                aspectRatio: _cameraService.aspectRatio,
+                child: GestureDetector(
+                  onScaleStart: (details) {
+                    _baseZoom = _currentZoom;
+                  },
+                  onScaleUpdate: (details) {
+                    final newZoom = _baseZoom * details.scale;
+                    _cameraService.setZoomLevel(newZoom);
+                    setState(() {
+                      _currentZoom = newZoom.clamp(
+                        _cameraService.minZoom,
+                        _cameraService.maxZoom,
+                      );
+                    });
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
+                    child: _cameraService.buildPreview(),
+                  ),
                 ),
               ),
             ),
@@ -286,7 +303,12 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
 
   Future<void> _switchCamera() async {
     await _cameraService.switchCamera();
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        _baseZoom = _cameraService.currentZoom;
+        _currentZoom = _cameraService.currentZoom;
+      });
+    }
   }
 
   Future<void> _toggleFlash() async {

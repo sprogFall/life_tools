@@ -10,6 +10,9 @@ class WorkPhotoCameraService implements WorkPhotoCameraCapture {
   List<CameraDescription> _cameras = const [];
   int _cameraIndex = 0;
   FlashMode _flashMode = FlashMode.off;
+  double _currentZoom = 1.0;
+  double _minZoom = 1.0;
+  double _maxZoom = 1.0;
 
   bool get isInitialized => _controller?.value.isInitialized ?? false;
 
@@ -18,6 +21,15 @@ class WorkPhotoCameraService implements WorkPhotoCameraCapture {
   int get cameraCount => _cameras.length;
 
   FlashMode get flashMode => _flashMode;
+
+  double get currentZoom => _currentZoom;
+
+  double get minZoom => _minZoom;
+
+  double get maxZoom => _maxZoom;
+
+  double get aspectRatio =>
+      _controller?.value.aspectRatio ?? 3 / 4;
 
   Future<void> initialize() async {
     _cameras = await availableCameras();
@@ -40,6 +52,13 @@ class WorkPhotoCameraService implements WorkPhotoCameraCapture {
     );
     await controller.initialize();
     await controller.setFlashMode(_flashMode);
+
+    // 获取缩放范围
+    _minZoom = await controller.getMinZoomLevel();
+    _maxZoom = await controller.getMaxZoomLevel();
+    _currentZoom = _minZoom;
+    await controller.setZoomLevel(_currentZoom);
+
     _controller = controller;
   }
 
@@ -70,6 +89,14 @@ class WorkPhotoCameraService implements WorkPhotoCameraCapture {
       return const SizedBox.shrink();
     }
     return CameraPreview(controller);
+  }
+
+  Future<void> setZoomLevel(double zoom) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    final clampedZoom = zoom.clamp(_minZoom, _maxZoom);
+    await controller.setZoomLevel(clampedZoom);
+    _currentZoom = clampedZoom;
   }
 
   @override
