@@ -8,6 +8,7 @@ import 'package:life_tools/core/obj_store/secret_store/in_memory_secret_store.da
 import 'package:life_tools/core/services/settings_service.dart';
 import 'package:life_tools/core/sync/interfaces/tool_sync_provider.dart';
 import 'package:life_tools/core/sync/models/sync_config.dart';
+import 'package:life_tools/core/sync/models/sync_force_decision.dart';
 import 'package:life_tools/core/sync/models/sync_request_v2.dart';
 import 'package:life_tools/core/sync/models/sync_response_v2.dart';
 import 'package:life_tools/core/sync/services/sync_api_client.dart';
@@ -83,6 +84,8 @@ class _ThrowingImportToolSyncProvider implements ToolSyncProvider {
 
 class _FakeSyncApiClient extends SyncApiClient {
   SyncRequestV2? lastRequestV2;
+  final List<SyncRequestV2> requests = [];
+  final List<SyncResponseV2> v2Responses = [];
 
   SyncResponseV2? v2Response;
   SyncApiException? v2Exception;
@@ -96,7 +99,11 @@ class _FakeSyncApiClient extends SyncApiClient {
     Duration timeout = const Duration(seconds: 120),
   }) async {
     lastRequestV2 = request;
+    requests.add(request);
     if (v2Exception != null) throw v2Exception!;
+    if (v2Responses.isNotEmpty) {
+      return v2Responses.removeAt(0);
+    }
     return v2Response!;
   }
 }
@@ -516,6 +523,220 @@ void main() {
       expect(service.state, SyncState.failed);
       expect(configService.config?.lastServerRevision, 7);
       expect(configService.config?.lastSyncTime, isNull);
+    });
+
+    test('服务端有更新且用户选择同步时，应确认 use_server 后再导入服务端数据', () async {
+      final provider = _FakeToolSyncProvider(
+        toolId: 'work_log',
+        exported: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1, 'title': 'local'},
+            ],
+          },
+        },
+      );
+
+      final api = _FakeSyncApiClient()
+        ..v2Responses.addAll([
+          SyncResponseV2(
+            success: true,
+            decision: SyncDecision.useServer,
+            message: 'server newer than client',
+            serverTime: DateTime.fromMillisecondsSinceEpoch(9000),
+            serverRevision: 16,
+            toolsData: const {
+              'work_log': {
+                'version': 1,
+                'data': {
+                  'tasks': [
+                    {'id': 9, 'title': 'server-preview'},
+                  ],
+                },
+              },
+            },
+          ),
+          SyncResponseV2(
+            success: true,
+            decision: SyncDecision.useServer,
+            message: 'forced use_server',
+            serverTime: DateTime.fromMillisecondsSinceEpoch(9100),
+            serverRevision: 16,
+            toolsData: const {
+              'work_log': {
+                'version': 1,
+                'data': {
+                  'tasks': [
+                    {'id': 10, 'title': 'server-confirmed'},
+                  ],
+                },
+              },
+            },
+          ),
+        ]);
+
+      final service = SyncService(
+        configService: configService,
+        localStateService: localStateService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: [provider],
+      );
+
+      final ok = await service.sync(
+        onServerUpdateRequired: (_) async => SyncServerUpdateAction.sync,
+      );
+
+      expect(ok, isTrue);
+      expect(api.requests.length, 2);
+      expect(api.requests.first.previewServerUpdate, isTrue);
+      expect(api.requests.first.forceDecision, isNull);
+      expect(api.requests.last.previewServerUpdate, isFalse);
+      expect(api.requests.last.forceDecision, SyncForceDecision.useServer);
+      expect(api.requests.last.toolsData, isEmpty);
+      expect(provider.importCalls, 1);
+      final importedData =
+          provider.lastImported?['data'] as Map<String, dynamic>;
+      final tasks = importedData['tasks'] as List<dynamic>;
+      expect((tasks.single as Map)['title'], 'server-confirmed');
+      expect(configService.config?.lastServerRevision, 16);
+      expect(configService.config?.lastSyncTime?.millisecondsSinceEpoch, 9100);
+      expect(service.lastOutcome, SyncOutcome.success);
+    });
+
+    test('服务端有更新且用户选择不同步时，不导入且不推进本地游标', () async {
+      final provider = _FakeToolSyncProvider(
+        toolId: 'work_log',
+        exported: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1, 'title': 'local'},
+            ],
+          },
+        },
+      );
+
+      final api = _FakeSyncApiClient()
+        ..v2Response = SyncResponseV2(
+          success: true,
+          decision: SyncDecision.useServer,
+          message: 'server newer than client',
+          serverTime: DateTime.fromMillisecondsSinceEpoch(9200),
+          serverRevision: 17,
+          toolsData: const {
+            'work_log': {
+              'version': 1,
+              'data': {
+                'tasks': [
+                  {'id': 9, 'title': 'server'},
+                ],
+              },
+            },
+          },
+        );
+
+      final service = SyncService(
+        configService: configService,
+        localStateService: localStateService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: [provider],
+      );
+
+      final ok = await service.sync(
+        onServerUpdateRequired: (_) async => SyncServerUpdateAction.skip,
+      );
+
+      expect(ok, isFalse);
+      expect(api.requests.length, 1);
+      expect(api.requests.single.previewServerUpdate, isTrue);
+      expect(provider.importCalls, 0);
+      expect(configService.config?.lastServerRevision, 7);
+      expect(configService.config?.lastSyncTime, isNull);
+      expect(service.state, SyncState.idle);
+      expect(service.lastError, isNull);
+      expect(service.lastOutcome, SyncOutcome.serverUpdateSkipped);
+    });
+
+    test('服务端有更新且用户选择不同步并覆盖时，应强制 use_client 覆盖服务端', () async {
+      final provider = _FakeToolSyncProvider(
+        toolId: 'work_log',
+        exported: const {
+          'version': 1,
+          'data': {
+            'tasks': [
+              {'id': 1, 'title': 'local'},
+            ],
+          },
+        },
+      );
+
+      final api = _FakeSyncApiClient()
+        ..v2Responses.addAll([
+          SyncResponseV2(
+            success: true,
+            decision: SyncDecision.useServer,
+            message: 'server newer than client',
+            serverTime: DateTime.fromMillisecondsSinceEpoch(9300),
+            serverRevision: 18,
+            toolsData: const {
+              'work_log': {
+                'version': 1,
+                'data': {
+                  'tasks': [
+                    {'id': 9, 'title': 'server'},
+                  ],
+                },
+              },
+            },
+          ),
+          SyncResponseV2(
+            success: true,
+            decision: SyncDecision.useClient,
+            message: 'forced use_client',
+            serverTime: DateTime.fromMillisecondsSinceEpoch(9400),
+            serverRevision: 19,
+            toolsData: null,
+          ),
+        ]);
+
+      final service = SyncService(
+        configService: configService,
+        localStateService: localStateService,
+        aiConfigService: aiConfigService,
+        settingsService: settingsService,
+        objStoreConfigService: objStoreConfigService,
+        wifiService: _FakeWifiService(NetworkStatus.wifi),
+        apiClient: api,
+        toolProviders: [provider],
+      );
+
+      final ok = await service.sync(
+        onServerUpdateRequired: (_) async =>
+            SyncServerUpdateAction.overwriteServer,
+      );
+
+      expect(ok, isTrue);
+      expect(api.requests.length, 2);
+      expect(api.requests.first.previewServerUpdate, isTrue);
+      expect(api.requests.last.forceDecision, SyncForceDecision.useClient);
+      expect(api.requests.last.toolsData['work_log']?['data'], {
+        'tasks': [
+          {'id': 1, 'title': 'local'},
+        ],
+      });
+      expect(provider.importCalls, 0);
+      expect(configService.config?.lastServerRevision, 19);
+      expect(configService.config?.lastSyncTime?.millisecondsSinceEpoch, 9400);
+      expect(service.lastOutcome, SyncOutcome.success);
     });
   });
 }

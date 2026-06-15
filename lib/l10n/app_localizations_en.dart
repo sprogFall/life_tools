@@ -485,6 +485,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Overwrite server (use local)';
 
   @override
+  String get sync_server_update_title => 'Server data updated';
+
+  @override
+  String get sync_server_update_content =>
+      'The server has newer data. Choose whether to overwrite local data with the server copy, or overwrite the server with local data.';
+
+  @override
+  String get sync_server_update_sync => 'Sync';
+
+  @override
+  String get sync_server_update_skip => 'Do not sync';
+
+  @override
+  String get sync_server_update_overwrite_server => 'Skip and overwrite';
+
+  @override
   String get common_refresh => 'Refresh';
 
   @override
@@ -782,11 +798,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sync_finished_title_failed => 'Sync failed';
 
   @override
+  String get sync_finished_title_skipped => 'Not synced';
+
+  @override
   String get sync_finished_content_success => 'Sync finished.';
 
   @override
   String get sync_finished_content_failed =>
       'Please check the error details on this page.';
+
+  @override
+  String get sync_finished_content_skipped =>
+      'Local data was kept. Server data was not synced.';
 
   @override
   String get sync_add_wifi_title => 'Add Wi‑Fi name (SSID)';
@@ -1917,6 +1940,22 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
       'Overwrite server (use local)';
 
   @override
+  String get sync_server_update_title => 'Server data updated';
+
+  @override
+  String get sync_server_update_content =>
+      'The server has newer data. Choose whether to overwrite local data with the server copy, or overwrite the server with local data.';
+
+  @override
+  String get sync_server_update_sync => 'Sync';
+
+  @override
+  String get sync_server_update_skip => 'Do not sync';
+
+  @override
+  String get sync_server_update_overwrite_server => 'Skip and overwrite';
+
+  @override
   String get common_refresh => 'Refresh';
 
   @override
@@ -2214,11 +2253,18 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   String get sync_finished_title_failed => 'Sync failed';
 
   @override
+  String get sync_finished_title_skipped => 'Not synced';
+
+  @override
   String get sync_finished_content_success => 'Sync finished.';
 
   @override
   String get sync_finished_content_failed =>
       'Please check the error details on this page.';
+
+  @override
+  String get sync_finished_content_skipped =>
+      'Local data was kept. Server data was not synced.';
 
   @override
   String get sync_add_wifi_title => 'Add Wi‑Fi name (SSID)';

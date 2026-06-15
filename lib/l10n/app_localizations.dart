@@ -935,6 +935,36 @@ abstract class AppLocalizations {
   /// **'Overwrite server (use local)'**
   String get sync_user_mismatch_overwrite_server;
 
+  /// Title shown when server data is newer than local data
+  ///
+  /// In en, this message translates to:
+  /// **'Server data updated'**
+  String get sync_server_update_title;
+
+  /// Message shown when server data is newer than local data
+  ///
+  /// In en, this message translates to:
+  /// **'The server has newer data. Choose whether to overwrite local data with the server copy, or overwrite the server with local data.'**
+  String get sync_server_update_content;
+
+  /// Option to sync server data to local
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get sync_server_update_sync;
+
+  /// Option to skip syncing server data
+  ///
+  /// In en, this message translates to:
+  /// **'Do not sync'**
+  String get sync_server_update_skip;
+
+  /// Option to skip server data and overwrite the server with local data
+  ///
+  /// In en, this message translates to:
+  /// **'Skip and overwrite'**
+  String get sync_server_update_overwrite_server;
+
   /// No description provided for @common_refresh.
   ///
   /// In en, this message translates to:
@@ -1457,6 +1487,12 @@ abstract class AppLocalizations {
   /// **'Sync failed'**
   String get sync_finished_title_failed;
 
+  /// No description provided for @sync_finished_title_skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Not synced'**
+  String get sync_finished_title_skipped;
+
   /// No description provided for @sync_finished_content_success.
   ///
   /// In en, this message translates to:
@@ -1468,6 +1504,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please check the error details on this page.'**
   String get sync_finished_content_failed;
+
+  /// No description provided for @sync_finished_content_skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Local data was kept. Server data was not synced.'**
+  String get sync_finished_content_skipped;
 
   /// No description provided for @sync_add_wifi_title.
   ///

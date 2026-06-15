@@ -463,6 +463,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sync_user_mismatch_overwrite_server => '覆盖服务端（使用本地）';
 
   @override
+  String get sync_server_update_title => '服务端数据更新';
+
+  @override
+  String get sync_server_update_content =>
+      '服务端已有更新。请选择是否用服务端数据覆盖本地，或用本地数据覆盖服务端。';
+
+  @override
+  String get sync_server_update_sync => '同步';
+
+  @override
+  String get sync_server_update_skip => '不同步';
+
+  @override
+  String get sync_server_update_overwrite_server => '不同步且覆盖';
+
+  @override
   String get common_refresh => '刷新';
 
   @override
@@ -749,10 +765,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sync_finished_title_failed => '同步失败';
 
   @override
+  String get sync_finished_title_skipped => '未同步';
+
+  @override
   String get sync_finished_content_success => '已完成同步';
 
   @override
   String get sync_finished_content_failed => '请查看页面内的错误详情';
+
+  @override
+  String get sync_finished_content_skipped => '已保留本地数据，未同步服务端数据。';
 
   @override
   String get sync_add_wifi_title => '添加 WiFi 名称（SSID）';
@@ -1837,6 +1859,22 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get sync_user_mismatch_overwrite_server => '覆盖服务端（使用本地）';
 
   @override
+  String get sync_server_update_title => '服务端数据更新';
+
+  @override
+  String get sync_server_update_content =>
+      '服务端已有更新。请选择是否用服务端数据覆盖本地，或用本地数据覆盖服务端。';
+
+  @override
+  String get sync_server_update_sync => '同步';
+
+  @override
+  String get sync_server_update_skip => '不同步';
+
+  @override
+  String get sync_server_update_overwrite_server => '不同步且覆盖';
+
+  @override
   String get common_refresh => '刷新';
 
   @override
@@ -2123,10 +2161,16 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get sync_finished_title_failed => '同步失败';
 
   @override
+  String get sync_finished_title_skipped => '未同步';
+
+  @override
   String get sync_finished_content_success => '已完成同步';
 
   @override
   String get sync_finished_content_failed => '请查看页面内的错误详情';
+
+  @override
+  String get sync_finished_content_skipped => '已保留本地数据，未同步服务端数据。';
 
   @override
   String get sync_add_wifi_title => '添加 WiFi 名称（SSID）';

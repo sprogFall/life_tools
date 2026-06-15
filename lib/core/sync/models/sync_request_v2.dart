@@ -9,6 +9,7 @@ class SyncRequestV2 {
   final SyncClientState clientState;
   final Map<String, Map<String, dynamic>> toolsData;
   final SyncForceDecision? forceDecision;
+  final bool previewServerUpdate;
 
   const SyncRequestV2({
     required this.userId,
@@ -16,6 +17,7 @@ class SyncRequestV2 {
     required this.clientState,
     required this.toolsData,
     this.forceDecision,
+    this.previewServerUpdate = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -24,6 +26,7 @@ class SyncRequestV2 {
     'client_time': clientTimeMs,
     'client_state': clientState.toJson(),
     if (forceDecision != null) 'force_decision': forceDecision!.toJsonValue(),
+    if (previewServerUpdate) 'preview_server_update': true,
     'tools_data': toolsData,
   };
 }

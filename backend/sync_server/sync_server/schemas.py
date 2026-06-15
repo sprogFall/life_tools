@@ -16,6 +16,7 @@ class SyncRequestV2(BaseModel):
     client_time: int
     client_state: SyncClientState
     force_decision: str | None = None
+    preview_server_update: bool = False
     tools_data: dict[str, dict[str, Any]]
 
 

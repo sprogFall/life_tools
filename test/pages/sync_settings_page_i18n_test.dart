@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_tools/core/sync/models/sync_config.dart';
+import 'package:life_tools/core/sync/models/sync_force_decision.dart';
 import 'package:life_tools/core/sync/services/sync_config_service.dart';
 import 'package:life_tools/core/sync/services/sync_local_state_service.dart';
 import 'package:life_tools/core/sync/services/sync_service.dart';
@@ -24,6 +26,8 @@ class _FakeWifiService extends WifiService {
 }
 
 class _MockSyncService extends ChangeNotifier implements SyncService {
+  SyncServerUpdateAction? selectedServerUpdateAction;
+
   @override
   SyncState get state => SyncState.idle;
 
@@ -32,6 +36,34 @@ class _MockSyncService extends ChangeNotifier implements SyncService {
 
   @override
   bool get isSyncing => false;
+
+  @override
+  SyncOutcome get lastOutcome => SyncOutcome.success;
+
+  @override
+  SyncUserMismatch? getUserMismatch({SyncConfig? config}) => null;
+
+  @override
+  Future<bool> sync({
+    SyncTrigger trigger = SyncTrigger.manual,
+    SyncForceDecision? forceDecision,
+    SyncServerUpdateResolver? onServerUpdateRequired,
+  }) async {
+    selectedServerUpdateAction = await onServerUpdateRequired?.call(
+      SyncServerUpdate(
+        serverRevision: 2,
+        serverTime: DateTime.fromMillisecondsSinceEpoch(1730000000000),
+        message: 'server newer than client',
+        toolsData: const {
+          'work_log': {
+            'version': 1,
+            'data': {'tasks': []},
+          },
+        },
+      ),
+    );
+    return selectedServerUpdateAction != SyncServerUpdateAction.skip;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -73,5 +105,60 @@ void main() {
     expect(find.text('Save'), findsOneWidget);
     expect(find.text('Public'), findsOneWidget);
     expect(find.text('Private'), findsOneWidget);
+  });
+
+  testWidgets('SyncSettingsPage 服务端更新提示选择“不同步且覆盖”', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final configService = SyncConfigService();
+    await configService.init();
+    await configService.save(
+      const SyncConfig(
+        userId: 'u1',
+        networkType: SyncNetworkType.public,
+        serverUrl: 'https://example.com',
+        serverPort: 443,
+        customHeaders: {},
+        allowedWifiNames: [],
+        autoSyncOnStartup: false,
+      ),
+    );
+    final localStateService = SyncLocalStateService();
+    await localStateService.init();
+    final syncService = _MockSyncService();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SyncConfigService>.value(value: configService),
+          ChangeNotifierProvider<SyncLocalStateService>.value(
+            value: localStateService,
+          ),
+          ChangeNotifierProvider<SyncService>.value(value: syncService),
+          ChangeNotifierProvider<ToastService>.value(value: ToastService()),
+          Provider<WifiService>.value(
+            value: _FakeWifiService(NetworkStatus.wifi),
+          ),
+        ],
+        child: const TestAppWrapper(child: SyncSettingsPage()),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.ensureVisible(find.text('立即同步'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('立即同步'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('服务端数据更新'), findsOneWidget);
+    expect(find.text('不同步且覆盖'), findsOneWidget);
+
+    await tester.tap(find.text('不同步且覆盖'));
+    await tester.pumpAndSettle();
+
+    expect(
+      syncService.selectedServerUpdateAction,
+      SyncServerUpdateAction.overwriteServer,
+    );
+    expect(find.text('同步完成'), findsOneWidget);
   });
 }

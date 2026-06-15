@@ -327,6 +327,16 @@ def create_app(*, db_path: str) -> FastAPI:
         server_is_empty = is_all_tools_empty(server_tools_data)
 
         if decision == "use_server":
+            if request.preview_server_update:
+                return SyncResponseV2(
+                    success=True,
+                    decision="use_server",
+                    message="server newer than client",
+                    tools_data=server_tools_data,
+                    server_time=server_time,
+                    server_revision=snapshot.server_revision,
+                )
+
             diff = build_tools_diff(
                 server_tools_data=server_tools_data,
                 client_tools_data=client_tools_data,

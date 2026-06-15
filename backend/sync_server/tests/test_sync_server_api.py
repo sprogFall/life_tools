@@ -296,3 +296,53 @@ def test_sync_v2_force_use_client_overrides_server_newer_snapshot() -> None:
         assert body3["success"] is True
         assert body3["decision"] == "use_server"
         assert body3["tools_data"]["work_log"]["data"]["tasks"][0]["id"] == 2
+
+
+def test_sync_v2_preview_server_update_should_not_create_record() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(db_path=f"{tmp}/sync.db")
+        client = TestClient(app)
+
+        req1 = {
+            "protocol_version": 2,
+            "user_id": "u_preview",
+            "client_time": 1730000000000,
+            "client_state": {"last_server_revision": None, "client_is_empty": False},
+            "tools_data": {
+                "work_log": {
+                    "version": 1,
+                    "data": {"tasks": [{"id": 1, "updated_at": 100}], "time_entries": []},
+                }
+            },
+        }
+        resp1 = client.post("/sync/v2", json=req1)
+        assert resp1.status_code == 200
+        assert resp1.json()["decision"] == "use_client"
+        assert resp1.json()["server_revision"] == 1
+
+        preview_req = {
+            "protocol_version": 2,
+            "user_id": "u_preview",
+            "client_time": 1730000000100,
+            "client_state": {"last_server_revision": None, "client_is_empty": False},
+            "preview_server_update": True,
+            "tools_data": {
+                "work_log": {
+                    "version": 1,
+                    "data": {"tasks": [{"id": 2, "updated_at": 200}], "time_entries": []},
+                }
+            },
+        }
+        preview_resp = client.post("/sync/v2", json=preview_req)
+        assert preview_resp.status_code == 200
+        preview_body = preview_resp.json()
+        assert preview_body["success"] is True
+        assert preview_body["decision"] == "use_server"
+        assert preview_body["server_revision"] == 1
+        assert preview_body["tools_data"]["work_log"]["data"]["tasks"][0]["id"] == 1
+
+        records = client.get("/sync/records", params={"user_id": "u_preview", "limit": 10})
+        assert records.status_code == 200
+        items = records.json()["records"]
+        assert len(items) == 1
+        assert items[0]["decision"] == "use_client"

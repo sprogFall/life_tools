@@ -661,17 +661,30 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     final ok = await syncService.sync(
       trigger: SyncTrigger.manual,
       forceDecision: forceDecision,
+      onServerUpdateRequired: forceDecision == null
+          ? _confirmServerUpdate
+          : null,
     );
     if (!mounted) return;
 
+    final skippedServerUpdate =
+        syncService.lastOutcome == SyncOutcome.serverUpdateSkipped;
+    final String finishedTitle;
+    final String finishedContent;
+    if (skippedServerUpdate) {
+      finishedTitle = l10n.sync_finished_title_skipped;
+      finishedContent = l10n.sync_finished_content_skipped;
+    } else if (ok) {
+      finishedTitle = l10n.sync_finished_title_success;
+      finishedContent = l10n.sync_finished_content_success;
+    } else {
+      finishedTitle = l10n.sync_finished_title_failed;
+      finishedContent = l10n.sync_finished_content_failed;
+    }
     await AppDialogs.showInfo(
       context,
-      title: ok
-          ? l10n.sync_finished_title_success
-          : l10n.sync_finished_title_failed,
-      content: ok
-          ? l10n.sync_finished_content_success
-          : l10n.sync_finished_content_failed,
+      title: finishedTitle,
+      content: finishedContent,
     );
   }
 
@@ -709,6 +722,37 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       ),
     );
     return result;
+  }
+
+  Future<SyncServerUpdateAction?> _confirmServerUpdate(
+    SyncServerUpdate _,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    return showCupertinoDialog<SyncServerUpdateAction>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(l10n.sync_server_update_title),
+        content: Text(l10n.sync_server_update_content),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(ctx, SyncServerUpdateAction.sync),
+            child: Text(l10n.sync_server_update_sync),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, SyncServerUpdateAction.skip),
+            child: Text(l10n.sync_server_update_skip),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () =>
+                Navigator.pop(ctx, SyncServerUpdateAction.overwriteServer),
+            child: Text(l10n.sync_server_update_overwrite_server),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _addWifiName() async {

@@ -33,6 +33,27 @@ enum SyncState {
 /// 同步触发来源（用于区分自动同步与手动同步的提示文案/策略）
 enum SyncTrigger { manual, auto }
 
+enum SyncOutcome { idle, success, failed, serverUpdateSkipped }
+
+enum SyncServerUpdateAction { sync, skip, overwriteServer }
+
+class SyncServerUpdate {
+  final int serverRevision;
+  final DateTime serverTime;
+  final String? message;
+  final Map<String, Map<String, dynamic>> toolsData;
+
+  const SyncServerUpdate({
+    required this.serverRevision,
+    required this.serverTime,
+    required this.toolsData,
+    this.message,
+  });
+}
+
+typedef SyncServerUpdateResolver =
+    Future<SyncServerUpdateAction?> Function(SyncServerUpdate update);
+
 class SyncUserMismatch {
   final String localUserId;
   final String serverUserId;
@@ -52,10 +73,12 @@ class SyncService extends ChangeNotifier {
   final List<ToolSyncProvider> _toolProviders;
 
   SyncState _state = SyncState.idle;
+  SyncOutcome _lastOutcome = SyncOutcome.idle;
   String? _lastError;
   bool _isSyncing = false; // 同步锁，防止并发
 
   SyncState get state => _state;
+  SyncOutcome get lastOutcome => _lastOutcome;
   String? get lastError => _lastError;
   bool get isSyncing => _isSyncing;
 
@@ -137,22 +160,26 @@ class SyncService extends ChangeNotifier {
   Future<bool> sync({
     SyncTrigger trigger = SyncTrigger.manual,
     SyncForceDecision? forceDecision,
+    SyncServerUpdateResolver? onServerUpdateRequired,
   }) async {
     if (_isSyncing) {
       _lastError = '同步正在进行中，请稍后';
+      _lastOutcome = SyncOutcome.failed;
       notifyListeners();
       return false;
     }
 
     _isSyncing = true;
-    _setState(SyncState.checking);
     _lastError = null;
+    _lastOutcome = SyncOutcome.idle;
+    _setState(SyncState.checking);
 
     try {
       // 1. 检查配置
       final config = _configService.config;
       if (config == null || !config.isValid) {
         _lastError = '同步配置未设置或不完整';
+        _lastOutcome = SyncOutcome.failed;
         _setState(SyncState.failed);
         return false;
       }
@@ -167,12 +194,14 @@ class SyncService extends ChangeNotifier {
             '检测到用户不匹配：本地数据用户（${mismatch.localUserId}）与当前同步用户（${mismatch.serverUserId}）不一致。\n'
                 '为避免覆盖服务端数据，请在同步页请选择覆盖方向（覆盖本地 / 覆盖服务端）。',
         };
+        _lastOutcome = SyncOutcome.failed;
         _setState(SyncState.failed);
         return false;
       }
 
       // 2. 检查网络条件
       if (!await _checkNetworkCondition(config)) {
+        _lastOutcome = SyncOutcome.failed;
         _setState(SyncState.failed);
         return false;
       }
@@ -185,6 +214,7 @@ class SyncService extends ChangeNotifier {
 
       if (toolsData.isEmpty && forceDecision != SyncForceDecision.useServer) {
         // 没有工具支持同步：视为成功
+        _lastOutcome = SyncOutcome.success;
         _setState(SyncState.success);
         await _configService.updateLastSyncTime(DateTime.now());
         await _localStateService.setLocalUserId(config.userId);
@@ -192,21 +222,67 @@ class SyncService extends ChangeNotifier {
       }
 
       // 4. 调用同步 API（仅 v2）
-      final v2Response = await _syncV2(
+      final shouldPreviewServerUpdate =
+          onServerUpdateRequired != null && forceDecision == null;
+      var effectiveForceDecision = forceDecision;
+      var v2Response = await _syncV2(
         config: config,
         toolsData: toolsData,
         forceDecision: forceDecision,
+        previewServerUpdate: shouldPreviewServerUpdate,
       );
 
       if (!v2Response.success) {
         _lastError = v2Response.message ?? '同步失败';
+        _lastOutcome = SyncOutcome.failed;
         _setState(SyncState.failed);
         return false;
       }
 
-      if (forceDecision == SyncForceDecision.useClient &&
+      if (shouldPreviewServerUpdate &&
+          v2Response.decision == SyncDecision.useServer &&
+          v2Response.toolsData != null) {
+        final action = await onServerUpdateRequired(
+          SyncServerUpdate(
+            serverRevision: v2Response.serverRevision,
+            serverTime: v2Response.serverTime,
+            message: v2Response.message,
+            toolsData: v2Response.toolsData!,
+          ),
+        );
+
+        if (action == null || action == SyncServerUpdateAction.skip) {
+          _lastOutcome = SyncOutcome.serverUpdateSkipped;
+          _setState(SyncState.idle);
+          return false;
+        }
+
+        effectiveForceDecision = switch (action) {
+          SyncServerUpdateAction.sync => SyncForceDecision.useServer,
+          SyncServerUpdateAction.overwriteServer => SyncForceDecision.useClient,
+          SyncServerUpdateAction.skip => null,
+        };
+        final confirmedToolsData = action == SyncServerUpdateAction.sync
+            ? const <String, Map<String, dynamic>>{}
+            : toolsData;
+        v2Response = await _syncV2(
+          config: config,
+          toolsData: confirmedToolsData,
+          forceDecision: effectiveForceDecision,
+        );
+
+        if (!v2Response.success) {
+          _lastError = v2Response.message ?? '同步失败';
+          _lastOutcome = SyncOutcome.failed;
+          _setState(SyncState.failed);
+          return false;
+        }
+      }
+
+      if (effectiveForceDecision == SyncForceDecision.useClient &&
           v2Response.decision == SyncDecision.useServer) {
         _lastError = '服务端未接受“覆盖服务端”的请求（可能未升级服务端），已取消导入以保护本地数据。';
+        _lastOutcome = SyncOutcome.failed;
         _setState(SyncState.failed);
         return false;
       }
@@ -216,17 +292,19 @@ class SyncService extends ChangeNotifier {
         final failedTools = await _distributeToolsData(v2Response.toolsData!);
         if (failedTools.isNotEmpty) {
           _lastError = _buildImportFailedMessage(failedTools);
+          _lastOutcome = SyncOutcome.failed;
           _setState(SyncState.failed);
           return false;
         }
       }
 
-      if (forceDecision == SyncForceDecision.useServer &&
+      if (effectiveForceDecision == SyncForceDecision.useServer &&
           (v2Response.decision != SyncDecision.useServer ||
               v2Response.toolsData == null)) {
         final failedTools = await _clearLocalToolsDataForOverwrite();
         if (failedTools.isNotEmpty) {
           _lastError = _buildImportFailedMessage(failedTools);
+          _lastOutcome = SyncOutcome.failed;
           _setState(SyncState.failed);
           return false;
         }
@@ -238,10 +316,12 @@ class SyncService extends ChangeNotifier {
       );
       await _localStateService.setLocalUserId(config.userId);
 
+      _lastOutcome = SyncOutcome.success;
       _setState(SyncState.success);
       return true;
     } catch (e) {
       _lastError ??= _stringifyError(e);
+      _lastOutcome = SyncOutcome.failed;
       _setState(SyncState.failed);
       return false;
     } finally {
@@ -339,6 +419,7 @@ class SyncService extends ChangeNotifier {
     required SyncConfig config,
     required Map<String, Map<String, dynamic>> toolsData,
     SyncForceDecision? forceDecision,
+    bool previewServerUpdate = false,
   }) async {
     final request = SyncRequestV2(
       userId: config.userId,
@@ -349,6 +430,7 @@ class SyncService extends ChangeNotifier {
       ),
       toolsData: toolsData,
       forceDecision: forceDecision,
+      previewServerUpdate: previewServerUpdate,
     );
 
     return _apiClient.syncV2(config: config, request: request);

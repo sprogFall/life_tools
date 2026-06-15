@@ -237,8 +237,27 @@
   "sync_user_mismatch_overwrite_server": "Overwrite server (use local)",
   "@sync_user_mismatch_overwrite_server": {
     "description": "Option to overwrite server data using local snapshot"
-  }
-  ,
+  },
+  "sync_server_update_title": "Server data updated",
+  "@sync_server_update_title": {
+    "description": "Title shown when server data is newer than local data"
+  },
+  "sync_server_update_content": "The server has newer data. Choose whether to overwrite local data with the server copy, or overwrite the server with local data.",
+  "@sync_server_update_content": {
+    "description": "Message shown when server data is newer than local data"
+  },
+  "sync_server_update_sync": "Sync",
+  "@sync_server_update_sync": {
+    "description": "Option to sync server data to local"
+  },
+  "sync_server_update_skip": "Do not sync",
+  "@sync_server_update_skip": {
+    "description": "Option to skip syncing server data"
+  },
+  "sync_server_update_overwrite_server": "Skip and overwrite",
+  "@sync_server_update_overwrite_server": {
+    "description": "Option to skip server data and overwrite the server with local data"
+  },
   "common_refresh": "Refresh",
   "common_export": "Export",
   "common_restore": "Restore",
@@ -367,8 +386,10 @@
   "sync_config_saved_content": "Sync settings updated",
   "sync_finished_title_success": "Sync complete",
   "sync_finished_title_failed": "Sync failed",
+  "sync_finished_title_skipped": "Not synced",
   "sync_finished_content_success": "Sync finished.",
   "sync_finished_content_failed": "Please check the error details on this page.",
+  "sync_finished_content_skipped": "Local data was kept. Server data was not synced.",
   "sync_add_wifi_title": "Add Wi‑Fi name (SSID)",
   "sync_add_wifi_placeholder": "e.g. MyHomeWifi",
   "sync_records_title": "Sync Records",

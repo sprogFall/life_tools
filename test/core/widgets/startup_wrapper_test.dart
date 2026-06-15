@@ -43,6 +43,7 @@ class MockSyncService extends ChangeNotifier implements SyncService {
   Future<bool> sync({
     SyncTrigger trigger = SyncTrigger.manual,
     SyncForceDecision? forceDecision,
+    SyncServerUpdateResolver? onServerUpdateRequired,
   }) async {
     syncCalled = true;
     return syncResult;
