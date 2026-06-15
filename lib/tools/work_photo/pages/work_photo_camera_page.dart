@@ -165,24 +165,24 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
           child: Container(
             color: IOS26Theme.textPrimary,
             child: Center(
-              child: AspectRatio(
-                aspectRatio: _cameraService.aspectRatio,
-                child: GestureDetector(
-                  onScaleStart: (details) {
-                    _baseZoom = _currentZoom;
-                  },
-                  onScaleUpdate: (details) {
-                    final newZoom = _baseZoom * details.scale;
-                    _cameraService.setZoomLevel(newZoom);
-                    setState(() {
-                      _currentZoom = newZoom.clamp(
-                        _cameraService.minZoom,
-                        _cameraService.maxZoom,
-                      );
-                    });
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
+              child: GestureDetector(
+                onScaleStart: (details) {
+                  _baseZoom = _currentZoom;
+                },
+                onScaleUpdate: (details) {
+                  final newZoom = _baseZoom * details.scale;
+                  _cameraService.setZoomLevel(newZoom);
+                  setState(() {
+                    _currentZoom = newZoom.clamp(
+                      _cameraService.minZoom,
+                      _cameraService.maxZoom,
+                    );
+                  });
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
+                  child: AspectRatio(
+                    aspectRatio: _cameraService.aspectRatio,
                     child: _cameraService.buildPreview(),
                   ),
                 ),
