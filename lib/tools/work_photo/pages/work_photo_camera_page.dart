@@ -164,27 +164,24 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
         Positioned.fill(
           child: Container(
             color: IOS26Theme.textPrimary,
-            child: Center(
-              child: GestureDetector(
-                onScaleStart: (details) {
-                  _baseZoom = _currentZoom;
-                },
-                onScaleUpdate: (details) {
-                  final newZoom = _baseZoom * details.scale;
-                  _cameraService.setZoomLevel(newZoom);
-                  setState(() {
-                    _currentZoom = newZoom.clamp(
-                      _cameraService.minZoom,
-                      _cameraService.maxZoom,
-                    );
-                  });
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(IOS26Theme.radiusLg),
-                  child: AspectRatio(
-                    aspectRatio: _cameraService.aspectRatio,
-                    child: _cameraService.buildPreview(),
-                  ),
+            child: GestureDetector(
+              onScaleStart: (details) {
+                _baseZoom = _currentZoom;
+              },
+              onScaleUpdate: (details) {
+                final newZoom = _baseZoom * details.scale;
+                _cameraService.setZoomLevel(newZoom);
+                setState(() {
+                  _currentZoom = newZoom.clamp(
+                    _cameraService.minZoom,
+                    _cameraService.maxZoom,
+                  );
+                });
+              },
+              child: ClipRect(
+                child: WorkPhotoCameraPreviewFrame(
+                  aspectRatio: _cameraService.aspectRatio,
+                  child: _cameraService.buildPreview(),
                 ),
               ),
             ),
@@ -415,5 +412,46 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
       if (item.id == itemId) return item;
     }
     return null;
+  }
+}
+
+class WorkPhotoCameraPreviewFrame extends StatelessWidget {
+  final double aspectRatio;
+  final Widget child;
+
+  const WorkPhotoCameraPreviewFrame({
+    super.key,
+    required this.aspectRatio,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        final viewportRatio = width / height;
+        final previewWidth = aspectRatio > viewportRatio
+            ? height * aspectRatio
+            : width;
+        final previewHeight = aspectRatio > viewportRatio
+            ? height
+            : width / aspectRatio;
+        return Center(
+          child: OverflowBox(
+            minWidth: previewWidth,
+            maxWidth: previewWidth,
+            minHeight: previewHeight,
+            maxHeight: previewHeight,
+            child: SizedBox(
+              width: previewWidth,
+              height: previewHeight,
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
   }
 }

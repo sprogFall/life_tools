@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'work_photo_capture_coordinator.dart';
@@ -28,8 +29,30 @@ class WorkPhotoCameraService implements WorkPhotoCameraCapture {
 
   double get maxZoom => _maxZoom;
 
-  double get aspectRatio =>
-      _controller?.value.aspectRatio ?? 3 / 4;
+  double get aspectRatio {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return 3 / 4;
+    final orientation =
+        controller.value.previewPauseOrientation ??
+        controller.value.lockedCaptureOrientation ??
+        controller.value.deviceOrientation;
+    return displayAspectRatioForOrientation(
+      cameraAspectRatio: controller.value.aspectRatio,
+      orientation: orientation,
+    );
+  }
+
+  static double displayAspectRatioForOrientation({
+    required double cameraAspectRatio,
+    required DeviceOrientation orientation,
+  }) {
+    return switch (orientation) {
+      DeviceOrientation.landscapeLeft ||
+      DeviceOrientation.landscapeRight => cameraAspectRatio,
+      DeviceOrientation.portraitUp ||
+      DeviceOrientation.portraitDown => 1 / cameraAspectRatio,
+    };
+  }
 
   Future<void> initialize() async {
     _cameras = await availableCameras();
