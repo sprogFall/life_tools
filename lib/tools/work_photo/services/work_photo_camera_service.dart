@@ -76,10 +76,11 @@ class WorkPhotoCameraService implements WorkPhotoCameraCapture {
     await controller.initialize();
     await controller.setFlashMode(_flashMode);
 
-    // 获取缩放范围
+    // 获取缩放范围并设置初始缩放为 1.0（标准焦距）
     _minZoom = await controller.getMinZoomLevel();
     _maxZoom = await controller.getMaxZoomLevel();
-    _currentZoom = _minZoom;
+    // 初始缩放设为 1.0，如果超出范围则限制在有效范围内
+    _currentZoom = 1.0.clamp(_minZoom, _maxZoom);
     await controller.setZoomLevel(_currentZoom);
 
     _controller = controller;
