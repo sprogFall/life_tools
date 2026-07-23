@@ -926,34 +926,59 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
 
   Widget _buildStandardContent(BuildContext context) {
     final hasActions = actions != null && actions!.isNotEmpty;
+    final leadingWidget = showBackButton
+        ? CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: IOS26Theme.minimumTapSize,
+            onPressed: onBackPressed ?? () => Navigator.pop(context),
+            child: Icon(
+              CupertinoIcons.back,
+              color: IOS26Theme.iconColor(IOS26IconTone.accent),
+              size: 20,
+            ),
+          )
+        : leading;
+    final trailingWidget = hasActions
+        ? Row(mainAxisSize: MainAxisSize.min, children: actions!)
+        : null;
+    final middleWidget =
+        titleWidget ??
+        Text(
+          title,
+          style: IOS26Theme.titleLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        );
+
+    // 用 Stack 把标题按整栏水平居中，左右控件叠在两侧。
+    // NavigationToolbar 在 trailing 更宽时会把 middle 槽整体左偏；
+    // 拍摄页（返回 vs 翻转/闪光）+ 横向撑满的 titleWidget 时尤为明显。
+    final actionCount = hasActions ? actions!.length : 0;
+    final trailingReserve = actionCount > 0
+        ? IOS26Theme.minimumTapSize.width * actionCount
+        : IOS26Theme.minimumTapSize.width;
+    final sideReserve = trailingReserve < IOS26Theme.minimumTapSize.width
+        ? IOS26Theme.minimumTapSize.width
+        : trailingReserve;
     return SizedBox(
       height: 56,
-      child: NavigationToolbar(
-        centerMiddle: true,
-        leading: showBackButton
-            ? CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: IOS26Theme.minimumTapSize,
-                onPressed: onBackPressed ?? () => Navigator.pop(context),
-                child: Icon(
-                  CupertinoIcons.back,
-                  color: IOS26Theme.iconColor(IOS26IconTone.accent),
-                  size: 20,
-                ),
-              )
-            : (leading ?? SizedBox(width: IOS26Theme.minimumTapSize.width)),
-        middle:
-            titleWidget ??
-            Text(
-              title,
-              style: IOS26Theme.titleLarge,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-        trailing: hasActions
-            ? Row(mainAxisSize: MainAxisSize.min, children: actions!)
-            : SizedBox(width: IOS26Theme.minimumTapSize.width),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: sideReserve),
+            child: Center(child: middleWidget),
+          ),
+          Row(
+            children: [
+              leadingWidget ?? SizedBox(width: IOS26Theme.minimumTapSize.width),
+              const Spacer(),
+              trailingWidget ??
+                  SizedBox(width: IOS26Theme.minimumTapSize.width),
+            ],
+          ),
+        ],
       ),
     );
   }
