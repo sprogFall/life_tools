@@ -22,6 +22,15 @@ assert_not_contains() {
   fi
 }
 
+assert_occurrences() {
+  local expected_count="$1"
+  local expected="$2"
+  local actual_count
+  actual_count="$(grep -Fc -- "$expected" "$WORKFLOW" || true)"
+  [[ "$actual_count" == "$expected_count" ]] ||
+    fail "期望 workflow 包含 ${expected_count} 次: ${expected}，实际 ${actual_count} 次"
+}
+
 assert_contains "tags:"
 assert_contains "workflow_dispatch:"
 assert_contains "- 'v*'"
@@ -45,5 +54,6 @@ assert_contains "PRERELEASE_FLAG=\"--prerelease\""
 assert_contains "MIRROR_BASE_URL=\"\${{ vars.APK_MIRROR_BASE_URL }}\""
 assert_contains "APK-Mirror: \${MIRROR_URL}"
 assert_contains "mirror_url=\$MIRROR_URL"
+assert_occurrences 3 "flutter config --enable-swift-package-manager"
 
 echo "[build-apk-workflow-test] all passed"
