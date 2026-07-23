@@ -127,7 +127,29 @@ class _WorkPhotoProjectDetailPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(detail.project.name, style: IOS26Theme.headlineSmall),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      detail.project.name,
+                      style: IOS26Theme.headlineSmall,
+                    ),
+                  ),
+                  Semantics(
+                    key: const ValueKey('work-photo-rename-project'),
+                    container: true,
+                    label: l10n.common_rename,
+                    button: true,
+                    excludeSemantics: true,
+                    child: IOS26IconButton(
+                      icon: CupertinoIcons.pencil,
+                      onPressed: _renameProject,
+                      tone: IOS26IconTone.accent,
+                    ),
+                  ),
+                ],
+              ),
               if (detail.hierarchySummary.isNotEmpty) ...[
                 const SizedBox(height: IOS26Theme.spacingSm),
                 Text(detail.hierarchySummary, style: IOS26Theme.bodyMedium),
@@ -298,6 +320,27 @@ class _WorkPhotoProjectDetailPageState
         repository: _repository,
         mediaStore: _mediaStore,
       ),
+    );
+    if (!mounted) return;
+    await _reload();
+  }
+
+  Future<void> _renameProject() async {
+    final detail = _detail;
+    if (detail == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final input = await AppDialogs.showInput(
+      context,
+      title: l10n.common_rename,
+      defaultValue: detail.project.name,
+      placeholder: l10n.work_photo_project_name_placeholder,
+      cancelText: l10n.common_cancel,
+      confirmText: l10n.common_save,
+    );
+    final name = input?.trim();
+    if (name == null || name.isEmpty || name == detail.project.name) return;
+    await _repository.updateProject(
+      detail.project.copyWith(name: name, updatedAt: DateTime.now()),
     );
     if (!mounted) return;
     await _reload();

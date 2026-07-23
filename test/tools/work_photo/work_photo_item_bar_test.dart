@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_asset.dart';
 import 'package:life_tools/tools/work_photo/models/work_photo_project_item.dart';
@@ -17,6 +18,7 @@ void main() {
                 projectId: 1,
                 sourceItemId: 1,
                 nameSnapshot: '门头',
+                hierarchyPathSnapshot: ['门店', '入口'],
                 sortIndex: 0,
                 minCount: 2,
                 maxCount: null,
@@ -57,10 +59,33 @@ void main() {
 
       expect(find.text('门头'), findsOneWidget);
       expect(find.text('收银台'), findsOneWidget);
+      expect(find.bySemanticsLabel('门店 / 入口 / 门头'), findsOneWidget);
       expect(find.text('0 张 / 2'), findsOneWidget);
       expect(find.text('1 张 / 1'), findsOneWidget);
       expect(find.text('缺失'), findsNothing);
       expect(find.text('达标'), findsNothing);
+
+      final hierarchyText = tester.widget<Text>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Text && widget.textSpan?.toPlainText() == '门店 / 入口',
+        ),
+      );
+      final hierarchySpans = (hierarchyText.textSpan! as TextSpan).children!
+          .whereType<TextSpan>()
+          .where((span) => span.text?.trim() != '/')
+          .toList();
+      expect(hierarchyText.maxLines, 1);
+      expect(hierarchyText.overflow, TextOverflow.ellipsis);
+      expect(
+        hierarchySpans.first.style!.color,
+        isNot(hierarchySpans.last.style!.color),
+      );
+      final itemNameText = tester.widget<Text>(find.text('门头'));
+      expect(
+        hierarchySpans.first.style!.fontSize,
+        lessThan(itemNameText.style!.fontSize!),
+      );
     });
   });
 }

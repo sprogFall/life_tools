@@ -4,6 +4,7 @@ import '../../../core/theme/ios26_theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../models/work_photo_asset.dart';
 import '../models/work_photo_project_item.dart';
+import 'work_photo_item_label.dart';
 
 class WorkPhotoItemBar extends StatelessWidget {
   final List<WorkPhotoProjectItem> items;
@@ -26,7 +27,7 @@ class WorkPhotoItemBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 96,
+      height: 112,
       child: ListView.separated(
         controller: controller,
         padding: const EdgeInsets.symmetric(
@@ -80,7 +81,7 @@ class _WorkPhotoItemChip extends StatelessWidget {
             done ? IOS26IconTone.success : IOS26IconTone.secondary,
           );
     return SizedBox(
-      width: 118,
+      width: _chipWidth(context),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.background,
@@ -99,11 +100,11 @@ class _WorkPhotoItemChip extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                item.nameSnapshot,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: IOS26Theme.titleSmall.copyWith(color: colors.foreground),
+              WorkPhotoItemLabel(
+                item: item,
+                itemColor: colors.foreground,
+                itemTextStyle: IOS26Theme.titleSmall,
+                hierarchyTextStyle: IOS26Theme.labelSmall,
               ),
               const Spacer(),
               Row(
@@ -132,5 +133,17 @@ class _WorkPhotoItemChip extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  double _chipWidth(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: item.nameSnapshot, style: IOS26Theme.titleSmall),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    return (painter.width + IOS26Theme.spacingLg * 2)
+        .clamp(118.0, 220.0)
+        .toDouble();
   }
 }

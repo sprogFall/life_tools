@@ -118,6 +118,41 @@ void main() {
       ))!;
       expect(assets.map((e) => e.originalFilename), ['总览照片.jpg']);
     });
+
+    testWidgets('项目详情允许重命名并刷新项目名称', (tester) async {
+      final data = (await tester.runAsync(
+        () => _seedTreeProject(repository, mediaStore),
+      ))!;
+
+      await tester.pumpWidget(
+        TestAppWrapper(
+          child: WorkPhotoProjectDetailPage(
+            projectId: data.projectId,
+            repository: repository,
+            mediaStore: mediaStore,
+          ),
+        ),
+      );
+      await tester.runAsync(_drainRealAsync);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(find.byKey(const ValueKey('work-photo-rename-project')));
+      await tester.pump();
+      expect(find.byType(CupertinoTextField), findsOneWidget);
+
+      await tester.enterText(find.byType(CupertinoTextField), '重命名后的项目');
+      await tester.tap(find.text('保存'));
+      await tester.runAsync(_drainRealAsync);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('重命名后的项目'), findsOneWidget);
+      final project = await tester.runAsync(
+        () => repository.getProject(data.projectId),
+      );
+      expect(project!.name, '重命名后的项目');
+    });
   });
 }
 

@@ -855,6 +855,7 @@ enum _IOS26AppBarVariant { standard, home }
 
 class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+  final Widget? titleWidget;
   final List<Widget>? actions;
   final Widget? leading;
   final bool showBackButton;
@@ -867,6 +868,7 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
   const IOS26AppBar({
     super.key,
     required this.title,
+    this.titleWidget,
     this.actions,
     this.leading,
     this.showBackButton = false,
@@ -881,7 +883,8 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.onSettingsPressed,
     this.onTitlePressed,
-  }) : actions = null,
+  }) : titleWidget = null,
+       actions = null,
        leading = null,
        showBackButton = false,
        onBackPressed = null,
@@ -939,13 +942,15 @@ class IOS26AppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               )
             : (leading ?? SizedBox(width: IOS26Theme.minimumTapSize.width)),
-        middle: Text(
-          title,
-          style: IOS26Theme.titleLarge,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
+        middle:
+            titleWidget ??
+            Text(
+              title,
+              style: IOS26Theme.titleLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
         trailing: hasActions
             ? Row(mainAxisSize: MainAxisSize.min, children: actions!)
             : SizedBox(width: IOS26Theme.minimumTapSize.width),

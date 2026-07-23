@@ -13,6 +13,7 @@ import '../services/work_photo_camera_service.dart';
 import '../services/work_photo_capture_coordinator.dart';
 import '../services/work_photo_media_store.dart';
 import '../widgets/work_photo_item_bar.dart';
+import '../widgets/work_photo_item_label.dart';
 
 class WorkPhotoCameraPage extends StatefulWidget {
   final int projectId;
@@ -193,6 +194,15 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
           top: 0,
           child: IOS26AppBar(
             title: selectedItem?.nameSnapshot ?? detail.project.name,
+            titleWidget: selectedItem == null
+                ? null
+                : WorkPhotoItemLabel(
+                    item: selectedItem,
+                    itemTextStyle: IOS26Theme.titleLarge,
+                    hierarchyTextStyle: IOS26Theme.labelSmall,
+                    textAlign: TextAlign.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                  ),
             showBackButton: true,
             useSafeArea: false,
             actions: [
