@@ -54,6 +54,7 @@ assert_contains "PRERELEASE_FLAG=\"--prerelease\""
 assert_contains "MIRROR_BASE_URL=\"\${{ vars.APK_MIRROR_BASE_URL }}\""
 assert_contains "APK-Mirror: \${MIRROR_URL}"
 assert_contains "mirror_url=\$MIRROR_URL"
-assert_occurrences 3 "flutter config --enable-swift-package-manager"
+# Linux CI 无 Xcode，启用 SPM 无法解决 SPM-only 插件；依赖侧应固定非 SPM-only 版本
+assert_not_contains "flutter config --enable-swift-package-manager"
 
 echo "[build-apk-workflow-test] all passed"

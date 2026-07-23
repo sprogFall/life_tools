@@ -67,7 +67,8 @@ dependencies:
 
   # 分享功能
   share_plus: ^10.0.0
-  receive_sharing_intent: ^1.8.0
+  # 固定 1.8.1：1.9.0 起 iOS 仅支持 SPM，Linux CI（无 Xcode）上 flutter pub get 会失败
+  receive_sharing_intent: 1.8.1
 
   # 网络状态检测和WiFi信息（用于数据同步）
   connectivity_plus: ^6.0.5
