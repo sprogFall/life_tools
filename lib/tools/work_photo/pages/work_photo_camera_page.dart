@@ -11,6 +11,7 @@ import '../models/work_photo_project_item.dart';
 import '../repository/work_photo_repository.dart';
 import '../services/work_photo_camera_service.dart';
 import '../services/work_photo_capture_coordinator.dart';
+import '../services/work_photo_item_selection.dart';
 import '../services/work_photo_media_store.dart';
 import '../widgets/work_photo_item_bar.dart';
 import '../widgets/work_photo_item_label.dart';
@@ -341,9 +342,11 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
       if (!mounted || detail == null) return;
       setState(() {
         _detail = detail;
-        _selectedItemId = _nextItemAfterCapture(detail, currentItemId: itemId);
+        // 拍照后保持当前拍摄项，由用户自行切换，不自动跳转。
+        _selectedItemId = resolveSelectedItemIdAfterCapture(
+          currentItemId: itemId,
+        );
       });
-      _scrollSelectedItemIntoView();
     } catch (e) {
       if (!mounted) return;
       await AppDialogs.showInfo(
@@ -394,24 +397,6 @@ class _WorkPhotoCameraPageState extends State<WorkPhotoCameraPage> {
         curve: Curves.easeOutCubic,
       );
     });
-  }
-
-  int? _nextItemAfterCapture(
-    WorkPhotoProjectDetail detail, {
-    required int currentItemId,
-  }) {
-    final current = _findItem(detail.items, currentItemId);
-    final currentCount = detail.assetsByItemId[currentItemId]?.length ?? 0;
-    if (current != null && currentCount < current.minCount) {
-      return currentItemId;
-    }
-    for (final item in detail.items) {
-      final id = item.id;
-      if (id == null) continue;
-      final count = detail.assetsByItemId[id]?.length ?? 0;
-      if (count < item.minCount) return id;
-    }
-    return currentItemId;
   }
 
   WorkPhotoProjectItem? _findItem(
