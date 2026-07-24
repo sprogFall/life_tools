@@ -1458,6 +1458,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get work_photo_export_saved_and_shared =>
       'ZIP saved and share sheet opened.';
+
+  @override
+  String get work_photo_ai_config_action => 'AI configure template';
+
+  @override
+  String get work_photo_ai_input_title => 'AI template setup';
+
+  @override
+  String get work_photo_ai_input_helper =>
+      'Describe levels and capture items in natural language. AI will generate a full template tree.';
+
+  @override
+  String get work_photo_ai_input_placeholder =>
+      'e.g. Store inspection: region > store; each store needs storefront 1-3 photos and table 2 photos, plus one check-in photo at root';
+
+  @override
+  String get work_photo_ai_parsing => 'AI is parsing…';
+
+  @override
+  String get work_photo_ai_applying => 'Applying configuration…';
+
+  @override
+  String get work_photo_ai_missing_title => 'Notice';
+
+  @override
+  String get work_photo_ai_missing_content =>
+      'AI service not found. Make sure AiService is provided at the app entry.';
+
+  @override
+  String get work_photo_ai_failed_title => 'AI request failed';
+
+  @override
+  String get work_photo_ai_unrecognized_title => 'Unrecognized configuration';
+
+  @override
+  String get work_photo_ai_preview_title => 'Preview AI configuration';
+
+  @override
+  String work_photo_ai_preview_template_label(String name) {
+    return 'Template: $name';
+  }
+
+  @override
+  String get work_photo_ai_preview_warning =>
+      'Applying will replace this template\'s current levels and capture items. Existing projects are not affected.';
+
+  @override
+  String get work_photo_ai_preview_tree_section => 'Generated tree';
+
+  @override
+  String get work_photo_ai_apply => 'Apply';
+
+  @override
+  String get work_photo_ai_apply_success_title => 'Applied';
+
+  @override
+  String get work_photo_ai_apply_success_content =>
+      'Template levels and capture items were updated from the AI configuration.';
 }
 
 /// The translations for English, as used in the United States (`en_US`).
@@ -2914,4 +2972,62 @@ class AppLocalizationsEnUs extends AppLocalizationsEn {
   @override
   String get work_photo_export_saved_and_shared =>
       'ZIP saved and share sheet opened.';
+
+  @override
+  String get work_photo_ai_config_action => 'AI configure template';
+
+  @override
+  String get work_photo_ai_input_title => 'AI template setup';
+
+  @override
+  String get work_photo_ai_input_helper =>
+      'Describe levels and capture items in natural language. AI will generate a full template tree.';
+
+  @override
+  String get work_photo_ai_input_placeholder =>
+      'e.g. Store inspection: region > store; each store needs storefront 1-3 photos and table 2 photos, plus one check-in photo at root';
+
+  @override
+  String get work_photo_ai_parsing => 'AI is parsing…';
+
+  @override
+  String get work_photo_ai_applying => 'Applying configuration…';
+
+  @override
+  String get work_photo_ai_missing_title => 'Notice';
+
+  @override
+  String get work_photo_ai_missing_content =>
+      'AI service not found. Make sure AiService is provided at the app entry.';
+
+  @override
+  String get work_photo_ai_failed_title => 'AI request failed';
+
+  @override
+  String get work_photo_ai_unrecognized_title => 'Unrecognized configuration';
+
+  @override
+  String get work_photo_ai_preview_title => 'Preview AI configuration';
+
+  @override
+  String work_photo_ai_preview_template_label(String name) {
+    return 'Template: $name';
+  }
+
+  @override
+  String get work_photo_ai_preview_warning =>
+      'Applying will replace this template\'s current levels and capture items. Existing projects are not affected.';
+
+  @override
+  String get work_photo_ai_preview_tree_section => 'Generated tree';
+
+  @override
+  String get work_photo_ai_apply => 'Apply';
+
+  @override
+  String get work_photo_ai_apply_success_title => 'Applied';
+
+  @override
+  String get work_photo_ai_apply_success_content =>
+      'Template levels and capture items were updated from the AI configuration.';
 }

@@ -2622,6 +2622,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ZIP saved and share sheet opened.'**
   String get work_photo_export_saved_and_shared;
+
+  /// No description provided for @work_photo_ai_config_action.
+  ///
+  /// In en, this message translates to:
+  /// **'AI configure template'**
+  String get work_photo_ai_config_action;
+
+  /// No description provided for @work_photo_ai_input_title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI template setup'**
+  String get work_photo_ai_input_title;
+
+  /// No description provided for @work_photo_ai_input_helper.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe levels and capture items in natural language. AI will generate a full template tree.'**
+  String get work_photo_ai_input_helper;
+
+  /// No description provided for @work_photo_ai_input_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Store inspection: region > store; each store needs storefront 1-3 photos and table 2 photos, plus one check-in photo at root'**
+  String get work_photo_ai_input_placeholder;
+
+  /// No description provided for @work_photo_ai_parsing.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is parsing…'**
+  String get work_photo_ai_parsing;
+
+  /// No description provided for @work_photo_ai_applying.
+  ///
+  /// In en, this message translates to:
+  /// **'Applying configuration…'**
+  String get work_photo_ai_applying;
+
+  /// No description provided for @work_photo_ai_missing_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice'**
+  String get work_photo_ai_missing_title;
+
+  /// No description provided for @work_photo_ai_missing_content.
+  ///
+  /// In en, this message translates to:
+  /// **'AI service not found. Make sure AiService is provided at the app entry.'**
+  String get work_photo_ai_missing_content;
+
+  /// No description provided for @work_photo_ai_failed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI request failed'**
+  String get work_photo_ai_failed_title;
+
+  /// No description provided for @work_photo_ai_unrecognized_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized configuration'**
+  String get work_photo_ai_unrecognized_title;
+
+  /// No description provided for @work_photo_ai_preview_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview AI configuration'**
+  String get work_photo_ai_preview_title;
+
+  /// No description provided for @work_photo_ai_preview_template_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Template: {name}'**
+  String work_photo_ai_preview_template_label(String name);
+
+  /// No description provided for @work_photo_ai_preview_warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Applying will replace this template\'s current levels and capture items. Existing projects are not affected.'**
+  String get work_photo_ai_preview_warning;
+
+  /// No description provided for @work_photo_ai_preview_tree_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated tree'**
+  String get work_photo_ai_preview_tree_section;
+
+  /// No description provided for @work_photo_ai_apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get work_photo_ai_apply;
+
+  /// No description provided for @work_photo_ai_apply_success_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied'**
+  String get work_photo_ai_apply_success_title;
+
+  /// No description provided for @work_photo_ai_apply_success_content.
+  ///
+  /// In en, this message translates to:
+  /// **'Template levels and capture items were updated from the AI configuration.'**
+  String get work_photo_ai_apply_success_content;
 }
 
 class _AppLocalizationsDelegate

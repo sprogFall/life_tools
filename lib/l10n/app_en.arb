@@ -734,5 +734,29 @@
   "work_photo_project_template_label": "Project template",
   "work_photo_project_structure_section": "Template structure",
   "work_photo_no_templates_warning": "Add a template before creating a project.",
-  "work_photo_export_saved_and_shared": "ZIP saved and share sheet opened."
+  "work_photo_export_saved_and_shared": "ZIP saved and share sheet opened.",
+  "work_photo_ai_config_action": "AI configure template",
+  "work_photo_ai_input_title": "AI template setup",
+  "work_photo_ai_input_helper": "Describe levels and capture items in natural language. AI will generate a full template tree.",
+  "work_photo_ai_input_placeholder": "e.g. Store inspection: region > store; each store needs storefront 1-3 photos and table 2 photos, plus one check-in photo at root",
+  "work_photo_ai_parsing": "AI is parsing…",
+  "work_photo_ai_applying": "Applying configuration…",
+  "work_photo_ai_missing_title": "Notice",
+  "work_photo_ai_missing_content": "AI service not found. Make sure AiService is provided at the app entry.",
+  "work_photo_ai_failed_title": "AI request failed",
+  "work_photo_ai_unrecognized_title": "Unrecognized configuration",
+  "work_photo_ai_preview_title": "Preview AI configuration",
+  "work_photo_ai_preview_template_label": "Template: {name}",
+  "@work_photo_ai_preview_template_label": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "work_photo_ai_preview_warning": "Applying will replace this template's current levels and capture items. Existing projects are not affected.",
+  "work_photo_ai_preview_tree_section": "Generated tree",
+  "work_photo_ai_apply": "Apply",
+  "work_photo_ai_apply_success_title": "Applied",
+  "work_photo_ai_apply_success_content": "Template levels and capture items were updated from the AI configuration."
 }

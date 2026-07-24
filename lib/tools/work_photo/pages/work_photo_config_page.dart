@@ -1,18 +1,27 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/ai/ai_service.dart';
 import '../../../core/theme/ios26_theme.dart';
 import '../../../core/ui/app_dialogs.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../work_log/pages/task/work_log_voice_input_sheet.dart';
+import '../ai/work_photo_ai_apply.dart';
+import '../ai/work_photo_ai_assistant.dart';
+import '../ai/work_photo_ai_context.dart';
+import '../ai/work_photo_ai_intent.dart';
 import '../models/work_photo_capture_item.dart';
 import '../models/work_photo_hierarchy_level.dart';
 import '../models/work_photo_template.dart';
 import '../repository/work_photo_repository.dart';
+import 'work_photo_ai_template_preview_page.dart';
 
 class WorkPhotoConfigPage extends StatefulWidget {
   final WorkPhotoConfigRepository? repository;
+  final WorkPhotoAiAssistant? aiAssistant;
 
-  const WorkPhotoConfigPage({super.key, this.repository});
+  const WorkPhotoConfigPage({super.key, this.repository, this.aiAssistant});
 
   @override
   State<WorkPhotoConfigPage> createState() => _WorkPhotoConfigPageState();
@@ -176,6 +185,13 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
                         ),
                       ],
                     ),
+                  ),
+                  IOS26IconButton(
+                    key: const ValueKey('work_photo_ai_config_button'),
+                    icon: CupertinoIcons.sparkles,
+                    semanticLabel: l10n.work_photo_ai_config_action,
+                    onPressed: () => _openAiConfig(template),
+                    tone: IOS26IconTone.accent,
                   ),
                   IOS26IconButton(
                     icon: CupertinoIcons.ellipsis,
@@ -850,6 +866,120 @@ class _WorkPhotoConfigPageState extends State<WorkPhotoConfigPage> {
       await _repository.updateCaptureItem(
         item.copyWith(sortIndex: sortIndex, updatedAt: now),
       );
+    }
+  }
+
+  Future<void> _openAiConfig(WorkPhotoTemplate template) async {
+    final l10n = AppLocalizations.of(context)!;
+    final templateId = template.id;
+    if (templateId == null) return;
+
+    final text = await WorkLogVoiceInputSheet.show(
+      context,
+      title: l10n.work_photo_ai_input_title,
+      helperText: l10n.work_photo_ai_input_helper,
+      placeholder: l10n.work_photo_ai_input_placeholder,
+      textFieldKey: const ValueKey('work_photo_ai_text_field'),
+    );
+    if (!mounted || text == null || text.trim().isEmpty) return;
+
+    final assistant = widget.aiAssistant ?? _maybeCreateAiAssistant(context);
+    if (assistant == null) {
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.work_photo_ai_missing_title,
+        content: l10n.work_photo_ai_missing_content,
+      );
+      return;
+    }
+
+    late final String jsonText;
+    late final WorkPhotoAiIntent intent;
+    try {
+      AppDialogs.showLoading(context, title: l10n.work_photo_ai_parsing);
+      final aiContext = buildWorkPhotoAiContext(
+        now: DateTime.now(),
+        template: template,
+        levels: _editingLevels,
+        items: _editingItems,
+      );
+      jsonText = await assistant.textToTemplateTreeJson(
+        text: text,
+        context: aiContext,
+      );
+      intent = WorkPhotoAiIntentParser.parse(jsonText);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.work_photo_ai_failed_title,
+        content: e.toString(),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
+    if (intent is WorkPhotoAiUnknownIntent) {
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.work_photo_ai_unrecognized_title,
+        content: '${intent.reason}\n\nAI 返回：\n$jsonText',
+      );
+      return;
+    }
+
+    final tree = intent as WorkPhotoAiReplaceTemplateTreeIntent;
+    final applied = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute(
+        builder: (_) => WorkPhotoAiTemplatePreviewPage(
+          templateName: template.name,
+          nodes: tree.nodes,
+        ),
+      ),
+    );
+    if (!mounted || applied != true) return;
+
+    try {
+      AppDialogs.showLoading(context, title: l10n.work_photo_ai_applying);
+      await applyWorkPhotoTemplateTree(
+        repository: _repository,
+        templateId: templateId,
+        nodes: tree.nodes,
+        existingLevels: _editingLevels,
+        existingItems: _editingItems,
+        now: DateTime.now(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      await AppDialogs.showInfo(
+        context,
+        title: l10n.work_photo_ai_failed_title,
+        content: e.toString(),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    await _reload();
+    if (!mounted) return;
+    await AppDialogs.showInfo(
+      context,
+      title: l10n.work_photo_ai_apply_success_title,
+      content: l10n.work_photo_ai_apply_success_content,
+    );
+  }
+
+  WorkPhotoAiAssistant? _maybeCreateAiAssistant(BuildContext context) {
+    try {
+      final aiService = context.read<AiService>();
+      return DefaultWorkPhotoAiAssistant(aiService: aiService);
+    } on ProviderNotFoundException {
+      return null;
     }
   }
 

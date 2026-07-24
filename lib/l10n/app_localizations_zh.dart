@@ -1398,6 +1398,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get work_photo_export_saved_and_shared => 'ZIP 已保存并调起分享。';
+
+  @override
+  String get work_photo_ai_config_action => 'AI 配置模板';
+
+  @override
+  String get work_photo_ai_input_title => 'AI 配置模板';
+
+  @override
+  String get work_photo_ai_input_helper => '用自然语言描述层级与拍摄项，AI 会生成完整模板树';
+
+  @override
+  String get work_photo_ai_input_placeholder =>
+      '例如：门店巡拍，区域下有门店；每个门店拍门头1-3张、桌面2张，根目录再拍一张签到照';
+
+  @override
+  String get work_photo_ai_parsing => 'AI 解析中…';
+
+  @override
+  String get work_photo_ai_applying => '正在应用配置…';
+
+  @override
+  String get work_photo_ai_missing_title => '提示';
+
+  @override
+  String get work_photo_ai_missing_content =>
+      '未找到 AI 服务，请确认已在应用入口注入 AiService。';
+
+  @override
+  String get work_photo_ai_failed_title => 'AI 调用失败';
+
+  @override
+  String get work_photo_ai_unrecognized_title => '无法识别配置';
+
+  @override
+  String get work_photo_ai_preview_title => '预览 AI 配置';
+
+  @override
+  String work_photo_ai_preview_template_label(String name) {
+    return '模板：$name';
+  }
+
+  @override
+  String get work_photo_ai_preview_warning => '应用后将覆盖该模板当前的层级与拍摄项配置，已创建项目不受影响。';
+
+  @override
+  String get work_photo_ai_preview_tree_section => '生成结果';
+
+  @override
+  String get work_photo_ai_apply => '应用';
+
+  @override
+  String get work_photo_ai_apply_success_title => '已应用';
+
+  @override
+  String get work_photo_ai_apply_success_content => '模板层级与拍摄项已按 AI 配置更新。';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -2794,4 +2849,59 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get work_photo_export_saved_and_shared => 'ZIP 已保存并调起分享。';
+
+  @override
+  String get work_photo_ai_config_action => 'AI 配置模板';
+
+  @override
+  String get work_photo_ai_input_title => 'AI 配置模板';
+
+  @override
+  String get work_photo_ai_input_helper => '用自然语言描述层级与拍摄项，AI 会生成完整模板树';
+
+  @override
+  String get work_photo_ai_input_placeholder =>
+      '例如：门店巡拍，区域下有门店；每个门店拍门头1-3张、桌面2张，根目录再拍一张签到照';
+
+  @override
+  String get work_photo_ai_parsing => 'AI 解析中…';
+
+  @override
+  String get work_photo_ai_applying => '正在应用配置…';
+
+  @override
+  String get work_photo_ai_missing_title => '提示';
+
+  @override
+  String get work_photo_ai_missing_content =>
+      '未找到 AI 服务，请确认已在应用入口注入 AiService。';
+
+  @override
+  String get work_photo_ai_failed_title => 'AI 调用失败';
+
+  @override
+  String get work_photo_ai_unrecognized_title => '无法识别配置';
+
+  @override
+  String get work_photo_ai_preview_title => '预览 AI 配置';
+
+  @override
+  String work_photo_ai_preview_template_label(String name) {
+    return '模板：$name';
+  }
+
+  @override
+  String get work_photo_ai_preview_warning => '应用后将覆盖该模板当前的层级与拍摄项配置，已创建项目不受影响。';
+
+  @override
+  String get work_photo_ai_preview_tree_section => '生成结果';
+
+  @override
+  String get work_photo_ai_apply => '应用';
+
+  @override
+  String get work_photo_ai_apply_success_title => '已应用';
+
+  @override
+  String get work_photo_ai_apply_success_content => '模板层级与拍摄项已按 AI 配置更新。';
 }
