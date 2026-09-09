@@ -259,6 +259,7 @@ class XiaoMiChatService extends ChangeNotifier {
       final answerBuffer = StringBuffer();
       final thinkingBuffer = StringBuffer();
       AiTokenUsage? tokenUsage;
+      String? finishReason;
       final requestStartedAt = _nowProvider();
       XiaoMiMessage? streamingAssistantMessage;
 
@@ -278,6 +279,9 @@ class XiaoMiChatService extends ChangeNotifier {
         }
         if (chunk.usage != null) {
           tokenUsage = chunk.usage;
+        }
+        if (chunk.finishReason != null) {
+          finishReason = chunk.finishReason;
         }
 
         if (chunk.isEmpty) {
@@ -307,11 +311,17 @@ class XiaoMiChatService extends ChangeNotifier {
         notifyListeners();
       }
 
-      final assistantText = answerBuffer.toString().trim();
+      final isTruncated = finishReason == 'length';
+      final answerText = answerBuffer.toString().trim();
+      final assistantText = isTruncated
+          ? _appendTruncationNotice(answerText)
+          : answerText;
       final assistantMetadata = _buildAssistantMetadata(
         thinkingBuffer.toString(),
         usage: tokenUsage,
         duration: _nowProvider().difference(requestStartedAt),
+        finishReason: finishReason,
+        truncated: isTruncated,
       );
       final assistantMessage = XiaoMiMessage.create(
         conversationId: activeId,
@@ -475,6 +485,8 @@ ${XiaoMiAiPrompts.chatUseCase.systemPrompt}
     String thinking, {
     AiTokenUsage? usage,
     Duration? duration,
+    String? finishReason,
+    bool truncated = false,
   }) {
     final metadata = <String, dynamic>{};
     final trimmedThinking = thinking.trim();
@@ -485,7 +497,20 @@ ${XiaoMiAiPrompts.chatUseCase.systemPrompt}
     if (usageMetadata != null) {
       metadata[assistantUsageMetadataKey] = usageMetadata;
     }
+    final normalizedFinishReason = finishReason?.trim() ?? '';
+    if (normalizedFinishReason.isNotEmpty) {
+      metadata['finishReason'] = normalizedFinishReason;
+    }
+    if (truncated) {
+      metadata['truncated'] = true;
+    }
     return metadata.isEmpty ? null : metadata;
+  }
+
+  static String _appendTruncationNotice(String answer) {
+    const notice = '⚠️ 回答因达到最大输出长度被截断，请提高 AI 配置中的最大输出后重试。';
+    if (answer.isEmpty) return notice;
+    return '$answer\n\n$notice';
   }
 
   Map<String, dynamic>? _buildAssistantUsageMetadata(

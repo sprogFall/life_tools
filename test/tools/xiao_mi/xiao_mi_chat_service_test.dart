@@ -105,6 +105,30 @@ void main() {
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
     });
 
+    test('send 正式回答应使用 AI 配置的最大输出值', () async {
+      final fakeClient = FakeOpenAiClient(
+        replyText: '{"type":"no_special_call"}',
+        streamReply: const [AiChatStreamChunk(textDelta: '完成')],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+        ),
+      );
+      await service.init();
+      await service.send('你好');
+
+      expect(fakeClient.lastStreamRequest, isNotNull);
+      expect(fakeClient.lastStreamRequest!.maxOutputTokens, isNull);
+    });
+
     test('send 应把 AI 回复 token 与耗时写入 assistant metadata', () async {
       final now = DateTime(2026, 1, 1, 8, 0, 0);
       final fakeClient = FakeOpenAiClient(
@@ -341,6 +365,38 @@ void main() {
       );
       expect(fakeClient.chatCompletionsCallCount, 1);
       expect(fakeClient.chatCompletionsStreamCallCount, 1);
+    });
+
+    test('send 流式回答被长度限制截断时应保留内容并提示用户', () async {
+      final fakeClient = FakeOpenAiClient(
+        replyText: '{"type":"no_special_call"}',
+        streamReply: const [
+          AiChatStreamChunk(reasoningDelta: '先分析'),
+          AiChatStreamChunk(textDelta: '部分结果'),
+          AiChatStreamChunk(finishReason: 'length'),
+        ],
+      );
+      final aiService = AiService(
+        configService: configService,
+        client: fakeClient,
+      );
+
+      final service = XiaoMiChatService(
+        repository: repository,
+        aiService: aiService,
+        promptResolver: XiaoMiPromptResolver(
+          workLogRepository: FakeWorkLogRepository(),
+        ),
+      );
+      await service.init();
+      await service.send('请总结一下');
+
+      final assistant = service.messages.last;
+      expect(assistant.role, XiaoMiMessageRole.assistant);
+      expect(assistant.content, contains('部分结果'));
+      expect(assistant.content, contains('回答因达到最大输出长度被截断'));
+      expect((assistant.metadata ?? const {})['finishReason'], 'length');
+      expect((assistant.metadata ?? const {})['truncated'], isTrue);
     });
 
     test('send 命中年度总结预置词时应直接按日期区间注入工作记录', () async {

@@ -196,6 +196,7 @@ void main() {
         expect(body['stream'], isTrue);
         expect(body['stream_options'], {'include_usage': true});
         expect(body['model'], 'gpt-4o-mini');
+        expect(body['max_tokens'], 128);
 
         final sse = [
           'data: {"choices":[{"delta":{"reasoning_content":"先看"}}]}\n\n',
@@ -237,6 +238,42 @@ void main() {
       expect(chunks[4].usage?.promptTokens, 21);
       expect(chunks[4].usage?.completionTokens, 8);
       expect(chunks[4].usage?.totalTokens, 29);
+    });
+
+    test('chatCompletionsStream 应保留服务端的截断原因', () async {
+      final streamClient = RecordingHttpClient((request) async {
+        final sse = [
+          'data: {"choices":[{"delta":{"reasoning_content":"先分析"}}]}\n\n',
+          'data: {"choices":[{"delta":{"content":"部分结果"}}]}\n\n',
+          'data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n\n',
+          'data: [DONE]\n\n',
+        ].join();
+        return http.StreamedResponse(
+          Stream.value(utf8.encode(sse)),
+          200,
+          headers: {'Content-Type': 'text/event-stream'},
+        );
+      });
+
+      final client = OpenAiClient(httpClient: streamClient);
+      const config = AiConfig(
+        baseUrl: 'https://example.com',
+        apiKey: 'test-key',
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        maxOutputTokens: 102400,
+      );
+
+      final chunks = await client
+          .chatCompletionsStream(
+            config: config,
+            request: const AiChatRequest(messages: [AiMessage.user('hi')]),
+          )
+          .toList();
+
+      expect(chunks.map((chunk) => chunk.textDelta).join(), '部分结果');
+      expect(chunks.map((chunk) => chunk.reasoningDelta).join(), '先分析');
+      expect(chunks.last.finishReason, 'length');
     });
 
     test('chatCompletionsStream 遇到不支持 stream_options 时应降级重试', () async {

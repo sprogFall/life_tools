@@ -166,6 +166,7 @@ class OpenAiClient {
         textDelta: result.text,
         reasoningDelta: result.reasoning,
         usage: result.usage,
+        finishReason: result.finishReason,
       );
       return;
     }
@@ -261,6 +262,7 @@ class OpenAiClient {
       text: content,
       reasoning: reasoning,
       usage: _parseTokenUsage(json['usage']),
+      finishReason: first?['finish_reason'] as String?,
     );
   }
 
@@ -293,8 +295,11 @@ class OpenAiClient {
     final delta = first?['delta'] as Map<String, dynamic>?;
     if (delta == null) {
       final usage = _parseTokenUsage(json['usage']);
-      if (usage != null) {
-        return _SseParseResult(chunk: AiChatStreamChunk(usage: usage));
+      final finishReason = first?['finish_reason'] as String?;
+      if (usage != null || finishReason != null) {
+        return _SseParseResult(
+          chunk: AiChatStreamChunk(usage: usage, finishReason: finishReason),
+        );
       }
       return const _SseParseResult();
     }
@@ -306,6 +311,7 @@ class OpenAiClient {
         textDelta: textDelta,
         reasoningDelta: reasoningDelta,
         usage: _parseTokenUsage(json['usage']),
+        finishReason: first?['finish_reason'] as String?,
       ),
     );
   }

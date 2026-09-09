@@ -53,21 +53,32 @@ class AiChatResult {
   final String text;
   final String reasoning;
   final AiTokenUsage? usage;
+  final String? finishReason;
 
-  const AiChatResult({required this.text, this.reasoning = '', this.usage});
+  const AiChatResult({
+    required this.text,
+    this.reasoning = '',
+    this.usage,
+    this.finishReason,
+  });
 }
 
 class AiChatStreamChunk {
   final String textDelta;
   final String reasoningDelta;
   final AiTokenUsage? usage;
+  final String? finishReason;
 
   const AiChatStreamChunk({
     this.textDelta = '',
     this.reasoningDelta = '',
     this.usage,
+    this.finishReason,
   });
 
   bool get isEmpty =>
-      textDelta.isEmpty && reasoningDelta.isEmpty && usage == null;
+      textDelta.isEmpty &&
+      reasoningDelta.isEmpty &&
+      usage == null &&
+      finishReason == null;
 }

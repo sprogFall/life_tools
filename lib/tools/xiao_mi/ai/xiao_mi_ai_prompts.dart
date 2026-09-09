@@ -133,7 +133,8 @@ overcooked_context_query 的 arguments 规则：
     systemPrompt: systemPrompt,
     inputLabel: '用户输入',
     temperature: 0.6,
-    maxOutputTokens: 1600,
+    // 由 AI 配置决定，避免推理过程与最终回答共同受 1600 token 的隐式限制。
+    maxOutputTokens: null,
     timeout: Duration(seconds: 90),
     source: AiCallSource(
       toolId: XiaoMiConstants.toolId,
